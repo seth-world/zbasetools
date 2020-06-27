@@ -51,7 +51,10 @@ public:
 //---------------Extract data from current node----------------------------
     ZStatus getNodeContent(utf8VaryingString &pCData);            // extract content from current node whatever it is
     ZStatus getCData(ZDataBuffer& pCData);                  // extracts CData content from current node
-    ZStatus getText(ZDataBuffer& pText);                    // extracts text from current node (comment or text from text node)
+
+    ZStatus getText(ZDataBuffer& pText);  // extracts text from current node (comment or text from text node)
+
+    ZStatus getText(utf8VaryingString& pText);
 
     ZStatus getNodeText(utf8VaryingString &pText);
     ZStatus getNodeRaw(utf8VaryingString &pText);

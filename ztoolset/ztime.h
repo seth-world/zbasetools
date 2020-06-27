@@ -37,9 +37,11 @@ public:
     ZTime () {clear();}
     ZTime (long pT) {tv_sec=pT/1000000000; tv_nsec= pT-(tv_sec*1000000000);}
 
+    ZTime (ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; }
+
     void clear() {memset(this,0,sizeof(ZTime));}
 
-    ZTime operator = (ZTime pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; return *this;}
+    ZTime& operator = (ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; return *this;}
     ZTime operator = (timespec pTi){tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; return *this;}
     ZTime operator = (timeval pTi){tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_usec*1000; return *this;} // micro to nanoseconds
 

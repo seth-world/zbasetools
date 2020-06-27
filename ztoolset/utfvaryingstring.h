@@ -22,12 +22,17 @@ class stringKey;
  */
 class utf8VaryingString: public utfVaryingString<utf8_t>
 {
+protected:
+    void _setToUtf8() {ZType=ZType_Utf8VaryingString;Charset=ZCHARSET_UTF8;}
 public:
 
 typedef utfVaryingString<utf8_t> _Base;
 typedef utf8_t                  _UtfBase;
 
-    utf8VaryingString() {ZType=ZType_Utf8VaryingString;Charset=ZCHARSET_UTF8;}
+    utf8VaryingString() {_setToUtf8() ;}
+
+    utf8VaryingString(const char* pIn) {_setToUtf8() ; fromChar(pIn);}
+    utf8VaryingString(std::string& pIn) {_setToUtf8() ; fromStdString(pIn);}
 
     size_t strcount(UST_Status_type &pStatus)  /** Counts the effective number of utf8 characters : multi-character units counts for 1 - skipping BOM */
     {
@@ -48,6 +53,8 @@ typedef utf8_t                  _UtfBase;
     UST_Status_type getByChunk(const utf8_t *pInString,
                                 const size_t pChunkSize);
     UST_Status_type fromUtf8(const utf8_t *pInString);
+
+    utf8VaryingString& fromChar(const char* pInString) {_Base::strset((const utf8_t*)pInString); return *this;}
     /**
      * @brief fromUtf16 converts an utf16_t string pUtf16 into utf8 format and sets this as current string content.
      *  equivalent as strset, but with utf16 to utf8 conversion.
@@ -72,11 +79,35 @@ typedef utf8_t                  _UtfBase;
     UST_Status_type toUtf32(utf32VaryingString &pUtf32,ZBool *pEndian=nullptr);
 
     ZDataBuffer&        toCString(ZDataBuffer& pZDB);
+    const char*         toCChar();
+    std::string         toStdString() {return std::string(toCChar());}
+
+    utf8VaryingString&  fromStdString(std::string& pIn) {strset((const utf8_t*)pIn.c_str()); return *this;}
+
+
+
+    utf8VaryingString & operator = (const char* pString) { return fromChar(pString);}
+    utf8VaryingString & operator = (std::string&  pString) { return fromStdString(pString);}
+    utf8VaryingString & operator += (const char* pString)
+    {
+        utf8VaryingString wIn(pString);
+        add(wIn);
+        return *this;
+    }
+
+
+    utf8VaryingString& operator += (utf8VaryingString& pIn) {  appendData(pIn); return *this;}
+
+    bool operator == (const char* pIn) { return compareV<char>(pIn); }
+    bool operator != (const char* pIn) { return !compareV<char>(pIn); }
 
 #ifdef QT_CORE_LIB
 
-    const utfVaryingString & operator = (const QString pQString)
-                                { return(strset((utf8_t*)pQString.toUtf8().data()));}
+    const utf8VaryingString & operator = (const QString pQString) { return fromQString(pQString);}
+
+    const QString toQString() {return QString(toCString_Strait());}
+    const utf8VaryingString & fromQString(const QString pQString) {_Base::strset(((const utf8_t*)pQString.toUtf8().data())); return *this;}
+
 #endif
 
 };
@@ -94,6 +125,8 @@ typedef utf16_t                  _UtfBase;
     using _Base::operator [];
     using _Base::operator =;
     using _Base::operator +=;
+
+
 
     utf16VaryingString() {
                             ZType=ZType_Utf16VaryingString;
@@ -143,6 +176,9 @@ typedef utf16_t                  _UtfBase;
 
     utf16VaryingString& getLittleEndian(utf16VaryingString& pLittleEndian);
     utf16VaryingString& getBigEndian(utf16VaryingString& pBigEndian);
+
+    bool operator == (const char* pIn) { return compareV<char>(pIn); }
+    bool operator != (const char* pIn) { return !compareV<char>(pIn); }
 
 };
 /**
@@ -213,6 +249,9 @@ typedef utf32_t                  _UtfBase;
      * @return utf32VaryingString with a certified big endian content : content is preceeded by a BOM
      */
     utf32VaryingString& getBigEndianWBOM(utf32VaryingString& pBigEndian);
+
+    bool operator == (const char* pIn) { return compareV<char>(pIn); }
+    bool operator != (const char* pIn) { return !compareV<char>(pIn); }
 };
 
 

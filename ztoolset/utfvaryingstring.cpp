@@ -26,6 +26,12 @@ utfVaryingString<_Utf>::newSortKey(void)
  //================ utf8VaryingString conversions to and from other formats==============================
 
 
+const char*
+utf8VaryingString::toCChar()
+{
+    return (const char*)Data ;
+}// utf8VaryingString::toCChar
+
 ZDataBuffer&
 utf8VaryingString::toCString(ZDataBuffer& pZDB)
 {
@@ -47,8 +53,6 @@ utf8VaryingString::toCString(ZDataBuffer& pZDB)
     free(wStr);
     return pZDB;
 }// utf8VaryingString::toCString
-
-
 
 #include <ztoolset/cnvcallback.h>   // for custom callbacks
 #include <unicode/ucnv.h>           // for icu converters

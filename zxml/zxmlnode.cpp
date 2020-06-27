@@ -391,7 +391,7 @@ zxmlNode::getChildByName(zxmlNode* &pNode, const char*pName)
         {
         if (wChild->name)
         {
-        if (xmlStrcmp (wChild->name,(xmlChar*)pName))
+        if (xmlStrcmp (wChild->name,(xmlChar*)pName)==0)
                 {
  //               pNode=new zxmlNode(wChild);
                 pNode=zxmlcreateNode(wChild);
@@ -502,13 +502,19 @@ zxmlNode::getNodeText(utf8VaryingString& pText)
 {
 _MODULEINIT_
 
-    xmlBufPtr wxmlBuf=nullptr;
+ //   xmlBufPtr wxmlBuf=nullptr;
 
-    xmlChar* wBuf=xmlNodeListGetString(_xmlInternalNode->doc,_xmlInternalNode,0);
+//    xmlChar* wBuf=xmlNodeListGetString(_xmlInternalNode->doc,_xmlInternalNode,0);
+
+    xmlChar* wBuf=xmlNodeGetContent(_xmlInternalNode);
+
 
 //    pText.setString((const char*)_xmlInternalNode->content);
-    pText.strset((utf8_t*)wBuf);
-    xmlFree (wBuf);
+    if (wBuf)
+        {
+        pText.strset((utf8_t*)wBuf);
+        xmlFree (wBuf);
+        }
     _RETURN_ ZS_SUCCESS;
 }//getNodeContent
 /**
@@ -564,9 +570,44 @@ _MODULEINIT_
         }
     pText.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
 
+    xmlFree(wxmlBuf);
     // conversion from utf8
 //    xmlCharEncodingHandler
     //
+    pText.addConditionalTermination();
+    _RETURN_ ZS_SUCCESS;
+}//getText
+
+ZStatus
+zxmlNode::getText(utf8VaryingString& pText)
+{
+_MODULEINIT_
+/*    if (!isText())
+        {
+        ZException.setMessage(_GET_FUNCTION_NAME_,
+                              ZS_INVOP,
+                              Severity_Error,
+                              "Node <%s> is either invalid or is not a Text node ",
+                              getName().toString());
+        _RETURN_ ZS_INVOP;
+        }*/
+    xmlBufferPtr wxmlBuf=nullptr;
+    if (xmlNodeBufGetContent(wxmlBuf,_xmlInternalNode)<0) // gets any node content including CDATA section
+        {
+        pText.clear();
+        ZException.setMessage(_GET_FUNCTION_NAME_,
+                              ZS_XMLERROR,
+                              Severity_Error,
+                              "Cannot get content for node <%s>",
+                              getName().toString());
+        _RETURN_ ZS_XMLERROR;
+        }
+    pText.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
+
+    // conversion from utf8
+//    xmlCharEncodingHandler
+    //
+    xmlFree(wxmlBuf);
     pText.addConditionalTermination();
     _RETURN_ ZS_SUCCESS;
 }//getText

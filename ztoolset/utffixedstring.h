@@ -50,8 +50,6 @@ public:
     using _Base::fromUtf;
     using _Base::fromUtfCount;
 
-
-
     const char*toCChar() const  {return (const char*)_Base::content;}
 //    using _Base::fromCString;  No no no and no : char string could be any multi-byte format : do not mix that with unicode-
 

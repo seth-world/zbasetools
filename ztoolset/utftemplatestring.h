@@ -157,13 +157,22 @@ public:
     inline int ncompare(const _Utf* pString2,size_t pCount) ; /** corresponds to strncmp witn native _Utf argument */
     inline int ncompare(const char* pString2,size_t pCount);/** corresponds to strncmp witn native char argument */
 
-    inline int compareEqual(const _Utf* pString2) {return compare(pString2)==0;}
-    inline int compareGreater(const _Utf* pString2) {return compare(pString2)>0;}
-    inline int compareLess(const _Utf* pString2) {return compare(pString2)<0;}
+    /**
+     * @brief toDouble converts string content to a double
+     *
+        In case of success errno is set to 0
+        In case of error errno is positionned to
+        ENOMEM : cannot allocate memory
+        EINVAL : no digits have been detected
+        ERANGE : value exceeds double capacity
+     *
+     * @return a double with converted value
+     */
+    double toDouble();
+    int toInt(int pBase=10);
+    int toLong(int pBase=10);
 
-    inline int ncompareEqual(const _Utf* pString2,size_t pCount) {return ncompare(pString2,pCount)==0;}
-    inline int ncompareGreater(const _Utf* pString2,size_t pCount) {return ncompare(pString2,pCount)>0;}
-    inline int ncompareLess(const _Utf* pString2,size_t pCount) {return ncompare(pString2,pCount)<0;}
+
 
  //   ssize_t strlen(void){return (utfStrlen<_Utf>(content));}
     /**
@@ -349,9 +358,6 @@ public:
     _Utf * toString(void) {content[sizeof(content)-1]=(_Utf)'\0';return(content);}
 
 
-    double toDouble(void) {return(   utfStrtod<_Utf>(toUtf(),nullptr));}
-    long toLong(int pBase=10) {return(utfStrtol<_Utf>(toUtf(),nullptr,pBase));}
-    long toULong(int pBase=10) {return(utfStrtoul<_Utf>(toUtf(),nullptr,pBase));}
 
     /**
      * @brief addUtfUnit adds an Utf unit at the end of string (a unit is not necessarily a character) plus _Utf \0 sign.
@@ -490,18 +496,18 @@ public:
      //utftemplateString<_Sz,_Utf>& operator += (const char * pString) {return addCString(pString);}
 
 
-     bool operator == (const utftemplateString<_Sz,_Utf> &pCompare) { return(ncompare(pCompare.content,_Sz)==0);}
-     bool operator != (const utftemplateString<_Sz,_Utf> &pCompare) { return(!ncompare(pCompare.content,_Sz)==0);}
-     bool operator != (const char* &pCompare) { return(!ncompare(pCompare,_Sz)==0);}
-     bool operator > (const utftemplateString<_Sz,_Utf> &pCompare) { return(ncompare(pCompare.content,_Sz)>0);}
-     bool operator < (const utftemplateString<_Sz,_Utf> &pCompare) { return(ncompare(pCompare.content,_Sz)<0);}
+     bool operator == (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)==0);}
+     bool operator != (const utftemplateString<_Sz,_Utf> &pCompare) { return(!compare(pCompare.content)==0);}
+     bool operator != (const char* &pCompare) { return(!compare(pCompare)==0);}
+     bool operator > (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)>0);}
+     bool operator < (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)<0);}
 
      bool operator == (const _Utf *pCompare) { return(compare(pCompare)==0);}
      bool operator == (const char *pCompare) { return(compare(pCompare)==0);}
 
-     bool operator != (const _Utf *pCompare) { return!(ncompare(pCompare,_Sz)==0);}
-     bool operator > (const _Utf *pCompare) { return(ncompare(pCompare,_Sz)>0);}
-     bool operator < (const _Utf *pCompare) { return(ncompare(pCompare,_Sz)<0);}
+     bool operator != (const _Utf *pCompare) { return!(compare(pCompare)==0);}
+     bool operator > (const _Utf *pCompare) { return(compare(pCompare)>0);}
+     bool operator < (const _Utf *pCompare) { return(compare(pCompare)<0);}
 
 
 ZDataBuffer* toZDataBuffer(void)
@@ -1566,7 +1572,6 @@ utftemplateString<_Sz,_Utf>::nadd_Char( const char *wSrc, size_t pCount)
                     *wPtr=(_Utf)'\0';
     return *this;
 }// nadd_char
-
 template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>&
 utftemplateString<_Sz,_Utf>::addUtfUnit(const _Utf pChar)
@@ -1611,7 +1616,11 @@ utftemplateString<_Sz,_Utf>::compare(const _Utf* pString2)
 
     const _Utf *s1 = (const _Utf *) content;
     const _Utf *s2 = (const _Utf *) pString2;
-    while ((*s1++ == *s2++ )&&(*s1)&&(*s2));
+    while ((*s1 == *s2 )&&(*s1)&&(*s2))
+        {
+        s1++;
+        s2++;
+        }
     return *s1 - *s2;
 
 }/** corresponds to strcmp */
@@ -1620,13 +1629,20 @@ template <size_t _Sz,class _Utf>
 inline int
 utftemplateString<_Sz,_Utf>::compare(const char* pString2)
 {
+    _Utf wCChar;
     if (pString2==nullptr)
                 return 1;
 
     const _Utf *s1 = (const _Utf *) content;
-    const _Utf *s2 = (const _Utf *) pString2;
-    while ((*s1++ == *s2++ )&&(*s1)&&(*s2));
-    return *s1 - *s2;
+    const char *s2 = pString2;
+    wCChar=(_Utf)*s2;
+    while ((*s1 == wCChar )&&(*s1)&&(*s2))
+        {
+        s1++;
+        s2++;
+        wCChar=(_Utf)*s2;
+        }
+    return *s1 - wCChar;
 
 }/** corresponds to strcmp */
 
@@ -1677,22 +1693,21 @@ utftemplateString<_Sz,_Utf>::ncompare(const char* pString2,size_t pCount)
                 return 0;
     if (pString2==nullptr)
                 return 1;
-    if (pCount<1)
-                pCount=0;
-    int wCount = pCount>0?0:-1;
-    int wComp = (int)(*wPtr - (char)*pString2);
-    while ((!wComp)&&(*wPtr)&&(*pString2)&&(wCount<pCount))
-    {
-    wPtr++;
-    pString2++;
-    if (pCount)
-                wCount++;
-    wComp=(int)(*wPtr - *pString2);
-    }
-    if (wComp)
-            return wCount;
+
+    int wCount = 0 ;
+    int32_t wComp = (int32_t)(*wPtr - (int32_t)*pString2);
+    while ((!wComp)&&(*wPtr)&&(*pString2)&&(wCount < pCount))
+        {
+        wPtr++;
+        pString2++;
+        wCount++;
+        wComp = (int32_t)(*wPtr - (int32_t)*pString2);
+        }
+
     if (wCount==pCount)
             return wComp;
+    if (wComp)
+            return wComp ;
     // up to here wComp==0 (equality)
     //    test string lengths
     if (*wPtr==0) // string 1 exhausted
@@ -1889,6 +1904,21 @@ _MODULEINIT_
 }// fromISOLatin1
 
 
+template <size_t _Sz,class _Utf>
+double utftemplateString<_Sz,_Utf>::toDouble()
+{
+    return utfStrtod<utf8_t>(content,nullptr);
+}
+template <size_t _Sz,class _Utf>
+int utftemplateString<_Sz,_Utf>::toInt(int pBase)
+{
+    return utfStrtoi<utf8_t>(content,nullptr,pBase);
+}
+template <size_t _Sz,class _Utf>
+int utftemplateString<_Sz,_Utf>::toLong(int pBase)
+{
+    return utfStrtol<utf8_t>(content,nullptr,pBase);
+}
 
 //-------------End utftemplateString Methods expansion---------------------------------------
 

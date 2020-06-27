@@ -372,7 +372,7 @@ int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
             wBase=ZNBase_Octal;     // this is Octal
             wPtr1=&wPtr[2]; // skip this header
             }
-    while(*wPtr1++)
+    while(*wPtr1)
             {
             if ((wR = utftoint<_Utf>(*wPtr1,wBase))>=0)
                         {
@@ -383,6 +383,7 @@ int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
                 {
                 break; // up to non valid digit
                 }
+            wPtr1++;
             }// while
     if ((wR==cst_UTIMinus)||(wNegative))  // if minus sign trailing or leading
                 {
@@ -640,28 +641,32 @@ unsigned long utfStrtoul(_Utf*pString)
 
 template <class _Utf>
 /**
- * @brief utfStrtod converts a string to
+ * @brief utfStrtod converts a string to a double
         adapted for _Utf from strtod.c Copyright (C) 2002 Michael Ringgaard. All rights reserved.
+        In case of success errno is set to 0
+        In case of error errno is positionned to
+        ENOMEM : cannot allocate memory
+        EINVAL : no digits have been detected
+        ERANGE : value exceeds double capacity
+
+
  * @param pString
  * @param pEndptr
- * @return
+ * @return a double
  */
-double utfStrtod(const _Utf *pString, _Utf **pEndptr)
+double utfStrtod(const _Utf *pString, const _Utf **pEndptr)
  {
-     double number;
+
+    const _Utf* wPtr=utfSkipSpaces(pString);// skip space and non breaking space characters
+
+     double wNumber;
      int exponent;
      int negative;
-     _Utf *wPtr = (_Utf *)pString;
      double p10;
      int n;
      int num_digits;
      int num_decimals;
      const double Inf = 1.0 / 0.0;
-
-     // Skip leading whitespace
-//     while (isspace(*p))
-//          p++;
-     wPtr=utfLTrim(pString);
      // Handle optional sign
      negative = 0;
      switch (*wPtr) {
@@ -671,50 +676,55 @@ double utfStrtod(const _Utf *pString, _Utf **pEndptr)
      wPtr++;
      }
 
-     number = 0.;
+     wNumber = 0.;
      exponent = 0;
      num_digits = 0;
      num_decimals = 0;
 
      // Process string of digits
      while (utfIsdigit<_Utf>(*wPtr)) {
-     number = number * 10. + (*wPtr - '0');
+     wNumber = wNumber * 10. + (*wPtr - '0');
      wPtr++;
      num_digits++;
      }
 
      // Process decimal part
-     if (*wPtr == (_Utf)'.') {
+     if (*wPtr == (_Utf)'.')
+     {
      wPtr++;
 
-     while (utfIsdigit<_Utf>(*wPtr)) {
-         number = number * 10. + (double)(*wPtr - (_Utf)'0');
+     while (utfIsdigit<_Utf>(*wPtr))
+        {
+         wNumber = wNumber * 10. + (double)(*wPtr - (_Utf)'0');
          wPtr++;
          num_digits++;
          num_decimals++;
-     }
+        }// while
 
      exponent -= num_decimals;
-     }
+     }//if (*wPtr == (_Utf)'.')
 
-     if (num_digits == 0) {
-     errno = ERANGE;
-     return 0.0;
-     }
+     if (num_digits == 0)
+        {
+         errno = EINVAL;
+         return 0.0;
+         }
      // Correct for sign
      if (negative)
-     number = -number;
+     wNumber = -wNumber;
 
      // Process an exponent string
-     if (*wPtr == (_Utf)'e' || *wPtr == (_Utf)'E') {
+     if (*wPtr == (_Utf)'e' || *wPtr == (_Utf)'E')
+        {
      // Handle optional sign
      negative = 0;
-     switch (*++wPtr) {
+     switch (*++wPtr)
+     {
      case (_Utf)'-':
          negative = 1;   // Fall through to increment pos
      case (_Utf)'+':
          wPtr++;
-     }
+     }// switch
 
      // Process string of digits
      n = 0;
@@ -730,9 +740,9 @@ double utfStrtod(const _Utf *pString, _Utf **pEndptr)
      }
 
      if (exponent < __DBL_MIN_EXP__ || exponent > __DBL_MAX_EXP__) {
-     errno = ERANGE;
-     return Inf;
-     }
+                    errno = ERANGE;
+                    return Inf;
+                    }
      // Scale the result
      p10 = 10.;
      n = exponent;
@@ -741,20 +751,21 @@ double utfStrtod(const _Utf *pString, _Utf **pEndptr)
      while (n) {
      if (n & 1) {
          if (exponent < 0)
-         number /= p10;
+         wNumber /= p10;
          else
-         number *= p10;
+         wNumber *= p10;
      }
      n >>= 1;
      p10 *= p10;
      }
 
-     if (!is_real(number))
-     errno = ERANGE;
+     if (!is_real(wNumber))
+                errno = ERANGE;
      if (pEndptr)
-     *pEndptr = wPtr;
+        *pEndptr = wPtr;
 
-     return number;
+//     free (wString);
+     return wNumber;
 }// utfStrtod
 
 //================= string operations==============================

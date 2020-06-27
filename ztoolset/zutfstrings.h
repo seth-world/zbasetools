@@ -85,13 +85,12 @@ public:
 
 //        const char* toCString(void) {return (const char*)content;}
 
-    utfdescString & operator =(const char* pCode) {return (utfdescString&)strset((const utf8_t*)pCode);}
+    utfdescString & operator =(const char* pCode) {strset((const utf8_t*)pCode); return *this;}
 
     utfdescString& operator = (utfdescString& pIn) {_copyFrom(pIn);}
     utfdescString& operator = (utfdescString&& pIn) {_copyFrom(pIn);}
         using _Base::operator += ;
         using _Base::UnitCount;
-
 //    utfdescString& operator = (const char* pString) {return (utfdescString&)fromCString(pString);}
 };
 
@@ -167,7 +166,7 @@ typedef utf8FixedString<cst_identitylen+1> _Base;
 
 
 
-
+typedef utf8VaryingString utf8String;
 
 
 #endif // ZUTFSTRINGS_H

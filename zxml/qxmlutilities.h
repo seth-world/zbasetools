@@ -1,14 +1,15 @@
 #ifndef QXMLUTILITIES_H
 #define QXMLUTILITIES_H
 
+
 #include <QDomDocument>
-//#include <QWindow>
-//#include <QWidget>
 
 #include <zcrypt/zcrypt.h>
-#include <ztoolset/ztypes.h>
-#include <ztoolset/zauthorization.h>
-
+//#include <ztoolset/ztypes.h>
+//#include <ztoolset/zauthorization.h>
+#include <ztoolset/zbasedatatypes.h>
+#include <ztoolset/zutfstrings.h>
+#include <ztoolset/zdate.h>
 struct checkSum;
 
 QDomElement _appendElement (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,char *pStringValue);
@@ -28,8 +29,10 @@ QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *p
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, double pdoubleValue);
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, uriString pValue);
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, checkSum pValue);
+#ifdef ZAUTHORIZATION_H
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, Id_struct &pValue);
-
+void getElement (Id_struct &pField ,QDomElement &pElement);
+#endif
 void getElement (utfdescString &pField , QDomElement &pElement);
 void getElement (utfcodeString &pField ,QDomElement &pElement);
 void getElement (checkSum &pField ,QDomElement &pElement);
@@ -43,7 +46,6 @@ void getElement (int &pField , QDomElement &pElement);
 void getElement (uriString &pField ,QDomElement &pElement);
 void getElement (Docid_struct &pField ,QDomElement &pElement);
 void getElement (utfidentityString &pField ,QDomElement &pElement);
-void getElement (Id_struct &pField ,QDomElement &pElement);
 void getElementLong (long &pField ,QDomElement &pElement);
 void getElementULong (unsigned long &pField ,QDomElement &pElement);
 void getElementSize_t (size_t &pField ,QDomElement &pElement);

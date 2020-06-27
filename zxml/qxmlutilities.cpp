@@ -60,6 +60,7 @@ QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *p
 
     return(NewElement);
 }
+#ifdef ZAUTHORIZATION_H
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, Id_struct &pValue)
 {
     QDomElement NewElement=pXmlDoc.createElement(pName);
@@ -70,6 +71,12 @@ QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *p
     return(NewElement);
 }
 
+void getElement (Id_struct &pField ,QDomElement &pElement)
+{
+    pField.fromString( pElement.text().toStdString().c_str(),16) ;  //! get it from hexadecimal
+return;
+}
+#endif
 
 QDomElement appendElement (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,ZDate &pDateValue)
 {
@@ -279,11 +286,7 @@ void getElement (Docid_struct &pField ,QDomElement &pElement)
             }
 return;
 }
-void getElement (Id_struct &pField ,QDomElement &pElement)
-{
-    pField.fromString( pElement.text().toStdString().c_str(),16) ;  //! get it from hexadecimal
-return;
-}
+
 void getElement (utfidentityString &pField , QDomElement &pElement)
 {
 //    QString welt = pElement.text();

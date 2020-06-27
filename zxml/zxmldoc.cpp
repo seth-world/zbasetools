@@ -711,12 +711,12 @@ _MODULEINIT_
                          " Error while parsing memory loaded xml file <%s> requested encoding <%s> requested parsing options <%s>",
                          pURL,
                          pEncoding,
-                         decode_XMLParseOptions(pOptions)
+                         decode_XMLParseOptions(pOptions).toCChar()
                          );
         _RETURN_ ZS_XMLERROR;
         }
 
-    _RETURN_ getRootElement(RootElement);;
+    _RETURN_ getRootElement(RootElement);
 }// loadAndParseXMLDoc
 
 

@@ -95,8 +95,22 @@ class utfKey;
 template <class _Utf>
 class utfVaryingString : public utfStringDescriptor
 {
+protected:
+    utfVaryingString& _copyFrom(utfVaryingString& pIn)
+    {
+        CryptMethod=pIn.CryptMethod;
+        allocateBytes( pIn.ByteSize);
+        memmove(Data,pIn.Data,ByteSize);
+
+        return(*this);
+    }
+
 public:
-    utfVaryingString (const utfVaryingString&) = delete;                  // cannot copy
+//    utfVaryingString (const utfVaryingString&) = delete;                  // cannot copy
+    utfVaryingString (utfVaryingString& pIn);
+
+
+
 //    utfVaryingString& operator= (const utfVaryingString&) = delete; // may assign because of overloaded operator = (KEEP THIS COMMENTED)
 
     _Utf *          Data=nullptr;
@@ -119,7 +133,7 @@ public:
     //         utfVaryingString storage is adjusted accordingly IF AVAILABLE MEMORY AMOUNT IS LESS than required.
     //         If amount of memory available is greater than required, no memory reallocation is done.
     //
-    const utfVaryingString&
+    utfVaryingString&
     setData(const _Utf* &&pData,size_t pSize)
     {
         CryptMethod=ZCM_Uncrypted;
@@ -127,7 +141,7 @@ public:
         memmove(Data,pData,pSize);
         return(*this);
     }
-    const utfVaryingString&
+    utfVaryingString&
     setData(const utfVaryingString& pBuffer)
     {
         CryptMethod=pBuffer.CryptMethod;
@@ -137,20 +151,23 @@ public:
         return(*this);
     }
 
-    const utfVaryingString&
+    utfVaryingString&
     appendData(const void *pData,const size_t pSize) {
                                           size_t wOld=ByteSize;
                                           extendBytes(pSize);
                                           memmove(&Data[wOld],pData,pSize);
                                           return(*this);
                                          }
-    const utfVaryingString&
-    appendData(const utfVaryingString& pBuffer) {
-                                          size_t wOld=ByteSize;
-                                          extendBytes(pBuffer.ByteSize);
-                                          memmove(&DataByte[wOld],pBuffer.Data,pBuffer.ByteSize);
-                                          return(*this);
-                                           }
+    utfVaryingString&
+    appendData(utfVaryingString& pBuffer)
+        {
+        if (pBuffer.isEmpty())
+                return *this;
+        size_t wOld=ByteSize;
+        extendBytes(pBuffer.ByteSize);
+        memmove(&DataByte[wOld],pBuffer.Data,pBuffer.ByteSize);
+        return(*this);
+        }
     /** @brief truncate routines : truncate and Ctruncate reduce the size of utfVaryingString to pLen (Ctruncate adds a '\0' termination)*/
 
     utfVaryingString<_Utf>& truncate(ssize_t pCount); /** truncates string to pLen character units from beginning of _Utf string */
@@ -184,6 +201,7 @@ public:
                                         *wPtr++=wSrcPtr++;
                 return(*this);
                 }
+
     /** @brief removeData suppresses data content at pOffset on pCount character units.
      * Adjusts storage size.
      * Abort if pOffset+pLength greater than actual data size with ENOMEM.*/
@@ -214,8 +232,31 @@ public:
 
 /*  string routines : strcpy is replaced by strset - strcat is replaced by stradd, etc. */
 
-    int compare(const _Utf* pString2) {return utfStrcmp<_Utf>(Data,pString2);}                       /** corresponds to strcmp */
-    int ncompare(const _Utf* pString2,size_t pCount) {return utfStrncmp<_Utf>(Data,pString2,pCount);}/** corresponds to strncmp */
+//    int compare(const _Utf* pString2) {return utfStrcmp<_Utf>(Data,pString2);}                       /** corresponds to strcmp */
+//    int ncompare(const _Utf* pString2,size_t pCount) {return utfStrncmp<_Utf>(Data,pString2,pCount);}/** corresponds to strncmp */
+    int compare(const _Utf* pString2) ;                      /** corresponds to strcmp */
+
+    template <class _Utf1>
+    int compareV(const _Utf1* pString2)
+    {
+    _Utf wCChar;
+    if (pString2==nullptr)
+                return 1;
+    if (pString2==nullptr)
+                return 1;
+
+    const _Utf *s1 = (const _Utf *) Data;
+    const char *s2 = pString2;
+    wCChar=(_Utf)*s2;
+    while ((*s1 == wCChar )&&(*s1)&&(*s2))
+        {
+        s1++;
+        s2++;
+        wCChar=(_Utf)*s2;
+        }
+    return *s1 - wCChar;
+    }
+    int ncompare(const _Utf* pString2,size_t pCount) ; /** corresponds to strncmp */
 
     ssize_t strlen(){return (utfStrlen<_Utf>(Data));}
 
@@ -227,6 +268,8 @@ public:
     utfVaryingString<_Utf> &add(const _Utf *wSrc);   /** corresponds to strcat: add _Utf string to current string. Extends allocation */
     utfVaryingString<_Utf> &nadd( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
     utfVaryingString<_Utf> &addUtfUnit(const _Utf pChar); /** adds an Utf unit at the end of varying string (not necessarily a character) plus _Utf \0 sign. */
+
+    utfVaryingString<_Utf> &add(utfVaryingString<_Utf>& wSrc);
 
 //    utfVaryingString<_Utf> &add( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
 
@@ -261,6 +304,34 @@ public:
 
      utfVaryingString<_Utf>& operator += (const _Utf pChar) { return addUtfUnit(pChar); }
 //    utfVaryingString&fromWString(const wchar_t* pWString) { allocate((wcslen(pWString)+1)*sizeof(WDataChar[0])); wcsncpy(WDataChar,pWString,wcslen(pWString)); return *this; }
+
+
+     utfVaryingString& operator = (utfVaryingString&& pIn) { return _copyFrom(pIn); }
+     utfVaryingString& operator = (utfVaryingString& pIn) {return _copyFrom(pIn);}
+
+     utfVaryingString& operator += (utfVaryingString& pIn) { return appendData(pIn); }
+
+
+     bool operator == (utfVaryingString& pIn) { return compare(pIn)==0; }
+     bool operator == (const _Utf* pIn) { return compare(pIn)==0; }
+
+     bool operator != (utfVaryingString& pIn) { return compare(pIn); }
+
+
+
+     double toDouble()
+     {
+         return utfStrtod<_Utf>(Data,nullptr);
+     }
+     int toInt(int pBase=10)
+     {
+         return utfStrtoi<_Utf>(Data,nullptr,pBase);
+     }
+     int toLong(int pBase=10)
+     {
+         return utfStrtol<_Utf>(Data,nullptr,pBase);
+     }
+
 
     ZDataBuffer* _exportURF(ZDataBuffer *pURF);
     ZStatus _importURF(unsigned char *pURF);
@@ -395,6 +466,11 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
    bool isEqual (const _Utf *pCompare, long pSize=-1) ;
    bool isGreater (const _Utf *pCompare, long pSize=-1);
    bool isLess (const _Utf *pCompare, long pSize=-1);
+
+   bool isEqual (const utfVaryingString<_Utf> &pCompare) ;
+   bool isGreater (const utfVaryingString<_Utf> &pCompare);
+   bool isLess (const utfVaryingString<_Utf> &pCompare);
+
 
    bool contains (const _Utf *pString)
           {
@@ -549,6 +625,16 @@ utfVaryingString<_Utf>::utfVaryingString(void)
     return;
 }
 
+
+template <class _Utf>
+utfVaryingString<_Utf>::utfVaryingString(utfVaryingString& pIn)
+
+{
+    Data=nullptr;
+    DataByte=nullptr;
+    utfInit();
+    return;
+}
 template <class _Utf>
 utfVaryingString<_Utf>::utfVaryingString (_Utf *pData,ssize_t pCount)
 {
@@ -584,6 +670,8 @@ template <class _Utf>
      freeData();
 //     if (SortKey!=nullptr) delete SortKey;
  }
+
+
 
 /**
  * @brief utfVaryingString::truncate truncates allocated characters to pCount _Utf characters including '\0' _Utf last character.
@@ -799,20 +887,20 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
     va_start(ap, pFormat);
     _Utf wFormat[cst_MaxSprintfBufferCount];
     _Utf* wPtr=wFormat;
-    char* wPtr1=pFormat;
+    const char* wPtr1=pFormat;
     size_t wi=0;
     while (*wPtr1 && wi++< (cst_MaxSprintfBufferCount-1))
-                                    *wPtr=(_Utf)wPtr1++;
+                                    *wPtr=(_Utf)*wPtr1++;
     *wPtr=(_Utf)'\0';
 
     _Utf wMS[cst_MaxSprintfBufferCount];
 //    ssize_t wStringCount=(ssize_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,wFormat,ap);
-    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,pFormat,ap);
+    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,(_Utf*)pFormat,ap);
     va_end(ap);
 
 //    size_t wCount = utfStrlen<_Utf>(Data)+wStringCount+1;
 
-    _Utf* *wAddPtr=wMS;
+    _Utf* wAddPtr=&wMS[0];
     wPtr=allocateUnits(wStringCount+1);
     while (wStringCount--)
                 {
@@ -846,7 +934,7 @@ utfVaryingString<_Utf>::addsprintf(const char* pFormat,...)  /** adds formatted 
 
     _Utf wFormat[cst_MaxSprintfBufferCount];
     _Utf* wPtr=wFormat;
-    char* wPtr1=pFormat;
+    const char* wPtr1=pFormat;
     size_t wi=0;
     while (*wPtr1 && wi++< (cst_MaxSprintfBufferCount-1))
                                     *wPtr=(_Utf)wPtr1++;
@@ -920,6 +1008,30 @@ utfVaryingString<_Utf>::add(const _Utf *wSrc)
     *wPtr=(_Utf)'\0';
     return *this;
 }// stradd
+
+template <class _Utf>
+utfVaryingString<_Utf>&
+utfVaryingString<_Utf>::add(utfVaryingString<_Utf>& wSrc)
+{
+    if (wSrc.isEmpty())
+            return *this;
+
+
+    size_t wCount=wSrc.getUnitCount();
+    if (!wCount)
+            return *this;
+
+    _Utf* wSrcPtr=wSrc.Data;
+    _Utf* wPtr=extendCharCond(wCount);
+    while(*wSrcPtr && wCount--)
+            {
+            *wPtr=*wSrcPtr;
+            wPtr++;
+            wSrcPtr++;
+            }
+    *wPtr=(_Utf)'\0';
+    return *this;
+}// add
 
 template <class _Utf>
 /**
@@ -1167,7 +1279,7 @@ _MODULEINIT_
                 decode_ZStatus( ZS_MEMERROR),
                 decode_Severity( Severity_Fatal),
                 wByteSize);
-        _ABORT_;
+        _ABORT_
     }
     ByteSize=wByteSize;
     UnitCount = pCharCount;
@@ -1915,8 +2027,24 @@ utfVaryingString<_Utf>::isEqual (const _Utf *pCompare,long pSize)
         else
             return(ncompare(pCompare,pSize)==0);
 }
-
-
+template <class _Utf>
+bool
+utfVaryingString<_Utf>::isEqual (const utfVaryingString<_Utf>& pCompare)
+{
+    return(ncompare(pCompare.Data,pCompare.ByteSize)==0);
+}
+template <class _Utf>
+bool
+utfVaryingString<_Utf>::isGreater (const utfVaryingString<_Utf>& pCompare)
+{
+    return(ncompare(pCompare.Data,pCompare.ByteSize)>0);
+}
+template <class _Utf>
+bool
+utfVaryingString<_Utf>::isLess (const utfVaryingString<_Utf>& pCompare)
+{
+    return(ncompare(pCompare.Data,pCompare.ByteSize)<0);
+}
 /**
  * @brief utfVaryingString::isGreater Tests whether the content given by void* on pSize length is greater than the same segment utfVaryingString::Data
  * If pSize is ommitted (<1) then test is made on size of utfVaryingString content.
@@ -1982,6 +2110,65 @@ ZDataBuffer wZDB;
 } // dumpHexa
 
 
+
+template <class _Utf>
+inline int
+utfVaryingString<_Utf>::compare(const _Utf* pString2)
+{
+    if (Data==pString2)
+                return 0;
+    if (pString2==nullptr)
+                return 1;
+
+    const _Utf *s1 = (const _Utf *) Data;
+    const _Utf *s2 = (const _Utf *) pString2;
+    while ((*s1 == *s2 )&&(*s1)&&(*s2))
+        {
+        s1++;
+        s2++;
+        }
+    return *s1 - *s2;
+
+}/** corresponds to strcmp */
+
+
+template <class _Utf>
+inline int
+utfVaryingString<_Utf>::ncompare(const _Utf* pString2,size_t pCount)
+{
+    const _Utf* wPtr=Data;
+    if (Data==pString2)
+                return 0;
+    if (pString2==nullptr)
+                return 1;
+    if (pCount<1)
+                pCount=0;
+    int wCount = pCount>0?0:-1;
+    int wComp = (int)(*wPtr - *pString2);
+    while ((!wComp)&&(*wPtr)&&(*pString2)&&(wCount<pCount))
+    {
+    wPtr++;
+    pString2++;
+    if (pCount)
+                wCount++;
+    wComp=(int)(*wPtr - *pString2);
+    }
+    if (wComp)
+            return wComp;
+    if (wCount==pCount)
+            return wComp;
+    // up to here wComp==0 (equality)
+    //    test string lengths
+    if (*wPtr==0) // string 1 exhausted
+            {
+            if (*pString2==0)   // so is string2
+                        return 0;   // perfect equality
+            return -1; // string 2 is greater than string1 (because more characters)
+            }
+    // up to here wComp==0 but string1 is not exhausted
+    //
+    return 1; // string 1 is longer
+}/** corresponds to strncmp */
 
 //---------End utfVaryingString--------------------------
 
