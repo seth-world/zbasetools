@@ -34,15 +34,15 @@ public:
     {
         while (RegisteredNodes.size())
             {
-            delete RegisteredNodes.popR();
+            xmlFree(RegisteredNodes.popR());
             }
         while (RegisteredAttributes.size())
             {
-            delete RegisteredAttributes.popR();
+            xmlFree(RegisteredAttributes.popR());
             }
         while (RegisteredNameSpaces.size())
             {
-            delete RegisteredNameSpaces.popR();
+             xmlFree(RegisteredNameSpaces.popR());
             }
         xmlCleanupCharEncodingHandlers();
         xmlCleanupParser();
@@ -337,14 +337,14 @@ _MODULEINIT_
                              ZS_XMLERROR,
                              Severity_Severe,
                              "Cannot associate tree node <%s> as root element.",
-                             pNode->getName());
+                             pNode->getName().toCChar());
             _RETURN_ ZS_XMLERROR;
             }
     RootElement=pNode;
     if (ZVerbose)
             fprintf(stdout,"%s>>Root element <%s> has been created\n",
                     _GET_FUNCTION_NAME_,
-                    RootElement->getName().toString());
+                    RootElement->getName().toCChar());
 
     _RETURN_ ZS_SUCCESS;
 }//createRootElementfromTree

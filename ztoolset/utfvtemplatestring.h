@@ -106,12 +106,9 @@ protected:
     }
 
 public:
-//    utfVaryingString (const utfVaryingString&) = delete;                  // cannot copy
     utfVaryingString (utfVaryingString& pIn);
+    utfVaryingString (utfVaryingString&& pIn);
 
-
-
-//    utfVaryingString& operator= (const utfVaryingString&) = delete; // may assign because of overloaded operator = (KEEP THIS COMMENTED)
 
     _Utf *          Data=nullptr;
     utfVaryingString (void) ;
@@ -312,10 +309,9 @@ public:
      utfVaryingString& operator += (utfVaryingString& pIn) { return appendData(pIn); }
 
 
-     bool operator == (utfVaryingString& pIn) { return compare(pIn)==0; }
+     bool operator == (utfVaryingString& pIn) { return compare(pIn.Data)==0; }
      bool operator == (const _Utf* pIn) { return compare(pIn)==0; }
-
-     bool operator != (utfVaryingString& pIn) { return compare(pIn); }
+     bool operator != (utfVaryingString& pIn) { return compare(pIn.Data); }
 
 
 
@@ -633,6 +629,16 @@ utfVaryingString<_Utf>::utfVaryingString(utfVaryingString& pIn)
     Data=nullptr;
     DataByte=nullptr;
     utfInit();
+    _copyFrom(pIn);
+    return;
+}
+template <class _Utf>
+utfVaryingString<_Utf>::utfVaryingString(utfVaryingString&& pIn)
+{
+    Data=nullptr;
+    DataByte=nullptr;
+    utfInit();
+    _copyFrom(pIn);
     return;
 }
 template <class _Utf>
@@ -890,12 +896,12 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
     const char* wPtr1=pFormat;
     size_t wi=0;
     while (*wPtr1 && wi++< (cst_MaxSprintfBufferCount-1))
-                                    *wPtr=(_Utf)*wPtr1++;
+                                    *wPtr++=(_Utf)*wPtr1++;
     *wPtr=(_Utf)'\0';
 
     _Utf wMS[cst_MaxSprintfBufferCount];
 //    ssize_t wStringCount=(ssize_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,wFormat,ap);
-    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,(_Utf*)pFormat,ap);
+    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,wFormat,ap);
     va_end(ap);
 
 //    size_t wCount = utfStrlen<_Utf>(Data)+wStringCount+1;
@@ -937,13 +943,13 @@ utfVaryingString<_Utf>::addsprintf(const char* pFormat,...)  /** adds formatted 
     const char* wPtr1=pFormat;
     size_t wi=0;
     while (*wPtr1 && wi++< (cst_MaxSprintfBufferCount-1))
-                                    *wPtr=(_Utf)wPtr1++;
+                                    *wPtr++=(_Utf)*wPtr1++;
     *wPtr=(_Utf)'\0';
 
     _Utf wMS[cst_MaxSprintfBufferCount];
 
 //    size_t wStringCount=(size_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,wFormat,ap);
-    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,pFormat,ap);
+    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,wFormat,ap);
     va_end(ap);
 
  //   utfAddConditionalTermination<_Utf>(wMS,wStringCount);

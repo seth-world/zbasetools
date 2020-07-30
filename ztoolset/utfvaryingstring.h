@@ -28,7 +28,11 @@ public:
 
 typedef utfVaryingString<utf8_t> _Base;
 typedef utf8_t                  _UtfBase;
-
+    using _Base::operator [];
+    using _Base::operator =;
+    using _Base::operator +=;
+    using _Base::operator ==;
+    using _Base::operator !=;
     utf8VaryingString() {_setToUtf8() ;}
 
     utf8VaryingString(const char* pIn) {_setToUtf8() ; fromChar(pIn);}
@@ -79,7 +83,7 @@ typedef utf8_t                  _UtfBase;
     UST_Status_type toUtf32(utf32VaryingString &pUtf32,ZBool *pEndian=nullptr);
 
     ZDataBuffer&        toCString(ZDataBuffer& pZDB);
-    const char*         toCChar();
+    const char*         toCChar() const;
     std::string         toStdString() {return std::string(toCChar());}
 
     utf8VaryingString&  fromStdString(std::string& pIn) {strset((const utf8_t*)pIn.c_str()); return *this;}
@@ -125,7 +129,8 @@ typedef utf16_t                  _UtfBase;
     using _Base::operator [];
     using _Base::operator =;
     using _Base::operator +=;
-
+    using _Base::operator ==;
+    using _Base::operator !=;
 
 
     utf16VaryingString() {
@@ -192,6 +197,12 @@ public:
 
 typedef utfVaryingString<utf32_t> _Base;
 typedef utf32_t                  _UtfBase;
+
+    using _Base::operator [];
+    using _Base::operator =;
+    using _Base::operator +=;
+    using _Base::operator ==;
+    using _Base::operator !=;
 
     utf32VaryingString() {
                          ZType=ZType_Utf32VaryingString;

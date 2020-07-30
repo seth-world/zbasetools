@@ -27,7 +27,7 @@ utfVaryingString<_Utf>::newSortKey(void)
 
 
 const char*
-utf8VaryingString::toCChar()
+utf8VaryingString::toCChar() const
 {
     return (const char*)Data ;
 }// utf8VaryingString::toCChar
