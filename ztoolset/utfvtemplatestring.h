@@ -231,8 +231,9 @@ public:
 
 //    int compare(const _Utf* pString2) {return utfStrcmp<_Utf>(Data,pString2);}                       /** corresponds to strcmp */
 //    int ncompare(const _Utf* pString2,size_t pCount) {return utfStrncmp<_Utf>(Data,pString2,pCount);}/** corresponds to strncmp */
-    int compare(const _Utf* pString2) ;                      /** corresponds to strcmp */
+    int compare(const _Utf* pString2) ;                      /* corresponds to strcmp */
 
+    /* following is set to able to compare any utf varying string with a char string : it will be set within derived classes */
     template <class _Utf1>
     int compareV(const _Utf1* pString2)
     {
@@ -266,15 +267,41 @@ public:
     utfVaryingString<_Utf> &nadd( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
     utfVaryingString<_Utf> &addUtfUnit(const _Utf pChar); /** adds an Utf unit at the end of varying string (not necessarily a character) plus _Utf \0 sign. */
 
-    utfVaryingString<_Utf> &add(utfVaryingString<_Utf>& wSrc);
+    utfVaryingString<_Utf> &add(utfVaryingString<_Utf>& wSrc) {return _add(wSrc);}
+    utfVaryingString<_Utf> &add(utfVaryingString<_Utf>&& wSrc){return _add(wSrc);}
+
+    utfVaryingString<_Utf> &add(std::string& wSrc){return _addV<char>(wSrc).c_str();}
+    utfVaryingString<_Utf> &add(std::string&& wSrc){return _addV<char>(wSrc).c_str();}
+
+    utfVaryingString<_Utf>& _add(utfVaryingString<_Utf>& wSrc);
+
+    template <class _Utf1>
+    utfVaryingString<_Utf> &_addV(const _Utf1* wSrc)
+    {
+        if (!wSrc[0])
+                return *this;
+        size_t wCount=utfStrlen<_Utf1>(wSrc);
+        if (!wCount)
+                return *this;
+
+        _Utf* wPtr=extendCharCond(wCount);
+        while(*wSrc && wCount--)
+                {
+                *wPtr=(_Utf)*wSrc;
+                wPtr++;
+                wSrc++;
+                }
+        *wPtr=(_Utf)'\0';
+        return *this;
+    }// add
 
 //    utfVaryingString<_Utf> &add( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
 
-    utfVaryingString<_Utf> &sprintf(const std::conditional_t<std::is_same<_Utf,char>::value, utf8_t, _Utf> *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
-    utfVaryingString<_Utf>& addsprintf(const std::conditional_t<std::is_same<_Utf,char>::value, utf8_t, _Utf>* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
+    ZStatus sprintf(const std::conditional_t<std::is_same<_Utf,char>::value, utf8_t, _Utf> *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
+    ZStatus addsprintf(const std::conditional_t<std::is_same<_Utf,char>::value, utf8_t, _Utf>* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
 
-    utfVaryingString<_Utf> &sprintf(const char *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
-    utfVaryingString<_Utf>& addsprintf(const char* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
+    ZStatus sprintf(const char *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
+    ZStatus addsprintf(const char* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
 
     utfVaryingString<_Utf> &fromCString_Straight(const char*pCString);  /** sets content to C String. Allocates/reallocates characters to make string fit */
     utfVaryingString<_Utf> &addCString_Straight(const char*pInString);  /** adds C String to current string. Extends characters allocation to make string fit */
@@ -306,13 +333,18 @@ public:
      utfVaryingString& operator = (utfVaryingString&& pIn) { return _copyFrom(pIn); }
      utfVaryingString& operator = (utfVaryingString& pIn) {return _copyFrom(pIn);}
 
-     utfVaryingString& operator += (utfVaryingString& pIn) { return appendData(pIn); }
+     utfVaryingString& operator += (utfVaryingString& pIn) { return add(pIn); }
+     utfVaryingString& operator += (utfVaryingString&& pIn) { return add(pIn); }
+
+     utfVaryingString& operator += (std::string& pIn) { return _addV<char>(pIn.c_str()); }
+     utfVaryingString& operator += (std::string&& pIn) { return _addV<char>(pIn.c_str()); }
+
 
 
      bool operator == (utfVaryingString& pIn) { return compare(pIn.Data)==0; }
      bool operator == (const _Utf* pIn) { return compare(pIn)==0; }
      bool operator != (utfVaryingString& pIn) { return compare(pIn.Data); }
-
+     bool operator != (const _Utf* pIn) { return compare(pIn); }
 
 
      double toDouble()
@@ -483,29 +515,29 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
                                 memmove(Data,pString.Data,ByteSize);
                                 return(*this);}
 
-   const utfVaryingString & operator = (const long pValue)
+   utfVaryingString & operator = (const long pValue)
                                {  setData (&pValue,sizeof(pValue)); return *this;}
-   const utfVaryingString & operator = (const size_t pValue)
+   utfVaryingString & operator = (const size_t pValue)
                                {  setData (&pValue,sizeof(pValue)); return *this;}
 
-   const utfVaryingString & operator = (const float pValue)
+   utfVaryingString & operator = (const float pValue)
                                {  setData (&pValue,sizeof(pValue)); return *this;}
-   const utfVaryingString & operator = (const double pValue)
+   utfVaryingString & operator = (const double pValue)
                                {  setData (&pValue,sizeof(pValue)); return *this;}
 
    ZStatus operator << (uriString & pURI);
 
  //   const utfVaryingString & operator += (const char* pString)
  //                                { appendData(pString,strlen(pString)+1); return *this;}
-    const utfVaryingString & operator += (const utfVaryingString &pDataBuffer)
-                                 { return appendData(pDataBuffer.Data,pDataBuffer.Size);}
-    const utfVaryingString & operator += (const long pValue)
+    utfVaryingString & operator += (const utfVaryingString &pDataBuffer)
+                                 { return appendData(pDataBuffer.Data,pDataBuffer.ByteSize);}
+    utfVaryingString & operator += (const long pValue)
                                 { return appendData (&pValue,sizeof(pValue));}
-    const utfVaryingString & operator += (const size_t pValue)
+    utfVaryingString & operator += (const size_t pValue)
                                 { return appendData (&pValue,sizeof(pValue));}
-    const utfVaryingString & operator += (const float pValue)
+    utfVaryingString & operator += (const float pValue)
                                 { return appendData (&pValue,sizeof(pValue));}
-    const utfVaryingString & operator += (const double pValue)
+    utfVaryingString & operator += (const double pValue)
                                 { return appendData (&pValue,sizeof(pValue));}
 
     utfVaryingString<_Utf>& encodeB64( void);         // encode the content of utfVaryingString to Base64
@@ -795,23 +827,31 @@ template <class _Utf>
  *          either a const _Utf* string when template class has _Utf equal to utf8_t, utf16_t or utf32_t
  *          or a const utf8_t* string when template class has _Utf equal to char (to avoid invalid overload).
  * @param[in] varying arguments as used with printf syntax
- * @return utfVaryingString object after operation
+ * @return ZStatus value with following possible values
+ *
+ *  ZS_SUCCESS : everything went good
+ *  ZS_MEMERROR : cannot allocate memory for internal buffers (system error)
+ *  ZS_MEMOVFLW : internal buffers have not enough space for utf string to be processed.
+ *                in this case, setMaxSprintfBufferCount(<amount>) has to be used prior invoking this method to increase allocated space.
+ *                NB: Allocated space is by default __DEFAULT_SPRINTF_BUFFERCOUNT__
  */
-utfVaryingString<_Utf>&
-utfVaryingString<_Utf>::sprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,...)  /** set current string to formatted content. Extends characters allocation to make string fit */
+ZStatus utfVaryingString<_Utf>::sprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,...)  /** set current string to formatted content. Extends characters allocation to make string fit */
 {
     if (!pFormat)
             {
             fprintf(stderr,"%s>> format string is nullpptr\n",_GET_FUNCTION_NAME_);
-            return *this;
+            return ZS_NULLPTR;
             }
 
     va_list ap;
     va_start(ap, pFormat);
 
-    _Utf wMS[cst_MaxSprintfBufferCount];
-//    ssize_t wStringCount=(ssize_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,pFormat,ap);
-    ssize_t wStringCount=(ssize_t)utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,pFormat,ap);
+    _Utf* wMS=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
+    if (wMS==nullptr)
+        return ZS_MEMERROR;
+
+
+    ssize_t wStringCount=(ssize_t)utfVsnprintf(Charset,wMS,MaxSprintfBufferCount,pFormat,ap);
     va_end(ap);
 
 //    size_t wCount = utfStrlen<_Utf>(Data)+wStringCount+1;
@@ -824,8 +864,10 @@ utfVaryingString<_Utf>::sprintf(const typename std::conditional_t<std::is_same<_
                 wAddPtr++;
                 }
     *wPtr=(_Utf)'\0';
-//    strnset(wMS,wStringCount);
-    return *this;
+    free (wMS);
+    if (errno==ENOMEM)
+        return ZS_MEMOVFLW;
+    return ZS_SUCCESS;
 }//sprintf
 
 template <class _Utf>
@@ -843,24 +885,34 @@ template <class _Utf>
  *          either a const _Utf* string when template class has _Utf equal to utf8_t, utf16_t or utf32_t
  *          or a const utf8_t* string when template class has _Utf equal to char (to avoid invalid overload).
  * @param[in] varying arguments as used with printf syntax
- * @return utfVaryingString object after operation
+ * @return ZStatus value with following possible values
+ *
+ *  ZS_SUCCESS : everything went good
+ *  ZS_MEMERROR : cannot allocate memory for internal buffers (system error)
+ *  ZS_MEMOVFLW : internal buffers have not enough space for utf string to be processed.
+ *                in this case, setMaxSprintfBufferCount(<amount>) has to be used prior invoking this method to increase allocated space.
+ *                NB: Allocated space is by default __DEFAULT_SPRINTF_BUFFERCOUNT__
+ *
  */
-utfVaryingString<_Utf>&
+ZStatus
 utfVaryingString<_Utf>::addsprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,...)  /** adds formatted content to current string. Extends characters allocation to make string fit */
 {
 
     if (!pFormat)
             {
             fprintf(stderr,"%s>> format string is nullpptr\n",_GET_FUNCTION_NAME_);
-            return *this;
+            return ZS_NULLPTR;
             }
 
     va_list ap;
     va_start(ap, pFormat);
-    _Utf wMS[cst_MaxSprintfBufferCount];
+    _Utf* wMS=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
+    if (wMS==nullptr)
+        return ZS_MEMERROR;
+
 
 //    size_t wStringCount=(size_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,pFormat,ap);
-    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,pFormat,ap);
+    size_t wStringCount=utfVsnprintf(Charset,wMS,MaxSprintfBufferCount,pFormat,ap);
     va_end(ap);
 
  //   utfAddConditionalTermination<_Utf>(wMS,wStringCount);
@@ -877,21 +929,50 @@ utfVaryingString<_Utf>::addsprintf(const typename std::conditional_t<std::is_sam
                 wAddPtr++;
                 }
      *wPtr=(_Utf)'\0';
-    return *this;
+    free (wMS);
+    if (errno==ENOMEM)
+        return ZS_MEMOVFLW;
+    return ZS_SUCCESS;
 }// addsprintf
 
 template <class _Utf>
-utfVaryingString<_Utf>&
+/**
+ * @brief utfVaryingString<_Utf>::addsprintf  concatenates a _Utf formatted string (pFormat) to existing string, defined by its _Utf format and its varying arguments list.
+ * Allocates characters to make it fit into string.
+ *
+ * To avoid collision with addsprintf overload for utftemplateString<_Sz,char>, pFormat is conditionned to be set to utf8_t when char is second template class and set to char in other cases.
+ * This allows for utf string to have a format string that is a const char*, while it is the default when using char as second template class.
+ *
+ * Maximum resulting _Utf string will be cst_MaxSprintfBufferSize character units (set to 1024 by default : see utfvsprintf.h file).
+ * If this length is bypassed, then resulting added string will be simply truncated without any more indication.
+ *
+ * @param[in]  pFormat a formatting string corresponding to printf syntax :
+ *          either a const _Utf* string when template class has _Utf equal to utf8_t, utf16_t or utf32_t
+ *          or a const utf8_t* string when template class has _Utf equal to char (to avoid invalid overload).
+ * @param[in] varying arguments as used with printf syntax
+ * @return ZStatus value with following possible values
+ *
+ *  ZS_SUCCESS : everything went good
+ *  ZS_MEMERROR : cannot allocate memory for internal buffers (system error)
+ *  ZS_MEMOVFLW : internal buffers have not enough space for utf string to be processed.
+ *                in this case, setMaxSprintfBufferCount(<amount>) has to be used prior invoking this method to increase allocated space.
+ *                NB: Allocated space is by default __DEFAULT_SPRINTF_BUFFERCOUNT__
+ *
+ */
+ZStatus
 utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string to formatted content. Extends characters allocation to make string fit */
 {
     if (!pFormat)
             {
             fprintf(stderr,"%s>> format string is nullpptr\n",_GET_FUNCTION_NAME_);
-            return *this;
+            return ZS_NULLPTR;
             }
     va_list ap;
     va_start(ap, pFormat);
-    _Utf wFormat[cst_MaxSprintfBufferCount];
+//    _Utf wFormat[cst_MaxSprintfBufferCount];
+    _Utf* wFormat=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
+    if (wFormat==nullptr)
+        return ZS_MEMERROR;
     _Utf* wPtr=wFormat;
     const char* wPtr1=pFormat;
     size_t wi=0;
@@ -899,9 +980,12 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
                                     *wPtr++=(_Utf)*wPtr1++;
     *wPtr=(_Utf)'\0';
 
-    _Utf wMS[cst_MaxSprintfBufferCount];
+//    _Utf wMS[cst_MaxSprintfBufferCount];
+    _Utf* wMS=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
+    if (wMS==nullptr)
+        return ZS_MEMERROR;
 //    ssize_t wStringCount=(ssize_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,wFormat,ap);
-    size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,wFormat,ap);
+    size_t wStringCount=utfVsnprintf(Charset,wMS,MaxSprintfBufferCount,wFormat,ap);
     va_end(ap);
 
 //    size_t wCount = utfStrlen<_Utf>(Data)+wStringCount+1;
@@ -915,38 +999,66 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
                 wAddPtr++;
                 }
     *wPtr=(_Utf)'\0';
-//    strnset(wMS,wStringCount);
-    return *this;
+    free(wFormat);
+    free(wMS);
+    if (errno==ENOMEM)
+        return ZS_MEMOVFLW; /* buffer overflow */
+
+    return ZS_SUCCESS;
 }//sprintf
 
 template <class _Utf>
+
 /**
- * @brief utfVaryingString<_Utf>::addsprintf
- * @param pFormat
- * @return
+ * @brief utfVaryingString<_Utf>::addsprintf  concatenates a _Utf formatted string (pFormat) to existing string, defined by its _Utf format and its varying arguments list.
+ * Allocates characters to make it fit into string.
+ *
+ * To avoid collision with addsprintf overload for utftemplateString<_Sz,char>, pFormat is conditionned to be set to utf8_t when char is second template class and set to char in other cases.
+ * This allows for utf string to have a format string that is a const char*, while it is the default when using char as second template class.
+ *
+ * Maximum resulting _Utf string will be cst_MaxSprintfBufferSize character units (set to 1024 by default : see utfvsprintf.h file).
+ * If this length is bypassed, then resulting added string will be simply truncated without any more indication.
+ *
+ * @param[in]  pFormat a formatting string corresponding to printf syntax :
+ *          either a const _Utf* string when template class has _Utf equal to utf8_t, utf16_t or utf32_t
+ *          or a const utf8_t* string when template class has _Utf equal to char (to avoid invalid overload).
+ * @param[in] varying arguments as used with printf syntax
+ * @return ZStatus value with following possible values
+ *
+ *  ZS_SUCCESS : everything went good
+ *  ZS_MEMERROR : cannot allocate memory for internal buffers (system error)
+ *  ZS_MEMOVFLW : internal buffers have not enough space for utf string to be processed.
+ *                in this case, setMaxSprintfBufferCount(<amount>) has to be used prior invoking this method to increase allocated space.
+ *                NB: Allocated space is by default __DEFAULT_SPRINTF_BUFFERCOUNT__
+ *
  */
-utfVaryingString<_Utf>&
+ZStatus
 utfVaryingString<_Utf>::addsprintf(const char* pFormat,...)  /** adds formatted content to current string. Extends characters allocation to make string fit */
 {
 
     if (!pFormat)
             {
             fprintf(stderr,"%s>> format string is nullpptr\n",_GET_FUNCTION_NAME_);
-            return *this;
+            return ZS_NULLPTR;
             }
 
     va_list ap;
     va_start(ap, pFormat);
 
-    _Utf wFormat[cst_MaxSprintfBufferCount];
+
+    _Utf* wFormat=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
+    if (wFormat==nullptr)
+        return ZS_MEMERROR;
     _Utf* wPtr=wFormat;
     const char* wPtr1=pFormat;
     size_t wi=0;
-    while (*wPtr1 && wi++< (cst_MaxSprintfBufferCount-1))
+    while (*wPtr1 && wi++< (MaxSprintfBufferCount-1))
                                     *wPtr++=(_Utf)*wPtr1++;
     *wPtr=(_Utf)'\0';
 
-    _Utf wMS[cst_MaxSprintfBufferCount];
+    _Utf* wMS=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
+    if (wMS==nullptr)
+        return ZS_MEMERROR;
 
 //    size_t wStringCount=(size_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,wFormat,ap);
     size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,wFormat,ap);
@@ -967,7 +1079,9 @@ utfVaryingString<_Utf>::addsprintf(const char* pFormat,...)  /** adds formatted 
                 }
 
      *wPtr=(_Utf)'\0';
-    return *this;
+    if (errno==ENOMEM)
+        return ZS_MEMOVFLW; /* buffer overflow */
+    return ZS_SUCCESS;
 }
 
 template <class _Utf>
@@ -1017,7 +1131,7 @@ utfVaryingString<_Utf>::add(const _Utf *wSrc)
 
 template <class _Utf>
 utfVaryingString<_Utf>&
-utfVaryingString<_Utf>::add(utfVaryingString<_Utf>& wSrc)
+utfVaryingString<_Utf>::_add(utfVaryingString<_Utf>& wSrc)
 {
     if (wSrc.isEmpty())
             return *this;
@@ -2115,14 +2229,11 @@ ZDataBuffer wZDB;
     return ;
 } // dumpHexa
 
-
-
 template <class _Utf>
 inline int
 utfVaryingString<_Utf>::compare(const _Utf* pString2)
 {
-    if (Data==pString2)
-                return 0;
+
     if (pString2==nullptr)
                 return 1;
 
@@ -2136,7 +2247,6 @@ utfVaryingString<_Utf>::compare(const _Utf* pString2)
     return *s1 - *s2;
 
 }/** corresponds to strcmp */
-
 
 template <class _Utf>
 inline int

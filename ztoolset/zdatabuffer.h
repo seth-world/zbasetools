@@ -91,12 +91,20 @@ int _strncasecmp(const char*pString1,const char*pString2,size_t pMaxLen);
 
  */
 using namespace zbs;
+#ifndef __URISTRING__
 class uriString;
+#endif
+#ifndef CHECKSUM_H
 struct checkSum;
+#endif
+#ifndef MD5_H
 struct md5;
+#endif
+#ifndef ZCRYPT_H
 namespace zbs{
 class ZCryptKeyAES256;
 class ZCryptVectorAES256;
+#endif
 }
 class ZDataBuffer
 {

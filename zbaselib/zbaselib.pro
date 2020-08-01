@@ -289,6 +289,7 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/zfunctions.h \
  #   $$TOOLSET_BASE/ztoolset/templatestring.h \
 #    $$TOOLSET_BASE/ztoolset/zwstrings.h \
+    ../ztoolset/zstatus.h \
  \ #   $$TOOLSET_BASE/ztoolset/zstrings.h \  #renamed as zstrings_old.h
     $$TOOLSET_BASE/zthread/zarglist.h
 

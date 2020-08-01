@@ -1,5 +1,6 @@
 #ifndef URISTRING_CPP
 #define URISTRING_CPP
+#include <zconfig.h>
 
 #include <ztoolset/uristring.h>
 #include <ztoolset/zexceptionmin.h>
@@ -20,14 +21,14 @@ using namespace zbs;
 //--------------uriString------------------------------
 //
 
-
+/*
 uriString&
 uriString::fromURI(const uriString &pURI)
 {
     memmove(content,pURI.content, cst_urilen+1);
     return(*this);
 }
-
+*/
 uriString&
 uriString::fromURI(const uriString *pURI)
 {
@@ -390,6 +391,49 @@ utfdescString wBaseName;
     return *this;
 }//setDirectoryPath
 
+utfdescString
+uriString::getUniqueName (const char* pRootName)
+{
+    char wTempName[30];
+    strncpy(wTempName,pRootName,20);
+    strncat(wTempName,"XXXXXX",29);
+
+#ifdef __USE_WINDOWS__
+    return utfdescString((utf8_t*)_mktemp(wTempName));
+#else
+    return utfdescString((utf8_t*)mktemp(wTempName));
+#endif //__USE_WINDOWS__
+
+
+}
+
+void
+uriString::setUniqueName (const char* pRootName)
+{
+    strset (getUniqueName(pRootName).toUtf());
+}
+
+void
+uriString::setExtension (const char* pExtension)
+{
+    utf8_t* wPtr=strrchr( '.');
+
+    if (wPtr==nullptr)
+            {
+            add((utf8_t*)".");
+            add((utf8_t*)pExtension);
+            return;
+            }
+    wPtr++;
+    utf8_t* wPtrmax=content + (UnitCount-1);
+    while((*pExtension)&&(wPtr<wPtrmax))
+        {
+        *wPtr=(utf8_t)*pExtension;
+        pExtension++;
+        wPtr++;
+        }
+    *wPtr=0;
+}
 
 //
 //---------String search and handling
@@ -896,6 +940,44 @@ uriString::writeContent (ZDataBuffer& pDBS)
     return(ZS_SUCCESS);
 }//writeContent
 
+ZStatus
+uriString::writeContent (utf8VaryingString &pStr)
+{
+
+    FILE *wFile =fopen(toCChar(),"w");
+
+    if (wFile==nullptr)
+            {
+            ZException.getErrno(errno);
+            ZException.setMessage(_GET_FUNCTION_NAME_,
+                                  ZS_ERROPEN,
+                                  Severity_Error,
+                                  "-E-ERROPEN error on fopen file for writing  <%s> \n",
+                                  content);
+            if (ZVerbose)
+                ZException.printLastUserMessage(stderr);
+            return ZS_ERROPEN;
+            }
+
+
+//    fwrite(pStr.Data,pStr.strlen()+1,1,wFile);
+    fwrite(pStr.Data,pStr.strlen(),1,wFile);
+
+
+    if (ferror(wFile))
+                {
+                ZException.getFileError(wFile,
+                                        _GET_FUNCTION_NAME_,
+                                      ZS_FILEERROR,
+                                      Severity_Error,
+                                      "E-ERRWRITE error writing to file  <%s> ",
+                                      toCChar());
+                fclose(wFile);
+                return (ZS_FILEERROR);
+                }
+    fclose(wFile);
+    return(ZS_SUCCESS);
+}//writeContent
 /**
  * @brief uriString::getChecksum gives the checksum of the file's content current uriString points to.
  * SHA256 checksum is used.

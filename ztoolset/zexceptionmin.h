@@ -73,6 +73,7 @@ public:
 };
 
 class ZNetException;
+class utf8VaryingString;
 
 class ZExceptionBase : public ZExceptionBase_Data
 {
@@ -155,6 +156,8 @@ public:
 
 //    ZExceptionBase &operator = (const ZExceptionBase &pZException) {memmove (this,&pZException,sizeof(ZExceptionBase)); return(*this);}
 
+    utf8VaryingString formatUtf8 (void);
+
 #ifdef QT_CORE_LIB
     void setComplementQS (QString pQS);
 
@@ -236,7 +239,7 @@ class ZExceptionMin
 public:
 //    typedef ZExceptionBase _Base;
 
-    ZExceptionMin() {ZExceptionMin::clear(); }
+    ZExceptionMin() { }
 
 
     ZExceptionMin(const ZExceptionMin&)=delete;  // cannot copy because of the Mutex value
@@ -332,6 +335,7 @@ public:
     void setComplementQS (QString pQS) {ZStack.last()->setComplementQS(pQS);}
 
     QString formatUserMessage (void){return ZStack.last()->formatUserMessage();}
+    utf8VaryingString lastUtf8()   ;
 
     int messageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){return ZStack.last()->messageBox(pTitle,pUserMessage);}
     int documentMessageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){ return ZStack.last()->documentMessageBox(pTitle,pUserMessage);}
@@ -377,10 +381,11 @@ private:
 #endif // __USE_ZRANDOMFILE__
 
 
+static ZExceptionMin               ZException;
 
 #ifndef ZEXCEPTIONMIN_CPP
 //      extern thread_local ZExceptionMin               ZException;
-    extern ZExceptionMin               ZException;
+//    extern ZExceptionMin               ZException;
 //        extern thread_local zbs::ZArray<ZExceptionMin>  ZExceptionStack;
 
 /** @brief _ASSERT_ZEXCEPTION_  this macro aborts and dumps ZException if condition is met.

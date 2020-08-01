@@ -123,6 +123,13 @@ public:
     utftemplateString& operator = (const utftemplateString& pIn) {_copyFrom(pIn); return *this;}
     utftemplateString& operator = (const utftemplateString&& pIn) {_copyFrom(pIn); return *this;}
 
+    utftemplateString& operator = (const char* pIn) {return strSetV<char>(pIn);}
+    utftemplateString& operator = (std::string& pIn) {return strSetV<char>(pIn.c_str());}
+
+    utftemplateString& operator += (const char* pIn) {return addV<char>(pIn);}
+     utftemplateString& operator += (std::string& pIn) {return addV<char>(pIn.c_str());}
+
+
     void utfInit(ZType_type pZType,ZCharset_type pCharset){
         _MODULEINIT_
         DataByte=(uint8_t*)content;
@@ -152,8 +159,74 @@ public:
     size_t getCapacity(void)  {return _Sz;}
     const _Utf* toUtf(void) const {return (const _Utf*)content;}
 
+    template <class _Utf1>
+    utftemplateString& strSetV(const _Utf1* pString2)
+    {
+    _Utf wCChar;
+    if (pString2==nullptr)
+                return *this;
+
+    size_t wCount = 0;
+    _Utf *s1 = content;
+    const char *s2 = pString2;
+    wCChar=(_Utf)*s2;
+    while ((*s2)&& wCount < _Sz-1)
+        {
+        *s1=(_Utf)*s2;
+        s1++;
+        s2++;
+        wCount++;
+        }
+    return *this;
+    }
+
+    template <class _Utf1>
+    utftemplateString& addV(const _Utf1* pString2)
+    {
+    _Utf wCChar;
+    if (pString2==nullptr)
+                return *this;
+
+    size_t wCount = utfStrlen<_Utf>(content);
+    _Utf *s1 = content+wCount;
+    const char *s2 = pString2;
+    wCChar=(_Utf)*s2;
+    while ((*s2)&& wCount < _Sz-1)
+        {
+        s1++;
+        s2++;
+        *s1=(_Utf)*s2;
+        wCount++;
+        }
+    return *this;
+    }
+
+
     inline int compare(const _Utf* pString2); /** corresponds to strcmp with native _Utf argument */
-    inline int compare(const char* pString2) ; /** corresponds to strcmp with  char argument */
+
+    /* following is set to able to compare any utf varying string with a char string : it will be set within derived classes */
+    /* Remark : this template definition has to remain here */
+    template <class _Utf1>
+    int compareV(const _Utf1* pString2)
+    {
+    _Utf wCChar;
+    if (pString2==nullptr)
+                return 1;
+    const _Utf *s1 = (const _Utf *) content;
+    const char *s2 = pString2;
+    wCChar=(_Utf)*s2;
+    while ((*s1 == wCChar )&&(*s1)&&(*s2))
+        {
+        s1++;
+        s2++;
+        wCChar=(_Utf)*s2;
+        }
+    return *s1 - wCChar;
+    }
+
+
+
+//    inline int compare(const char* pString2) ; /** see template compareV usage in derived classes */
     inline int ncompare(const _Utf* pString2,size_t pCount) ; /** corresponds to strncmp witn native _Utf argument */
     inline int ncompare(const char* pString2,size_t pCount);/** corresponds to strncmp witn native char argument */
 
@@ -451,25 +524,7 @@ public:
         {_MODULEINIT_ if(pIdx>getUnitCount()) _ABORT_; _RETURN_ (content[pIdx]);}
 
 
-//    utftemplateString<_Sz,_Utf>& operator = (const char *pString) {return utftemplateString<_Sz,_Utf>::fromCString(pString);}
-//    utftemplateString<_Sz,_Utf>& operator = (const typename std::enable_if<!std::is_same<_Utf,char>::value>::type *pString) {return utftemplateString<_Sz,_Utf>::fromUtf(pString);}
-
-//     utftemplateString<_Sz,_Utf>& operator = (const char* pCString) {return (fromCString(pCString));}
-
-     // here below : only if not _Utf != char
-/*     template<typename U = _Utf>
-     typename std::enable_if<!std::is_same<U,char>::value>::value
-     utftemplateString<_Sz,U>& operator = (const typename std::enable_if<!std::is_same<U,char>::value>::type* pString)
-                                                    {return utftemplateString<_Sz,U>::fromUtf(pString);}*/
      utftemplateString<_Sz,_Utf>& operator = (const _Utf *pString) {return utftemplateString<_Sz,_Utf>::strset(pString);}
-
-
-     utftemplateString<_Sz,_Utf>& operator = (const char pChar)
-    {
-        content[0]=(_Utf)pChar;
-        content[1]=(_Utf)'\0';
-        return (*this);
-    }
 
 
      utftemplateString<_Sz,_Utf>& operator += (const _Utf pChar)
@@ -491,19 +546,18 @@ public:
      utftemplateString<_Sz,_Utf>& operator += (utftemplateString<_Sz,_Utf> &pString) { return add (pString.content);} // +=
 
      utftemplateString<_Sz,_Utf>& operator += (const _Utf * pString) {return add(pString);}
-     utftemplateString<_Sz,_Utf>& operator += (const char * pString) {return add_Char(pString);}
 
      //utftemplateString<_Sz,_Utf>& operator += (const char * pString) {return addCString(pString);}
 
 
      bool operator == (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)==0);}
      bool operator != (const utftemplateString<_Sz,_Utf> &pCompare) { return(!compare(pCompare.content)==0);}
-     bool operator != (const char* &pCompare) { return(!compare(pCompare)==0);}
+     bool operator != (const char* &pCompare) { return(!compareV<char>(pCompare)==0);}
      bool operator > (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)>0);}
      bool operator < (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)<0);}
 
      bool operator == (const _Utf *pCompare) { return(compare(pCompare)==0);}
-     bool operator == (const char *pCompare) { return(compare(pCompare)==0);}
+     bool operator == (const char *pCompare) { return(compareV<char>(pCompare)==0);}
 
      bool operator != (const _Utf *pCompare) { return!(compare(pCompare)==0);}
      bool operator > (const _Utf *pCompare) { return(compare(pCompare)>0);}
@@ -1512,25 +1566,6 @@ utftemplateString<_Sz, _Utf>::add(const utftemplateString<_Sz, _Utf> &pSrc)
     return *this;
 }// add
 
-template <size_t _Sz,class _Utf>
-utftemplateString<_Sz, _Utf> &
-utftemplateString<_Sz, _Utf>::add_Char(const char *wSrc)
-{
-    if (!wSrc)
-            return *this;
-    size_t wCount=0;
-    _Utf* wPtr=content;
-    while (*wPtr)
-            {
-            wCount++;
-            wPtr++;
-            }
-    while(*wSrc && (wCount++ <_Sz) )
-                    *wPtr++=*wSrc++;
-    while (wCount++ <_Sz)
-            *wPtr=(_Utf)'\0';
-    return *this;
-}// addFromChar
 
 template <size_t _Sz,class _Utf>
 
@@ -1624,7 +1659,7 @@ utftemplateString<_Sz,_Utf>::compare(const _Utf* pString2)
     return *s1 - *s2;
 
 }/** corresponds to strcmp */
-
+/*
 template <size_t _Sz,class _Utf>
 inline int
 utftemplateString<_Sz,_Utf>::compare(const char* pString2)
@@ -1644,7 +1679,10 @@ utftemplateString<_Sz,_Utf>::compare(const char* pString2)
         }
     return *s1 - wCChar;
 
-}/** corresponds to strcmp */
+}
+*//** corresponds to strcmp */
+
+
 
 template <size_t _Sz,class _Utf>
 inline int

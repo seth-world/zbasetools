@@ -407,6 +407,8 @@ zicuConverter* wConverter=*pConverter;
  *
  * Memory allocation, character set conversion and format processing
  *
+ * if buffer size overflow errno is set to ENOMEM.
+ *
  * Main output
  *  _Utf class is
  * 1. char
@@ -443,6 +445,7 @@ size_t
 utfVsnprintf(ZCharset_type pCharset,void *pBuffer, size_t pMaxlen, const utfFmt *pFormat, va_list args)
 {
 _MODULEINIT_
+    errno=0;
     char*   wBufferChar=nullptr;    /* Buffer is char */
     utf8_t* wBufferUtf8=nullptr;    /* Buffer is utf8 */
     utf16_t*wBufferUtf16=nullptr;  /* Buffer is utf16 */

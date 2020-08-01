@@ -718,7 +718,37 @@ _MODULEINIT_
 
     _RETURN_ getRootElement(RootElement);
 }// loadAndParseXMLDoc
+ZStatus
+zxmlDoc::ParseXMLDocFromMemory(const char* pMemory,int pSize,const char* pEncoding,int pOptions)
+{
+_MODULEINIT_
+    if (_xmlInternalDoc)
+        {
+        ZException.setMessage(_GET_FUNCTION_NAME_,
+                              ZS_INVOP,
+                              Severity_Severe,
+                              "Cannot parse an existing DOM document (active)");
+        _RETURN_ ZS_INVOP;
+        }
+    pOptions += XML_PARSE_NOBLANKS ; // by default remove blank nodes
 
+/* remark : as url is required to fit RFC 2396 requirements <memory.xml> is a fake url */
+    _xmlInternalDoc= xmlReadMemory(pMemory,pSize,"memory.xml",pEncoding,pOptions);
+    if (_xmlInternalDoc==nullptr)
+        {
+        setXMLZException(_GET_FUNCTION_NAME_,
+                         ZS_XMLERROR,
+                         Severity_Error,
+                         " Error while parsing from memory xml file <%s> requested encoding <%s> requested parsing options <%s>",
+                         "memory.xml",
+                         pEncoding,
+                         decode_XMLParseOptions(pOptions).toCChar()
+                         );
+        _RETURN_ ZS_XMLERROR;
+        }
+
+    _RETURN_ getRootElement(RootElement);
+}// loadAndParseXMLDoc
 
 bool zxmlDoc::isWellFormed(void)
 {

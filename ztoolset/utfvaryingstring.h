@@ -37,6 +37,7 @@ typedef utf8_t                  _UtfBase;
 
     utf8VaryingString(const char* pIn) {_setToUtf8() ; fromChar(pIn);}
     utf8VaryingString(std::string& pIn) {_setToUtf8() ; fromStdString(pIn);}
+    utf8VaryingString(std::string&& pIn) {_setToUtf8() ; fromStdString(pIn);}
 
     size_t strcount(UST_Status_type &pStatus)  /** Counts the effective number of utf8 characters : multi-character units counts for 1 - skipping BOM */
     {

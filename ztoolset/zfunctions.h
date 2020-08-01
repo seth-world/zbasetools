@@ -182,14 +182,14 @@ ZData_Type_struct &_get_Data_Type (ZData_Type_struct*pDT_Return)
 #endif // __DEPRECATED__
 char wTypeName[200];
 
-    ZStatus wSt=typeDemangler(_Type_Name_Local,(char*)&wTypeName);
+    typeDemangler(_Type_Name_Local,(char*)&wTypeName);
 /*    if (wSt==ZS_INVTYPE)
             {
             ZException.printLastUserMessage(stderr);
             pDT_Return->Type |= Zunknown ;
             return (*pDT_Return) ;
             }*/
-    wTypeName=pDT_Return->TypeName;
+    strcpy(wTypeName,pDT_Return->TypeName);
     while (true)
     {
 

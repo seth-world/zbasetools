@@ -5,6 +5,7 @@
 #include <ztoolset/utfstrctx.h>
 
 
+
 #include <string.h> // for memmove, malloc,...
 
 //===============utfSCErrQueue=============================

@@ -124,6 +124,7 @@ enum ZNumBase_type:uint8_t
     ZNBase_Octal = 8,
     ZNBase_Decimal=10,
     ZNBase_Hexa = 16,
+    ZNBase_Any  = 0xF0,
     ZNBase_Invalid=0xFF
 };
 
@@ -291,7 +292,8 @@ template <class _Utf>
  *  2 for binary
  *  8 for octal
  *  10 for decimal (default value)
- *  15 for hexadecimal
+ *  16 for hexadecimal
+ *  -1 for any base : in this case a header like 0x (hexa) or 0b (binary) or 0o (octal)
  * @return an integer value with decoded value from string OR INT_MIN in case of ill base/string
  */
 int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
@@ -325,6 +327,11 @@ int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
         wBase=ZNBase_Decimal;
         break;
     }
+    case -1:
+    {
+        wBase=ZNBase_Any;
+        break;
+    }
     default:
         {
             errno=EINVAL;  // stupid value entered as pBase : set errno and return stupid result
@@ -350,28 +357,36 @@ int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
         wNegative=0;  // reset any minus sign effect if previously found
         }
     // -----------------------Base indication------------------------------
-    if (*wPtr1==(_Utf)'0')                // if any base indication
+    if (wPtr1[0]==(_Utf)'0')// if any base indication
+        {
         if ((wPtr1[1]==(_Utf)'x')||(wPtr1[1]==(_Utf)'X'))
                 {
-                if (wBase!=ZNBase_Hexa)
+                if ((wBase!=ZNBase_Any) && (wBase!=ZNBase_Hexa))
                         goto utfStrtoi_Incorrect;
                 wBase=ZNBase_Hexa;     // this is hexadecimal
                 wPtr1=&wPtr[2]; // skip this header
                 }
-    if ((wPtr1[1]==(_Utf)'b')||(wPtr1[1]==(_Utf)'B'))
-            {
-            if (wBase!=ZNBase_Binary)
-                        goto utfStrtoi_Incorrect;
-            wBase=ZNBase_Binary;     // this is Binary
-            wPtr1=&wPtr[2]; // skip this header
-            }
-    if ((wPtr1[1]==(_Utf)'0'))
-            {
-            if (wBase!=ZNBase_Octal)
-                        goto utfStrtoi_Incorrect;
-            wBase=ZNBase_Octal;     // this is Octal
-            wPtr1=&wPtr[2]; // skip this header
-            }
+        else
+        if ((wPtr1[1]==(_Utf)'b')||(wPtr1[1]==(_Utf)'B'))
+                {
+                if ((wBase!=ZNBase_Any) && (wBase!=ZNBase_Binary))
+                            goto utfStrtoi_Incorrect;
+                wBase=ZNBase_Binary;     // this is Binary
+                wPtr1=&wPtr[2]; // skip this header
+                }
+        else
+        if ((wPtr1[1]==(_Utf)'0'))
+                {
+                if ((wBase!=ZNBase_Any) && (wBase!=ZNBase_Octal))
+                            goto utfStrtoi_Incorrect;
+                wBase=ZNBase_Octal;     // this is Octal
+                wPtr1=&wPtr[2]; // skip this header
+                }
+        }
+    /* if no heading base indication and wBase is ZNBase_Any, then it is assumed to be decimal */
+    if (wBase==ZNBase_Any)
+            wBase=ZNBase_Decimal;
+
     while(*wPtr1)
             {
             if ((wR = utftoint<_Utf>(*wPtr1,wBase))>=0)
@@ -1121,7 +1136,14 @@ utfStrrchr(_Utf* wStr,_Utf wChar)
         }
     return wD;
 }
+
  template <class _Utf>
+ /**
+  * @brief utfStrrchr reverse search for a single utf character withing an utf string.
+  * @param wStr string to search
+  * @param wChar character to reverse search for
+  * @return  a pointer (_Utf*) to found character within string or nullptr if not found
+  */
  const  _Utf *
  utfStrrchr(const _Utf* wStr,const _Utf wChar)
  {

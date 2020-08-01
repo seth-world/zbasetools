@@ -519,66 +519,42 @@ const char * decode_ZStatus (ZStatus ZS)
             }
 //----------Journaling Threads and system---------------------
     case  ZS_EMPTY :
-            {
                 return ("ZS_EMPTY");  // queue is empty
-            }
     case  ZS_QUEUEERROR :
-            {
                 return ("ZS_QUEUEERROR");  // Error on queue while queueing / dequeuing element
-            }
     case  ZS_SYSTEMERROR :
-            {
                 return ("ZS_SYSTEMERROR");  //  base system routine error (example getpwd, etc..), or thread creation, mutex, etc.
-            }
     case  ZS_NULLPTR :
-            {
                 return ("ZS_NULLPTR");  //< encountered a null pointer (NULL or nullptr) while expecting argument
-            }
 
 //-----------------------Char encoding-----------------------------
     case  ZS_ICONVINIT :
-            {
                 return ("ZS_ICONVINIT");  //< iconv init failure
-            }
     case  ZS_ICONVSTOPPED :
-            {
                 return ("ZS_ICONVSTOPPED"); //< iconv processing failure
-            }
     case  ZS_NEEDMORESPACE :
-            {
                 return ("ZS_NEEDMORESPACE");  //< iconv : output buffer exhausted : need more space in output
-            }
     case  ZS_INVCHARSET :
-            {
                 return ("ZS_INVCHARSET");  //< invalid charset : not recognized or not authorized for target string
-            }
 
 //----------------------MIME data-----------------
 
     case ZS_MIMEINV :
-            {
                 return ("ZS_MIMEINV");
-            }
     case ZS_ENTITYERROR :
-            {
                 return ("ZS_ENTITYERROR");
-            }
+
     case ZS_MEMERROR :
-            {
                 return ("ZS_MEMERROR");
-            }
+    case ZS_MEMOVFLW :
+                return ("ZS_MEMOVFLW");
+
     case ZS_XMLERROR :
-            {
                 return ("ZS_XMLERROR");
-            }
     case ZS_XMLWARNING :
-            {
                 return ("ZS_XMLWARNING");
-            }
     default :
-            {
                 return ("Unknownn ZStatus");
-            }
 
             }// switch
 }//decode_ZStatus

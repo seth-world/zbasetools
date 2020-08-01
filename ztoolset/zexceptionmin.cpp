@@ -17,16 +17,16 @@
 #include <ztoolset/zutfstrings.h>
 #include <ztoolset/uristring.h>
 
-
 #include <ztoolset/zbasedatatypes.h>
 
+#include <ztoolset/utfvaryingstring.h>
 
 //#include <ztoolset/znetexception.h>
 //#include <openssl/ssl.h>
 
 
 //    thread_local ZExceptionMin               ZException;
-    ZExceptionMin               ZException;
+//     ZExceptionMin               ZException;
 //    thread_local zbs::ZArray<ZExceptionMin>  ZExceptionStack;
 /*
 #ifdef __USE_ZRANDOMFILE__
@@ -985,11 +985,35 @@ ZExceptionMin::setLastSeverity(Severity_type pSeverity)
     return ;
 }
 
+
+
+
+utf8VaryingString
+ZExceptionMin::lastUtf8()
+{
+    return ZStack.last()->formatUtf8();
+}
+
+
+
+
+utf8VaryingString
+ZExceptionBase::formatUtf8 (void)
+{
+    utf8String wRet;
+    Message.conditionalNL();
+
+    wRet=Message.toCChar();
+    if (!Complement.isEmpty())
+        {
+        Complement.conditionalNL();
+        wRet += Complement.toCChar();
+        }
+    return wRet;
+}
+
+
 #ifdef QT_CORE_LIB
-
-
-
-
 QString ZExceptionBase::formatUserMessage (void)
 {   QString wRet;
     Message.conditionalNL();
@@ -1274,7 +1298,7 @@ utfdescString wMsg;
         Complement="<no BIO error>";
         }
     if (Error==0x1408A0C1)
-                Complement.add_Char("\n Probably a problem with certificate files or private key files");
+                Complement.addV<char>("\n Probably a problem with certificate files or private key files");
 /*#if __USE_ZTHREAD__
      _Mtx->unlock();
 #endif*/

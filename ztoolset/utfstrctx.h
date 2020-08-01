@@ -8,6 +8,7 @@
 
 #include <cstdio>
 
+#include <ztoolset/zstatus.h>
 
 typedef int16_t UST_Status_type;
 
@@ -96,7 +97,7 @@ enum UST_Status: UST_Status_type {
 inline ZBool UST_Is_Error(UST_Status_type pStatus) {return (pStatus < 0);}
 inline ZBool UST_Is_Severe(UST_Status_type pStatus) {return (pStatus < UST_SEVERE);}
 
-enum ZStatus;
+
 ZStatus UST_to_ZStatus(UST_Status_type pUST);
 
 /**

@@ -85,6 +85,7 @@ public:
     void setURI (const char* pFileName) {URIDocFile=(const utf8_t*)pFileName;}
 
     ZStatus loadAndParseXMLDoc(const char* pURL,const char* pEncoding,int pOptions);
+    ZStatus ParseXMLDocFromMemory(const char* pMemory,int pSize,const char* pEncoding,int pOptions);
 
     ZStatus parseXMLFile (const char*pFilename);
 

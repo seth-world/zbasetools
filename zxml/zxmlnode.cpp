@@ -61,7 +61,6 @@ zxmlNode::getLastChild(zxmlNode* &pLastNode)
 ZStatus
 zxmlNode::getNextNode(zxmlNode* &pNextNode)
 {
-    xmlNodePtr wChild=nullptr;
     pNextNode=nullptr;
 
     if (_xmlInternalNode->next==nullptr)

@@ -942,7 +942,7 @@ utfexceptionString wException;
     if (wErr->int1)
         wException.addsprintf("add.l %d ",
                        wErr->int1);  // extra number information
-    wException.add_Char(wErr->message);
+    wException.addV<char>(wErr->message);
     if (wErr->str1!=nullptr)
             wException.addsprintf(" %s", wErr->str1);
     if (wErr->str2!=nullptr)

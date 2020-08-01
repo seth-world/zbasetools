@@ -173,7 +173,13 @@ void set_Float_A_Rounding_GT(ZBool pGT);
 //#  define VA_SHIFT(v,t) v = va_arg(ap,t)
 # define VA_END          va_end(ap)
 
-static const size_t cst_MaxSprintfBufferCount=1024;
+#define __DEFAULT_SPRINTF_BUFFERCOUNT__ 2048
+
+static const size_t cst_MaxSprintfBufferCount=__DEFAULT_SPRINTF_BUFFERCOUNT__;
+static size_t MaxSprintfBufferCount=__DEFAULT_SPRINTF_BUFFERCOUNT__;
+
+static void setMaxSprintfBufferCount(size_t pValue) {MaxSprintfBufferCount=pValue;}
+static void setMaxSprintfBufferCountToDefault() {MaxSprintfBufferCount=__DEFAULT_SPRINTF_BUFFERCOUNT__;}
 
 typedef utf8_t      utfFmt; /* implementation dependent type for pFormat : utf8 by default */
 
@@ -4124,6 +4130,8 @@ utfSPFOutChar(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen, _Utf pCh)
             {
             pBuffer[*pCurrlen] = pCh;
             }
+        else
+            errno=ENOMEM;
     (*pCurrlen)++;
     return;
 }//utfDopr_outch
@@ -4265,10 +4273,10 @@ size_t wCurlen=0;
         wPtr++;
         *wPtr = (_Utf)UNICODE_U_CODEPOINT;/* add <U> : because input is utf32 */
         wPtr++;
-        size_t wCurrlen=0;
+        wCurlen=0;
 
         utfFormatInteger<_Utf,utf32_t>(wPtr,
-                           &wCurrlen,
+                           &wCurlen,
                            10,          // max length
                            pCodePoint,  // value
                            10,          // minimum size to pad

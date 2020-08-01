@@ -61,7 +61,7 @@ struct uriStat_struct {
 class utf8VaryingString;
 class utf16VaryingString;
 class utf32VaryingString;
-
+#define __URISTRING__
 /**
  * @brief The uriString class Expand templateString template capabilities to file and directories management.
  * includes descString and codeString moves.
@@ -76,9 +76,10 @@ public:
     uriString(void) {}
     uriString(const utf8_t *pString) {fromUtf(pString);}
     uriString(const char* pString) {strset((const utf8_t*)pString);}
-    uriString(const uriString& pURI) {fromURI(pURI);}
+//    uriString(const uriString& pURI) {fromURI(pURI);}
 
     const char* toCString_Strait() {return (const char*)content;}
+    const char* toCChar() const {return (const char*)content;}
 
     using _Base::operator =;
     using _Base::operator +=;
@@ -87,6 +88,7 @@ public:
     using _Base::operator >;
     using _Base::operator <;
     using _Base::fromUtf;
+
 
 
     uriString& operator + (const utf8_t*pChar)
@@ -108,7 +110,7 @@ public:
     bool operator > (utfdescString& pCompare) ;
     bool operator < (utfdescString &pCompare);
 
-    uriString& fromURI(const uriString& pURI) ;
+ //   uriString& fromURI(const uriString& pURI) ;
     uriString &fromURI(const uriString* pURI) ;
 
     uriString& fromdescString(utfdescString &pString);
@@ -128,6 +130,12 @@ public:
     utfdescString getRootBasename();
 
     uriString &setDirectoryPath(uriString &pDirectoryPath);
+
+    static utfdescString getUniqueName (const char* pRootName);
+
+    void setUniqueName (const char* pRootName);
+
+    void setExtension (const char* pExtension);
 
     bool        isDirectory (void);
     bool        isRegularFile(void);
@@ -164,6 +172,13 @@ public:
 
 //    ZStatus loadText(varyingCString &pDBS) ;
     ZStatus writeContent (ZDataBuffer &pDBS) ;
+    /**
+     * @brief writeContent writes utf8 string content to file pointed by uriString.
+     *  NB: end mark '\0' is not written to file.
+     * @param pStr utf8 string to wrtie
+     * @return  a ZStatus
+     */
+    ZStatus writeContent (utf8VaryingString &pStr) ;
 //    ZStatus writeText (varyingCString &pDBS) ;
 
     bool    exists(void)  ;
