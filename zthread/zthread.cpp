@@ -10,10 +10,14 @@
 
 using namespace zbs;
 
+
 thread_local ZThreadExitHandler atThreadExit; // defines the exit handler locally for each thread
 namespace zbs{
 thread_local ZThread*           ThisThread=nullptr;
 }
+
+
+
 
 /**
  * @brief ZThread::start starts the thread using pFunction as code.
@@ -789,17 +793,16 @@ ZTHEvent wEvent;
  */
 
 void
-ZThread::start(ZTH_Functor pFunction, ZArgList *pArgList)
+ZThread::startArg(ZTH_Functor pFunction, ZArgList *pArgList)
 {
-//ZArray<void*> _ThreadLoopArgs;
-
-    pArgList->push((void*)pFunction);
-    pArgList->push((void*)this);
-    _start(&_threadLoop,pArgList);
+    copyArguments(pArgList);
+//    addArgument(pFunction);
+    addThisThreadAsArgument();
+    _start(&_threadLoop,MainFunctionArguments);
 }
 
 void
-ZThread::start(ZTH_Functor pFunction,...)
+ZThread::startVariadic(ZTH_Functor pFunction,...)
 {
 void *wArgPtr=nullptr;
 
@@ -813,36 +816,35 @@ void *wArgPtr=nullptr;
         wArgPtr=va_arg(wArguments,void*);
      }
      va_end(wArguments);
-     start(pFunction,MainFunctionArguments);
+//     addArgument(pFunction);
+     addThisThreadAsArgument();
+     _start(&_threadLoop,MainFunctionArguments);
 }
 
 void
-ZThread::_startNoLoopArg(ZTH_Functor pFunction, ZArgList *pArgList)
+ZThread::startNoLoopArg(ZTH_Functor pFunction, ZArgList *pArgList)
+{
+    copyArguments(pArgList);
+//    addArgument(pFunction);
+    addThisThreadAsArgument();
+
+    _start(_threadNoLoop,MainFunctionArguments);
+}
+
+void
+ZThread::startNoLoop(ZTH_Functor pFunction)
 {
 
-    pArgList->push((void*)pFunction);
-    pArgList->push(this);
+    if (!MainFunctionArguments)
+            MainFunctionArguments = new ZArgList;
+//    MainFunctionArguments->push((void*)pFunction);
+    MainFunctionArguments->push(this);
 
-    _start(_threadNoLoop,(void*)pArgList);
+    _start(_threadNoLoop,(void*)MainFunctionArguments);
 }
-/**
- * @brief ZThread::_startNoLoop
- * calling conventions :
- *  - functors are passed as it is (it is already a pointer)
- *  - all other variable data types must be passed using a pointer on them
- *  - no rvalue allowed
- *
- *  Last argument MUST be a nullptr.
- *  There could not be "omitted" arguments using nullptr value.
- *
- * @param pFunction user Function to launch within the created thread. It must be a ZTH_Functor :
- *  - a pointer to a function
- *  - with a unique argument as a pointer to a ZArgList that will contain user's arguments
- *  each argument must be unstacked in reverse order of the call and casted to a pointer onto the appropriate data type
- *  - returning a ZStatus
- */
+
 void
-ZThread::_startNoLoop(ZTH_Functor pFunction,...)
+ZThread::startNoLoopVariadic(ZTH_Functor pFunction,...)
 {
 void *wArgPtr=nullptr;
 //void *vArgPtr1=(void*)-1;
@@ -862,8 +864,8 @@ long wArgCount=0;
         wArgPtr=va_arg(wArguments,void*);
      }
 
-     _startNoLoopArg(pFunction,MainFunctionArguments);
      va_end(wArguments);
+    startNoLoopArg(pFunction,MainFunctionArguments);
 }
 
 

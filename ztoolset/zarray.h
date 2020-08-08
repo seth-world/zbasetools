@@ -1727,7 +1727,8 @@ _Tp &ZArray<_Tp>::popR_front(void)
 {
     if (ZCurrentNb<1)
             {
-            return -1;
+            fprintf (stderr,"ZArray<_Tp>::popR_front-F-IVPOPFRNT  Invalid popR_front operation ; no elements within ZArray.\n");
+            abort();
             }
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
@@ -1756,8 +1757,8 @@ _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
 {
     if (ZCurrentNb<1)
             {
-        fprintf(stderr,"popRP_front-F-NOELEMENTS Fatal error no elements within ZArray while pop methode has been invoked.\n" );
-        abort();
+            fprintf(stderr,"popRP_front-F-NOELEMENTS Fatal error no elements within ZArray while popRP_front method has been invoked.\n" );
+            abort();
             }
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();

@@ -406,10 +406,33 @@ public:
     ZThread(ZThread&) = delete;
     ZThread& operator = (ZThread&)=delete;
 
-    void start(ZTH_Functor pFunction, ZArgList* pArgList);
-    void start(ZTH_Functor pFunction,...); // last argument must be nullptr
-    void _startNoLoopArg(ZTH_Functor pFunction, ZArgList* pArgList);
-    void _startNoLoop(ZTH_Functor pFunction,...); // last argument must be nullptr
+    void startArg(ZTH_Functor pFunction, ZArgList* pArgList);
+    void startVariadic(ZTH_Functor pFunction,...); // last argument must be nullptr
+    void startNoLoopArg(ZTH_Functor pFunction, ZArgList* pArgList);
+
+    /**
+     * @brief startNoLoop starts a thread with no loop.
+     * Arguments (if any) must have been set within MainFunctionArguments using appropriate method : i.e. ZThread::addArgument()
+     * @param pFunction a pointer of type ZTH_Functor to the routine to execute within created thread
+     */
+    void startNoLoop(ZTH_Functor pFunction);
+    /**
+     * @brief ZThread::startNoLoopVariadic
+     * calling conventions :
+     *  - functors are passed as it is (it is already a pointer)
+     *  - all other variable data types must be passed using a pointer on them
+     *  - no rvalue allowed
+     *
+     *  Last argument MUST be a nullptr.
+     *  There could not be "omitted" arguments using nullptr value.
+     *
+     * @param pFunction user Function to launch within the created thread. It must be a ZTH_Functor :
+     *  - a pointer to a function
+     *  - with a unique argument as a pointer to a ZArgList that will contain user's arguments
+     *  each argument must be unstacked in reverse order of the call and casted to a pointer onto the appropriate data type
+     *  - returning a ZStatus
+     */
+    void startNoLoopVariadic(ZTH_Functor pFunction,...); // last argument must be nullptr
 
 //    void registerExitFunction(ZTH_Functor pExitFunction, ZArgList *pExitArguments);
     void registerExitFunction(ZTH_Functor pExitFunction,...);
@@ -442,6 +465,139 @@ public:
     const char* getIdentity(void) {return Identity;}
 
     ZThread_Native_Handle_type get_Native_Handle(void) {return ThreadId.get_Native_Handle();}
+
+    /*
+     * ============thread arguments management ================
+    */
+    void initMainFunctionArguments() {MainFunctionArguments=new zbs::ZArgList;}
+    void addArgument(void* pArgument)
+    {
+        if (!MainFunctionArguments)
+                initMainFunctionArguments();
+        MainFunctionArguments->push(pArgument);
+    }
+    void addArgument(ZTH_Functor pFunction)
+    {
+        if (!MainFunctionArguments)
+                initMainFunctionArguments();
+        MainFunctionArguments->push((void*)pFunction);
+    }
+    void addThisThreadAsArgument()
+    {
+        if (!MainFunctionArguments)
+                initMainFunctionArguments();
+        MainFunctionArguments->push((void*)this);
+    }
+    void addArgumentInt(int pArgument)
+    {
+        union {
+            void*  Ptr;
+            int    Int;
+        } wArg;
+        if (!MainFunctionArguments)
+                initMainFunctionArguments();
+        wArg.Int=pArgument;
+        MainFunctionArguments->push(wArg.Ptr);
+    }
+
+    void addArgumentList(int argc,char** argv)
+    {
+        for (int wi=0;wi < argc;wi++)
+                addArgument(argv[wi]);
+    }
+    void copyArguments(zbs::ZArgList* pArgList)
+    {
+        if (!MainFunctionArguments)
+                MainFunctionArguments=new zbs::ZArgList;
+        for (long wi=0;wi<pArgList->count();wi++)
+            MainFunctionArguments->push(pArgList->Tab[wi]);
+    }
+
+    /**
+     * @brief getArgument gets a void pointer from argument stack at position wi without destroying it.
+     * if wi is outside argument stack, then it returns nullptr
+     * @param wi argument index to get
+     * @return a void pointer or nullptr if argument index is outside argument stack
+     */
+
+    void* getArgument(int wi)
+    {
+        if (!MainFunctionArguments)
+                return nullptr;
+        if (wi >= MainFunctionArguments->count())
+                return nullptr;
+        return MainFunctionArguments->Tab[wi];
+    }
+    /**
+     * @brief getArgumentInt gets an int from argument stack at position wi without destroying it.
+     * if wi is outside argument stack, then it returns nullptr
+     * @param wi argument index to get
+     * @return an int or nullptr if argument index is outside argument stack
+     */
+    int getArgumentInt(int wi)
+    {
+        union {
+            void*  Ptr;
+            int    Int;
+        } wArg;
+        if (!MainFunctionArguments)
+                return 0;
+        if (wi >= MainFunctionArguments->count())
+                return 0;
+        wArg.Ptr=MainFunctionArguments->Tab[wi];
+        return wArg.Int;
+    }
+    /**
+     * @brief popArgument gets the last argument as a void pointer from argument stack and removes it from stack
+     * @return a void pointer or nullptr if argument stack has not been initialized
+     */
+    void* popArgument()
+    {
+        if (!MainFunctionArguments)
+                return nullptr;
+        return MainFunctionArguments->popR();
+    }
+    /**
+     * @brief popArgument gets the last argument as an int from argument stack and removes it from stack
+     * @return an int or nullptr if argument stack has not been initialized
+     */
+    int popArgumentInt()
+    {
+        union {
+            void*  Ptr;
+            int    Int;
+        } wArg;
+        if (!MainFunctionArguments)
+                return 0;
+        wArg.Ptr=MainFunctionArguments->popR();
+        return wArg.Int;
+    }
+    /**
+     * @brief popFrontArgument gets the first argument as a void pointer from argument stack and removes it from stack
+     * @return a void pointer or nullptr if argument stack has not been initialized
+     */
+    void* popFrontArgument()
+    {
+        if (!MainFunctionArguments)
+                return nullptr;
+        return MainFunctionArguments->popR_front();
+    }
+    /**
+     * @brief popFrontArgumentInt gets the first argument as an int from argument stack and removes it from stack
+     * @return an int or nullptr if argument stack has not been initialized
+     */
+    int popFrontArgumentInt()
+    {
+        union {
+            void*  Ptr;
+            int    Int;
+        } wArg;
+        if (!MainFunctionArguments)
+                return 0;
+        wArg.Ptr=MainFunctionArguments->popR_front();
+        return wArg.Int;
+    }
+
 protected:
     ZMutexCondition     _MtxCond;
     char Identity[150]; // string max 149 : free comment describing thread

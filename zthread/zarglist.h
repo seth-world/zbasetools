@@ -4,7 +4,7 @@
 #include <ztoolset/zarray.h>
 
 namespace zbs {
-
+class ZThread;
 /**
  * @brief The ZArgList class standard argument list for thread functions call and exitHandler
  */
@@ -13,8 +13,6 @@ class ZArgList : public ZArray<void*>
 public:
     ZArgList (void) {}
     ~ZArgList(void) {}
-
-//    using ZArray<void*>::lastIdx() ;
 
 };
 
