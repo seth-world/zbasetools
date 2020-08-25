@@ -699,6 +699,8 @@ uriStat_struct wStat;
             return ZS_ERROPEN;
             }
 
+    if (wStat.Size==0)
+            return ZS_EMPTY;
     pDBS.allocateBZero(wStat.Size);
 
     fread(pDBS.Data,pDBS.Size,1,wFile);
@@ -907,7 +909,7 @@ ZStatus
 uriString::writeContent (ZDataBuffer& pDBS)
 {
 
-    FILE *wFile =fopen(toCString_Strait(),"wb");
+    FILE *wFile =fopen(toCChar(),"wb");
 
     if (wFile==nullptr)
             {
@@ -972,6 +974,8 @@ uriString::writeContent (utf8VaryingString &pStr)
                                       Severity_Error,
                                       "E-ERRWRITE error writing to file  <%s> ",
                                       toCChar());
+                if (ZVerbose)
+                    ZException.printLastUserMessage(stderr);
                 fclose(wFile);
                 return (ZS_FILEERROR);
                 }

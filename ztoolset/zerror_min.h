@@ -46,6 +46,7 @@ typedef uint32_t ZVerbose_Base ;
 #ifndef ZERROR_MIN_CPP
 extern  ZVerbose_Base ZVerbose; /* Warning : do not use static for having a global variable. */
 #endif
+
 enum ZVerbose_type : ZVerbose_Base
 {
     ZVB_NoVerbose   = 0x0,          //< false : no verbose at all

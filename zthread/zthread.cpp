@@ -109,9 +109,6 @@ bool ZThread_Base::_start(void*(*pFunction)(void *), void *pArglist)
 int wRet;
 
 
-//    Arglist = pArglist;
-//    ZTFunction=pFunction;
-
     if (Type&ZTH_Inherit)
         {
 
@@ -122,7 +119,6 @@ int wRet;
 
         }
 
-//    ZTFunction=std::bind(&pFunction,_arglist);
     else
         {
         wRet = pthread_create(ThreadId.get_Id(),
@@ -793,16 +789,15 @@ ZTHEvent wEvent;
  */
 
 void
-ZThread::startArg(ZTH_Functor pFunction, ZArgList *pArgList)
+ZThread::startLoopArg(ZTH_Functor pFunction, ZArgList *pArgList)
 {
     copyArguments(pArgList);
-//    addArgument(pFunction);
-    addThisThreadAsArgument();
+    MainFunctionArguments->push((void*)pFunction);
+    MainFunctionArguments->push(this);
     _start(&_threadLoop,MainFunctionArguments);
 }
-
 void
-ZThread::startVariadic(ZTH_Functor pFunction,...)
+ZThread::startLoopVariadic(ZTH_Functor pFunction,...)
 {
 void *wArgPtr=nullptr;
 
@@ -816,8 +811,21 @@ void *wArgPtr=nullptr;
         wArgPtr=va_arg(wArguments,void*);
      }
      va_end(wArguments);
-//     addArgument(pFunction);
-     addThisThreadAsArgument();
+    MainFunctionArguments->push((void*)pFunction);
+    MainFunctionArguments->push(this);
+     _start(&_threadLoop,MainFunctionArguments);
+}
+
+void
+ZThread::startLoop(ZTH_Functor pFunction,int argc,char** argv)
+{
+    if (!MainFunctionArguments)
+            MainFunctionArguments = new ZArgList;
+    for (int wi=0; wi < argc; wi++)
+            addArgument(argv[wi]);
+
+    MainFunctionArguments->push((void*)pFunction);
+    MainFunctionArguments->push(this);
      _start(&_threadLoop,MainFunctionArguments);
 }
 
@@ -825,19 +833,31 @@ void
 ZThread::startNoLoopArg(ZTH_Functor pFunction, ZArgList *pArgList)
 {
     copyArguments(pArgList);
-//    addArgument(pFunction);
-    addThisThreadAsArgument();
-
+    MainFunctionArguments->push((void*)pFunction);
+    MainFunctionArguments->push(this);
     _start(_threadNoLoop,MainFunctionArguments);
 }
 
+void
+ZThread::startNoLoop(ZTH_Functor pFunction,int argc,char** argv)
+{
+    if (!MainFunctionArguments)
+            MainFunctionArguments = new ZArgList;
+    for (int wi=0; wi < argc; wi++)
+            addArgument(argv[wi]);
+
+    MainFunctionArguments->push((void*)pFunction);
+    MainFunctionArguments->push(this);
+
+    _start(_threadNoLoop,MainFunctionArguments);
+}
 void
 ZThread::startNoLoop(ZTH_Functor pFunction)
 {
 
     if (!MainFunctionArguments)
             MainFunctionArguments = new ZArgList;
-//    MainFunctionArguments->push((void*)pFunction);
+    MainFunctionArguments->push((void*)pFunction);
     MainFunctionArguments->push(this);
 
     _start(_threadNoLoop,(void*)MainFunctionArguments);
@@ -865,6 +885,8 @@ long wArgCount=0;
      }
 
      va_end(wArguments);
+     MainFunctionArguments->push((void*)pFunction);
+     MainFunctionArguments->push(this);
     startNoLoopArg(pFunction,MainFunctionArguments);
 }
 

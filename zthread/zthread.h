@@ -406,10 +406,33 @@ public:
     ZThread(ZThread&) = delete;
     ZThread& operator = (ZThread&)=delete;
 
-    void startArg(ZTH_Functor pFunction, ZArgList* pArgList);
-    void startVariadic(ZTH_Functor pFunction,...); // last argument must be nullptr
-    void startNoLoopArg(ZTH_Functor pFunction, ZArgList* pArgList);
 
+    /**
+     * @brief startLoop  starts a thread loop with function pFunction.
+     * Arguments are those collected from main() function.
+     * Arguments are copied to internal argument stack.
+     * @param pFunction function to start the thread with.
+     * @param argc
+     * @param argv
+     */
+    void startLoop(ZTH_Functor pFunction,int argc,char** argv);
+    void startLoopArg(ZTH_Functor pFunction, ZArgList* pArgList);
+    void startLoopVariadic(ZTH_Functor pFunction,...); // last argument must be nullptr
+
+    /**
+     * @brief startNoLoopArg startNoLoop starts a thread with no thread loop.
+     *  Argument stack is a dedicated ZArgList pointer.
+     * Arguments are copied to internal argument stack.
+     * @param pFunction
+     * @param pArgList
+     */
+    void startNoLoopArg(ZTH_Functor pFunction,ZArgList* pArgList);
+    /**
+     * @brief startNoLoop starts a thread with no loop.
+     * Arguments are those collected from main() function.
+     * @param pFunction a pointer of type ZTH_Functor to the routine to execute within created thread
+     */
+    void startNoLoop(ZTH_Functor pFunction,int argc,char** argv);
     /**
      * @brief startNoLoop starts a thread with no loop.
      * Arguments (if any) must have been set within MainFunctionArguments using appropriate method : i.e. ZThread::addArgument()
@@ -596,6 +619,17 @@ public:
                 return 0;
         wArg.Ptr=MainFunctionArguments->popR_front();
         return wArg.Int;
+    }
+    /**
+     * @brief getArgumentsCount returns the current size of argument stack. Returns -1 if argument stack is null (has not been initialized).
+     *
+     * @return
+     */
+    int getArgumentsCount()
+    {
+        if (!MainFunctionArguments)
+                return -1;
+        return MainFunctionArguments->count();
     }
 
 protected:

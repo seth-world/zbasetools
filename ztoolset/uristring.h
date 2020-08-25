@@ -169,8 +169,6 @@ public:
 
     ZStatus loadContentZTerm(ZDataBuffer &pDBS) ; /* same as loadContent but forces Zero termination */
 
-
-//    ZStatus loadText(varyingCString &pDBS) ;
     ZStatus writeContent (ZDataBuffer &pDBS) ;
     /**
      * @brief writeContent writes utf8 string content to file pointed by uriString.

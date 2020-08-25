@@ -177,6 +177,7 @@ public:
         s2++;
         wCount++;
         }
+    *s1=_Utf('\0');
     return *this;
     }
 
@@ -198,6 +199,7 @@ public:
         *s1=(_Utf)*s2;
         wCount++;
         }
+    *s1=_Utf('\0');
     return *this;
     }
 
@@ -1504,11 +1506,16 @@ utftemplateString<_Sz,_Utf>::strset ( const _Utf *wSrc)
     if (!wSrc)
             return *this;
     size_t wi=0;
-    _Utf*wPtr=content;
-    for (;*wSrc&&(wi<(getUnitCount()-1));wi++)
-                            *wPtr++=*wSrc++;
-    while (wi++<getUnitCount())
-            *wPtr++=(_Utf)'\0';
+    _Utf*   wPtr=content;
+    _Utf*   wEndPtr=content+(_Sz-1); /* take care of endofstring sign */
+
+    while (*wSrc && (wPtr < wEndPtr))
+    {
+        *wPtr=*wSrc;
+        wPtr++;
+        wSrc++;
+    }
+    *wPtr=(_Utf)'\0';
     return *this;
 }
 
@@ -1540,13 +1547,13 @@ utftemplateString<_Sz, _Utf>::add(const _Utf *wSrc)
             return *this;
     size_t wCount=0;
     _Utf* wPtr=content;
-    while (*wPtr && (wCount++ < _Sz))
+    while (*wPtr && (wCount++ < _Sz-1))
             wPtr++;
 
-    while(*wSrc && (wCount++ <_Sz) )
+    while(*wSrc && (wCount++ <_Sz-1) )
                     *wPtr++=*wSrc++;
-    while (wCount++ <_Sz)
-            *wPtr=(_Utf)'\0';
+
+    *wPtr=(_Utf)'\0';
     return *this;
 }// add
 
@@ -1615,7 +1622,7 @@ utftemplateString<_Sz,_Utf>::addUtfUnit(const _Utf pChar)
    size_t wS= utfStrlen<_Utf>(content);
    if (wS >=_Sz-2)
        {
-       fprintf(stderr,"utftemplateString-F-ZS_OUTBOUND  Out of string boundaries\n");
+       fprintf(stderr,"utftemplateString::addUtfUnit-E-ZS_OUTBOUND  Out of string boundaries\n");
        return *this;
        }
    content[wS]=(_Utf)pChar;

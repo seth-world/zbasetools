@@ -103,8 +103,8 @@ typedef utf8_t                  _UtfBase;
 
     utf8VaryingString& operator += (utf8VaryingString& pIn) {  appendData(pIn); return *this;}
 
-    bool operator == (const char* pIn) { return compareV<char>(pIn); }
-    bool operator != (const char* pIn) { return !compareV<char>(pIn); }
+    bool operator == (const char* pIn) { return compareV<char>(pIn)==0; }
+    bool operator != (const char* pIn) { return compareV<char>(pIn); }
 
 #ifdef QT_CORE_LIB
 
