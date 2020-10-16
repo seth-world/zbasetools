@@ -293,7 +293,14 @@ template <class _Utf>
  *  8 for octal
  *  10 for decimal (default value)
  *  16 for hexadecimal
- *  -1 for any base : in this case a header like 0x (hexa) or 0b (binary) or 0o (octal)
+ *  0 for any base : in this case a header like 0x (hexa) or 0b (binary) or 0 (octal)
+ *
+ * base : 0 -> any base- Base is dependant from string
+ * base : 2 -> binary expected  example 0b0010001
+ * base : 8 -> octal expected   example 08050
+ *     Remark: according to standard notation any numeric litteral starting with leading 0 (not 0x not 0b) is octal
+ * base : 16-> hexadecimal expected example 0xAF9B
+ *
  * @return an integer value with decoded value from string OR INT_MIN in case of ill base/string
  */
 int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
@@ -422,7 +429,17 @@ utfStrtoi_Incorrect:
 
 
 #include <limits.h>
-
+/**
+ * @brief utfStrtoul converts pString to long (signed) according base
+ * base : 0 -> any base- Base is dependant from string
+ * base : 2 -> binary expected  example 0b0010001
+ * base : 8 -> octal expected   example 08050
+ *     Remark: according to standard notation any numeric litteral starting with leading 0 (not 0x not 0b) is octal
+ * base : 16-> hexadecimal expected example 0xAF9B
+ *
+ * Strings with negative numeric value generate errno to be set to EINVAL while returned value is set to ULONG_MAX,
+ * and an error message is displayed on stderr.
+ */
 template <class _Utf>
 long utfStrtol(const _Utf*pString,_Utf**pPtrend,int base)
 {
@@ -519,17 +536,28 @@ ZNumBase_type wBase;
     return (wRes);
 }//utfStrtol
 
-
+/**
+ * @brief utfStrtoul converts pString to unsigned long according base
+ * base : 0 -> any base- Base is dependant from string
+ * base : 2 -> binary expected  example bx0010001
+ * base : 8 -> octal expected   example Ox0805
+ * base : 16-> hexadecimal expected example 0xAF9B
+ *
+ * Strings with negative value generate errno to be positionned to EINVAL while returned value is set to ULONG_MAX,
+ * and an error message is displayed on stderr.
+ */
 template <class _Utf>
-long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base)
+unsigned long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base=0)
 {
 
     if (!pString)
             return 0;
-    bool wHexa=false ;
-    _Utf* wPtr= utfStrdup<_Utf>(pString);
+    ZNumBase_type wHexa=ZNBase_Any ;
 
-    long wRes;
+    _Utf* wPtr= utfStrdup<_Utf>(pString);
+    _Utf *wPtrToFree = wPtr;
+
+    unsigned long wResult;
     _Utf wUtf;
     unsigned long wCutoff;
     int wNeg = 0, wAny, wCutlim;
@@ -545,10 +573,17 @@ long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base)
 
     wPtr=utfSkipSpaces(wPtr);// skip space and non breaking space characters
 /** */
-    wUtf=*wPtr++;
+    wUtf = *wPtr;
+    wPtr++;
     if (wUtf == (_Utf)'-') {
             wNeg = 1;
             wUtf = *wPtr++;
+            fprintf(stderr,
+                "utfStrtoul-F-INVTEXT  Invalid unsigned long character string <%s>\n"
+                "                      Cannot cast negative value to unsigned long.\n",
+                pString);
+            errno = EINVAL;
+            return ULONG_MAX;
         } else if (wUtf ==(_Utf) '+')
             wUtf = *wPtr++;
         if ((base == 0 || base == 16) &&
@@ -556,17 +591,19 @@ long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base)
             wUtf = wPtr[1];
             wPtr += 2;
             base = 16;
+            wHexa=ZNBase_Hexa;
         } else if ((base == 0 || base == 2) &&
             wUtf == (_Utf)'0' && (*wPtr == (_Utf)'b' || *wPtr == (_Utf)'B')) {
             wUtf = wPtr[1];
             wPtr += 2;
             base = 2;
+            wHexa=ZNBase_Binary;
         }
         if (base == 0)
             base = (wUtf == (_Utf)'0') ? 8 : 10;
 
         if (base==16)
-                wHexa=true;
+
 
 //=================================================
 
@@ -590,29 +627,31 @@ long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base)
     wCutoff = wNeg ? -(unsigned long)LONG_MIN : LONG_MAX;
     wCutlim = wCutoff % (unsigned long)base;
     wCutoff /= (unsigned long)base;
-    for (wRes = 0, wAny = 0;; wUtf = *wPtr++) {
+    for (wResult = 0, wAny = 0;; wUtf = *wPtr++) {
         if ((wUtf==(_Utf)0x20) ||(wUtf==(_Utf)0x0A)) // skip space and non-breaking space within number (formatting marks)
                                     continue;
         if ((wValue= utftoint(wUtf,wHexa))<0)  // returns -1 if not valid digit according wHexa (hexadecimal or not)
                                         break ;
         if (wValue >= base)
                         break;
-        if (wAny < 0 || wRes > wCutoff || wValue == wCutoff && wValue > wCutlim)
+        if ( (wAny < 0) || (wResult > wCutoff) || (wValue == wCutoff) && (wValue > wCutlim) )
             wAny = -1;
         else {
             wAny = 1;
-            wRes *= base;
-            wRes += wValue;
+            wResult *= base;
+            wResult += wValue;
         }
     }// for
     if (wAny < 0) {
-        wRes = wNeg ? LONG_MIN : LONG_MAX;
+        wResult = wNeg ? LONG_MIN : LONG_MAX;
         errno = ERANGE;
     } else if (wNeg)
-        wRes = -wRes;
+        wResult = -wResult;
     if (pPtrend != 0)
         *pPtrend = (_Utf *)(wAny ? wPtr - 1 : pString);
-    return (wRes);
+
+    free(wPtrToFree);
+    return (wResult);
 }//utfStrtoul
 #ifdef __COMMENT__
 /**

@@ -298,8 +298,73 @@ XMLgetChildLong (zxmlElement*pElement,const char* pChildName,long &pLong,ZaiErro
     if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
         return -1;
 
-    pLong=wValue.toLong();
+    pLong=wValue.toLong(0); /* base 0 : let string content decide for base */
     return 0;
 } //XMLgetChildInt
+int
+XMLgetChildUInt (zxmlElement*pElement,const char* pChildName,unsigned int &pInt,ZaiErrors* pErrorlog)
+{
+    utf8String wValue;
 
+    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
+        return -1;
+
+    pInt=wValue.toUInt(0);/* base 0 : let string content decide for base */
+    return 0;
+} //XMLgetChildInt
+int
+XMLgetChildULong (zxmlElement*pElement,const char* pChildName,unsigned long &pLong,ZaiErrors* pErrorlog)
+{
+    utf8String wValue;
+
+    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
+        return -1;
+
+    pLong=wValue.toULong(0);/* base 0 : let string content decide for base */
+    return 0;
+} //XMLgetChildInt
+int
+XMLgetChildIntHexa (zxmlElement*pElement,const char* pChildName,int &pInt,ZaiErrors* pErrorlog)
+{
+    utf8String wValue;
+
+    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
+        return -1;
+
+    pInt=wValue.toInt(16);/* base 16 : hexadecimal expected */
+    return 0;
+} //XMLgetChildInt
+int
+XMLgetChildLongHexa (zxmlElement*pElement,const char* pChildName,long &pLong,ZaiErrors* pErrorlog)
+{
+    utf8String wValue;
+
+    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
+        return -1;
+
+    pLong=wValue.toLong(16);/* base 16 : hexadecimal expected */
+    return 0;
+} //XMLgetChildInt
+int
+XMLgetChildUIntHexa (zxmlElement*pElement,const char* pChildName,unsigned int &pInt,ZaiErrors* pErrorlog)
+{
+    utf8String wValue;
+
+    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
+        return -1;
+
+    pInt=wValue.toUInt(16);/* base 16 : hexadecimal expected */
+    return 0;
+} //XMLgetChildInt
+int
+XMLgetChildULongHexa (zxmlElement*pElement,const char* pChildName,unsigned long &pULong,ZaiErrors* pErrorlog)
+{
+    utf8String wValue;
+
+    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
+        return -1;
+
+    pULong=wValue.toULong(16);/* base 16 : hexadecimal expected */
+    return 0;
+} //XMLgetChildInt
 #endif //ZXMLPRIMITIVES_CPP

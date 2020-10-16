@@ -366,7 +366,14 @@ public:
      {
          return utfStrtol<_Utf>(Data,nullptr,pBase);
      }
-
+     unsigned int toUInt(unsigned int pBase=10)
+     {
+         return (unsigned int)utfStrtoul<_Utf>(Data,nullptr,pBase);
+     }
+     unsigned long toULong(int pBase=10)
+     {
+         return utfStrtoul<_Utf>(Data,nullptr,pBase);
+     }
 
     ZDataBuffer* _exportURF(ZDataBuffer *pURF);
     ZStatus _importURF(unsigned char *pURF);

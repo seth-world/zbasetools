@@ -84,7 +84,20 @@ std::string fmtXMLint64(const char *pVarName, const int64_t pVarContent, const i
 std::string fmtXMLuint32(const char *pVarName, const uint32_t pVarContent, const int pLevel);
 std::string fmtXMLuint64(const char *pVarName, const uint64_t pVarContent, const int pLevel);
 std::string fmtXMLbool(const char *pVarName, const bool pVarContent, const int pLevel);
+
 std::string fmtXMLintHexa(const char *pVarName, const int pVarContent, const int pLevel);
+std::string fmtXMLuintHexa(const char *pVarName, const uint pVarContent, const int pLevel);
+std::string fmtXMLlongHexa(const char *pVarName, const long pVarContent, const int pLevel);
+std::string fmtXMLulongHexa(const char *pVarName, const unsigned long pVarContent, const int pLevel);
+
+std::string fmtXMLint32Hexa(const char *pVarName, const int32_t pVarContent, const int pLevel)
+{return fmtXMLintHexa(pVarName, pVarContent, pLevel);}
+std::string fmtXMLuint32Hexa(const char *pVarName, const uint32_t pVarContent, const int pLevel)
+{return fmtXMLuintHexa(pVarName, pVarContent, pLevel);}
+std::string fmtXMLint64Hexa(const char *pVarName, const int64_t pVarContent, const int pLevel)
+{return fmtXMLlongHexa(pVarName, pVarContent, pLevel);}
+std::string fmtXMLuint64Hexa(const char *pVarName, const uint64_t pVarContent, const int pLevel)
+{return fmtXMLulongHexa(pVarName, pVarContent, pLevel);}
 
 int XMLgetChildText(zxmlElement *pElement,
                     const char *pChildName,
@@ -102,8 +115,33 @@ int XMLgetChildBool(zxmlElement *pElement,
                     const char *pChildName,
                     bool &pBool,
                     ZaiErrors *pErrorlog);
+
 int XMLgetChildInt(zxmlElement *pElement, const char *pChildName, int &pInt, ZaiErrors *pErrorlog);
 int XMLgetChildLong(zxmlElement *pElement, const char *pChildName, long &pLong, ZaiErrors *pErrorlog);
+
+int XMLgetChildIntHexa(zxmlElement *pElement, const char *pChildName, int &pLong, ZaiErrors *pErrorlog);
+int XMLgetChildLongHexa(zxmlElement *pElement, const char *pChildName, long &pLong, ZaiErrors *pErrorlog);
+int XMLgetChildUIntHexa(zxmlElement *pElement, const char *pChildName, unsigned int &pLong, ZaiErrors *pErrorlog);
+int XMLgetChildULongHexa(zxmlElement *pElement, const char *pChildName, unsigned long &pLong, ZaiErrors *pErrorlog);
+
+int XMLgetChildInt32Hexa(zxmlElement *pElement, const char *pChildName, int32_t &pInt32, ZaiErrors *pErrorlog)
+{
+    return XMLgetChildIntHexa(pElement,pChildName,pInt32,pErrorlog);
+}
+
+int XMLgetChildInt64Hexa(zxmlElement *pElement, const char *pChildName, int64_t &pLong, ZaiErrors *pErrorlog)
+{
+    return XMLgetChildLongHexa(pElement,pChildName,pLong,pErrorlog);
+}
+
+int XMLgetChildUInt32Hexa(zxmlElement *pElement, const char *pChildName, uint32_t &pUInt32, ZaiErrors *pErrorlog)
+{
+    return XMLgetChildUIntHexa(pElement,pChildName,pUInt32,pErrorlog);
+}
+int XMLgetChildUInt64Hexa(zxmlElement *pElement, const char *pChildName, uint64_t &pULong, ZaiErrors *pErrorlog)
+{
+    return XMLgetChildULongHexa(pElement,pChildName,pULong,pErrorlog);
+}
 
 /**
  * @brief setXmlIdent sets the indentation for xml code generation to pIdent
