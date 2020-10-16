@@ -1,6 +1,6 @@
 #ifndef QXMLUTILITIES_H
 #define QXMLUTILITIES_H
-
+/* @file qxmlutilities.h utilities for using XML thru Qt */
 
 #include <QDomDocument>
 
@@ -29,10 +29,29 @@ QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *p
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, double pdoubleValue);
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, uriString pValue);
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, checkSum pValue);
+
+QDomElement appendElementUInt64(QDomDocument &pXmlDoc,
+                                  QDomNode &pNode,
+                                  const char *pName,
+                                  uint64_t plonglongValue);
+QDomElement appendElementUInt32(QDomDocument &pXmlDoc,
+                                  QDomNode &pNode,
+                                  const char *pName,
+                                  uint32_t plonglongValue);
+QDomElement appendElementInt64(QDomDocument &pXmlDoc,
+                                  QDomNode &pNode,
+                                  const char *pName,
+                                  int64_t plonglongValue);
+QDomElement appendElementInt32(QDomDocument &pXmlDoc,
+                                  QDomNode &pNode,
+                                  const char *pName,
+                                  int32_t plonglongValue);
+/* this concerns applications therefore must be migrated to application
 #ifdef ZAUTHORIZATION_H
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, Id_struct &pValue);
 void getElement (Id_struct &pField ,QDomElement &pElement);
 #endif
+*/
 void getElement (utfdescString &pField , QDomElement &pElement);
 void getElement (utfcodeString &pField ,QDomElement &pElement);
 void getElement (checkSum &pField ,QDomElement &pElement);
@@ -50,8 +69,10 @@ void getElementLong (long &pField ,QDomElement &pElement);
 void getElementULong (unsigned long &pField ,QDomElement &pElement);
 void getElementSize_t (size_t &pField ,QDomElement &pElement);
 void getElementLongLong (long long &pField ,QDomElement &pElement);
-void getElementUInt64_t (uint64_t &pField ,QDomElement &pElement);
-void getElementUInt32_t (uint32_t &pField ,QDomElement &pElement);
+void getElementUInt64 (uint64_t &pField ,QDomElement &pElement);
+void getElementUInt32 (uint32_t &pField ,QDomElement &pElement);
+void getElementInt64 (int64_t &pField ,QDomElement &pElement);
+void getElementInt32 (int32_t &pField ,QDomElement &pElement);
 
 QDomElement appendWidget (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pWindowName, QWidget *pWidget);
 

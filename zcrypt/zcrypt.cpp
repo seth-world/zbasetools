@@ -379,8 +379,8 @@ ZCryptAES256::setupKeyandVector (unsigned char* pKey,unsigned char* pIV)
 ZStatus ZCryptAES256::encryptToFile (const char*pFilePath,
                                      unsigned char* pPlainBuffer,
                                      const size_t pPlainBufferLen,
-                                     ZCryptKeyAES256 pKey,
-                                     ZCryptVectorAES256 pVector)
+                                     const ZCryptKeyAES256& pKey,
+                                     const ZCryptVectorAES256& pVector)
 {
     unsigned char* wCryptedBuffer;
     size_t wCryptedBufferLen=0;
@@ -464,8 +464,8 @@ ZStatus ZCryptAES256::writeCryptedBufferToFile (const char*pFilePath, unsigned c
 ZStatus ZCryptAES256::uncryptFromFile (const char* pFilePath,
                                        unsigned char** pPlainBuffer,
                                        size_t*          pPlainBufferLen,
-                                       ZCryptKeyAES256 pKey,
-                                       ZCryptVectorAES256 pVector)
+                                       const ZCryptKeyAES256& pKey,
+                                       const ZCryptVectorAES256& pVector)
 {
 _MODULEINIT_
 

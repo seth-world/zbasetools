@@ -70,15 +70,15 @@ class utf32VaryingString;
 class uriString : public utf8FixedString<cst_urilen+1>
 {
 public:
-    typedef  utftemplateString<cst_urilen+1,utf8_t> _Base;
-//    typedef utf8FixedString                      _Base;
+//    typedef  utftemplateString<cst_urilen+1,utf8_t> _Base;
+    typedef utf8FixedString<cst_urilen+1>           _Base;
 
     uriString(void) {}
     uriString(const utf8_t *pString) {fromUtf(pString);}
     uriString(const char* pString) {strset((const utf8_t*)pString);}
 //    uriString(const uriString& pURI) {fromURI(pURI);}
 
-    const char* toCString_Strait() {return (const char*)content;}
+//    const char* toCString_Strait() {return (const char*)content;}
     const char* toCChar() const {return (const char*)content;}
 
     using _Base::operator =;
@@ -167,9 +167,14 @@ public:
     ZStatus loadUtf16(utf16VaryingString &pUtf16) ;
     ZStatus loadUtf32(utf32VaryingString &pUtf32) ;
 
+    ZStatus loadAES256(ZDataBuffer &pDBS,const ZCryptKeyAES256& pKey,const ZCryptVectorAES256& pVector) ;
+
+
     ZStatus loadContentZTerm(ZDataBuffer &pDBS) ; /* same as loadContent but forces Zero termination */
 
     ZStatus writeContent (ZDataBuffer &pDBS) ;
+
+    ZStatus writeAES256(ZDataBuffer &pDBS,const ZCryptKeyAES256& pKey,const ZCryptVectorAES256& pVector) ;
     /**
      * @brief writeContent writes utf8 string content to file pointed by uriString.
      *  NB: end mark '\0' is not written to file.

@@ -46,8 +46,10 @@ struct Docid_struct;
 class utfcodeString : public utf8FixedString<cst_codelen+1>
 {
 public:
-    typedef utftemplateString<cst_codelen+1,utf8_t> _Base;
+    typedef utf8FixedString<cst_codelen+1> _Base;
     utfcodeString () {}
+    utfcodeString(utfcodeString& pIn):_Base(pIn) { }
+    utfcodeString(utfcodeString&& pIn):_Base(pIn) { }
 
 #ifdef QT_CORE_LIB
     utfcodeString (QString &pQS)
@@ -57,14 +59,20 @@ public:
     QString getCodeString() {QString wQs((char*)content); return wQs;}
 #endif // QT_CORE_LIB
 
-    const char* toCString_Strait(void) {return (const char*)content;}
+//    const char* toCString_Strait(void) {return (const char*)content;}
 
     utfcodeString& fromDocid(Docid_struct& pDocid);
 
 //    using _Base::templateString;
     using _Base::operator =;
+    using _Base::operator +=;
+
+    utfcodeString & operator = (const utfcodeString& pIn ) {return (utfcodeString&)_copyFrom(pIn);}
+    utfcodeString & operator = (const utfcodeString&& pIn ) {return (utfcodeString&)_copyFrom(pIn);}
 
     utfcodeString& operator=(Docid_struct& pDocid);
+
+//    int compare(utfcodeString &pComp) { return utfStrcmp<utf8_t>(content, pComp.content); }
 
 };
 #ifndef __UTFDESCSTRING__
@@ -73,37 +81,43 @@ public:
 class utfdescString : public utf8FixedString<cst_desclen+1>
 {
 public:
-    typedef utftemplateString<cst_desclen+1,utf8_t> _Base;
-    typedef utf8FixedString<cst_desclen+1> _Base8;
+//    typedef utftemplateString<cst_desclen+1,utf8_t> _Base;
+    typedef utf8FixedString<cst_desclen+1> _Base;
     utfdescString(void) {}
     utfdescString(const utf8_t* pString) {fromUtf(pString);return ;}
 
-    utfdescString(utfdescString& pIn) {_copyFrom(pIn); }
-    utfdescString(utfdescString&& pIn) {_copyFrom(pIn); }
+    utfdescString(utfdescString& pIn):_Base(pIn) {}
+    utfdescString(utfdescString&& pIn):_Base(pIn) {}
 
     utfdescString & fromcodeString(const utfcodeString &pCode) {return (utfdescString&)strset(pCode.content);}
 
 //        const char* toCString(void) {return (const char*)content;}
 
-    utfdescString & operator =(const char* pCode) {strset((const utf8_t*)pCode); return *this;}
+//    utfdescString & operator =(const char* pCode) {strset((const utf8_t*)pCode); return *this;}
 
-    utfdescString& operator = (utfdescString& pIn) {_copyFrom(pIn);}
-    utfdescString& operator = (utfdescString&& pIn) {_copyFrom(pIn);}
+    utfdescString& operator = (utfdescString& pIn) {return (utfdescString&)_copyFrom(pIn);}
+    utfdescString& operator = (utfdescString&& pIn) {return (utfdescString&)_copyFrom(pIn);}
         using _Base::operator += ;
+        using _Base::operator = ;
         using _Base::UnitCount;
 //    utfdescString& operator = (const char* pString) {return (utfdescString&)fromCString(pString);}
+
+    int compare(const utfdescString &pComp) const { return utfStrcmp<utf8_t>(content, pComp.content); }
 };
 
 #endif// __UTFDESCSTRING__
 
-//#ifndef __UTFFIELDNAMESTRING__
-//#define __UTFFIELDNAMESTRING__
+
 class utffieldNameString : public utf8FixedString<cst_fieldnamelen+1>
 {
 public:
     utffieldNameString() {}
 //    utffieldNameString(const char* pString) {fromCString(pString);}
     utffieldNameString(const utf8_t* pString) {fromUtf(pString);}
+    typedef utf8FixedString<cst_fieldnamelen+1> _Base;
+    utffieldNameString(utffieldNameString &pIn):_Base(pIn) { }
+    utffieldNameString(utffieldNameString &&pIn):_Base(pIn) { }
+
     using _Base::operator =  ;
     using _Base::operator += ;
 
@@ -112,58 +126,105 @@ public:
         utffieldNameString & operator = (const utfcodeString &pCode)  {return (utffieldNameString&)strset(pCode.content);}
         utffieldNameString & operator += (const utfcodeString &pCode) {return (utffieldNameString&)add(pCode.content);}
 
+        utffieldNameString & operator = (const utffieldNameString &pCode)  {return (utffieldNameString&)strset(pCode.content);}
+        utffieldNameString & operator += (const utffieldNameString &pCode) {return (utffieldNameString&)add(pCode.content);}
+
+    bool compare(utffieldNameString &pComp) { return utfStrcmp<utf8_t>(content, pComp.content); }
 };// utffieldNameString
 
-//#endif// __UTFFIELDNAMESTRING__
 
 class utfdoublecodeString : public utf8FixedString<cst_codelen*2+2>
 {
 public:
+    typedef utf8FixedString<cst_codelen*2+2> _Base;
     utfdoublecodeString(void) {Key1=(utfcodeString*)this; Key2=(utfcodeString*)(this +sizeof(utfcodeString));}
-    utfcodeString* Key1;
-    utfcodeString* Key2;
-    void clear(void) {Key1->clear();Key2->clear(); return;}
-    const char* toCString_Strait(void) {return (const char*)content;}
+    utfdoublecodeString(utfcodeString &pKey1, utfcodeString &pKey2)
+    {
+        Key1->strset(pKey1.content);
+        Key2->strset(pKey2.content);
+    }
+    utfdoublecodeString(utfdoublecodeString &pIn):_Base(pIn) {  }
+    utfdoublecodeString(utfdoublecodeString &&pIn):_Base(pIn) {  }
 
+    utfcodeString getKey1() { return ((utfcodeString&)(*Key1)); }
+    utfcodeString getKey2() { return ((utfcodeString&)(*Key2)); }
+
+    void setKey1(const char *pKey1) { Key1->strset((const utf8_t *) pKey1); }
+    void setKey2(const char *pKey2) { Key2->strset((const utf8_t *) pKey2); }
+
+    void setKey1(const utfcodeString &pKey1) { Key1->strset(pKey1.content); }
+    void setKey2(const utfcodeString &pKey2) { Key2->strset(pKey2.content); }
+
+
+    utfcodeString* Key1=Key1=(utfcodeString*)this;
+    utfcodeString* Key2=(utfcodeString*)(Key1 +sizeof(utfcodeString));
+    void clear(void) {Key1->clear();Key2->clear(); return;}
+
+    using  _Base::operator =;
+    using _Base::operator += ;
+
+    utfdoublecodeString & operator = (const utfdoublecodeString& pIn ) {return (utfdoublecodeString&)_copyFrom(pIn);}
+    utfdoublecodeString & operator = (const utfdoublecodeString&& pIn ) {return (utfdoublecodeString&)_copyFrom(pIn);}
+
+//    bool compare(utffieldNameString &pComp) { return utfStrcmp<utf8_t>(content, pComp.content); }
 };
 
 
 class utfmessageString : public utf8FixedString<cst_messagelen+1>
 {
 public:
-    using  utftemplateString<cst_messagelen+1,utf8_t>::operator =;
+    typedef utf8FixedString<cst_messagelen+1> _Base;
+    utfmessageString () {}
+    utfmessageString(utfmessageString &pIn):_Base(pIn) {}
+    utfmessageString(utfmessageString &&pIn):_Base(pIn) { }
+    using  _Base::operator =;
+    using _Base::operator += ;
+    utfmessageString & operator = (const utfmessageString& pIn ) {return (utfmessageString&)_copyFrom(pIn);}
+    utfmessageString & operator = (const utfmessageString&& pIn ) {return (utfmessageString&)_copyFrom(pIn);}
 
-    const char* toCString_Strait(void) {return (const char*)content;}
+//    const char* toCString_Strait(void) {return (const char*)content;}
 
 };
 
 class utfkeywordString : public utf8FixedString<cst_keywordlen+1>
 {
 public:
-    using  utftemplateString<cst_keywordlen+1,utf8_t>::operator =;
-    const char* toCString_Strait(void) {return (const char*)content;}
+    typedef utf8FixedString<cst_keywordlen+1> _Base;
+    utfkeywordString () {}
+    utfkeywordString(utfkeywordString &pIn):_Base(pIn) {  }
+    utfkeywordString(utfkeywordString &&pIn):_Base(pIn) {}
+
+    using  _Base::operator =;
+    using _Base::operator += ;
+
+    utfkeywordString & operator = (const utfkeywordString& pIn ) {return (utfkeywordString&)_copyFrom(pIn);}
+    utfkeywordString & operator = (const utfkeywordString&& pIn ) {return (utfkeywordString&)_copyFrom(pIn);}
+
+//    const char* toCString_Strait(void) {return (const char*)content;}
 };
 
 
 class utfidentityString : public utf8FixedString<cst_identitylen+1>
 {
 public:
-typedef utf8FixedString<cst_identitylen+1> _Base;
-
+    typedef utf8FixedString<cst_identitylen+1> _Base;
     utfidentityString() {}
     utfidentityString(const utf8_t*pString){strset(pString);}
-    utfidentityString(const utfidentityString& pIn ) {_copyFrom(pIn);}
-    utfidentityString(const utfidentityString&& pIn ) {_copyFrom(pIn);}
+    utfidentityString(const utfidentityString& pIn ):_Base(pIn) {}
+    utfidentityString(const utfidentityString&& pIn ):_Base(pIn) {}
 
-    const char* toCString_Strait(void) {return (const char*)content;}
-    utfidentityString & operator = (const utfidentityString& pIn ) {_copyFrom(pIn);}
-    utfidentityString & operator = (const utfidentityString&& pIn ) {_copyFrom(pIn);}
+//    const char* toCString_Strait(void) {return (const char*)content;}
+
+    using _Base::operator += ;
+    using _Base::operator = ;
+
+    utfidentityString & operator = (const utfidentityString& pIn ) {return (utfidentityString&)_copyFrom(pIn);}
+    utfidentityString & operator = (const utfidentityString&& pIn ) {return (utfidentityString&)_copyFrom(pIn);}
 
     utfidentityString & operator = (const utfdescString& pDesc ) ;
     utfidentityString & operator = (const utfcodeString& pDesc ) {return (utfidentityString&) strset(pDesc.content);}
     utfidentityString & operator = (const char* pDesc ) {return (utfidentityString&) strset((const utf8_t*)pDesc); }
 };
-
 
 
 typedef utf8VaryingString utf8String;

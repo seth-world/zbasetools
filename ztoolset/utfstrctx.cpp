@@ -4,8 +4,6 @@
 #include <ztoolset/zerror.h>
 #include <ztoolset/utfstrctx.h>
 
-
-
 #include <string.h> // for memmove, malloc,...
 
 //===============utfSCErrQueue=============================
@@ -14,6 +12,7 @@
      memmove(this,&pErr,sizeof(utfSCErr_struct));
      return *this;
  }
+
 void
 utfSCErrQueue::newError(size_t pUnitOffset,
                         size_t pSize,

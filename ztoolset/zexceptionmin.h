@@ -1,6 +1,8 @@
 #ifndef ZEXCEPTIONMIN_H
 #define ZEXCEPTIONMIN_H
 
+#include <zconfig.h>
+
 #include <exception>
 #include <ztoolset/zerror.h>
 
@@ -38,7 +40,7 @@ class ZExceptionBase_Data //: public std::exception
 public:
     ZExceptionBase_Data()=default;
 
-    void _copyFrom(const ZExceptionBase_Data& pIn)
+    ZExceptionBase_Data& _copyFrom(const ZExceptionBase_Data& pIn)
     {
         Error       = pIn.Error ;           /**< system error code corresponding to errno. This field is positionned when and only when a system error or a file error occurred. */
         Status      = pIn.Status;   /**< ZStatus describing zbs error*/
@@ -46,10 +48,16 @@ public:
         Complement  =pIn.Complement;   /**<  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
         Severity    =pIn.Severity; /**< a Severity_type that mentions the kind of error and its impact on application flow.*/
         Module      =pIn.Module ;
+        return *this;
     }
-    void _copyFrom(const ZExceptionBase_Data&& pIn)
+    ZExceptionBase_Data& _copyFrom(const ZExceptionBase_Data&& pIn)
     {
-        _copyFrom(pIn);
+        return _copyFrom((const ZExceptionBase_Data&)pIn);
+    }
+
+    ZExceptionBase_Data& operator=(const ZExceptionBase_Data&& pIn)
+    {
+        return _copyFrom((const ZExceptionBase_Data&)pIn);
     }
 
     int             Error       = 0 ;           /**< system error code corresponding to errno. This field is positionned when and only when a system error or a file error occurred. */
@@ -81,7 +89,7 @@ class ZExceptionBase : public ZExceptionBase_Data
 
     void copyFrom(ZExceptionBase& pIn)
     {
-        _Base::_copyFrom((ZExceptionBase_Data)pIn);
+        _Base::_copyFrom((ZExceptionBase_Data&)pIn);
     }
 public:
     ZExceptionBase();
@@ -114,7 +122,7 @@ public:
                       const ZStatus pStatus,
                       const Severity_type pSeverity,
                       const char*pFormat,va_list arglist);
-#ifdef __COMMENT__
+#ifdef __COMMENTED_USE_SSL__
 
     void getSSLError (const char *pModule,
                       const ZStatus pStatus,
@@ -124,6 +132,19 @@ public:
 
 
 #endif // __USE_SSL__
+#ifdef __USE_LDAP__
+    void getLDAP     (int pError,
+                 const char *pModule,
+                 const ZStatus pStatus,
+                 const Severity_type pSeverity,
+                 const char*pFormat,...);
+#endif
+#ifdef __USE_WINDOWS__
+    void getLastError(const char *pModule,
+                      const ZStatus pStatus,
+                      const Severity_type pSeverity,
+                      const char* pFormat,...);
+#endif
 
     void getIcuError (const char *pModule,
                       const UErrorCode pIcuErr,
@@ -191,7 +212,7 @@ public:
 
 
  */
-class ZExceptionStack : private zbs::ZArray<ZExceptionBase*>
+class ZExceptionStack : public zbs::ZArray<ZExceptionBase*>
 {
 public:
     typedef ZArray<ZExceptionBase*> _Base;
@@ -233,8 +254,7 @@ public:
 };
 
 
-//class ZExceptionMin : public ZExceptionBase
-class ZExceptionMin
+class ZExceptionMin : public ZExceptionStack
 {
 public:
 //    typedef ZExceptionBase _Base;
@@ -247,20 +267,19 @@ public:
 
     void clearStack(void) ;
 
-    ZExceptionBase& newBlankException(void) {return (ZStack.newBlankException());}
+    ZExceptionBase& newBlankException(void) {return (newBlankException());}
 
     void toStack(ZExceptionBase *pException);
     void addToLast(const char *pFormat,...);
     void printLastUserMessage (FILE *pOutput=stderr);
 
-    bool stackIsEmpty(void) {return ZStack.isEmpty();}
+    bool stackIsEmpty(void) {return ZExceptionStack::isEmpty();}
 
     ZExceptionBase& last(void)
             {
-            _MODULEINIT_
-                if (ZStack.isEmpty())
-                                _ABORT_;
-                return *ZStack.last();
+                if (ZExceptionStack::isEmpty())
+                    return(newBlankException());
+                return last();
             }
 
     void removeLast(void);
@@ -277,7 +296,7 @@ public:
     utfexceptionString& getLastComplement(void) ;
 
 //    zbs::ZArray<ZExceptionBase*>  ZStack;
-    ZExceptionStack ZStack;
+//     ZExceptionStack ZStack;
 
     void getErrno(const int pErrno,
              const char *pModule="",
@@ -297,13 +316,7 @@ public:
                       const char*pFormat,...);
 
 
-#ifdef __USE_LDAP__
-    void getLDAP     (int pError,
-                      const char *pModule,
-                      const ZStatus pStatus,
-                      const Severity_type pSeverity,
-                      const char*pFormat,...);
-#endif
+
 
 
     void getIcuError(const char *pModule,
@@ -312,12 +325,6 @@ public:
                      const char* pFormat,...) ;
 
 
-#ifdef __USE_WINDOWS__
-    void getLastError(const char *pModule,
-                      const ZStatus pStatus,
-                      const Severity_type pSeverity,
-                      const char* pFormat,...);
-#endif
     void setMessage (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
     void setMessageCplt (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
     void setComplement (const char *pFormat,...);
@@ -332,15 +339,15 @@ public:
     void printUserMessage (FILE *pOutput=stderr, bool pDelete=true);
 
 #ifdef QT_CORE_LIB
-    void setComplementQS (QString pQS) {ZStack.last()->setComplementQS(pQS);}
+    void setComplementQS (QString pQS) {last().setComplementQS(pQS);}
 
-    QString formatUserMessage (void){return ZStack.last()->formatUserMessage();}
+    QString formatUserMessage (void){return last().formatUserMessage();}
     utf8VaryingString lastUtf8()   ;
 
-    int messageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){return ZStack.last()->messageBox(pTitle,pUserMessage);}
-    int documentMessageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){ return ZStack.last()->documentMessageBox(pTitle,pUserMessage);}
-    int messageBox(const char* pTitle,const char * pUserMessage){return ZStack.last()->documentMessageBox(pTitle,pUserMessage);}
-    int documentMessageBox(char* pTitle,char * pUserMessage){return ZStack.last()->documentMessageBox(pTitle,pUserMessage);}
+    int messageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){return last().messageBox(pTitle,pUserMessage);}
+    int documentMessageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){ return last().documentMessageBox(pTitle,pUserMessage);}
+    int messageBox(const char* pTitle,const char * pUserMessage){return last().documentMessageBox(pTitle,pUserMessage);}
+    int documentMessageBox(char* pTitle,char * pUserMessage){return last().documentMessageBox(pTitle,pUserMessage);}
 
 #endif// QT_CORE_LIB
 /**
@@ -364,7 +371,7 @@ private:
     uint8_t         ThrowOnSeverity=Severity_Highest;
 
 private:
-    void clear() {/*_Base::clear();*/ ZStack.clear();    AbortOnSeverity=0xFF;}
+    void clear() {/*_Base::clear();*/ ZExceptionStack::clear();    AbortOnSeverity=0xFF;}
 };// ZExceptionMin
 
 

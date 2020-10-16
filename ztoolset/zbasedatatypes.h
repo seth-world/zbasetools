@@ -18,6 +18,8 @@
 //#include <ztoolset/zdate.h>
 #include <ztoolset/zlimit.h>
 
+#include <ztoolset/ztypetype.h> // for typeDemangler() function
+
 //---------Constants-----------------------
 //
 
@@ -101,57 +103,6 @@ ZHamming_struct _getHamming (const char *pStr1, const char *pStr2);
 //------------------Main Data code and structures----------------------------
 //
 
-class utfcodeString;
-
-class Docid_struct
-{
-public:
-    int64_t id=0;
-    bool isValid(void) {return(!(id<0));}
-    bool isInValid(void) {return(id<0);}
-    void setInvalid(void) {id=__INT64_MAX__;}
-    void clear(void) {id=0;}
-
-    int64_t value(void) {return id;}
-
-    Docid_struct & getNext(void) {id++; return(*this);}
- //   Docid_struct getTemporary(void) {id--; return(*this);}
-
-    Docid_struct& clearid(void) { id= -1; return *this;}
-    Docid_struct& getInvalid(void) { id= __INT64_MAX__; return *this;}
-
-    Docid_struct& setValue(int64_t pValue) {id=pValue;}
-
-    Docid_struct& fromChar (const char *pInput) {id = atol(pInput); return(*this); }
-#ifdef QT_CORE_LIB
-    QString     toQString(void) {char Buffer[15];
-                                 sprintf(Buffer,"%06ld",id);
-                                 return(QString(Buffer));}
-    QString     toQStringShort(void) {char Buffer[15];
-                                 sprintf(Buffer,"%06ld",id);
-                                 return(QString(Buffer));}
-    QString     toQStringLong(void) {char Buffer[15];
-                                 sprintf(Buffer,"%012ld",id);
-                                 return(QString(Buffer));}
-
-    Docid_struct& fromQString (const QString pInput)
-                    { bool ConvError;
-                    id = pInput.toInt(&ConvError);
-                    if (ConvError)
-                            fprintf(stderr,"%s::fromQString-E-CONVERROR There were error converting QString %s to Docid_struct\n",
-                                    _GET_FUNCTION_NAME_,
-                                    pInput.toStdString().c_str());
-                    return(*this);}
-#endif // QT_CORE_LIB
-
-    Docid_struct & fromcodeString(utfcodeString &pCs);
-
-    Docid_struct & operator = (long pL) {id =(int64_t) pL; return *this;}
-    Docid_struct& operator = (const char *pInput) {return(fromChar(pInput));}
-    Docid_struct& operator = (QString pInput) {return(fromQString(pInput));}
-    Docid_struct& operator = (utfcodeString &pCs) {return fromcodeString(pCs); }
-};
-
 
 #ifndef __ZCRYPTMETHOD_TYPE__
 #define __ZCRYPTMETHOD_TYPE__
@@ -166,6 +117,9 @@ enum ZCryptMethod_type : uint8_t
 
 const char *
 decode_ZCM (ZCryptMethod_type pZCM);
+
+ZCryptMethod_type
+encode_ZCM(const char *pZCMStr);
 
 
 
@@ -501,7 +455,175 @@ struct descString : public templateString<char [cst_desclen+1]>
 
 
 //----------Generic functions--------------------------------------------------
+/**
+ * @brief The ZDemanglingType enum
+ *
+ * Used by  _get_Data_Type()
+ *
+ *  the char case :
+ *
+ *      char*  -> Zchar + Zpointer
+ *
+ *      char   -> Zchar + Znumeric
+ *
+ *      char [] -> Zchar + Zarray
+ *
+ */
+enum ZDemanglingType {
+    Zno_type        =   0 ,
+    Zatomic         =   1 ,
+    Zcompound       =   2 ,
+    Zpointer        =   4 ,
+    Zarray          =   8 ,
 
+    Zstruct         = 0x20 ,
+    Zfunction     = 0x0100,
+
+    Zchar         = 0x01000 ,  // cstring pointer = 0x20004
+    // cstring array = 0x20008
+
+    Znumeric      = 0x100000,
+
+    Zint          = 0x102000,
+    //            Zenum         = 0x1C000,     // enum is int
+    Zlong         = 0x104000,
+    Zfloat        = 0x110000,
+    Zdouble       = 0x120000,
+
+    ZStdString    = 0x01000000 ,  // std::string is a compound
+
+    ZnoC11compiler = -1,
+    ZerroredType   = -2,
+    Zunknown      = 0xF0000         // may be a struct or a class
+};
+
+
+
+#define __STDSTRING__ "std::string"
+//#include <cxxabi.h>
+
+ZStatus typeDemangler(const char*pName, char *pOutName, size_t pOutSizeMax);
+
+template <typename _Type>
+ZData_Type_struct &_get_Data_Type (ZData_Type_struct*pDT_Return)
+{
+    //struct ZData_Type_struct DT_Return ;
+
+    const char *_Type_Name_Local;
+
+    memset (pDT_Return,0,sizeof(ZData_Type_struct));
+
+    pDT_Return->Size = sizeof(_Type);
+
+    pDT_Return->isPointer=std::is_pointer<_Type>::value ;
+    if (pDT_Return->isPointer)
+        pDT_Return->Type |= Zpointer ;
+
+
+    pDT_Return->isArray=std::is_array<_Type>::value ;
+    if (pDT_Return->isArray)
+    {
+        pDT_Return->Type |= Zarray;
+    }
+
+
+    _Type_Name_Local = typeid(_Type).name();
+
+#ifdef __DEPRECATED__
+    int wmangling_status ;
+    size_t wmangling_length=199;
+    /*
+  *  WARNING : If _Type has a name that overrides the buffer length (199), a SIGABRT will be thrown (setTerminate() is called)
+  *             when calling     __cxa_demangle  (Valgrind says : invalid free operation)
+  *  SOLUTION : enlarge TypeName field size
+  */
+    memset(pDT_Return->TypeName,0,wmangling_length);
+    char * wg= abi::__cxa_demangle(_Type_Name_Local,
+                                   pDT_Return->TypeName,
+                                   &wmangling_length,
+                                   &wmangling_status);
+
+    if (wg==NULL)
+    {
+        pDT_Return->Type = ZerroredType ;
+        return (*pDT_Return) ;
+    }
+#endif // __DEPRECATED__
+
+    typeDemangler(_Type_Name_Local,pDT_Return->TypeName,sizeof(pDT_Return->TypeName));
+
+    while (true)
+    {
+        if (typeid(_Type).__is_function_p())
+        {
+            pDT_Return->Type |= Zfunction;
+            break;
+        }
+
+        if (std::is_fundamental<_Type>() )
+        {
+            pDT_Return->Type |= Zatomic;
+            pDT_Return->isAtomic = true;
+        }
+        else
+        {
+            pDT_Return->Type |= Zcompound ;
+            pDT_Return->isCompound = true;
+            if (strncmp(pDT_Return->TypeName,__STDSTRING__,strlen(__STDSTRING__))==0)
+            {
+                pDT_Return->isStdString =true;
+                pDT_Return->Type |= ZStdString;
+                return(*pDT_Return);
+            }
+
+        }
+
+        if (!pDT_Return->isPointer)
+            pDT_Return->Type |= Znumeric ;
+
+
+        if (std::is_floating_point<_Type>())
+        {
+            pDT_Return->Type |= Zfloat;
+            break;
+        }
+        if (strncasecmp(pDT_Return->TypeName,"long",4)==0)
+        {
+            pDT_Return->Type |= Zlong;
+            break;
+        }
+        if (strncasecmp(pDT_Return->TypeName,"double",6)==0)
+        {
+            pDT_Return->Type |= Zdouble;
+            break;
+        }
+        if (strncasecmp(pDT_Return->TypeName,"int",3)==0)
+        {
+            pDT_Return->Type |= Zint;
+            break;
+        }
+        if (strncasecmp(pDT_Return->TypeName,"char",4)==0)
+        {
+            if (pDT_Return->isPointer)
+            {
+                pDT_Return->isCString = true ;
+            }
+            pDT_Return->Type |= Zchar;
+            break;
+        }
+        if (strncasecmp(pDT_Return->TypeName,__STDSTRING__,strlen(__STDSTRING__)))
+        {
+            pDT_Return->isStdString =true;
+            pDT_Return->Type |= ZStdString;
+            break;
+        }
+
+        pDT_Return->Type |= Zunknown ; // unknow atomic type (may be a struct or a class)
+        break;
+    }
+
+    return (*pDT_Return) ;
+} // getDataType
 
 
 

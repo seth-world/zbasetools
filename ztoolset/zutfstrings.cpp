@@ -9,7 +9,7 @@
 
 
 
-
+/*  Docid is application dependant therefore defined within zapplicationtypes.h
 utfcodeString&
 utfcodeString::fromDocid(Docid_struct& pDocid)
 {
@@ -22,7 +22,7 @@ utfcodeString::fromDocid(Docid_struct& pDocid)
      return fromDocid(pDocid);
  }
 
-
+*/
 
 utfidentityString & utfidentityString::operator = (const utfdescString& pDesc ) {return (utfidentityString&) strset(pDesc.content); }
 

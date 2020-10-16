@@ -23,6 +23,8 @@
 #include <ztoolset/utfsprintf.h>
 //#include <stdint.h>
 
+#include <ztoolset/charman.h>
+
 #ifdef QT_CORE_LIB
 //#include <qglobal.h> // for uint
 
@@ -40,15 +42,25 @@ class utf8FixedString : public utftemplateString<_Sz,utf8_t>
 public:
     typedef utftemplateString<_Sz,utf8_t> _Base;
     typedef utf8_t                      _UtfBase;
-    utf8FixedString():utftemplateString<_Sz,utf8_t>(ZType_Utf8FixedString,ZCHARSET_UTF8) {}
+    utf8FixedString() : utftemplateString<_Sz, utf8_t>(ZType_Utf8FixedString, ZCHARSET_UTF8) {}
 
-
+    utf8FixedString(const utf8_t *pString)
+        : utftemplateString<_Sz, utf8_t>(ZType_Utf8FixedString, ZCHARSET_UTF8)
+    {
+        UST_Status_type wSt = fromUtf8(pString);
+        if (wSt != UST_SUCCESS)
+            fprintf(stderr, "utf8FixedString-E-IVSTR Utf8 string is invalid <%s>\n",pString);
+    }
     using _Base::operator=;
     using _Base::operator!=;
+    using _Base::operator+=;
     using _Base::toUtf;
 
     using _Base::fromUtf;
     using _Base::fromUtfCount;
+
+    utf8FixedString<_Sz> &operator=(CharMan &pIn) { return _Base::strset(pIn.content); }
+    utf8FixedString<_Sz> &operator+=(CharMan &pIn) { return _Base::add(pIn.content); }
 
     const char*toCChar() const  {return (const char*)_Base::content;}
 //    using _Base::fromCString;  No no no and no : char string could be any multi-byte format : do not mix that with unicode-
@@ -134,6 +146,7 @@ typedef utftemplateString<_Sz,utf16_t> _Base;
 
     using _Base::fromUtf;
     using _Base::fromUtfCount;
+
 
 
 
@@ -278,7 +291,7 @@ char *wStr=nullptr;
     Context.reset();
     Context.setStart(wPtr);
 
-   if ((Context.Status=utf8StrToCharStr(&wStr,_Base::getCharset(), wPtr,&Context))<0)
+    if ((Context.Status=utf8StrToCharStr(&wStr,_Base::getCharset(), wPtr,utftemplateString<_Sz,utf8_t>::ByteSize, true))<0)
     {
     fprintf (stderr,"%s>> conversion to C String failed at source character unit offset <%ld> status <0x%X> <%s>\n",
              _GET_FUNCTION_NAME_,

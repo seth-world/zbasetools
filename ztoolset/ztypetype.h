@@ -2,6 +2,9 @@
 #define ZTYPETYPE_H
 #include <stdint.h>
 #include <ztoolset/zerror.h>
+
+#include <ztoolset/charman.h>
+
 /**
  * @brief The ZType_type enum  ZIndex key data type (component of ZIndexItem_struct )
  *
@@ -166,10 +169,23 @@ ZStatus encodeZTypeFromString (ZTypeBase &pZType , ZDataBuffer &pString);// /zin
 
 /**
  * @brief typeDemangler demangles a type named by pName into pOutName
+ * @param pName         Name to demangle
+ * @param pOutName      Resulting demangled name
+ * @param pOutSizeMax   maximum available size within pOutName to put demangled name
+ */
+ZStatus typeDemangler(const char *pName, char *pOutName, size_t pOutSizeMax);
+
+/**
+ * @brief typeDemangler demangles a type named by pName into pOutName
  * @param pName     Name to demangle
  * @param pOutName  Resulting demangled name
+ * @return a ZStatus set to
+ *      ZS_SUCCESS when everthing went OK
+ *      ZS_MEMERROR if demangler couldn't allocate memory
+ *      ZS_INVVALUE  if invalid arguments were passed to demangler
+ *      ZS_INVNAME  if invalid name(s) has(have) been encountered while demangling
  */
-void typeDemangler(const char*pName,char* pOutName);
+ZStatus typeDemangler(const char *pName, CharMan &pOutName);
 
 size_t getUnitSize(ZType_type pType); /* see utfStringCommon.cpp */
 

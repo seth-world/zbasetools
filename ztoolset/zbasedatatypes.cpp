@@ -444,20 +444,7 @@ QTime ZDateFull::toQTime(void)
 }
 #endif // __COMMENT__
 
-Docid_struct &
-Docid_struct::fromcodeString(utfcodeString &pCs)
-{
-id = pCs.toLong();
-//            atol((char*)pCs.content);
-if (pCs.content[0]!='0')
-    if (id==0)
-    {
-        fprintf(stderr,"%s> Error invalid Docid conversion from int64_t to string. Docid set to invalid value.\n",
-                _GET_FUNCTION_NAME_);
-        setInvalid();
-    }
-return *this;
-}
+
 
 
 
@@ -538,27 +525,37 @@ decode_ZCM (ZCryptMethod_type pZCM)
     switch (pZCM)
     {
     case (ZCM_Uncrypted):
-    {
         return ("ZCM_Uncrypted");
-    }
     case (ZCM_Base64):
-    {
         return ("ZCM_Base64");
-    }
     case (ZCM_AES256):
-    {
         return ("ZCM_AES256");
-    }
     case (ZCM_SHA256):
-    {
         return ("ZCM_SHA256");
-    }
+    case (ZCM_MD5):
+        return ("ZCM_MD5");
     default:
-    {
-        return ("Unknown Crypting method");
-    }
+        return ("ZCM_Unknown");
 
     }//switch
+} //decode_ZCM
+
+ZCryptMethod_type
+encode_ZCM (const char * pZCMStr)
+{
+    if (strcasecmp(pZCMStr,"ZCM_Uncrypted")==0)
+        return ZCM_Uncrypted;
+    if (strcasecmp(pZCMStr,"ZCM_Base64")==0)
+        return ZCM_Base64;
+    if (strcasecmp(pZCMStr,"ZCM_AES256")==0)
+        return ZCM_AES256;
+    if (strcasecmp(pZCMStr,"ZCM_SHA256")==0)
+        return ZCM_SHA256;
+    if (strcasecmp(pZCMStr,"ZCM_AES256")==0)
+        return ZCM_AES256;
+    if (strcasecmp(pZCMStr,"ZCM_MD5")==0)
+        return ZCM_MD5;
+    return ZCM_Uncrypted;
 } //decode_ZCM
 
 #endif //ZBASEDATATYPE_CPP

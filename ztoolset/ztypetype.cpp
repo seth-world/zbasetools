@@ -428,42 +428,48 @@ encodeZTypeFromString (ZTypeBase &pZType ,ZDataBuffer &pString)
 /**
  * @brief typeDemangler demangle a data type name : gives the human readable standard data type name from a local type name
  * @param[in] pName     Type name to demangle as a CString
- * @param[out] pOutName Demangled name as a descString
+ * @param[out] pOutName Demangled name as an utfdescString content as a char* with maximum cst_desclen
  * @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.see: @ref ZBSErrorSError
  */
-void typeDemangler(const char*pName, char *pOutName)
+ZStatus typeDemangler(const char*pName, char* pOutName, size_t pOutSizeMax)
 {
 _MODULEINIT_
 int wStatus = 0;
-char *wName = abi::__cxa_demangle(pName, NULL, NULL, &wStatus);
+char *wName = nullptr;
+    wName = abi::__cxa_demangle(pName, nullptr, nullptr, &wStatus);
 
 switch (wStatus)
         {
     case 0 :
             {
-            strncpy(pOutName,wName,199);
+            strncpy(pOutName,wName,cst_desclen);
             free (wName);
-            return ;
+            _RETURN_ ZS_SUCCESS;
             }
 
     case -1:
         {
         fprintf(stderr,"Demangler cannot allocate memory ");
-        _ABORT_;
+        if (wName)
+            free (wName);
+        _RETURN_ ZS_MEMERROR ;
         }
     case -2:
         {
         fprintf(stderr,"Invalid name encountered while demangling <%s>\n",
                                 pName);
-        _ABORT_;
+        if (wName)
+                free(wName);
+        _RETURN_ ZS_INVNAME ;
         }
     case -3:
         {
         fprintf(stderr,"Invalid arguments passed to demangler\n");
-        _ABORT_;
+        free(wName);
+        _RETURN_ ZS_INVVALUE ;
         }
     }//switch
-return ;
+    _RETURN_ ZS_SUCCESS;
 }// typeDemangler
 
 #endif// __GNUG__
@@ -558,6 +564,12 @@ int wStatus = 0;
 }// typeDemangler
 
 #endif // __USE_WINDOWS__
+
+ZStatus typeDemangler(const char *pName, CharMan &pOutName)
+{
+    return typeDemangler(pName, pOutName.content, sizeof(pOutName.content));
+}
+
 
 inline
 size_t

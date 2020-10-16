@@ -9,7 +9,7 @@
  * @brief The ZStatus enum General status returned : this is the list of error / warnings that may be returned
  */
 typedef int64_t ZStatusBase;
-enum ZStatus: long
+enum ZStatus: ZStatusBase
 {
                 ZS_NOTHING          =       0,          //< NOP
                 ZS_ERROR            =   -0x01 ,     //< General error

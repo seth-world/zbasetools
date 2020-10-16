@@ -47,12 +47,19 @@ class ZCryptKeyAES256
 {
 public:
     ZCryptKeyAES256(void) {memset(content,0,cst_AES256cryptKeySize); }
-    ZCryptKeyAES256(unsigned char*pString) {set(pString);}
+    ZCryptKeyAES256(const unsigned char*pString) {set(pString);}
+    ZCryptKeyAES256(const ZCryptKeyAES256&pIn) { set(pIn.content); }
 
     unsigned char content[cst_AES256cryptKeySize];
     unsigned char* get(void) {return content;}
-    void set(unsigned char*pString) {memmove(content,pString,cst_AES256cryptKeySize);}
 
+    void set(const unsigned char *pkey) { memmove(content, pkey, cst_AES256cryptKeySize); }
+    void set(const char *pkey) { memmove(content, pkey, cst_AES256cryptKeySize); }
+    ZCryptKeyAES256 &operator=(const ZCryptKeyAES256 &pIn)
+    {
+        set(pIn.content);
+        return *this;
+    }
 };
 
 //class ZDataBuffer;
@@ -61,11 +68,16 @@ class ZCryptVectorAES256
 {
 public:
     ZCryptVectorAES256(void) {memset(content,0,cst_AES256cryptVectorSize);}
-    ZCryptVectorAES256(unsigned char*pString) {set(pString);}
+    ZCryptVectorAES256(const unsigned char*pVector) {set(pVector);}
+    ZCryptVectorAES256(const ZCryptVectorAES256&pIn) { set(pIn.content); }
 
     unsigned char content[cst_AES256cryptVectorSize];
     unsigned char* get(void) {return content;}
-    void set(unsigned char*pString) {memmove(content,pString,cst_AES256cryptVectorSize);}
+
+    void set(const unsigned char *pVector) { memmove(content, pVector, cst_AES256cryptVectorSize); }
+    void set(const char *pVector) { memmove(content, pVector, cst_AES256cryptVectorSize); }
+
+    ZCryptVectorAES256 &operator=(const ZCryptVectorAES256 &pIn) { set(pIn.content); return *this;}
 };
 
 class ZCryptAES256
@@ -98,14 +110,14 @@ public:
    ZStatus uncryptFromFile (const char *pFilePath,
                             unsigned char **pPlainBuffer,
                             size_t *pPlainBufferLen,
-                            ZCryptKeyAES256 pKey,
-                            ZCryptVectorAES256 pVector);
+                            const ZCryptKeyAES256 &pKey,
+                            const ZCryptVectorAES256 &pVector);
 
    ZStatus encryptToFile (const char *pFilePath,
                           unsigned char *pPlainBuffer,
                           const size_t pPlainBufferLen,
-                          ZCryptKeyAES256 pKey,
-                          ZCryptVectorAES256 pVector) ;
+                          const ZCryptKeyAES256& pKey,
+                          const ZCryptVectorAES256& pVector) ;
 
    ZStatus writeCryptedBufferToFile (const char *pFilePath, unsigned char *pCryptedBuffer, const size_t pCryptedBufferLen) ;
 

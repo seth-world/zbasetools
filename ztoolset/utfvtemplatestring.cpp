@@ -16,17 +16,7 @@
 
 
 
-size_t UVScalcDecodeLengthB64(const uint8_t *b64input, size_t pSize) { //Calculates the length of a decoded string
-//    size_t len = strlen(b64input), // cannot have strlen for utf16 and utf32
-    size_t len = pSize, padding = 0;
 
-    if (b64input[len-1] == '=' && b64input[len-2] == '=') //last two chars are =
-        padding = 2;
-    else if (b64input[len-1] == '=') //last char is =
-        padding = 1;
-
-    return (len*3)/4 - padding;
-} //UVScalcDecodeLengthB64
 
 /*
 int Base64Decode(char* b64message, unsigned char** buffer, size_t* length) { //Decodes a base64 encoded string

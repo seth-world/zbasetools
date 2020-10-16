@@ -59,12 +59,10 @@ char *dumpSequence (void *pPtr,size_t pSize,char *pBuffer);
 char *dumpSequenceHexa (void *pPtr,long pSize,char* pBuffer,char* pBuffer1);
 
 const char * decode_ZStatus (ZStatus ZS);
-const char * decode_ZSA_Action (ZSA_Action &ZS);
 
-const char * decode_ZOperation (ZOp &pOp);
 
-const char * decode_ZAMState (ZAMState_type pZAM);
-
+/* migrated to zam/zam_include.h  */
+//const char * decode_ZOperation (ZOp &pOp);
 
 
 double timeval_dif (timeval &pbeg,timeval &pend);
@@ -89,9 +87,8 @@ ZData_Type_struct &_get_Data_Type (ZData_Type_struct*pDT_Return);
 //-------------decoding codes-----------------
 
 const char * decode_ZStatus (ZStatus ZS);
-const char* decode_ZLockMask(zlock_type pLock);
 
-const char* decode_ZST(char pZST);
+const char* decode_ZST(ZSort_Type pZST);
 ZSort_Type  encode_ZST(const char* pZST);
 
 
@@ -129,141 +126,6 @@ uid_t geteuid();
 
 //#include <ztoolset/zutfstrings.h>
 //#include <ztoolset/zexceptionmin.h>
-
-#define __STDSTRING__ "std::string"
-//#include <cxxabi.h>
-
-void typeDemangler(const char*pName, char *pOutName);
-
-template <typename _Type>
-ZData_Type_struct &_get_Data_Type (ZData_Type_struct*pDT_Return)
-    {
-//struct ZData_Type_struct DT_Return ;
-
-         const char *_Type_Name_Local;
-
-         memset (pDT_Return,0,sizeof(ZData_Type_struct));
-
-         pDT_Return->Size = sizeof(_Type);
-
-         pDT_Return->isPointer=std::is_pointer<_Type>::value ;
-         if (pDT_Return->isPointer)
-                    pDT_Return->Type |= Zpointer ;
-
-
-        pDT_Return->isArray=std::is_array<_Type>::value ;
-        if (pDT_Return->isArray)
-                         {
-                        pDT_Return->Type |= Zarray;
-                         }
-
-
-        _Type_Name_Local = typeid(_Type).name();
-
-#ifdef __DEPRECATED__
-        int wmangling_status ;
-        size_t wmangling_length=199;
-/*
-  *  WARNING : If _Type has a name that overrides the buffer length (199), a SIGABRT will be thrown (setTerminate() is called)
-  *             when calling     __cxa_demangle  (Valgrind says : invalid free operation)
-  *  SOLUTION : enlarge TypeName field size
-  */
-        memset(pDT_Return->TypeName,0,wmangling_length);
-        char * wg= abi::__cxa_demangle(_Type_Name_Local,
-                                        pDT_Return->TypeName,
-                                        &wmangling_length,
-                                        &wmangling_status);
-
-        if (wg==NULL)
-                {
-                pDT_Return->Type = ZerroredType ;
-                return (*pDT_Return) ;
-                }
-#endif // __DEPRECATED__
-char wTypeName[200];
-
-    typeDemangler(_Type_Name_Local,(char*)&wTypeName);
-/*    if (wSt==ZS_INVTYPE)
-            {
-            ZException.printLastUserMessage(stderr);
-            pDT_Return->Type |= Zunknown ;
-            return (*pDT_Return) ;
-            }*/
-    strcpy(wTypeName,pDT_Return->TypeName);
-    while (true)
-    {
-
-     if (typeid(_Type).__is_function_p())
-                                        {
-                                        pDT_Return->Type |= Zfunction;
-                                        break;
-                                        }
-
-     if (std::is_fundamental<_Type>() )
-                {
-            pDT_Return->Type |= Zatomic;
-            pDT_Return->isAtomic = true;
-                 }
-                else
-                 {
-                 pDT_Return->Type |= Zcompound ;
-                 pDT_Return->isCompound = true;
-                 if (strncmp(pDT_Return->TypeName,__STDSTRING__,strlen(__STDSTRING__))==0)
-                                {
-                                pDT_Return->isStdString =true;
-                                pDT_Return->Type |= ZStdString;
-                                return(*pDT_Return);
-                                }
-
-                  }
-
-     if (!pDT_Return->isPointer)
-                       pDT_Return->Type |= Znumeric ;
-
-
-       if (std::is_floating_point<_Type>())
-                                    {
-                                    pDT_Return->Type |= Zfloat;
-                                    break;
-                                    }
-       if (strncasecmp(wTypeName,"long",4)==0)
-                                {
-                       pDT_Return->Type |= Zlong;
-                       break;
-                                }
-       if (strncasecmp(wTypeName,"double",6)==0)
-                                {
-                       pDT_Return->Type |= Zdouble;
-                       break;
-                                }
-       if (strncasecmp(wTypeName,"int",3)==0)
-                                {
-                       pDT_Return->Type |= Zint;
-                       break;
-                                }
-       if (strncasecmp(wTypeName,"char",4)==0)
-                                {
-                        if (pDT_Return->isPointer)
-                                    {
-                                    pDT_Return->isCString = true ;
-                                    }
-                       pDT_Return->Type |= Zchar;
-                       break;
-                                }
-       if (strncasecmp(pDT_Return->TypeName,__STDSTRING__,strlen(__STDSTRING__)))
-                      {
-                      pDT_Return->isStdString =true;
-                      pDT_Return->Type |= ZStdString;
-                      break;
-                      }
-
-    pDT_Return->Type |= Zunknown ; // unknow atomic type (may be a struct or a class)
-    break;
-    }
-
-    return (*pDT_Return) ;
-} // getDataType
-
 
 
 #endif // ZFUNCTIONS_H

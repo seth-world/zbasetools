@@ -27,7 +27,6 @@ ZDataBuffer::ZDataBuffer(void): Data(nullptr), Size(0) ,CryptMethod(ZCM_Uncrypte
 ZStatus ZDataBuffer::operator <<(uriString & pURI)
 {
     return pURI.loadContent(*this);
-
 }
 
 /**
@@ -251,7 +250,10 @@ ZDataBuffer::uncryptAES256FromFile(const char*pFileName,ZCryptKeyAES256 pKey, ZC
     return wSt;
 }// uncryptAES256FromFile
 
-
+ZStatus ZDataBuffer::fomFile(uriString &pURI)
+{
+    return pURI.loadContent(*this);
+}// fomFile
 /**
  * @brief ZDataBuffer::getmd5 computes a md5 cheksum from current ZDataBuffer full content.
  * @return a md5 object

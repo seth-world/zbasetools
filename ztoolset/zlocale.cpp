@@ -14,7 +14,6 @@ void GCleanCurrencyCode(void)
     _free(GCurrencyCode32);
 }
 
-
 UST_Status_type
 GGetLocaleCodes(const char*pLocale)
 {

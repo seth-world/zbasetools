@@ -21,7 +21,6 @@ using namespace zbs;
 
 ZMutex::ZMutex(void)
 {
-
     int   wRet=pthread_mutexattr_init(&MutexAttributes);
     if (wRet!=0)
         {

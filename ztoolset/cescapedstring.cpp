@@ -11,7 +11,6 @@ CEscapedString::CEscapedString (const char * pString)
 //    Content = escapeReservedChar(pString, Content);
 }
 
-
 /**
  * @brief CEscapedString::escapeReservedChar escapes pString in input according the following rules
  *          char to be escaped is prefixed with '\' char.
@@ -26,7 +25,6 @@ CEscapedString::CEscapedString (const char * pString)
 char *
 CEscapedString::escapeReservedChar (const char *pString , char *&pReturnString)
 {
-
     const char * ptoEscape = "\'\"\\";  // char to escape are quote, doublequote and backslash
     const char *ptr;
     char *PtrReturn;

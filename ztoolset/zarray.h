@@ -496,14 +496,25 @@ ZAExport ZAEimport(unsigned char* pBuffer)
 
     long bsearchCurrentIdx;
 
-    long bsearchCaseRegardless (void *pKey, size_t pSize, size_t pOffset);  //!< @brief ZArray::bsearch binary search BUT when it founds a character compares CASE REGARDLESS. returns an offset from pOffset within the whole ZArray considered as a bulk of bytes
-    long searchCaseRegardless (void *pKey,size_t pSize,long pIdx);
-    long bsearch (void *pKey,size_t pSize,size_t pOffset=0);                //!< @brief ZArray::bsearch binary search. returns an offset from pOffset within the whole ZArray considered as a bulk of bytes
+    long bsearchCaseRegardless (const void *pKey, size_t pSize, size_t pOffset);  //!< @brief ZArray::bsearch binary search BUT when it founds a character compares CASE REGARDLESS. returns an offset from pOffset within the whole ZArray considered as a bulk of bytes
+    long searchCaseRegardless (const void *pKey, size_t pSize, long pIdx);
+    long bsearch (const void *pKey,size_t pSize,size_t pOffset=0);                //!< @brief ZArray::bsearch binary search. returns an offset from pOffset within the whole ZArray considered as a bulk of bytes
     long getifo (long pOffset);                                             //!< @brief ZArray::getifo get index from offset : converts the offset to a ZArray index
-    long search (void *pKey, size_t pSize, long pIdx=0);
+
+/** @brief ZArray<_Tp>::search  searches with binary search for byte sequence contained in pKey of size pSize starting at ZArray row index pIdx.
+ *                             it returns the ZArray row index where it has been found or -1 if not found.
+ *
+ *                             For successive searches, it is of the responsibility of user to manage the indexes
+ *
+ * @param pKey      void pointer to byte sequence to search for
+ * @param pSize     byte sequence length
+ * @param pIdx      row index to start the search from
+ * @return
+ */
+    long search (const void *pKey, size_t pSize, long pIdx=0);
 
 
-    long searchforValue (long pOffset,long pSize, void *pValue);    //! sequential search (costly) for a value
+    long searchforValue (long pOffset,long pSize, const void *pValue);    //! sequential search (costly) for a value
 
 
 //-------------- end search routines--------------------------
@@ -1225,11 +1236,11 @@ void ZArray<_Tp>::_sizeAllocate(size_t pSizeAlloc)
 }// ZAllocate
 
 template<typename _Tp>
-long ZArray<_Tp>::bsearch (void *pKey,size_t pSize,size_t pOffset)
+long ZArray<_Tp>::bsearch (const void *pKey, size_t pSize, size_t pOffset)
 {
 long widx = 0;
 long wistart = -1;
-char *wKey = (char *)pKey;
+const char *wKey = (const char *)pKey;
 long wHighIdx = (long)size()*(long)sizeof(_Tp);
 
     for (long wi=pOffset; wi <wHighIdx ;wi++)
@@ -1254,11 +1265,11 @@ return (-1) ;
 
 
 template<typename _Tp>
-long ZArray<_Tp>::bsearchCaseRegardless (void *pKey,size_t pSize,size_t pOffset)
+long ZArray<_Tp>::bsearchCaseRegardless (const void *pKey, size_t pSize, size_t pOffset)
 {
 long widx = 0;
 long wistart = -1;
-char *wKey = (char *)pKey;
+const char *wKey = (const char *)pKey;
 long wHighIdx = (long)size()*(long)sizeof(_Tp);
 char ToCompareFromKey ;
 char ToCompareFromArray;
@@ -1320,7 +1331,7 @@ template<typename _Tp>
  * @param pIdx      row index to start the search from
  * @return
  */
-long ZArray<_Tp>::search (void *pKey,size_t pSize,long pIdx)
+long ZArray<_Tp>::search (const void *pKey,size_t pSize,long pIdx)
 {
 
 bsearchCurrentIdx = getifo(bsearch(pKey,pSize, (long)(pIdx*sizeof(_Tp))) );
@@ -1340,7 +1351,7 @@ template<typename _Tp>
  * @param pIdx      row index to start the search from
  * @return
  */
-long ZArray<_Tp>::searchCaseRegardless (void *pKey,size_t pSize,long pIdx)
+long ZArray<_Tp>::searchCaseRegardless (const void *pKey,size_t pSize,long pIdx)
 {
 
 bsearchCurrentIdx = getifo(bsearchCaseRegardless(pKey,pSize, (long)(pIdx*sizeof(_Tp))) );
@@ -1777,13 +1788,13 @@ _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
 
 template <typename _Tp>
 long
-ZArray<_Tp>::searchforValue (long pOffset,long pSize, void *pValue) //! sequential search (costly) for a value
+ZArray<_Tp>::searchforValue (long pOffset, long pSize, const void *pValue) //! sequential search (costly) for a value
 {
-    unsigned char* wPtrArray;
-    unsigned char* wPtrValue = static_cast<unsigned char*>(pValue);
+    const unsigned char* wPtrArray;
+    const unsigned char* wPtrValue = static_cast<const unsigned char*>(pValue);
     for (long wi=0;wi<size();wi++)
             {
-            wPtrArray=(unsigned char *)(&Tab[wi]);
+            wPtrArray=(const unsigned char *)(&Tab[wi]);
             wPtrArray += pOffset;
             if (memcmp(wPtrArray,wPtrValue,pSize)==0)
                                     return(wi);
@@ -1865,9 +1876,15 @@ _ZAexportAllocated(ZArray<_TpIn>* pZArray,
 }//_exportAllocated
 
 /**
- * @brief _exportCurrent Exports to a flat memory zone the content of a ZArray corresponding to its current number of elements, including its descriptive header ZAExport.
+ * @brief ZAexportCurrent this static routine exports (serialize) to a flat memory zone
+ *          the content of a ZArray corresponding to its current number of elements, including its descriptive header ZAExport.
+ *
  *  This routine allocates the required memory size to export the data.
- *  NB: at this stage ZDataBuffer is not supposed to be defined. This is the reason why memory is allocated and needs to be freed.
+ *  NB: at this stage ZDataBuffer is not supposed to be defined. This is the reason why memory is allocated and needs to be freed by callee.
+ *
+ *  In case of memory allocation error, pBuffer is set to nullptr, errno is set to ENOMEM and pBufferSize is set to 0
+ *
+ *  ZArray data is serialized to big endian values using mandatory _exportConvert routine.
  *
  * @warning The allocated memory has to be freed later on. This is the responsibility of the caller to free this memory buffer.
  *
@@ -1876,11 +1893,12 @@ _ZAexportAllocated(ZArray<_TpIn>* pZArray,
  * @param[in]  _exportConvert conversion routine (Endian) for exporting/importing one element of type _Tp
  *              first argument is a reference to a _Tp element to convert
  *              second argument is a pointer to a _Tp argument converted by the routine
- * @return -1 in case of memory allocation error, or pBuffer if everything went OK
+ * @return      a pointer to allocated memory block containing the exported (serialized) ZArray data if everything went OK
+ *              nullptr in case of memory allocation error
 */
 template <class _TpIn , class _TpOut>
 static
-unsigned char* _ZAexportCurrent(ZArray<_TpIn>* pZArray,
+unsigned char* ZAexportCurrent(ZArray<_TpIn>* pZArray,
                                 unsigned char* &pBuffer,
                                 size_t &pBufferSize,
                                 _TpOut (*_exportConvert)(_TpIn&,_TpOut*)) // Routine to convert a single element of ZArray
@@ -1906,14 +1924,13 @@ unsigned char* _ZAexportCurrent(ZArray<_TpIn>* pZArray,
     ZAE.ExtentQuota = pZArray->getQuota();
     ZAE.NbElements = pZArray->ZCurrentNb;
     pBuffer = (unsigned char*)malloc(ZAE.FullSize);
+    if (pBuffer == nullptr) {
+        errno = ENOMEM;
+        pBufferSize = 0;
+        return nullptr;
+        }
     memset (pBuffer,0,ZAE.FullSize);
 
-    if (pBuffer==nullptr)
-                {
-                fprintf(stderr,
-                        "ZArray::_export> ******Memory allocation error****\n");
-                abort();
-                }
     wDataOffset=ZAE.DataOffset = sizeof(ZAExport);
     memset (pBuffer,0,ZAE.FullSize);
     pZArray->convertZAExport_I(ZAE);
@@ -1933,7 +1950,7 @@ unsigned char* _ZAexportCurrent(ZArray<_TpIn>* pZArray,
 
 template <class _TpIn , class _TpOut>
 /**
- * @brief _import Imports a ZArray from a flat ZArray content. Sets up all ZArrays characteristics and imports data from a flat content.
+ * @brief ZAimport Imports a ZArray from a flat ZArray content. Sets up all ZArrays characteristics and imports data from a flat content.
  *
  * _TpIn is data structure with export format (not aligned : see #pragma pack() clauses)
  * _TpOut is data structure with aligned format
@@ -1943,7 +1960,7 @@ template <class _TpIn , class _TpOut>
  *         This is equal to ZAExport::FullSize
  */
 
-size_t _ZAimport(ZArray<_TpOut>* pZArray,
+size_t ZAimport(ZArray<_TpOut>* pZArray,
                  unsigned char* pBuffer,
                  _TpOut (*_importConvert)(_TpOut&,_TpIn*),// Routine to convert a single element of ZArray for import
                  // first arg  : element to receive converted data to integrate into ZArray
@@ -1952,10 +1969,10 @@ size_t _ZAimport(ZArray<_TpOut>* pZArray,
 {
 
 
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#if __USE_ZTHREAD__
     pZArray->lock();
 #endif
-    pZArray->clear(false); // no lock
+    pZArray->clear(false); // clear with no lock
     ZAExport* ZAE=pZAE;
     bool wZAECreated=false;
     if (pZAE== nullptr)
@@ -2042,6 +2059,10 @@ typedef ZArray<_Tp> _Base;
     using _Base::size;
     using _Base::last;
     using _Base::isEmpty;
+
+    using _Base::searchforValue;
+    using _Base::search;
+
     using _Base::operator << ;
     using _Base::operator -- ;
     using _Base::operator [] ;

@@ -59,7 +59,7 @@ enum ZSort_Type: uint8_t
 };
 
 
-
+/* migrated to zlock.h
 typedef uint8_t         zlock_type ;
 
 enum ZLockMask_type : zlock_type
@@ -77,7 +77,8 @@ enum ZLockMask_type : zlock_type
     ZLock_Omitted   = 0xFF         //!< Lock is deliberately omitted as an argument
 
 };
-
+const char* decode_ZLockMask(zlock_type pLock);
+*/
 enum AccessRights_type {
     ACR_NOACCESS        = 0x00,
     ACR_CANREAD         = 0x01,
@@ -91,8 +92,8 @@ enum AccessRights_type {
     ACR_CANSEND         = 0x08,
     ACR_ALL             = 0x0F
 };
-
-
+/* migrated to zcontent/zcontentcommon/zresult.h */
+/*
 enum ZSA_Action { ZSA_NoAction      =   0,
                   ZSA_Error         =   -1,
                   ZSA_Push          =   1,
@@ -100,49 +101,10 @@ enum ZSA_Action { ZSA_NoAction      =   0,
                   ZSA_Insert        =   4,
                   ZSA_Remove        =   0x10};
 
-/**
- * @brief The ZType enum
- *
- *  the char case :
- *
- *      char*  -> Zchar + Zpointer
- *
- *      char   -> Zchar + Znumeric
- *
- *      char [] -> Zchar + Zarray
- *
- */
+*/
 
-enum ZType {
-            Zno_type        =   0 ,
-            Zatomic         =   1 ,
-            Zcompound       =   2 ,
-            Zpointer        =   4 ,
-            Zarray          =   8 ,
-
-            Zstruct         = 0x20 ,
-            Zfunction     = 0x0100,
-
-            Zchar         = 0x01000 ,  // cstring pointer = 0x20004
-                                         // cstring array = 0x20008
-
-            Znumeric      = 0x100000,
-
-            Zint          = 0x102000,
-//            Zenum         = 0x1C000,     // enum is int
-            Zlong         = 0x104000,
-            Zfloat        = 0x110000,
-            Zdouble       = 0x120000,
-
-            ZStdString    = 0x01000000 ,  // std::string is a compound
-
-            ZnoC11compiler = -1,
-            ZerroredType   = -2,
-            Zunknown      = 0xF0000         // may be a struct or a class
-};
-
-
-
+/* migrated to zam_include.h */
+/*
 enum ZOp:  uint32_t {
     ZO_Nothing              =0,
     ZO_Add                  =0x01,
@@ -186,8 +148,9 @@ enum ZOp:  uint32_t {
 
     ZO_Historized           =0x10000000
 };
-
-
+*/
+/* migrated to zam/zam_include.h */
+/*
 //! @brief ZCommitStatus is returned by user's function if any defined (not nullptr). It indicates the behavior to be taken just after the call.
 enum ZCommitStatus {
       ZCS_Nothing,
@@ -196,7 +159,9 @@ enum ZCommitStatus {
       ZCS_Error,            //! commit is not to be continued but control is given back to caller with error.  ZS_USERERROR status is then returned.
       ZCS_Fatal             //! commit is errored. Processing is to be interrupted immediately with signal (abort())
 };
-
+*/
+/* migrated to zindex_struc.h */
+#ifdef __COMMENT__
 
 enum ZAMState_type      //!< Journaling state for either ZAMain or ZIndex (see concerned data structures)
 {
@@ -223,14 +188,15 @@ enum ZAMState_type      //!< Journaling state for either ZAMain or ZIndex (see c
     ZAMbeginmark    = 0x1FFF,       // AFTER
     ZAMendmark      = 0xFFFF          // AFTER
 };
+#endif //__COMMENT__
 
-
+/* migrated to zam/zam_include.h
 template <class _Type>
 struct CUF_struct
 {
 typedef  ZCommitStatus (*CUF) (const _Type&,ZOp,void *) ;  //! commit user function
 };
-
+*/
 //#include <ztoolset/zfunctions.h>
 
 

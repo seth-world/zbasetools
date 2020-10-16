@@ -17,6 +17,7 @@
 //-----------checkSum-------------------------
 
 #include <openssl/sha.h>
+
 /**
  * @brief checkSum::compute computes/recomputes SHA256 checksum.
  * @param pInBuffer
@@ -25,6 +26,7 @@
 void
 checkSum::compute(unsigned char *pInBuffer,size_t pLen)
 {
+
     clear();
     SHA256((unsigned char *)pInBuffer,pLen,content);
     return;
@@ -41,14 +43,14 @@ checkSum &
 checkSum::fromHex(const char* pInput, const size_t pSize)
 {
 _MODULEINIT_
-    if (pSize!=cst_checksumHex)
+    if (pSize <= cst_checksumHex)
                     {
                 fprintf(stderr,
                         "%s-F-INVSIZ Fatal Error : invalid size of input string from Hexadecimal convertion.\n"
-                        " Checksum hexadecimal string size must be exactly %ld\n",
+                        " Checksum hexadecimal string size must be greater than %ld\n",
                         _GET_FUNCTION_NAME_,
                         cst_checksumHex);
-                _ABORT_;
+                _ABORT_
                     }
     char wBuf[3];
     wBuf[2]='\0';

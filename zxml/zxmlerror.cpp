@@ -856,7 +856,7 @@ void setXMLZException (const char*pModule,
 va_list args;
     va_start (args, pFormat);
     ZException.setMessageCplt(pModule,pStatus,pSeverity,pFormat, args); // set message but do not throw or exit_abort
-    ZException.setComplement(getXMLLastError().toCString());
+    ZException.setComplement(getXMLLastError().toCChar());
     va_end(args);
     return;
 }

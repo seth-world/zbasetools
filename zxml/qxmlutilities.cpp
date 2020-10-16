@@ -60,6 +60,7 @@ QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *p
 
     return(NewElement);
 }
+/* this concerns applications therefore must be migrated to application
 #ifdef ZAUTHORIZATION_H
 QDomElement appendElement (QDomDocument &pXmlDoc, QDomNode &pNode, const char *pName, Id_struct &pValue)
 {
@@ -77,7 +78,7 @@ void getElement (Id_struct &pField ,QDomElement &pElement)
 return;
 }
 #endif
-
+*/
 QDomElement appendElement (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,ZDate &pDateValue)
 {
 
@@ -167,7 +168,30 @@ char wBuf[20];
 sprintf(wBuf,"%lld",plonglongValue);
 return (_appendElement(pXmlDoc,pNode,pName,wBuf));
 }
-
+QDomElement appendElementUInt64 (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,uint64_t plonglongValue)
+{
+    char wBuf[20];
+    sprintf(wBuf,"%lu",plonglongValue);
+    return (_appendElement(pXmlDoc,pNode,pName,wBuf));
+}
+QDomElement appendElementUInt32 (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,uint32_t plonglongValue)
+{
+    char wBuf[20];
+    sprintf(wBuf,"%u",plonglongValue);
+    return (_appendElement(pXmlDoc,pNode,pName,wBuf));
+}
+QDomElement appendElementInt64 (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,int64_t plonglongValue)
+{
+    char wBuf[20];
+    sprintf(wBuf,"%ld",plonglongValue);
+    return (_appendElement(pXmlDoc,pNode,pName,wBuf));
+}
+QDomElement appendElementInt32 (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,int32_t plonglongValue)
+{
+    char wBuf[20];
+    sprintf(wBuf,"%d",plonglongValue);
+    return (_appendElement(pXmlDoc,pNode,pName,wBuf));
+}
 QDomElement appendElement (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,long plongValue)
 {
 char wBuf[20];
@@ -263,13 +287,13 @@ return;
 }
 
 
-
 void getElement (uriString &pField ,QDomElement &pElement)
 {
     pField.fromQString( pElement.text());
 return;
 }
-
+/*Docid is application dependant therefore defined within zapplicationtypes.h
+ #ifdef ZAUTHORIZATION_H
 void getElement (Docid_struct &pField ,QDomElement &pElement)
 {
     bool Ok=true;
@@ -286,7 +310,8 @@ void getElement (Docid_struct &pField ,QDomElement &pElement)
             }
 return;
 }
-
+#endif//#ifdef ZAUTHORIZATION_H
+*/
 void getElement (utfidentityString &pField , QDomElement &pElement)
 {
 //    QString welt = pElement.text();
@@ -373,10 +398,10 @@ void getElementLongLong (long long &pField ,QDomElement &pElement)
             }
 return;
 }
-void getElementUInt64_t (uint64_t &pField ,QDomElement &pElement)
+void getElementUInt64 (uint64_t &pField ,QDomElement &pElement)
 {
     bool Ok=true;
-    pField= pElement.text().toLongLong(&Ok);
+    pField= pElement.text().toULong(&Ok);
     if (!Ok)
             {
             ZException.setMessage(_GET_FUNCTION_NAME_,
@@ -389,10 +414,10 @@ void getElementUInt64_t (uint64_t &pField ,QDomElement &pElement)
             }
 return;
 }
-void getElementUInt32_t (uint32_t &pField ,QDomElement &pElement)
+void getElementUInt32 (uint32_t &pField ,QDomElement &pElement)
 {
     bool Ok=true;
-    pField= pElement.text().toLong(&Ok);
+    pField= pElement.text().toUInt(&Ok);
     if (!Ok)
             {
             ZException.setMessage(_GET_FUNCTION_NAME_,
@@ -404,6 +429,38 @@ void getElementUInt32_t (uint32_t &pField ,QDomElement &pElement)
             ZException.printUserMessage();
             }
 return;
+}
+void getElementInt64 (int64_t &pField ,QDomElement &pElement)
+{
+    bool Ok=true;
+    pField= pElement.text().toLong(&Ok);
+    if (!Ok)
+    {
+        ZException.setMessage(_GET_FUNCTION_NAME_,
+                              ZS_XMLERROR,
+                              Severity_Error,
+                              "XML_Load LongLong conversion problem for XML element name <%s> value <%s>",
+                              pElement.tagName().toStdString().c_str(),
+                              pElement.text().toStdString().c_str());
+        ZException.printUserMessage();
+    }
+    return;
+}
+void getElementInt32 (int32_t &pField ,QDomElement &pElement)
+{
+    bool Ok=true;
+    pField= pElement.text().toInt(&Ok);
+    if (!Ok)
+    {
+        ZException.setMessage(_GET_FUNCTION_NAME_,
+                              ZS_XMLERROR,
+                              Severity_Error,
+                              "XML_Load LongLong conversion problem for XML element name <%s> value <%s>",
+                              pElement.tagName().toStdString().c_str(),
+                              pElement.text().toStdString().c_str());
+        ZException.printUserMessage();
+    }
+    return;
 }
 void getElement (float &pField ,QDomElement &pElement)
 {

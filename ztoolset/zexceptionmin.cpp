@@ -1,13 +1,13 @@
 #ifndef ZEXCEPTIONMIN_CPP
 #define ZEXCEPTIONMIN_CPP
-#include <zconfig.h>
 
 #ifdef __USE_WINDOWS__
 #include <windows.h>
 #else
 #include <pwd.h>
 #include <unistd.h>
-#endif
+#endif//__USE_WINDOWS__
+
 #include <stdio.h>
 #include <stdarg.h> /* both two includes are for va_list va-start...etc. */
 
@@ -21,26 +21,6 @@
 
 #include <ztoolset/utfvaryingstring.h>
 
-//#include <ztoolset/znetexception.h>
-//#include <openssl/ssl.h>
-
-
-//    thread_local ZExceptionMin               ZException;
-//     ZExceptionMin               ZException;
-//    thread_local zbs::ZArray<ZExceptionMin>  ZExceptionStack;
-/*
-#ifdef __USE_ZRANDOMFILE__
-    ZRFExceptionMin                ZException;
-    zbs::ZArray<ZExceptionMin>   ZRFExceptionStack;
-#endif //__USE_ZRANDOMFILE__
-*/
-
-
-
-
-
-//utfexceptionString& utfexceptionString::setFrommessageString(const utfmessageString &pCode){    return (utfexceptionString&)strset(pCode.content);}
-
 utfexceptionString&
 utfexceptionString::setFromURI(const uriString &pUri)
 {
@@ -51,36 +31,15 @@ utfexceptionString::setFromURI(const uriString &pUri)
 //    return ((utfexceptionString&)*_Base::fromUtf8(pUri.toUtf()));
 }
 
-//utfexceptionString& utfexceptionString::setFromcodeString(const  utfcodeString &pCode){    return (utfexceptionString&)strset(pCode.content);}
-
-//utfexceptionString& utfexceptionString::setFromdescString(const  utfdescString &pCode){    return (utfexceptionString&)strset(pCode.content);}
-
-/*
-exceptionString& exceptionString::setFromString(char * pString)
-    {
-    clear();
-    size_t wL=(strlen(pString)>cst_desclen)?cst_exceptionstringlen:strlen(pString);
-    strncpy(content,pString,wL);
-    return(*this);
-    }
-*/
-
-
-
 
 
 ZExceptionBase::ZExceptionBase()
 {
     ZExceptionBase::clear();
-//    _Mtx=new zbs::ZMutex;
 }
 
 ZExceptionBase::~ZExceptionBase()
 {
- //   if (_Mtx!=nullptr)
- //               delete _Mtx;
- //   _Mtx=nullptr;
-
 }
 
 
@@ -127,36 +86,7 @@ ZExceptionBase::getErrno (const int pErrno,
     return;
 }//getErrno
 
-void
-ZExceptionMin::getErrno (const int pErrno,
-                     const char *pModule,
-                     const ZStatus pStatus,
-                     const Severity_type pSeverity,
-                     const char* pFormat,...)
-{
-#if __USE_ZTHREAD__
-    _Mtx.lock();
-#endif
-ZExceptionBase* wExceptionBase = new ZExceptionBase;
-     va_list args_1;
-     va_start (args_1, pFormat);
-     wExceptionBase->getErrno (pErrno,
-                          pModule,
-                          pStatus,
-                          pSeverity,
-                          pFormat,args_1);
-     va_end(args_1);
 
-     toStack(wExceptionBase); // push on stack
-#if __USE_ZTHREAD__
-    _Mtx.unlock();
-#endif
-    if (pSeverity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
-    if (pSeverity >= AbortOnSeverity)
-                                exit_abort();
-    return;
-}//getErrno
 
 
 /**
@@ -201,6 +131,37 @@ ZExceptionBase::getIcuError(const char *pModule,
 }//getErrno
 
 void
+ZExceptionMin::getErrno (const int pErrno,
+                                        const char *pModule,
+                                        const ZStatus pStatus,
+                                        const Severity_type pSeverity,
+                                        const char* pFormat,...)
+{
+#if __USE_ZTHREAD__
+    _Mtx.lock();
+#endif
+    ZExceptionBase* wExceptionBase = new ZExceptionBase;
+    va_list args_1;
+    va_start (args_1, pFormat);
+    wExceptionBase->getErrno (pErrno,
+                             pModule,
+                             pStatus,
+                             pSeverity,
+                             pFormat,args_1);
+    va_end(args_1);
+
+    toStack(wExceptionBase); // push on stack
+#if __USE_ZTHREAD__
+    _Mtx.unlock();
+#endif
+    if (pSeverity >= ThrowOnSeverity)
+        zthrow (ZExceptionStack::last());
+    if (pSeverity >= AbortOnSeverity)
+        exit_abort();
+    return;
+}//getErrno
+
+void
 ZExceptionMin::getIcuError(const char *pModule,
                            const UErrorCode pIcuErr,
                            const Severity_type pSeverity,
@@ -223,64 +184,12 @@ ZExceptionBase* wExceptionBase = new ZExceptionBase;
     _Mtx.unlock();
 #endif
     if (pSeverity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
+            zthrow(ZExceptionStack::last());
     if (pSeverity >= AbortOnSeverity)
                                 exit_abort();
     return;
 }//getErrno
 
-
-#ifdef __USE_WINDOWS__
-void
-ZExceptionBase::getLastError (const char *pModule,
-                              const ZStatus pStatus,
-                              const Severity_type pSeverity,
-                              const char* pFormat,va_list arglist)
-{
-/*#if __USE_ZTHREAD__
-        _Mtx.lock();
-#endif*/
-    _getLastWindowsError(Error,Complement.content,cst_exceptionlen);
-     Module=pModule;
-     Status = pStatus;
-     Severity=pSeverity;
-
-     vsprintf (Message.content ,pFormat, arglist);
-
-/*#if __USE_ZTHREAD__
-     _Mtx.unlock();
-#endif*/
-    return;
-}//getLastError
-
-void
-ZExceptionMin::getLastError (const char *pModule,
-                     const ZStatus pStatus,
-                     const Severity_type pSeverity,
-                     const char* pFormat,...)
-{
-#if __USE_ZTHREAD__
-    _Mtx.lock();
-#endif
-ZExceptionBase* wExceptionBase = new ZExceptionBase;
-     va_list args_1;
-     va_start (args_1, pFormat);
-     wExceptionBase->getLastError (pModule,
-                          pStatus,
-                          pSeverity,
-                          pFormat,args_1);
-     va_end(args_1);
-
-     toStack(wExceptionBase); // push on stack
-
-#if __USE_ZTHREAD__
-    _Mtx.unlock();
-#endif
-    if (pSeverity >= AbortOnSeverity)
-                                exit_abort();
-    return;
-}//getLastError
-#endif // __USE_WINDOWS__
 
 
 
@@ -324,10 +233,10 @@ ZExceptionBase::getFileError (FILE *pf,
 
 void
 ZExceptionMin::getFileError (FILE *pf,
-                              const char *pModule,
-                              const ZStatus pStatus,
-                              const Severity_type pSeverity,
-                              const char*pFormat,...)
+                      const char *pModule,
+                      const ZStatus pStatus,
+                      const Severity_type pSeverity,
+                      const char*pFormat,...)
 {
 #if __USE_ZTHREAD__
     _Mtx.lock();
@@ -349,7 +258,7 @@ ZExceptionMin::getFileError (FILE *pf,
     _Mtx.unlock();
 #endif
     if (pSeverity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
+                            zthrow (ZExceptionStack::last());
     if (pSeverity >= AbortOnSeverity)
                                 exit_abort();
     return;
@@ -407,42 +316,12 @@ ZExceptionBase* wExceptionBase = new ZExceptionBase;
     _Mtx.unlock();
 #endif
     if (pSeverity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
+                            zthrow (ZExceptionStack::last());
     if (pSeverity >= AbortOnSeverity)
                                 exit_abort();
      return;
 }// getAddrinfo
 
-#ifdef __USE_LDAP__
-#include <ldap.h>
-void
-ZExceptionMin::getLDAP (int pError,
-                        const char *pModule,
-                        const ZStatus pStatus,
-                        const Severity_type pSeverity,
-                        const char*pFormat,...)
-{
-#if __USE_ZTHREAD__
-    _Mtx.lock();
-#endif
-ZExceptionBase* wExceptionBase = new ZExceptionBase;
- va_list args;
- va_start (args, pFormat);
-
- // No mutex lock unlock in this module as it uses functions that themselves use mutex
-    wExceptionBase->Error = pError;
-    wExceptionBase->setComplement(ldap_err2string(pError));
-    wExceptionBase->_setMessage(pModule,pStatus,pSeverity,pFormat,args);
-    va_end(args);
-    toStack(wExceptionBase);
-#if __USE_ZTHREAD__
-    _Mtx.unlock();
-#endif
-    if (pSeverity >= AbortOnSeverity)
-                                exit_abort();
-     return;
-}// getLDAP
-#endif // __USE_LDAP__
 
 void
 ZExceptionBase::setContext (const char *pModule,ZStatus pStatus,Severity_type pSeverity)
@@ -487,6 +366,7 @@ return;
  * @param pSeverity a Severity_type
  * @param pFormat   a printf style varying argument format
  */
+
 void
 ZExceptionMin::setMessage (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...)
 {
@@ -505,7 +385,7 @@ va_list args;
     _Mtx.unlock();
 #endif
     if (pSeverity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
+                            zthrow (ZExceptionStack::last());
     if (pSeverity >= AbortOnSeverity)
                                 exit_abort();
 return;
@@ -519,6 +399,7 @@ return;
  * @param pSeverity
  * @param pFormat
  */
+
 void
 ZExceptionMin::setMessageCplt (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...)
 {
@@ -568,13 +449,14 @@ ZExceptionMin::setFromZNetException(const char *pModule,const ZNetException *pZE
 /**
  * @brief ZExceptionMin::removeLast removes the last error message from exception stack
  */
+
 void
 ZExceptionMin::removeLast(void)
 {
 #if __USE_ZTHREAD__
     _Mtx.lock();
 #endif
-    ZStack.pop() ;
+    ZExceptionStack::pop() ;
 
 #if __USE_ZTHREAD__
     _Mtx.unlock();
@@ -589,11 +471,12 @@ ZExceptionMin::removeLast(void)
  *
  * @param pFormat
  */
+
 void
 ZExceptionMin::addToLast(const char *pFormat,...)
 {
 
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
                         return;
 #if __USE_ZTHREAD__
     _Mtx.lock();
@@ -607,14 +490,14 @@ utf8FixedString<cst_messagelen+1> wBuf;
 //    vsprintf (wBuf ,pFormat, args);
     wBuf.vsprintf_char(pFormat, args);
     va_end(args);
-    ZStack.last()->Message.add(wBuf.content);
+    ZExceptionStack::last()->Message.add(wBuf.content);
 //    strncat(_Base::Message.content,wBuf,wSize);
 #if __USE_ZTHREAD__
     _Mtx.unlock();
 #endif
-    if (ZStack.last()->Severity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
-    if (ZStack.last()->Severity >= AbortOnSeverity)
+    if (ZExceptionStack::last()->Severity >= ThrowOnSeverity)
+                            zthrow (ZExceptionStack::last());
+    if (ZExceptionStack::last()->Severity >= AbortOnSeverity)
                                 exit_abort();
 return;
 } // addToLast
@@ -662,34 +545,35 @@ void ZExceptionMin::setComplement (const char *pFormat,...)
 #endif
 va_list args;
 va_start (args, pFormat);
-        ZStack.last()->setComplement (pFormat, args);
+        ZExceptionStack::last()->setComplement (pFormat, args);
         va_end(args);
 #if __USE_ZTHREAD__
     _Mtx.unlock();
 #endif
-    if (ZStack.last()->Severity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
-    if (ZStack.last()->Severity >= AbortOnSeverity)
+    if (ZExceptionStack::last()->Severity >= ThrowOnSeverity)
+                            zthrow (ZExceptionStack::last());
+    if (ZExceptionStack::last()->Severity >= AbortOnSeverity)
                                 exit_abort();
 return;
 }
+
 void ZExceptionMin::clearStack(void)
 {
 #if __USE_ZTHREAD__
     _Mtx.lock();
 
-//    ZStack.lock();
+//    ZExceptionStack::lock();
 #endif
-    ZStack.clear();
+    ZExceptionStack::clear();
 #if __USE_ZTHREAD__
      _Mtx.unlock();
-//    ZStack.unlock();
+//    ZExceptionStack::unlock();
 #endif
 }
 
 void ZExceptionMin::toStack(ZExceptionBase* pException)
 {
-    ZStack.push_back((ZExceptionBase*)pException);
+    ZExceptionStack::push_back((ZExceptionBase*)pException);
 
 }// toStack
 
@@ -726,6 +610,7 @@ This stack is dumped by this method.
 
  * @param pOutput
  */
+
 void
 ZExceptionMin::printUserMessage (FILE *pOutput,bool pDelete)
 {
@@ -734,12 +619,12 @@ ZExceptionMin::printUserMessage (FILE *pOutput,bool pDelete)
 #endif
     fprintf (pOutput,
              "_______Exception stack (from most recent to oldest)________\n");
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
                 fprintf (pOutput,
                          "         Exception stack is empty\n");
     else
         {
-/*    for (long wi=ZStack.lastIdx();wi>-1;wi--)
+/*    for (long wi=ZExceptionStack::lastIdx();wi>-1;wi--)
             {
             fprintf(pOutput,
                     " Depth <%ld>\n",
@@ -750,13 +635,13 @@ ZExceptionMin::printUserMessage (FILE *pOutput,bool pDelete)
         int wi=0;
         if (pDelete)
                 {
-            while (ZStack.size()>0)
+            while (ZExceptionStack::size()>0)
                         {
                         fprintf(pOutput,
                                 " Depth <%d>\n",
                                 wi);
-                         fprintf(pOutput,ZStack.last()->formatFullUserMessage().toCString());
-                         ZStack.pop();
+                         fprintf(pOutput,ZExceptionStack::last()->formatFullUserMessage().toCChar());
+                         ZExceptionStack::pop();
                          wi++;
                         }
                 }
@@ -764,13 +649,13 @@ ZExceptionMin::printUserMessage (FILE *pOutput,bool pDelete)
             else
             {
             wi=0;
-            int wj=ZStack.size()-1;
+            int wj=ZExceptionStack::size()-1;
             while (wj>0)
                     {
                     fprintf(pOutput,
                             " Depth <%ld>\n",
                             wi);
-                     fprintf(pOutput,ZStack[wj]->formatFullUserMessage().toCString());
+                     fprintf(pOutput,ZExceptionStack::Tab[wj]->formatFullUserMessage().toCChar());
                      wi++;
                      wj--;
                     }
@@ -787,13 +672,14 @@ ZExceptionMin::printUserMessage (FILE *pOutput,bool pDelete)
  * @brief ZExceptionMin::printLastUserMessage displays the last registered exception and removes it from exception stack.
  * @param pOutput
  */
+
 void
 ZExceptionMin::printLastUserMessage (FILE *pOutput)
 {
 #if __USE_ZTHREAD__
     _Mtx.lock();
 #endif
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
         {
          fprintf(pOutput,"%s>> No more exception in exception stack.\n",_GET_FUNCTION_NAME_);
 #if __USE_ZTHREAD__
@@ -803,13 +689,13 @@ ZExceptionMin::printLastUserMessage (FILE *pOutput)
         }
     fprintf (pOutput,
              "________________Immediate Exception content_______________\n");
-    fprintf (pOutput,ZStack.last()->formatFullUserMessage().toCString());
-//    ZStack.last()->Message.clear();
-//    ZStack.last()->Complement.clear();
+    fprintf (pOutput,ZExceptionStack::last()->formatFullUserMessage().toCChar());
+//    ZExceptionStack::last()->Message.clear();
+//    ZExceptionStack::last()->Complement.clear();
     fprintf (pOutput,
              "__________________________________________________________\n");
 
-    ZStack.pop();
+    ZExceptionStack::pop();
 
 #if __USE_ZTHREAD__
     _Mtx.unlock();
@@ -842,7 +728,7 @@ ZExceptionMin::formatFullUserMessage (void)
 #if __USE_ZTHREAD__
     _Mtx.lock();
 #endif
-     utfexceptionString wStr=ZStack.last()->formatFullUserMessage();
+     utfexceptionString wStr=ZExceptionStack::last()->formatFullUserMessage();
 #if __USE_ZTHREAD__
     _Mtx.unlock();
 #endif
@@ -852,12 +738,13 @@ ZExceptionMin::formatFullUserMessage (void)
 /**
  * @brief CZExceptionMin::exit_abort reports the content of CZException to stderr then aborts the application.
  */
+
 void
 ZExceptionMin::exit_abort(void)
         {
         _MODULEINIT_
         printUserMessage(stderr);
-        ZStack.clear();
+        ZExceptionStack::clear();
 //        exit(EXIT_FAILURE);
 
         _ABORT_     /* _ABORT_ list all module stack and clean it before aborting */
@@ -871,6 +758,7 @@ ZExceptionMin::zthrow(ZExceptionBase* pException)
         }
 
 #if __USE_ZTHREAD__ == __USE_POSIX__
+
 void
 ZExceptionMin::Thread_exit_abort(const ZStatus pStatus)
 {
@@ -880,6 +768,7 @@ ZExceptionMin::Thread_exit_abort(const ZStatus pStatus)
     pthread_exit((void*)&Status);
 }
 #else
+
 void
 ZExceptionMin::Thread_exit_abort(const ZStatus pStatus)
 {
@@ -890,49 +779,55 @@ ZExceptionBase *wExceptionBase = new ZExceptionBase;
     toStack(wExceptionBase);
 
     printUserMessage(stderr);
-    ZStack.clear();
+    ZExceptionStack::clear();
     throw(pStatus);     // throw an unmanaged exception so that thread will cancel using destructors
 }
 #endif // __USE_ZTHREAD__
 
-utfexceptionString& ZExceptionMin::getLastMessage(void)
+
+utfexceptionString&
+ZExceptionMin::getLastMessage(void)
 {
-    if (ZStack.isEmpty())
+
+    if (ZExceptionStack::isEmpty())
         {
         fprintf (stderr,"%s-F-EmptyStack Fatal error: stack is empty while using message\n",_GET_FUNCTION_NAME_);
-        abort();
+        exit_abort();
         }
-    return ZStack.last()->Message;
+    return ZExceptionStack::last()->Message;
 }
+
 utfexceptionString&
 ZExceptionMin::getLastComplement(void)
 {
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
         {
         fprintf (stderr,"%s-F-EmptyStack Fatal error: stack is empty while using messageBox\n",_GET_FUNCTION_NAME_);
         abort();
         }
-    return ZStack.last()->Complement;
+    return ZExceptionStack::last()->Complement;
 }
 
 ZStatus
 ZExceptionMin::getLastStatus(void)
 {
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
             return ZS_SUCCESS;
-    return ZStack.last()->Status;
+    return ZExceptionStack::last()->Status;
 }
+
 Severity_type
 ZExceptionMin::getLastSeverity(void)
 {
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
             return Severity_Nothing;
-    return ZStack.last()->Severity;
+    return ZExceptionStack::last()->Severity;
 }
+
 void
 ZExceptionMin::setContext (const char *pModule,ZStatus pStatus,Severity_type pSeverity)
 {
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
         {
         fprintf(stderr,"%s>> Exception stack is empty while trying to set last exception context with values \n"
                        "%s.\n"
@@ -945,7 +840,7 @@ ZExceptionMin::setContext (const char *pModule,ZStatus pStatus,Severity_type pSe
         return;
         }
     _Mtx.lock();
-    ZStack.last()->setContext(pModule,pStatus,pSeverity);
+    ZExceptionStack::last()->setContext(pModule,pStatus,pSeverity);
     _Mtx.unlock();
     return ;
 }
@@ -953,7 +848,7 @@ ZExceptionMin::setContext (const char *pModule,ZStatus pStatus,Severity_type pSe
 void
 ZExceptionMin::setLastStatus(ZStatus pSt)
 {
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
         {
         fprintf(stderr,"%s>> Exception stack is empty while trying to set last exception status with value %s.\n",
                 _GET_FUNCTION_NAME_,
@@ -961,14 +856,15 @@ ZExceptionMin::setLastStatus(ZStatus pSt)
         return;
         }
     _Mtx.lock();
-    ZStack.last()->Status= pSt;
+    ZExceptionStack::last()->Status= pSt;
     _Mtx.unlock();
     return ;
 }
+
 void
 ZExceptionMin::setLastSeverity(Severity_type pSeverity)
 {
-    if (ZStack.isEmpty())
+    if (ZExceptionStack::isEmpty())
         {
         fprintf(stderr,"%s>> Exception stack is empty while trying to set last exception severity with value %s.\n",
                 _GET_FUNCTION_NAME_,
@@ -976,10 +872,10 @@ ZExceptionMin::setLastSeverity(Severity_type pSeverity)
         return;
         }
     _Mtx.lock();
-    ZStack.last()->Severity= pSeverity;
+    ZExceptionStack::last()->Severity= pSeverity;
     _Mtx.unlock();
     if (pSeverity >= ThrowOnSeverity)
-                            zthrow (ZStack.last());
+                            zthrow (ZExceptionStack::last());
     if (pSeverity >= AbortOnSeverity)
                                 exit_abort();
     return ;
@@ -991,7 +887,7 @@ ZExceptionMin::setLastSeverity(Severity_type pSeverity)
 utf8VaryingString
 ZExceptionMin::lastUtf8()
 {
-    return ZStack.last()->formatUtf8();
+    return ZExceptionStack::last()->formatUtf8();
 }
 
 
@@ -1079,8 +975,8 @@ QString wM;
 
     QMessageBox wMsg (wIcon,
                       pTitle.toCString_Strait(),
-                      QObject::tr(pUserMessage.toCString()));
-    wMsg.setDetailedText(ZException.formatFullUserMessage().toCString());
+                      QObject::tr(pUserMessage.toCChar()));
+    wMsg.setDetailedText(ZException.formatFullUserMessage().toCChar());
     wMsg.addButton(QObject::tr("Leave"),QMessageBox::DestructiveRole);
     wMsg.addButton(QObject::tr("Continue"),QMessageBox::AcceptRole);
 
@@ -1119,7 +1015,7 @@ QString wM;
                         wM += "\n";
                         wM += ZDateFull::currentDateTime().toLocaleFormatted().toCString_Strait();
                         wM += "\n";
-                        wM += ZException.formatFullUserMessage().toCString();
+                        wM += ZException.formatFullUserMessage().toCChar();
                         fwrite(wM.toStdString().c_str(),
                                wM.size(),
                                1,
@@ -1193,8 +1089,8 @@ QString wM;
 
     QMessageBox wMsg (wIcon,
                       pTitle.toCString_Strait(),
-                      QObject::tr(pUserMessage.toCString()));
-    wMsg.setDetailedText(ZException.formatFullUserMessage().toCString());
+                      QObject::tr(pUserMessage.toCChar()));
+    wMsg.setDetailedText(ZException.formatFullUserMessage().toCChar());
     wMsg.addButton(QObject::tr("Leave"),QMessageBox::AcceptRole);
     wMsg.addButton(QObject::tr("Remove document"),QMessageBox::DestructiveRole);
     wMsg.addButton(QObject::tr("Keep this message"),QMessageBox::ApplyRole);
@@ -1227,7 +1123,7 @@ QString wM;
                         wM += "\n";
                         wM += ZDateFull::currentDateTime().toLocaleFormatted().toCString_Strait();
                         wM += "\n";
-                        wM += ZException.formatFullUserMessage().toCString();
+                        wM += ZException.formatFullUserMessage().toCChar();
                         fwrite(wM.toStdString().c_str(),
                                wM.size(),
                                1,
@@ -1247,7 +1143,7 @@ QString wM;
 #endif // #ifdef QT_CORE_LIB
 
 
-#ifdef __USE_SSL__
+#ifdef __COMMENTED_USE_SSL__
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -1334,7 +1230,84 @@ void getLastWindowsError (int &pErr,descString &pMessage)
     return;
 } // getLastWindowsError
 
-#endif //__USE_WINDOWS__
+void
+ZExceptionBase::getLastError (const char *pModule,
+                             const ZStatus pStatus,
+                             const Severity_type pSeverity,
+                             const char* pFormat,va_list arglist)
+{
+
+    _getLastWindowsError(Error,Complement.content,cst_exceptionlen);
+    Module=pModule;
+    Status = pStatus;
+    Severity=pSeverity;
+
+    vsprintf (Message.content ,pFormat, arglist);
+
+    return;
+}//getLastError
+
+void
+ZExceptionMin::getLastError (const char *pModule,
+                            const ZStatus pStatus,
+                            const Severity_type pSeverity,
+                            const char* pFormat,...)
+{
+#if __USE_ZTHREAD__
+    _Mtx.lock();
+#endif
+    ZExceptionBase* wExceptionBase = new ZExceptionBase;
+    va_list args_1;
+    va_start (args_1, pFormat);
+    wExceptionBase->getLastError (pModule,
+                                 pStatus,
+                                 pSeverity,
+                                 pFormat,args_1);
+    va_end(args_1);
+
+    toStack(wExceptionBase); // push on stack
+
+#if __USE_ZTHREAD__
+    _Mtx.unlock();
+#endif
+    if (pSeverity >= AbortOnSeverity)
+        exit_abort();
+    return;
+}//getLastError
+#endif // __USE_WINDOWS__
+
+
+#ifdef __USE_LDAP__
+#include <ldap.h>
+
+void
+ZExceptionMin::getLDAP (int pError,
+                                       const char *pModule,
+                                       const ZStatus pStatus,
+                                       const Severity_type pSeverity,
+                                       const char*pFormat,...)
+{
+#if __USE_ZTHREAD__
+    _Mtx.lock();
+#endif
+    ZExceptionBase* wExceptionBase = new ZExceptionBase;
+    va_list args;
+    va_start (args, pFormat);
+
+    // No mutex lock unlock in this module as it uses functions that themselves use mutex
+    wExceptionBase->Error = pError;
+    wExceptionBase->setComplement(ldap_err2string(pError));
+    wExceptionBase->_setMessage(pModule,pStatus,pSeverity,pFormat,args);
+    va_end(args);
+    toStack(wExceptionBase);
+#if __USE_ZTHREAD__
+    _Mtx.unlock();
+#endif
+    if (pSeverity >= AbortOnSeverity)
+        exit_abort();
+    return;
+}// getLDAP
+#endif // __USE_LDAP__
 
 
 #endif //#ifndef ZEXCEPTIONMIN_CPP

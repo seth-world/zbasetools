@@ -25,16 +25,46 @@ enum ZCryptMethod_type : uint8_t
 #pragma pack(push)
 #pragma pack(0)
 
-class utfStringDescriptor{
+class utfStringDescriptor
+{
+protected:
+    utfStringDescriptor &_copyFrom(const utfStringDescriptor &pIn)
+    {
+        DataByte = pIn.DataByte;
+        UnitCount = pIn.UnitCount;
+        ByteSize = pIn.ByteSize;
+        ZType = pIn.ZType;
+        Charset = pIn.Charset;
+        CryptMethod = pIn.CryptMethod;
+        littleEndian = pIn.littleEndian;
+        return *this;
+    }
+    utfStringDescriptor& _copyFrom(const utfStringDescriptor* pIn)
+    {
+        DataByte = pIn->DataByte;
+        UnitCount = pIn->UnitCount;
+        ByteSize = pIn->ByteSize;
+        ZType = pIn->ZType;
+        Charset = pIn->Charset;
+        CryptMethod = pIn->CryptMethod;
+        littleEndian = pIn->littleEndian;
+        return *this;
+    }
 public:
-    uint8_t*           DataByte=nullptr;  /** pointer to effective data : content if fixed string or Data if varying string */
-    size_t             UnitCount=0;     /** current string capacity in terms of character units */
-    size_t             ByteSize=0;      /** effective data size in bytes : updated according alloc/realloc if varying string */
-    ZType_type         ZType=ZType_Nothing;
-    ZCharset_type      Charset=ZCHARSET_UTF8;
-    ZCryptMethod_type  CryptMethod=ZCM_Uncrypted;
+    uint8_t*            DataByte=nullptr;  /** pointer to effective data : content if fixed string or Data if varying string */
+    size_t              UnitCount=0;     /** current string capacity in terms of character units */
+    size_t              ByteSize=0;      /** effective data size in bytes : updated according alloc/realloc if varying string */
+    ZType_type          ZType=ZType_Nothing;
+    ZCharset_type       Charset=ZCHARSET_UTF8;
+    ZCryptMethod_type   CryptMethod=ZCM_Uncrypted;
+    ZBool               littleEndian=false;  // RFFU:this induce we might have native strings with endianness different from system default
 public:
     utfStringDescriptor() {}
+    utfStringDescriptor(utfStringDescriptor& pIn) { _copyFrom(pIn); }
+    utfStringDescriptor(utfStringDescriptor&& pIn) { _copyFrom(pIn); }
+
+    utfStringDescriptor(utfStringDescriptor* pIn) { _copyFrom(pIn); }
+
     inline size_t getUnitCount(void)  {return UnitCount;} /** returns the current string capacity in character units */
     inline ZTypeBase getZType(void) {return ZType;}
     inline size_t getByteSize(void) {return ByteSize;}

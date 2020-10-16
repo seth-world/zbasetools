@@ -9,6 +9,7 @@
 
 class zxmlAttribute;
 class zxmlNameSpace;
+class zxmlElement;
 
 class zxmlNode
 {
@@ -37,11 +38,11 @@ public:
     zxmlNode(const zxmlNode&)=delete;
     zxmlNode& operator=(const zxmlNode&) = delete;  // no copy
 
-    utffieldNameString getName(void);
-    int getLine(void);
-    utfdescString getNodePath(void);
+    utffieldNameString getName(void) const;
+    int getLine(void) const;
+    utfdescString getNodePath(void) const;
 
-    ZStatus getFirstChild(zxmlNode* &pFirstNode);
+    ZStatus getFirstChild(zxmlNode* &pFirstNode) const;
     ZStatus getNextNode(zxmlNode* &pNode);
     ZStatus getPreviousNode(zxmlNode* &pPrevNode);
     ZStatus getLastChild(zxmlNode* &pLastNode);
@@ -49,12 +50,12 @@ public:
     ZStatus getChildByName(zxmlNode* &pNextNode,const char*pName);
 
 //---------------Extract data from current node----------------------------
-    ZStatus getNodeContent(utf8VaryingString &pCData);            // extract content from current node whatever it is
-    ZStatus getCData(ZDataBuffer& pCData);                  // extracts CData content from current node
+    ZStatus getNodeContent(utf8VaryingString &pCData) const;            // extract content from current node whatever it is
+    ZStatus getCData(ZDataBuffer& pCData) const;                  // extracts CData content from current node
 
-    ZStatus getText(ZDataBuffer& pText);  // extracts text from current node (comment or text from text node)
+    ZStatus getText(ZDataBuffer& pText) const;  // extracts text from current node (comment or text from text node)
 
-    ZStatus getText(utf8VaryingString& pText);
+    ZStatus getText(utf8VaryingString& pText) const;
 
     ZStatus getNodeText(utf8VaryingString &pText);
     ZStatus getNodeRaw(utf8VaryingString &pText);
@@ -83,18 +84,18 @@ public:
 
 
 
-    bool isElement(void);
-    bool isText(void);
-    bool isCData(void);
-    bool isComment(void);
-    bool isDocument(void);
-    bool isHtmlDocument(void);
+    bool isElement(void) const;
+    bool isText(void) const ;
+    bool isCData(void) const;
+    bool isComment(void) const;
+    bool isDocument(void) const;
+    bool isHtmlDocument(void) const;
 
-    bool hasElement(void);
-    bool hasCData(void);
-    bool hasText(void);
-    bool hasAttribute(void);
-    bool hasComment(void);
+    bool hasElement(void) const;
+    bool hasCData(void) const;
+    bool hasText(void) const;
+    bool hasAttribute(void) const;
+    bool hasComment(void) const;
 
     unsigned long getChildElementCount(void);
 

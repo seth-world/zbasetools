@@ -2062,19 +2062,19 @@ bool utf32ToChar(char* pCharOut,const utf32_t pCharIn)
 #include <ztoolset/utfvaryingstring.h>
 
 ZStatus utf8StrToCharStr (char **pOutCharStr,
-                                  ZCharset_type pOutCharset,
-                                  const utf8_t* pInString,
-                                  const ssize_t pInByteSize,
-                                  ZBool pWarningSignal)
+                         ZCharset_type pOutCharset,
+                         const utf8_t* pInString,
+                         const ssize_t pInByteSize,
+                         ZBool pWarningSignal)
 {
 _MODULEINIT_
 ZStatus wSt;
 static UConverter* wUtf8Conv=nullptr;
 static UConverter* wExtConv=nullptr;
     if (!pOutCharStr)
-            _ABORT_;
+            _ABORT_
     if (!pInString)
-            _ABORT_;
+            _ABORT_
 
     *pOutCharStr=nullptr;
 

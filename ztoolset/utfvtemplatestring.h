@@ -101,7 +101,6 @@ protected:
         CryptMethod=pIn.CryptMethod;
         allocateBytes( pIn.ByteSize);
         memmove(Data,pIn.Data,ByteSize);
-
         return(*this);
     }
 
@@ -130,6 +129,14 @@ public:
     //         utfVaryingString storage is adjusted accordingly IF AVAILABLE MEMORY AMOUNT IS LESS than required.
     //         If amount of memory available is greater than required, no memory reallocation is done.
     //
+    utfVaryingString&
+    setData(const _Utf* &pData,size_t pSize)
+    {
+        CryptMethod=ZCM_Uncrypted;
+        allocateBytes (pSize);
+        memmove(Data,pData,pSize);
+        return(*this);
+    }
     utfVaryingString&
     setData(const _Utf* &&pData,size_t pSize)
     {
@@ -540,8 +547,8 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
     utfVaryingString & operator += (const double pValue)
                                 { return appendData (&pValue,sizeof(pValue));}
 
-    utfVaryingString<_Utf>& encodeB64( void);         // encode the content of utfVaryingString to Base64
-    utfVaryingString<_Utf>& decodeB64( void );     // decode the content of utfVaryingString from Base64
+    void encodeB64( void);         // encode the content of utfVaryingString to Base64
+    void decodeB64( void );     // decode the content of utfVaryingString from Base64
 
     checkSum getcheckSum(void) { return checkSum((unsigned char*)Data,strlen());}// gets a checkSum from string content without '\0'
 
@@ -1781,91 +1788,6 @@ _MODULEINIT_
     memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
     _RETURN_ ZS_SUCCESS;
 }//getUniversalFromURF
-
-//=============== MD5 - B64 Encoding Decoding - Checksum - MD5 ==========================
-
-
-/**
- * @brief utfVaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
- *
- *  Encode the exact content length of utfVaryingString given by Size, including termination character ('\0').
- *
- * @return  a reference to utfVaryingString with encoded data
- */
-template <class _Utf>
-utfVaryingString<_Utf>&
-utfVaryingString<_Utf>::encodeB64( void )
-{
-    BIO *bio, *b64;
-    BUF_MEM *bptr;
-    char*  wPtr;
-    int wRet;
-
-    b64 = BIO_new(BIO_f_base64());
-    bio = BIO_new(BIO_s_mem());
-    b64 = BIO_push(b64, bio);
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line do not add \n
-    int wLen = BIO_write(b64, Data, ByteSize);
-    if (wLen<1)
-    {
-        fprintf(stderr,"%s-E>BIO_write fails to copy utfVaryingString data (byte size is %ld>\n",
-                _GET_FUNCTION_NAME_,
-                ByteSize);
-        return (*this);
-    }
-    wRet=BIO_flush(b64);
-    //    BIO_get_mem_ptr(b64, &bptr);
-    //    setData(bptr->data,bptr->length);
-    wLen=BIO_get_mem_data(b64, &wPtr);
-    setData(wPtr,wLen);
-    addTermination();
-
-    BIO_free_all(b64);
-    CryptMethod = ZCM_Base64;
-    return *this;
-} //-----------------encodeB64-------------------
-
-
-#include <cassert>
-
-/**
- * @brief utfVaryingString::decodeB64 decodes utfVaryingString content using Base 64 encoding facilities (OpenSSL).
- * @return a reference to utfVaryingString with decoded data
- */
-template <class _Utf>
-utfVaryingString<_Utf> &
-utfVaryingString<_Utf>::decodeB64(void)
-{
-    //----------------------------------------------
-    BIO *bio,*b64 ;
-
-    int decodeLen = UVScalcDecodeLengthB64(DataByte,ByteSize);
-
-    _Utf *buffer = (_Utf *)malloc(decodeLen+1);
-    buffer[decodeLen]='\0';
-
-    bio = BIO_new_mem_buf(Data, -1);
-    b64 = BIO_new(BIO_f_base64());
-    bio = BIO_push(b64, bio);
-
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Do not use newlines to flush buffer
-    ByteSize = BIO_read(bio, buffer, ByteSize);
-    //     assert(Size == (decodeLen-1)); //length should equal decodeLen, else something went horribly wrong
-    BIO_free_all(bio);
-    //     allocate (Size+1);
-    //     memmove (Data,buffer,Size);
-    //     Data[Size]='\0';
-    setData(buffer,ByteSize);
-    //    addTermination();
-
-    free(buffer);
-    CryptMethod = ZCM_Uncrypted;
-    return(*this);
-} // ------------decodeB64---------------------
-
-
-
-
 
 
 

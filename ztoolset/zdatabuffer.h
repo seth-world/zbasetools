@@ -104,17 +104,19 @@ struct md5;
 namespace zbs{
 class ZCryptKeyAES256;
 class ZCryptVectorAES256;
-#endif
 }
+#endif
+
 class ZDataBuffer
 {
  private:
-    void _copyFrom(const ZDataBuffer& pIn)
+    ZDataBuffer& _copyFrom(const ZDataBuffer& pIn)
     {
        allocate (pIn.Size);
        memmove(Data,pIn.Data,pIn.Size);
        CryptMethod=pIn.CryptMethod;
        Size=pIn.Size;
+       return *this;
     }
 public:
 
@@ -447,9 +449,13 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
    const ZDataBuffer & operator = (const float pValue)
                                {  setData (&pValue,sizeof(pValue)); return *this;}
    const ZDataBuffer & operator = (const double pValue)
-                               {  setData (&pValue,sizeof(pValue)); return *this;}
+   {
+       setData(&pValue, sizeof(pValue));
+       return *this;
+   }
 
-   ZStatus operator << (uriString & pURI);
+   ZStatus fomFile(uriString &pURI);
+   ZStatus operator << (uriString &pURI);
 
 #ifdef QT_CORE_LIB
 
@@ -494,10 +500,14 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
     checkSum* newcheckSum( void ); /** creates a checkSum object using new -Warning: to be further deleted */
 //    checkSum* generatecheckSum( unsigned char* pData, ssize_t pSize )  ;
 
-
-    ZStatus encryptAES256(zbs::ZCryptKeyAES256 pKey, /** encrypts current object's content to AES256 according mandatory given Key and Vector */
+    /** @brief ZDataBuffer::encryptAES256() encrypts current object's content to AES256 according mandatory given Key and Vector
+     * @param [in] pKey     zbs::ZCryptKeyAES256 containing crypting key
+     * @oaram [in] pVector  zbs::ZCryptKeyAES256 containing crypting vector
+     * @param [out-optional] pZDB receives the encrypted data. if omitted (nullptr) current object's data is replaced
+     */
+    ZStatus encryptAES256(zbs::ZCryptKeyAES256 pKey,
                           zbs::ZCryptVectorAES256 pVector,
-                          ZDataBuffer* pZDB=nullptr); /** pZDB receives the encrypted data. if omitted current object's data is replaced*/
+                          ZDataBuffer* pZDB=nullptr);
 
     ZStatus encryptAES256toFile(const char*pFileName, /** same as previous but puts the encrypted data within pFileName file */
                                 zbs::ZCryptKeyAES256 pKey,

@@ -42,6 +42,28 @@ public:
     uint16_t Year;
     uint8_t  Month;
     uint8_t  Day;
+    ZDate() { memset(this, 0, sizeof(ZDate)); }
+    ZDate(ZDate &pIn) { _copyFrom(pIn); }
+    ZDate(ZDate &&pIn) { _copyFrom(pIn); }
+
+    ZDate &_copyFrom(ZDate &pIn)
+    {
+        memset(this, 0, sizeof(ZDate));
+        Year = pIn.Year;
+        Month = pIn.Month;
+        Day = pIn.Day;
+        return *this;
+    }
+    ZDate &_copyFrom(ZDate &&pIn)
+    {
+        memset(this, 0, sizeof(ZDate));
+        Year = pIn.Year;
+        Month = pIn.Month;
+        Day = pIn.Day;
+        return *this;
+    }
+    ZDate &operator=(ZDate &pIn) { return _copyFrom(pIn); }
+    ZDate &operator=(ZDate &&pIn) { return _copyFrom(pIn); }
 
 static ZDate currentDate(void); //-----------Static get date-------------------
 
@@ -69,12 +91,13 @@ QDate toQDate(void);
 
 #endif // QT_CORE_LIB
 
+int compare(ZDate &pDC)const { return memcmp(this, &pDC, sizeof(ZDate)); }
 
 bool operator < (ZDate &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDate))<0);}
 bool operator > (ZDate &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDate))>0);}
 bool operator <= (ZDate &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDate))>0);}
 bool operator >= (ZDate &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDate))<0);}
-ZDate operator = (ZDate &pDate) {memmove(this,&pDate,sizeof(ZDate));return (*this);}
+
 
 //  editing format
 private:
@@ -98,6 +121,35 @@ public:
     uint8_t Hour;
     uint8_t Min;
     uint8_t Sec;
+
+    ZDateFull() { memset(this, 0, sizeof(ZDateFull)); }
+    ZDateFull(ZDateFull &pIn) { _copyFrom(pIn); }
+    ZDateFull(ZDateFull &&pIn) { _copyFrom(pIn); }
+
+    ZDateFull &_copyFrom(ZDateFull &pIn)
+    {
+        memset(this, 0, sizeof(ZDateFull));
+        Year = pIn.Year;
+        Month = pIn.Month;
+        Day = pIn.Day;
+        Hour = pIn.Hour;
+        Min = pIn.Min;
+        Sec = pIn.Sec;
+        return *this;
+    }
+    ZDateFull &_copyFrom(ZDateFull &&pIn)
+    {
+        memset(this, 0, sizeof(ZDateFull));
+        Year = pIn.Year;
+        Month = pIn.Month;
+        Day = pIn.Day;
+        Hour = pIn.Hour;
+        Min = pIn.Min;
+        Sec = pIn.Sec;
+        return *this;
+    }
+    ZDateFull &operator=(ZDateFull &pIn) { return _copyFrom(pIn); }
+    ZDateFull &operator=(ZDateFull &&pIn) { return _copyFrom(pIn); }
 
 typedef ZDateFull::tm _Base;
 
@@ -159,13 +211,12 @@ utfdescString toFormatted(const char* pFormat="%F %T");
 
 ZDateFull& fromZDateFull(ZDateFull pZD) ;
 
+int compare(ZDateFull &pDC) const { return memcmp(this, &pDC, sizeof(ZDateFull)); }
 
 bool operator < (ZDateFull &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDateFull))<0);}
 bool operator > (ZDateFull &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDateFull))>0);}
 bool operator <= (ZDateFull &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDateFull))>0);}
 bool operator >= (ZDateFull &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDateFull))<0);}
-
-ZDateFull& operator = (const ZDateFull &pDateFull) {return (fromZDateFull(pDateFull));}
 
 #ifdef QT_CORE_LIB
 ZDateFull operator = (QDateTime pDateTime) {fromQDateTime(pDateTime);return (*this);}

@@ -733,6 +733,17 @@ uriString::loadContentZTerm (ZDataBuffer& pDBS)
     return ZS_SUCCESS;
 }
 
+ZStatus uriString::loadAES256(ZDataBuffer &pDBS,
+                              const ZCryptKeyAES256 &pKey,
+                              const ZCryptVectorAES256 &pVector)
+{
+    ZStatus wSt = loadContent(pDBS);
+    if (wSt != ZS_SUCCESS)
+        return wSt;
+    return pDBS.uncryptAES256(pKey, pVector);
+}
+
+
 ZStatus
 uriString::loadUtf8(utf8VaryingString &pUtf8)
 {
@@ -982,6 +993,13 @@ uriString::writeContent (utf8VaryingString &pStr)
     fclose(wFile);
     return(ZS_SUCCESS);
 }//writeContent
+
+ZStatus uriString::writeAES256(ZDataBuffer &pDBS,
+                               const ZCryptKeyAES256 &pKey,
+                               const ZCryptVectorAES256 &pVector)
+{
+    return pDBS.encryptAES256toFile(toCChar(), pKey, pVector);
+}
 /**
  * @brief uriString::getChecksum gives the checksum of the file's content current uriString points to.
  * SHA256 checksum is used.
@@ -997,6 +1015,7 @@ ZDataBuffer wDBS;
     ZStatus wSt= loadContent(wDBS );
     if (wSt==ZS_SUCCESS)
             wChecksum.compute(wDBS.Data,wDBS.Size);
+/* if not successfull ZException is positionned */
     return(wChecksum);
 }//getChecksum
 

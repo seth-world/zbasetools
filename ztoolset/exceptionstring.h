@@ -22,9 +22,9 @@ struct utfexceptionString:public utf8FixedString<cst_exceptionlen+1>
     using _Base::operator = ;
     using _Base::operator += ;
 
-    utfexceptionString() {}
+//    utfexceptionString() {}
 
-    const char* toCString(void) {return (const char*)content;}
+    const char* toCChar(void) {return (const char*)content;}
 //char content[cst_exceptionstringlen+1];
 //void clear(void) {memset(this,0,sizeof(exceptionString));}
 //size_t  size(void) {return (strlen(content)); }

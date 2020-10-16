@@ -23,6 +23,104 @@ utfVaryingString<_Utf>::newSortKey(void)
     SortKey=new utfKey(nullptr);
 }
 
+
+
+//=============== MD5 - B64 Encoding Decoding - Checksum - MD5 ==========================
+size_t UVScalcDecodeLengthB64(const uint8_t *b64input, size_t pSize) { //Calculates the length of a decoded string
+    //    size_t len = strlen(b64input), // cannot have strlen for utf16 and utf32
+    size_t len = pSize, padding = 0;
+
+    if (b64input[len-1] == '=' && b64input[len-2] == '=') //last two chars are =
+        padding = 2;
+    else if (b64input[len-1] == '=') //last char is =
+        padding = 1;
+
+    return (len*3)/4 - padding;
+} //UVScalcDecodeLengthB64
+
+/**
+ * @brief utf8VaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
+ *
+ *  Encode the exact content length of utfVaryingString given by Size, including termination character ('\0').
+ *
+ * @return  a reference to utfVaryingString with encoded data
+ */
+
+utf8VaryingString&
+utf8VaryingString::encodeB64( void )
+{
+    BIO *bio, *b64;
+    BUF_MEM *bptr;
+    const unsigned char*  wPtr;
+    int wRet;
+
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_new(BIO_s_mem());
+    b64 = BIO_push(b64, bio);
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line do not add \n
+    int wLen = BIO_write(b64, Data, ByteSize);
+    if (wLen<1)
+    {
+        fprintf(stderr,"%s-E>BIO_write fails to copy utfVaryingString data (byte size is %ld>\n",
+                _GET_FUNCTION_NAME_,
+                ByteSize);
+        return (*this);
+    }
+    wRet=BIO_flush(b64);
+    //    BIO_get_mem_ptr(b64, &bptr);
+    //    setData(bptr->data,bptr->length);
+    wLen=BIO_get_mem_data(b64, &wPtr);
+    setData(wPtr,wLen);
+    addTermination();
+
+    BIO_free_all(b64);
+    CryptMethod = ZCM_Base64;
+    return *this;
+} //-----------------encodeB64-------------------
+
+
+#include <cassert>
+
+/**
+ * @brief utfVaryingString::decodeB64 decodes utfVaryingString content using Base 64 encoding facilities (OpenSSL).
+ * @return a reference to utfVaryingString with decoded data
+ */
+
+utf8VaryingString&
+utf8VaryingString::decodeB64(void)
+{
+    //----------------------------------------------
+    BIO *bio,*b64 ;
+
+    int decodeLen = UVScalcDecodeLengthB64(DataByte,ByteSize);
+
+    utf8_t *buffer = (utf8_t *)malloc(decodeLen+1);
+    buffer[decodeLen]='\0';
+
+    bio = BIO_new_mem_buf(Data, -1);
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_push(b64, bio);
+
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Do not use newlines to flush buffer
+    ByteSize = BIO_read(bio, buffer, ByteSize);
+    //     assert(Size == (decodeLen-1)); //length should equal decodeLen, else something went horribly wrong
+    BIO_free_all(bio);
+    //     allocate (Size+1);
+    //     memmove (Data,buffer,Size);
+    //     Data[Size]='\0';
+    setData(buffer,ByteSize);
+    //    addTermination();
+
+    free(buffer);
+    CryptMethod = ZCM_Uncrypted;
+    //    return(*this);
+} // ------------decodeB64---------------------
+
+
+
+
+
+
  //================ utf8VaryingString conversions to and from other formats==============================
 
 

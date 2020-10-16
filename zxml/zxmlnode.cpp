@@ -25,7 +25,7 @@ zxmlNode::getChildElementCount()
  * @return ZStatus ZS_SUCCESS if a node is found, ZS_EMPTY if not
  */
 ZStatus
-zxmlNode::getFirstChild(zxmlNode* &pFirstNode)
+zxmlNode::getFirstChild(zxmlNode* &pFirstNode) const
 {
     pFirstNode=nullptr;
 
@@ -100,7 +100,7 @@ utffieldNameString zxmlNode::getLanguage(void)
 }// getLanguage
 
 bool
-zxmlNode::hasCData()
+zxmlNode::hasCData() const
 {
     xmlNodePtr wChild=_xmlInternalNode->children;
     while (wChild)
@@ -112,7 +112,7 @@ zxmlNode::hasCData()
     return false;
 }
 bool
-zxmlNode::hasText()
+zxmlNode::hasText() const
 {
     xmlNodePtr wChild=_xmlInternalNode->children;
     while (wChild)
@@ -125,7 +125,7 @@ zxmlNode::hasText()
     return false;
 }
 bool
-zxmlNode::hasElement()
+zxmlNode::hasElement() const
 {
     xmlNodePtr wChild=_xmlInternalNode->children;
     while (wChild)
@@ -137,7 +137,7 @@ zxmlNode::hasElement()
     return false;
 }
 bool
-zxmlNode::hasComment()
+zxmlNode::hasComment() const
 {
     xmlNodePtr wChild=_xmlInternalNode->children;
     while (wChild)
@@ -150,7 +150,7 @@ zxmlNode::hasComment()
 }
 
 bool
-zxmlNode::hasAttribute()
+zxmlNode::hasAttribute() const
 {
     return _xmlInternalNode->properties;
 }
@@ -229,7 +229,7 @@ zxmlNode::getFirstChildText(zxmlNode* &pNode)
     return ZS_SUCCESS;
 }// getFirstChildText
 
-utfdescString zxmlNode::getNodePath(void)
+utfdescString zxmlNode::getNodePath(void) const
 {
     utfdescString wPath;
     xmlChar* wBuf=xmlGetNodePath(_xmlInternalNode);
@@ -404,7 +404,7 @@ zxmlNode::getChildByName(zxmlNode* &pNode, const char*pName)
 
 
 bool
-zxmlNode::isElement(void)
+zxmlNode::isElement(void) const
 {
     if (_xmlInternalNode==nullptr)
             return false;
@@ -412,7 +412,7 @@ zxmlNode::isElement(void)
 }
 
 bool
-zxmlNode::isText(void)
+zxmlNode::isText(void) const
 {
     if (_xmlInternalNode==nullptr)
             return false;
@@ -420,7 +420,7 @@ zxmlNode::isText(void)
 }
 
 bool
-zxmlNode::isCData(void)
+zxmlNode::isCData(void) const
 {
     if (_xmlInternalNode==nullptr)
                             return false;
@@ -428,7 +428,7 @@ zxmlNode::isCData(void)
 
 }
 
-utffieldNameString zxmlNode::getName(void)
+utffieldNameString zxmlNode::getName(void) const
 {
 
     if (_xmlInternalNode==nullptr)
@@ -437,7 +437,7 @@ utffieldNameString zxmlNode::getName(void)
     return utffieldNameString((const utf8_t*)_xmlInternalNode->name);
 }
 int
-zxmlNode::getLine(void)
+zxmlNode::getLine(void) const
 {
 
     if (_xmlInternalNode==nullptr)
@@ -446,7 +446,7 @@ zxmlNode::getLine(void)
     return _xmlInternalNode->line;
 }
 ZStatus
-zxmlNode::getCData(ZDataBuffer& pCData)
+zxmlNode::getCData(ZDataBuffer& pCData) const
 {
 _MODULEINIT_
     if (!isCData())
@@ -478,7 +478,7 @@ _MODULEINIT_
  * @return
  */
 ZStatus
-zxmlNode::getNodeContent(utf8VaryingString& pContent)
+zxmlNode::getNodeContent(utf8VaryingString& pContent) const
 {
 _MODULEINIT_
 
@@ -544,7 +544,7 @@ _MODULEINIT_
  *                   ZException complement is set with xml internal error if any available.
  */
 ZStatus
-zxmlNode::getText(ZDataBuffer& pText)
+zxmlNode::getText(ZDataBuffer& pText) const
 {
 _MODULEINIT_
     if (!isText())
@@ -578,7 +578,7 @@ _MODULEINIT_
 }//getText
 
 ZStatus
-zxmlNode::getText(utf8VaryingString& pText)
+zxmlNode::getText(utf8VaryingString& pText) const
 {
 _MODULEINIT_
 /*    if (!isText())
@@ -611,7 +611,7 @@ _MODULEINIT_
     _RETURN_ ZS_SUCCESS;
 }//getText
 bool
-zxmlNode::isComment(void)
+zxmlNode::isComment(void) const
 {
     if (_xmlInternalNode==nullptr)
             return false;
@@ -619,7 +619,7 @@ zxmlNode::isComment(void)
 }
 
 bool
-zxmlNode::isDocument(void)
+zxmlNode::isDocument(void) const
 {
     if (_xmlInternalNode==nullptr)
             return false;
@@ -627,7 +627,7 @@ zxmlNode::isDocument(void)
 }
 
 bool
-zxmlNode::isHtmlDocument(void)
+zxmlNode::isHtmlDocument(void) const
 {
     if (_xmlInternalNode==nullptr)
             return false;

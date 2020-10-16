@@ -90,6 +90,16 @@ typedef utf8_t                  _UtfBase;
     utf8VaryingString&  fromStdString(std::string& pIn) {strset((const utf8_t*)pIn.c_str()); return *this;}
 
 
+    /**
+ * @brief utfVaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
+ *
+ *  Encode the exact content length of utfVaryingString given by Size, including termination character ('\0').
+ *
+ * @return  a reference to utfVaryingString with encoded data
+ */
+
+    utf8VaryingString& encodeB64(void);
+    utf8VaryingString& decodeB64(void);
 
     utf8VaryingString & operator = (const char* pString) { return fromChar(pString);}
     utf8VaryingString & operator = (std::string&  pString) { return fromStdString(pString);}

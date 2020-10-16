@@ -4,29 +4,33 @@
 #
 #-------------------------------------------------
 
-
-
-
-#QT       -= gui
 QT += core gui xml
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TEMPLATE += lib
-CONFIG += c++17
-TARGET = libzbaselib.so
-DEFINES += ZBASELIB_LIBRARY
+TEMPLATE = lib
+CONFIG += c++17 shared dll
+TARGET = zbase
+DEFINES += ZBASE_LIBRARY
+
+
+# mandatory : define home directory, where Development directory can be found
+
+unix: HOME = "/home/gerard"
 
 #------------Private to zbase libraries build and install-----------
 #
-DEVELOPMENT_BASE = /home/gerard/Development
-TOOLSET_ROOT = $$DEVELOPMENT_BASE/zbasetools
+DEVELOPMENT_BASE = $${HOME}/Development
+TOOLSET_ROOT = $${DEVELOPMENT_BASE}/zbasetools
 
 MODULE = zbase # name of the root include directory
 INSTALL_ACTION = CLEANCOPY
-PYTHON_PROC = $$TOOLSET_ROOT/common/postlinkcopy.py
+PYTHON_PROC = $${TOOLSET_ROOT}/common/postlinkcopy.py
 
 # zbase common definitions
-include ($$TOOLSET_ROOT/common/zbasecommon.pri)
+
+#message(" HOME <$${HOME}>  TOOLSET_ROOT <$${TOOLSET_ROOT}> DEVELOPMENT_BASE<$${DEVELOPMENT_BASE}>")
+
+include ($${TOOLSET_ROOT}/common/zbasecommon.pri)
 
 #---------------------------------------------------------------------
 
@@ -289,7 +293,10 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/zfunctions.h \
  #   $$TOOLSET_BASE/ztoolset/templatestring.h \
 #    $$TOOLSET_BASE/ztoolset/zwstrings.h \
+    ../ztoolset/charman.h \
+    ../ztoolset/zaierrors.h \
     ../ztoolset/zstatus.h \
+    ../zxml/zxmlprimitives.h \
  \ #   $$TOOLSET_BASE/ztoolset/zstrings.h \  #renamed as zstrings_old.h
     $$TOOLSET_BASE/zthread/zarglist.h
 
@@ -310,6 +317,8 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/uristring.cpp \
     $$TOOLSET_BASE/ztoolset/ztime.cpp \
 #    $$TOOLSET_BASE/ztoolset/zstrings.cpp \  #renamed as zstrings_old.cpp
+    ../ztoolset/zaierrors.cpp \
+    ../zxml/zxmlprimitives.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
     $$TOOLSET_BASE/zthread/zmutex.cpp \
@@ -375,6 +384,11 @@ wLaunch+=" "
 wLaunch+="'$$quote($${TOOLSET_INCLUDE})'"
 wLaunch+=" "
 wLaunch+="'$$quote($${HEADERS2PY})'"
+wLaunch+=" "
+wLaunch+="'$$quote($${LIBRARY_REPOSITORY})'"
+wLaunch+=" "
+#wLaunch+="'$$quote(lib$${TARGET}.so)'"
+wLaunch+="'$$quote($${TARGET})'"
 
 QMAKE_POST_LINK +="$$wLaunch"
 #system($$wLaunch)

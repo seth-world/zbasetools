@@ -91,20 +91,20 @@ template <size_t _Sz=255,class _Utf=utf8_t>
 class utftemplateString : public utfStringDescriptor
 {
 protected:
-    void _copyFrom(const utftemplateString& pIn)
+    utftemplateString& _copyFrom(const utftemplateString& pIn)
     {
         memmove(content,pIn.content,sizeof(content));
-        Charset = pIn.Charset;
-        CryptMethod=pIn.CryptMethod;
-        UnitCount = _Sz;
+        utfStringDescriptor::_copyFrom(pIn);
+        return *this;
     }
-    void _copyFrom(const utftemplateString&& pIn)
+    utftemplateString& _copyFrom(const utftemplateString&& pIn)
     {
         memmove(content,pIn.content,sizeof(content));
-        Charset = pIn.Charset;
-        CryptMethod=pIn.CryptMethod;
-        UnitCount = _Sz;
+        utfStringDescriptor::_copyFrom(pIn);
+        return *this;
     }
+
+    utftemplateString()=default;   /* private constructor for internal use only */
 public:
     _Utf        content[_Sz];
 
@@ -118,19 +118,22 @@ public:
         fromUtf(pString);
         }
 
+    utftemplateString(utfStringDescriptor* pStringDesc):utfStringDescriptor(pStringDesc)
+    {
+    }
     utftemplateString(const utftemplateString& pIn) {_copyFrom(pIn);}
     utftemplateString(const utftemplateString&& pIn) {_copyFrom(pIn);}
-    utftemplateString& operator = (const utftemplateString& pIn) {_copyFrom(pIn); return *this;}
-    utftemplateString& operator = (const utftemplateString&& pIn) {_copyFrom(pIn); return *this;}
+    utftemplateString& operator = (const utftemplateString& pIn) {return _copyFrom(pIn); }
+    utftemplateString& operator = (const utftemplateString&& pIn) {return _copyFrom(pIn); }
 
     utftemplateString& operator = (const char* pIn) {return strSetV<char>(pIn);}
     utftemplateString& operator = (std::string& pIn) {return strSetV<char>(pIn.c_str());}
 
     utftemplateString& operator += (const char* pIn) {return addV<char>(pIn);}
-     utftemplateString& operator += (std::string& pIn) {return addV<char>(pIn.c_str());}
+    utftemplateString &operator+=(std::string &pIn) { return addV<char>(pIn.c_str()); }
 
-
-    void utfInit(ZType_type pZType,ZCharset_type pCharset){
+    void utfInit(ZType_type pZType,ZCharset_type pCharset)
+    {
         _MODULEINIT_
         DataByte=(uint8_t*)content;
         UnitCount=_Sz;
@@ -204,7 +207,9 @@ public:
     }
 
 
-    inline int compare(const _Utf* pString2); /** corresponds to strcmp with native _Utf argument */
+    inline int compare(const _Utf *pString2); /** corresponds to strcmp with native _Utf argument */
+
+    int compare(const utftemplateString &pString2) { return compare(pString2.content); }
 
     /* following is set to able to compare any utf varying string with a char string : it will be set within derived classes */
     /* Remark : this template definition has to remain here */
@@ -432,8 +437,6 @@ public:
 
     _Utf * toString(void) {content[sizeof(content)-1]=(_Utf)'\0';return(content);}
 
-
-
     /**
      * @brief addUtfUnit adds an Utf unit at the end of string (a unit is not necessarily a character) plus _Utf \0 sign.
      * @param pChar _Utf character unit to add
@@ -485,6 +488,9 @@ public:
 
      int Substr(const _Utf *pSub, int pOffset=0);
      int SubstrCase(const _Utf *pSub, int pOffset=0);
+
+     utftemplateString subString(size_t pOffset, int pLen=-1);
+
      utftemplateString Left (size_t pLen);
      utftemplateString Right (size_t pLen);
 
@@ -629,7 +635,7 @@ ZDataBuffer* toZDataBuffer(void)
 protected:
     utfStrCtx   Context;
     ZBool       WarningSignal=false;
-    ZBool       littleEndian=false;  // RFFU:this induce we might have native strings with endianness different from system default
+
 
 
 };// struct utftemplateString---------------------------------------------
@@ -1081,6 +1087,17 @@ utftemplateString<_Sz,_Utf>::Substr(const _Utf* pSub, int pOffset)
                         return -1;
          return((int)(wPtr-content));
 }
+template<size_t _Sz, class _Utf>
+utftemplateString<_Sz, _Utf> utftemplateString<_Sz, _Utf>::subString(size_t pOffset, int pLen)
+{
+    utftemplateString<_Sz, _Utf> wStrReturn( this);  /* create same string type as current*/
+
+    if (pLen>=0)
+         wStrReturn.strnset(&content[pOffset],pLen);
+    else
+        wStrReturn.strset(&content[pOffset]);
+    return wStrReturn;
+}
 /**
  * @brief utftemplateString::SubstrCase Searches a utftemplateString pSub within keywordString content starting at pOffset
  * and returns its position SINCE BEGINNING (start 0) of utftemplateString::content
@@ -1113,7 +1130,7 @@ template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>
 utftemplateString<_Sz,_Utf>::Left (size_t pLen)
 {
-   utftemplateString<_Sz,_Utf> wU ;
+   utftemplateString<_Sz,_Utf> wU ((utfStringDescriptor*)this); /* create a string with same structure as current */
    wU.strnset(content,pLen);
    return wU;
 }
@@ -1128,8 +1145,8 @@ template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>
 utftemplateString<_Sz,_Utf>::Right (size_t pLen)
 {
-   utftemplateString<_Sz,_Utf> wU ;
-   int wStart= utfStrlen<_Utf>()-pLen;
+    utftemplateString<_Sz,_Utf> wU ((utfStringDescriptor*)this); /* create a string with same structure as current */
+   int wStart= utfStrlen<_Utf>(content)-pLen;
    if (wStart<0)
                 wStart=0;
    wU.strnset(&content[wStart],pLen);
