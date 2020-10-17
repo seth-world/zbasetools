@@ -117,6 +117,38 @@ utf8VaryingString::decodeB64(void)
 } // ------------decodeB64---------------------
 
 
+/**
+ * @brief utf8VaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
+ *
+ *  Encode the exact content length of utfVaryingString given by Size, including termination character ('\0').
+ *
+ * @return  a reference to utfVaryingString with encoded data
+ */
+
+
+/** @brief encryptAES256() Encrypts to a (returned) ZDataBuffer current string content to AES256 according given Key and Vector */
+ZStatus utf8VaryingString::encryptAES256(
+    ZDataBuffer &pEncryptedZDB, const ZCryptKeyAES256 &pKey, const ZCryptVectorAES256 &pVector)
+{
+    ZDataBuffer wEncryptedZDB(Data, strlen());
+    return wEncryptedZDB.encryptAES256(pKey, pVector);
+}
+
+ZStatus utf8VaryingString::uncryptAES256(const ZDataBuffer &pEncryptedZDB,
+    const ZCryptKeyAES256 &pKey,
+    const ZCryptVectorAES256 &pVector)
+{
+    ZDataBuffer wZDB(pEncryptedZDB);
+    ZStatus wSt = wZDB.uncryptAES256(pKey, pVector);
+    if (wSt != ZS_SUCCESS)
+        return wSt;
+    setData(wZDB.Data, wZDB.Size);
+    addConditionalTermination();
+    return ZS_SUCCESS;
+}
+
+
+//-----------------encodeB64-------------------
 
 
 

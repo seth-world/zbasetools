@@ -93,14 +93,35 @@ class utftemplateString : public utfStringDescriptor
 protected:
     utftemplateString& _copyFrom(const utftemplateString& pIn)
     {
-        memmove(content,pIn.content,sizeof(content));
         utfStringDescriptor::_copyFrom(pIn);
+        _Utf *wPtr = content;
+        const _Utf *wPtrIn = pIn.content;
+        size_t wi = 0;
+        while (wPtrIn[wi] && (wi < _Sz)) {
+            wPtr[wi] = wPtrIn[wi];
+            wi++;
+        }
+        while (wi < _Sz)    /* pad with zero till full capacity */
+            wPtr[wi++] = 0;
+
+//        return strnset(content, pIn.content, _Sz); //strnset pads content with 0 till full size
+
         return *this;
     }
     utftemplateString& _copyFrom(const utftemplateString&& pIn)
     {
-        memmove(content,pIn.content,sizeof(content));
+
         utfStringDescriptor::_copyFrom(pIn);
+        utfStringDescriptor::_copyFrom(pIn);
+        _Utf *wPtr = content;
+        const _Utf *wPtrIn = pIn.content;
+        size_t wi = 0;
+        while (wPtrIn[wi] && (wi < _Sz)) {
+            wPtr[wi] = wPtrIn[wi];
+            wi++;
+        }
+        while (wi < _Sz) /* pad with zero till full capacity */
+            wPtr[wi++] = 0;
         return *this;
     }
 
@@ -207,9 +228,9 @@ public:
     }
 
 
-    inline int compare(const _Utf *pString2); /** corresponds to strcmp with native _Utf argument */
+    inline int compare(const _Utf *pString2) const  ; /** corresponds to strcmp with native _Utf argument */
 
-    int compare(const utftemplateString &pString2) { return compare(pString2.content); }
+    int compare(const utftemplateString &pString2) const { return compare(pString2.content); }
 
     /* following is set to able to compare any utf varying string with a char string : it will be set within derived classes */
     /* Remark : this template definition has to remain here */
@@ -529,7 +550,7 @@ public:
 //
 
      _Utf& operator [] (const size_t pIdx)
-        {_MODULEINIT_ if(pIdx>getUnitCount()) _ABORT_; _RETURN_ (content[pIdx]);}
+        {_MODULEINIT_ if(pIdx>getUnitCount()) _ABORT_ _RETURN_ (content[pIdx]);}
 
 
      utftemplateString<_Sz,_Utf>& operator = (const _Utf *pString) {return utftemplateString<_Sz,_Utf>::strset(pString);}
@@ -1549,7 +1570,7 @@ utftemplateString<_Sz,_Utf>::strnset ( const _Utf *wSrc, size_t pCount)
     for (;*wSrc && pCount-- && (wi<(getUnitCount()-1));wi++)
                             *wPtr++=*wSrc++;
     while (wi++ < getUnitCount())
-            *wPtr++=(_Utf)'\0';
+            *wPtr++ =0;
 
     return *this;
 }// strnset
@@ -1666,7 +1687,7 @@ utftemplateString<_Sz,_Utf>::fill(const _Utf pChar,const size_t pStart,const ssi
 /*  comparaison routines */
 template <size_t _Sz,class _Utf>
 inline int
-utftemplateString<_Sz,_Utf>::compare(const _Utf* pString2)
+utftemplateString<_Sz,_Utf>::compare(const _Utf* pString2) const
 {
     if (content==pString2)
                 return 0;

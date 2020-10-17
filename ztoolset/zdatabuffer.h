@@ -505,16 +505,17 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
      * @oaram [in] pVector  zbs::ZCryptKeyAES256 containing crypting vector
      * @param [out-optional] pZDB receives the encrypted data. if omitted (nullptr) current object's data is replaced
      */
-    ZStatus encryptAES256(zbs::ZCryptKeyAES256 pKey,
-                          zbs::ZCryptVectorAES256 pVector,
+    ZStatus encryptAES256(const ZCryptKeyAES256 &pKey,
+                          const ZCryptVectorAES256 &pVector,
                           ZDataBuffer* pZDB=nullptr);
 
+    /** @brief encryptAES256toFile() write to file encrypted current object's content to AES256 according given Key and Vector */
     ZStatus encryptAES256toFile(const char*pFileName, /** same as previous but puts the encrypted data within pFileName file */
-                                zbs::ZCryptKeyAES256 pKey,
-                                zbs::ZCryptVectorAES256 pVector);
+                                const ZCryptKeyAES256& pKey,
+                                const ZCryptVectorAES256& pVector);
 
-    ZStatus uncryptAES256(zbs::ZCryptKeyAES256 pKey, /** uncrypts current object's content to AES256 according mandatory given Key and Vector */
-                          zbs::ZCryptVectorAES256 pVector,
+    ZStatus uncryptAES256(const ZCryptKeyAES256 &pKey, /** uncrypts current object's content to AES256 according mandatory given Key and Vector */
+                          const ZCryptVectorAES256 &pVector,
                           ZDataBuffer* pZDB=nullptr); /** pZDB receives the plain text data. if omitted current object's data is replaced*/
 
     ZStatus uncryptAES256FromFile(const char*pFileName, /** same as previous but load encrypted data from pFileName file */

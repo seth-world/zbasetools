@@ -14,6 +14,8 @@
 #include <ztoolset/utfvtemplatestring.h>  // must stay here in this position
 #include <ztoolset/utfstrctx.h>     // for conversion context
 
+#include <zcrypt/zcrypt.h> // for AES encrypting / decryptin
+
 class utf16VaryingString;
 class utf32VaryingString;
 class stringKey;
@@ -100,6 +102,16 @@ typedef utf8_t                  _UtfBase;
 
     utf8VaryingString& encodeB64(void);
     utf8VaryingString& decodeB64(void);
+
+    /** @brief encryptAES256() Encrypts to a crypted ZDataBuffer current string content to AES256 according given Key and Vector */
+    ZStatus encryptAES256 ( ZDataBuffer& pEncryptedZDB,
+                            const ZCryptKeyAES256& pKey,
+                            const ZCryptVectorAES256& pVector );
+
+    /** @brief uncryptAES256() Uncrypts a ZDataBuffer crypted content according given Key and Vector and returns current clear text string  */
+    ZStatus uncryptAES256 ( const ZDataBuffer& pEncryptedZDB,
+                            const ZCryptKeyAES256& pKey,
+                            const ZCryptVectorAES256& pVector);
 
     utf8VaryingString & operator = (const char* pString) { return fromChar(pString);}
     utf8VaryingString & operator = (std::string&  pString) { return fromStdString(pString);}

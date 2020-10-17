@@ -144,7 +144,6 @@ ZDataBuffer::uncryptB64(ZDataBuffer *pZDB)
 
 } // ------------decodeB64---------------------
 #endif // __COMMENT__
-/*
 
 /**
  * @brief ZDataBuffer::encryptAES256 encrypts current object's content to AES256 according mandatory given Key and Vector
@@ -155,8 +154,11 @@ ZDataBuffer::uncryptB64(ZDataBuffer *pZDB)
  * @param pZDB      optional ZDataBuffer that will receive encrypted data. If omitted encrypted data replaces current object's content.
  * @return  a ZStatus see ZCrypt::encryptToFile() for having return status values and conditions
  */
+ /** encrypts current object's content to AES256 according given Key and Vector */
 ZStatus
-ZDataBuffer::encryptAES256(zbs::ZCryptKeyAES256 pKey, zbs::ZCryptVectorAES256 pVector, ZDataBuffer *pZDB) /** encrypts current object's content to AES256 according given Key and Vector */
+ZDataBuffer::encryptAES256( const ZCryptKeyAES256& pKey,
+                            const ZCryptVectorAES256& pVector,
+                            ZDataBuffer *pZDB)
 {
   ZCryptAES256 wCrypt;
 
@@ -187,7 +189,9 @@ ZDataBuffer::encryptAES256(zbs::ZCryptKeyAES256 pKey, zbs::ZCryptVectorAES256 pV
  * @return  a ZStatus see ZCrypt::encryptToFile() for having return status values and conditions
  */
 ZStatus
-ZDataBuffer::encryptAES256toFile(const char*pFileName,ZCryptKeyAES256 pKey, ZCryptVectorAES256 pVector) /** encrypts current object's content to AES256 according given Key and Vector */
+ZDataBuffer::encryptAES256toFile (  const char*pFileName,
+                                    const ZCryptKeyAES256& pKey,
+                                    const ZCryptVectorAES256& pVector)
 {
   ZCryptAES256 wCrypt;
     return  wCrypt.encryptToFile(pFileName,Data,Size,pKey,pVector);
@@ -201,8 +205,11 @@ ZDataBuffer::encryptAES256toFile(const char*pFileName,ZCryptKeyAES256 pKey, ZCry
  * @param pZDB      optional ZDataBuffer that will receive plain text (uncrypted) data. If omitted uncrypted data replaces current object's content.
  * @return  a ZStatus see ZCrypt::uncrypt() for having return status values and conditions
  */
+/** uncrypts current object's content to AES256 according given Key and Vector */
 ZStatus
-ZDataBuffer::uncryptAES256(ZCryptKeyAES256 pKey, ZCryptVectorAES256 pVector, ZDataBuffer *pZDB) /** uncrypts current object's content to AES256 according given Key and Vector */
+ZDataBuffer::uncryptAES256 (const ZCryptKeyAES256& pKey,
+                            const ZCryptVectorAES256& pVector,
+                            ZDataBuffer *pZDB)
 {
   ZCryptAES256 wCrypt;
 

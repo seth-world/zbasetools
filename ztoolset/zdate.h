@@ -78,7 +78,7 @@ ZStatus getValueFromUniversal(unsigned char* pUniversalDataPtr);
 
 static ZStatus getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal); // extracts Universal value from URF data
 
-ZDate fromZDateFull(ZDateFull& wDateFull);
+ZDate fromZDateFull(const ZDateFull &wDateFull);
 utfdescString toFormatted(const char* pFormat="%F");
 
 #ifdef QT_CORE_LIB
@@ -123,10 +123,10 @@ public:
     uint8_t Sec;
 
     ZDateFull() { memset(this, 0, sizeof(ZDateFull)); }
-    ZDateFull(ZDateFull &pIn) { _copyFrom(pIn); }
-    ZDateFull(ZDateFull &&pIn) { _copyFrom(pIn); }
+    ZDateFull(const ZDateFull &pIn) { _copyFrom(pIn); }
+    ZDateFull(const ZDateFull &&pIn) { _copyFrom(pIn); }
 
-    ZDateFull &_copyFrom(ZDateFull &pIn)
+    ZDateFull &_copyFrom(const  ZDateFull &pIn)
     {
         memset(this, 0, sizeof(ZDateFull));
         Year = pIn.Year;
@@ -137,7 +137,7 @@ public:
         Sec = pIn.Sec;
         return *this;
     }
-    ZDateFull &_copyFrom(ZDateFull &&pIn)
+    ZDateFull &_copyFrom(const  ZDateFull &&pIn)
     {
         memset(this, 0, sizeof(ZDateFull));
         Year = pIn.Year;
@@ -148,8 +148,8 @@ public:
         Sec = pIn.Sec;
         return *this;
     }
-    ZDateFull &operator=(ZDateFull &pIn) { return _copyFrom(pIn); }
-    ZDateFull &operator=(ZDateFull &&pIn) { return _copyFrom(pIn); }
+    ZDateFull &operator=(const ZDateFull &pIn) { return _copyFrom(pIn); }
+    ZDateFull &operator=(const ZDateFull &&pIn) { return _copyFrom(pIn); }
 
 typedef ZDateFull::tm _Base;
 
@@ -173,14 +173,14 @@ static ZDateFull currentDateTime(void);
 
 ZDateFull& getCurrentDateTime(void) {return fromZDateFull(currentDateTime());}
 
-ZDateFull fromZDateFullString(ZDateFull_string &pDate);
+ZDateFull fromZDateFullString(const ZDateFull_string &pDate);
 
 ZDateFull fromString(char* pDate);
 
 #ifdef QT_CORE_LIB
-ZDateFull fromQDateTime (QDateTime pQDate);
-ZDateFull fromQDate (QDate &pQDate);
-ZDateFull fromQString(QString pDate);
+ZDateFull fromQDateTime (const QDateTime &pQDate);
+ZDateFull fromQDate (const QDate &pQDate);
+ZDateFull fromQString(const QString &pDate);
 #endif // QT_CORE_LIB
 //-----------reverse conversion----------------
 
@@ -201,26 +201,28 @@ toTimeFormatted (const char * pFormat=ZTimeFormat_Standard);
 
 QDate toQDate(void);
 QTime toQTime(void);
+
+ZDateFull operator = (const QDateTime& pDateTime) {fromQDateTime(pDateTime);return (*this);}
+
 #endif // QT_CORE_LIB
 
 ZDate   toZDate(void);
-ZDateFull fromZDate(ZDate &wDate);
+ZDateFull fromZDate(const ZDate &wDate);
 
 utfdescString toLocaleFormatted(void);
 utfdescString toFormatted(const char* pFormat="%F %T");
 
-ZDateFull& fromZDateFull(ZDateFull pZD) ;
+ZDateFull& fromZDateFull(const ZDateFull &pZD) ; /* see _copyFrom */
 
+/** requested by ZMIndex (see zam.h and zmindex.h)*/
 int compare(ZDateFull &pDC) const { return memcmp(this, &pDC, sizeof(ZDateFull)); }
 
-bool operator < (ZDateFull &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDateFull))<0);}
-bool operator > (ZDateFull &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDateFull))>0);}
-bool operator <= (ZDateFull &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDateFull))>0);}
-bool operator >= (ZDateFull &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDateFull))<0);}
+bool operator < (const ZDateFull &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDateFull))<0);}
+bool operator > (const ZDateFull &pDateFull) { return (memcmp (this,&pDateFull,sizeof(ZDateFull))>0);}
+bool operator <= (const ZDateFull &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDateFull))>0);}
+bool operator >= (const ZDateFull &pDateFull) { return !(memcmp (this,&pDateFull,sizeof(ZDateFull))<0);}
 
-#ifdef QT_CORE_LIB
-ZDateFull operator = (QDateTime pDateTime) {fromQDateTime(pDateTime);return (*this);}
-#endif
+
 private:
 //    struct tm DateInternal;
     inline ZDateFull& _toInternal(void);

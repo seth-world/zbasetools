@@ -80,7 +80,7 @@ ZDate::fromString(char* pDate)
     return(fromZDateString(wDFS));
 }// fromString
 ZDate
-ZDate::fromZDateFull (ZDateFull &wDateFull)
+ZDate::fromZDateFull (const ZDateFull& wDateFull)
 {
     Year=wDateFull.Year;
     Month=wDateFull.Month;
@@ -414,7 +414,7 @@ ZDateFull::getValueFromUniversal(unsigned char* pUniversalDataPtr)
 
 
 ZDateFull
-ZDateFull::fromZDateFullString(ZDateFull_string &pDate)
+ZDateFull::fromZDateFullString(const ZDateFull_string &pDate)
 {
 char wBuf[5];
     memmove (wBuf,pDate.Year,4);
@@ -473,7 +473,7 @@ ZDateFull::toTimespec(void)
     return wTS;
 }
 ZDateFull
-ZDateFull::fromZDate(ZDate &wDate)
+ZDateFull::fromZDate(const ZDate& wDate)
 {
     Year=wDate.Year;
     Month=wDate.Month;
@@ -487,7 +487,7 @@ ZDateFull::fromZDate(ZDate &wDate)
 } //fromZDateString
 #ifdef QT_CORE_LIB
 ZDateFull
-ZDateFull::fromQDateTime (QDateTime pQDate)
+ZDateFull::fromQDateTime (const QDateTime& pQDate)
 {
     Year = pQDate.date().year();
     Month = pQDate.date().month();
@@ -501,7 +501,7 @@ ZDateFull::fromQDateTime (QDateTime pQDate)
 }
 
 ZDateFull
-ZDateFull::fromQDate (QDate &pQDate)
+ZDateFull::fromQDate (const QDate &pQDate)
 {
     memset(this,0,sizeof(ZDateFull));
     Year = pQDate.year();
@@ -519,7 +519,7 @@ ZDateFull::currentDateTime(void)
 {
 ZDateFull wDT;
 
-    wDT._fromTimet(std::time(0));
+    wDT._fromTimet(std::time(nullptr));
 
     return wDT;
 }
@@ -586,7 +586,7 @@ ZDateFull::_toInternalBase(void)
     return *this;
 } // _toInternal
 ZDateFull&
-ZDateFull::fromZDateFull(ZDateFull pZD)
+ZDateFull::fromZDateFull(const ZDateFull& pZD)
 {
     Year=pZD.Year ;
     Month=pZD.Month ;
@@ -813,7 +813,7 @@ ZDateFull ZDateFull::fromString(char* pDate)
 } // fromString
 
 #ifdef QT_CORE_LIB
-ZDateFull ZDateFull::fromQString(QString pDate)
+ZDateFull ZDateFull::fromQString(const QString& pDate)
 {
     ZDateFull_string wDFS;
     memset(&wDFS,0,sizeof(ZDateFull_string));
