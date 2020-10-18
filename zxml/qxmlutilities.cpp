@@ -226,7 +226,7 @@ QDomElement appendElement (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pN
 QDomElement appendElement (QDomDocument &pXmlDoc,QDomNode &pNode, const char *pName,checkSum pValue)
 {
     QDomElement NewElement=pXmlDoc.createElement(pName);
-    QDomText NameT=pXmlDoc.createTextNode(QString(pValue.toHex()));
+    QDomText NameT=pXmlDoc.createTextNode(QString(pValue.toHexa()));
     pNode.appendChild(NewElement);
     NewElement.appendChild(NameT);
 

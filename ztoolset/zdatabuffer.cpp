@@ -215,10 +215,10 @@ ZDataBuffer::uncryptAES256 (const ZCryptKeyAES256& pKey,
 
     unsigned char* wPlainTextBuffer=nullptr;
     size_t wPlainTextBufferLen=0;
-    ZStatus wSt= wCrypt.uncrypt(&wPlainTextBuffer,&wPlainTextBufferLen,Data,Size,pKey,pVector);
+    ZStatus wSt= wCrypt.uncrypt(wPlainTextBuffer,wPlainTextBufferLen,Data,Size,pKey,pVector);
     if (wSt!=ZS_SUCCESS)
             {
-            _free(wPlainTextBuffer);
+//            _free(wPlainTextBuffer);   // already done within ZCrypt::uncypt()
             return wSt;
             }
      if (!pZDB)  // if no ZDataBuffer provided : use current and replace plain text with B64
@@ -247,7 +247,7 @@ ZDataBuffer::uncryptAES256FromFile(const char*pFileName,ZCryptKeyAES256 pKey, ZC
   unsigned char* wPlainText=nullptr;
   size_t wPlainTextLen=0;
 
-    ZStatus wSt=  wCrypt.uncryptFromFile(pFileName,&wPlainText,&wPlainTextLen,pKey,pVector);
+    ZStatus wSt=  wCrypt.uncryptFromFile(pFileName,wPlainText,wPlainTextLen,pKey,pVector);
     if (wSt!=ZS_SUCCESS)
         {
         _free(wPlainText);
@@ -320,7 +320,7 @@ _MODULEINIT_
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld \n",
                 _GET_FUNCTION_NAME_,
                 pSize);
-        _ABORT_ ;
+        _ABORT_
 
     }
     if (Data==nullptr)
@@ -341,7 +341,7 @@ _MODULEINIT_
                 decode_ZStatus( ZS_MEMERROR),
                 decode_Severity( Severity_Fatal),
                 pSize);
-        _ABORT_;
+        _ABORT_
     }
     Size=pSize;
     DataChar=(char *)Data;

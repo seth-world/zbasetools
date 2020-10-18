@@ -1,23 +1,25 @@
 #ifndef ZUSER_CPP
 #define ZUSER_CPP
-#include <ztoolset/zuser.h>
-#include <stdio.h>  /* defines FILENAME_MAX */
+#include <ztoolset/zsystemuser.h>
+#include <stdio.h>                  /* defines FILENAME_MAX */
 #include <ztoolset/uristring.h>
+#include <zio/zdir.h>
 
 using namespace zbs;
 
-ZUser::ZUser()
+ZSystemUser::ZSystemUser()
 {
- memset (&UserId.Content,0,cst_uidbin_maxlen);
- memset (&GroupId.Content,0,cst_uidbin_maxlen);
+ memset (&SystemUserId.content,0,cst_uidbin_maxlen);
+ memset (&SystemGroupId.content,0,cst_uidbin_maxlen);
  Init=false;
 }
-ZUser::~ZUser()
+ZSystemUser::~ZSystemUser()
 {
-    if (UserName)
+/*    if (UserName)
             delete UserName;
     if (Home)
             delete Home;
+*/
 }
 
 #ifdef __USE_WINDOWS__
@@ -28,12 +30,14 @@ ZUser::~ZUser()
 #include <shadow.h>
 
 #endif
-ZUser&
-ZUser::setToCurrentUser(void)
+
+
+ZSystemUser&
+ZSystemUser::setToCurrentUser(void)
 {
 ZStatus wSt;
 //    uid_t wuid = getuid();
-    ZUserId wUserId;
+    ZSystemUserId wUserId;
     wUserId.current();
     /*
     memmove(UserId.Sid,&wuid,sizeof(wuid));
@@ -50,7 +54,7 @@ ZStatus wSt;
 }
 
 ZStatus
-ZUser::setToName(const char* pName)
+ZSystemUser::setToName(const char* pName)
 {
 int wRet;
 char wBuffer[500];
@@ -81,12 +85,13 @@ struct passwd*  wUsercontent_ptr=nullptr;
             return ZS_AUTHREJECTED;
          } // nullptr
     uid_t wuid = getuid();
-    memmove(UserId.Sid,&wuid,sizeof(wuid));
+    memmove(SystemUserId.Sid,&wuid,sizeof(wuid));
     errno=0;
     Init=true;
 }
+
 ZStatus
-ZUser::setToUserId(ZUserId pUserId)
+ZSystemUser::setToUserId(ZSystemUserId pUserId)
 {
 struct passwd* wUsercontent_ptr=nullptr;
 uid_t wuid;
@@ -119,24 +124,32 @@ char wBuffer[500];
                              (int)wuid);
             return ZS_AUTHREJECTED;
          } // nullptr
-    if (UserName!=nullptr)
-                    delete UserName;
-    UserName=new utfidentityString((const utf8_t*)pwUserData.pw_name);
+//    if (UserName!=nullptr)
+//                    delete UserName;
+         /*    UserName=new utfidentityString((const utf8_t*)pwUserData.pw_name);
     if (Home!=nullptr)
                     delete Home;
     Home=new uriString(pwUserData.pw_dir);
-    UserId = pUserId;
-    GroupId = (uid_t)pwUserData.pw_gid;
+*/
+    SystemUserName = pwUserData.pw_name;
+    Home=pwUserData.pw_dir;
+    SystemUserId = pUserId;
+    SystemGroupId = (uid_t)pwUserData.pw_gid;
 
     Init=true;
     return ZS_SUCCESS;
 }
 utfidentityString
-ZUser::getName()
+ZSystemUser::getSystemName() const
 {
-
     if (!isInit())
-        {
+        fprintf(stderr,
+                "ZSystemUser::getHomeDir-E-NOTINIT System user has not been set to a user while "
+                "querying user name.\n");
+ //   if (!isInit())
+ //       setToCurrentUser();
+/*        {
+
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVVALUE,
                               Severity_Fatal,
@@ -147,8 +160,9 @@ ZUser::getName()
             {
             delete UserName;
             }
-    UserName =new utfidentityString((const utf8_t*)pwUserData.pw_name);
-    return utfidentityString(*UserName);
+    UserName =new utfidentityString((const utf8_t*)pwUserData.pw_name);*/
+
+    return SystemUserName;
 }//getName
 
 #ifdef __USE_WINDOWS__
@@ -159,10 +173,14 @@ ZUser::getName()
     #define GetCurrentDir getcwd
 #endif //__USE_WINDOWS__
 
-uriString ZUser::getHomeDir()
+ZDir ZSystemUser::getHomeDir() const
 {
     if (!isInit())
-        {
+        fprintf(stderr,
+                "ZSystemUser::getHomeDir-E-NOTINIT System user has not been set to a user while "
+                "querying home directory.\n");
+//        setToCurrentUser();
+/*        {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVVALUE,
                               Severity_Fatal,
@@ -173,15 +191,15 @@ uriString ZUser::getHomeDir()
             {
             delete Home;
             }
-    Home =new uriString(pwUserData.pw_dir);
-    return *Home;
+    Home =new uriString(pwUserData.pw_dir);*/
+    return Home;
 }//getHomeDir
 
 
-uriString ZUser::getCurrentDir( )
+ZDir ZSystemUser::getCurrentDir( )
 {
  char wCurrentPath[FILENAME_MAX];
- uriString wCurrentDir;
+ ZDir wCurrentDir;
  if (!GetCurrentDir(wCurrentPath, sizeof(wCurrentPath)))
      {
      ZException.getErrno(-1,
@@ -193,9 +211,9 @@ uriString ZUser::getCurrentDir( )
      ZException.exit_abort();
      }
  wCurrentPath[sizeof(wCurrentPath) - 1] = '\0'; /* not really required */
- wCurrentDir = (const utf8_t*)wCurrentPath;
+ wCurrentDir = wCurrentPath;
 
- return uriString(wCurrentPath);
+ return wCurrentDir;
 }
 
 /*
@@ -241,7 +259,7 @@ ZUser::GroupIdToString()
 */
 #ifdef __USE_LINUX__
 
-bool ZUser::isRoot()
+bool ZSystemUser::isRoot() const
 {
     return getuid()==0;
 }
@@ -597,6 +615,26 @@ BOOL wRet= LookupAccountSid(
 }//getpwuid
 
 #endif
+
+ZSystemUser &ZSystemUser::_copyFrom(ZSystemUser &pIn)
+{
+    SystemUserId = pIn.SystemUserId;
+    SystemGroupId = pIn.SystemGroupId;
+
+    Home = pIn.Home;
+    return *this;
+}
+
+void ZSystemUser::clear()
+{
+    SystemUserId.clear();
+    SystemGroupId.clear();
+    SystemUserName.clear();
+    Home.clear();
+#ifdef __GNUG__
+    memset(&pwUserData,0,sizeof(pwUserData));
+#endif
+}
 
 
 

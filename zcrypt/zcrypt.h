@@ -42,24 +42,71 @@ constexpr size_t cst_AES256cryptVectorSize = 16;
 ZStatus encryptB64(unsigned char**pB64String, size_t *pB64Size, unsigned char* pInString, const size_t pInSize );
 ZStatus uncryptB64(unsigned char**pOutString, size_t *pOutSize, unsigned char* pB64String, const size_t pB64Size );
 
+
+class ZDataBuffer;
+class utf8VaryingString;
+
 namespace zbs {
+
 class ZCryptKeyAES256
 {
 public:
     ZCryptKeyAES256(void) {memset(content,0,cst_AES256cryptKeySize); }
     ZCryptKeyAES256(const unsigned char*pString) {set(pString);}
-    ZCryptKeyAES256(const ZCryptKeyAES256&pIn) { set(pIn.content); }
+    ZCryptKeyAES256(const ZCryptKeyAES256&pIn) { memmove(content,pIn.content,cst_AES256cryptKeySize); }
 
     unsigned char content[cst_AES256cryptKeySize];
     unsigned char* get(void) {return content;}
 
-    void set(const unsigned char *pkey) { memmove(content, pkey, cst_AES256cryptKeySize); }
-    void set(const char *pkey) { memmove(content, pkey, cst_AES256cryptKeySize); }
+    void set(const unsigned char *pkey)
+    {
+        const unsigned char *wPtrIn =  pkey;
+        unsigned char *wPtr = content;
+        size_t wi = 0;
+        while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
+            content[wi] = wPtrIn[wi];
+            wi++;
+        }
+        while (wi < cst_AES256cryptKeySize)
+            content[wi++] = 0;
+        return;
+    }
+    void set(const char *pkey)
+    {
+        const unsigned char *wPtrIn = (const unsigned char *) pkey;
+        unsigned char *wPtr = content;
+        size_t wi = 0;
+        while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
+            content[wi] = wPtrIn[wi];
+            wi++;
+        }
+        while (wi < cst_AES256cryptKeySize)
+            content[wi++] = 0;
+        return;
+    }
     ZCryptKeyAES256 &operator=(const ZCryptKeyAES256 &pIn)
     {
-        set(pIn.content);
+        memmove(content,pIn.content,cst_AES256cryptKeySize);
         return *this;
     }
+    ZCryptKeyAES256 &operator=(const ZCryptKeyAES256&&pIn)
+    {
+        memmove(content,pIn.content,cst_AES256cryptKeySize);
+        return *this;
+    }
+    ZCryptKeyAES256 &operator=(const unsigned char* pIn)
+    {
+        set(pIn);
+        return *this;
+    }
+
+    ZDataBuffer toB64();
+    int fromB64(ZDataBuffer &pZDB);
+
+    utf8VaryingString toHexa();
+    int fromHexa(const utf8VaryingString &pHexa);
+
+    void clear() { memset(content, 0, cst_AES256cryptKeySize);}
 };
 
 //class ZDataBuffer;
@@ -69,15 +116,54 @@ class ZCryptVectorAES256
 public:
     ZCryptVectorAES256(void) {memset(content,0,cst_AES256cryptVectorSize);}
     ZCryptVectorAES256(const unsigned char*pVector) {set(pVector);}
-    ZCryptVectorAES256(const ZCryptVectorAES256&pIn) { set(pIn.content); }
+    ZCryptVectorAES256(const ZCryptVectorAES256&pIn) { memmove(content, pIn.content, cst_AES256cryptVectorSize);}
 
     unsigned char content[cst_AES256cryptVectorSize];
     unsigned char* get(void) {return content;}
 
-    void set(const unsigned char *pVector) { memmove(content, pVector, cst_AES256cryptVectorSize); }
-    void set(const char *pVector) { memmove(content, pVector, cst_AES256cryptVectorSize); }
+    void set(const unsigned char *pVector)
+    {
+        const unsigned char *wPtrIn = (const unsigned char *) pVector;
+        unsigned char *wPtr = content;
+        size_t wi = 0;
+        while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
+            content[wi] = wPtrIn[wi];
+            wi++;
+        }
+        while (wi < cst_AES256cryptVectorSize)
+            content[wi++] = 0;
+        return;
+    }
+    //    void set(const char *pVector) { memmove(content, pVector, cst_AES256cryptVectorSize); }
+    void set(const char *pVector)
+    {
+        const unsigned char *wPtrIn = (const unsigned char *) pVector;
+        unsigned char *wPtr = content;
+        size_t wi = 0;
+        while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
+            content[wi] = wPtrIn[wi];
+            wi++;
+        }
+        while (wi < cst_AES256cryptVectorSize)
+            content[wi++] = 0;
+        return;
+    }
 
-    ZCryptVectorAES256 &operator=(const ZCryptVectorAES256 &pIn) { set(pIn.content); return *this;}
+    ZCryptVectorAES256 &operator=(const ZCryptVectorAES256 &pIn) { memmove(content, pIn.content, cst_AES256cryptVectorSize); return *this;}
+    ZCryptVectorAES256 &operator=(const ZCryptVectorAES256 &&pIn) { set(pIn.content); return *this;}
+
+    ZCryptVectorAES256 &operator=(const unsigned char* pIn)
+    {
+        set(pIn);
+        return *this;
+    }
+    void clear() { memset(content, 0, cst_AES256cryptVectorSize);}
+
+    ZDataBuffer toB64();
+    int fromB64(ZDataBuffer &pZDB);
+
+    utf8VaryingString toHexa();
+    int fromHexa(const utf8VaryingString &pHexa);
 };
 
 class ZCryptAES256
@@ -94,8 +180,8 @@ public:
                     ZCryptVectorAES256  pVector);
 
 
-    ZStatus uncrypt(unsigned char **pPlainBuffer,
-                    size_t *pPlainBufferLen,
+    ZStatus uncrypt(unsigned char *&pPlainBuffer,
+                    size_t &pPlainBufferLen,
                     const unsigned char *pCryptedBuffer,
                     const size_t pCryptedBufferLen,
                     ZCryptKeyAES256 pKey,
@@ -108,8 +194,8 @@ public:
 //   void setupKeyandVector (unsigned char* pKey,unsigned char* pIV);
 
    ZStatus uncryptFromFile (const char *pFilePath,
-                            unsigned char **pPlainBuffer,
-                            size_t *pPlainBufferLen,
+                            unsigned char *&pPlainBuffer,
+                            size_t &pPlainBufferLen,
                             const ZCryptKeyAES256 &pKey,
                             const ZCryptVectorAES256 &pVector);
 

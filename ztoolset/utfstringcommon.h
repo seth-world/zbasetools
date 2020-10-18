@@ -60,18 +60,20 @@ public:
     ZBool               littleEndian=false;  // RFFU:this induce we might have native strings with endianness different from system default
 public:
     utfStringDescriptor() {}
-    utfStringDescriptor(utfStringDescriptor& pIn) { _copyFrom(pIn); }
-    utfStringDescriptor(utfStringDescriptor&& pIn) { _copyFrom(pIn); }
+    utfStringDescriptor(const utfStringDescriptor& pIn) { _copyFrom(pIn); }
+    utfStringDescriptor(const utfStringDescriptor&& pIn) { _copyFrom(pIn); }
 
-    utfStringDescriptor(utfStringDescriptor* pIn) { _copyFrom(pIn); }
+    utfStringDescriptor(const utfStringDescriptor* pIn) { _copyFrom(pIn); }
 
-    inline size_t getUnitCount(void)  {return UnitCount;} /** returns the current string capacity in character units */
-    inline ZTypeBase getZType(void) {return ZType;}
-    inline size_t getByteSize(void) {return ByteSize;}
+    utfStringDescriptor &_returnThis() { return *this; }
+
+    inline size_t getUnitCount(void) const {return UnitCount;} /** returns the current string capacity in character units */
+    inline ZTypeBase getZType(void) const {return ZType;}
+    inline size_t getByteSize(void) const {return ByteSize;}
     inline ZCharset_type getCharset(void) {return Charset;}
-    inline ssize_t getCharsetUnitSize(void) {return charsetUnitSize(Charset);}
-    inline ZCryptMethod_type getCryptMethod(void) {return CryptMethod;}
-    inline bool isNull (void) {return DataByte==nullptr;} /** test if any allocation has been made (only used for varying string) */
+    inline ssize_t getCharsetUnitSize(void) const {return charsetUnitSize(Charset);}
+    inline ZCryptMethod_type getCryptMethod(void) const {return CryptMethod;}
+    inline bool isNull (void) const {return DataByte==nullptr;} /** test if any allocation has been made (only used for varying string) */
 protected:
     inline ZStatus setCharset(ZCharset_type pCharset)
     {

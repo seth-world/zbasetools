@@ -112,7 +112,6 @@ protected:
     {
 
         utfStringDescriptor::_copyFrom(pIn);
-        utfStringDescriptor::_copyFrom(pIn);
         _Utf *wPtr = content;
         const _Utf *wPtrIn = pIn.content;
         size_t wi = 0;
@@ -139,7 +138,7 @@ public:
         fromUtf(pString);
         }
 
-    utftemplateString(utfStringDescriptor* pStringDesc):utfStringDescriptor(pStringDesc)
+    utftemplateString(const utfStringDescriptor* pStringDesc):utfStringDescriptor(pStringDesc)
     {
     }
     utftemplateString(const utftemplateString& pIn) {_copyFrom(pIn);}
@@ -218,9 +217,9 @@ public:
     wCChar=(_Utf)*s2;
     while ((*s2)&& wCount < _Sz-1)
         {
+        *s1=(_Utf)*s2;
         s1++;
         s2++;
-        *s1=(_Utf)*s2;
         wCount++;
         }
     *s1=_Utf('\0');
@@ -372,8 +371,12 @@ public:
 
     _Utf * strchr(const _Utf wChar) {return utfStrchr<_Utf>(content,wChar);}
     _Utf * strrchr(const _Utf wChar){return utfStrrchr<_Utf>(content,wChar);}
-    _Utf * strstr(const _Utf *pSubstring) {return utfStrstr<_Utf>(content,pSubstring);}
-    _Utf* strcasestr(const _Utf *pSubstring){return utfStrcasestr<_Utf>(content,pSubstring);}/**< finds first _Utf substring CASE REGARDLESS within current and returns a pointer to it */
+    _Utf * strstr(const _Utf *pSubstring) const {return utfStrstr<_Utf>(content,pSubstring);}
+    _Utf * strstr(const _Utf *pSubstring,const size_t pOffset) const {return utfStrstr<_Utf>(content+pOffset,pSubstring);}
+    /** @brief strcasestr() finds first _Utf substring pSubstring CASE REGARDLESS within current since beginning and returns a pointer to it */
+    _Utf* strcasestr(const _Utf *pSubstring) const {return utfStrcasestr<_Utf>(content,pSubstring);}
+    /** @brief strcasestr() finds first _Utf substring pSubstring CASE REGARDLESS within current at unit count pOffset and returns a pointer to it */
+    _Utf* strcasestr(const _Utf *pSubstring, size_t pOffset) const {return utfStrcasestr<_Utf>(content+pOffset,pSubstring);}
     _Utf * strrstr(const _Utf *pSubstring) {return utfStrstr<_Utf>((const _Utf*)content,pSubstring);} /**< finds last _Utf substring within current and returns a pointer to it */
     _Utf* strrcasestr(const _Utf *pSubstring){return utfStrcasestr<_Utf>((const _Utf*)content,pSubstring);}/**< finds last _Utf substring CASE REGARDLESS within current and returns a pointer to it */
     _Utf* fill(const _Utf pChar,const size_t pStart=0,const ssize_t pCount=-1) ; /**< fills the content from pStart on pCount with chararcter pChar  */
@@ -503,30 +506,41 @@ public:
 
 
     bool startsCaseWith(const _Utf* pString,const _Utf* pSet=__DEFAULTDELIMITERSET__);
-    bool startsWith(const _Utf* pString);
+    bool startsWith(const _Utf* pString) const;
     bool startsWithApprox(const _Utf* pString, ssize_t pApprox, const _Utf* pSet=(const _Utf*)__DEFAULTDELIMITERSET__);
      bool startsCaseWithApprox(const _Utf* pString,int pApprox,const _Utf* pSet=(const _Utf*)__DEFAULTDELIMITERSET__);
 
-     int Substr(const _Utf *pSub, int pOffset=0);
-     int SubstrCase(const _Utf *pSub, int pOffset=0);
+     int Substr(const _Utf *pSub, int pOffset=0) const ;
+     int SubstrCase(const _Utf *pSub, int pOffset=0) const;
 
-     utftemplateString subString(size_t pOffset, int pLen=-1);
+     /** @brief subString() returns a new string with content of current string starting a position pOffset and with pLen character units */
+     utftemplateString subString(size_t pOffset, int pLen=-1) const;
 
      utftemplateString Left (size_t pLen);
      utftemplateString Right (size_t pLen);
 
      utftemplateString & eliminateChar (_Utf pChar);
 
-     bool    contains (const _Utf* pString) {return (strstr(pString)!=nullptr);}
-     bool    containsCase (const _Utf* pString){return (strcasestr(pString)!=nullptr);}
+     bool    contains (const _Utf* pString) const {return (strstr(pString)!=nullptr);}
+     bool    containsCase (const _Utf* pString) const {return (strcasestr(pString)!=nullptr);}
 
 
-     bool    contains (utftemplateString &pString) {return (strstr(pString.content)!=nullptr);}
-     bool    containsCase (utftemplateString &pString) {return (strcasestr(pString.content)!=nullptr);}
+     bool    contains (utftemplateString &pString) const  {return (strstr(pString.content)!=nullptr);}
+     bool    containsCase (utftemplateString &pString)const {return (strcasestr(pString.content)!=nullptr);}
 
-    ssize_t locate(const _Utf* pString);
-    ssize_t locate(utftemplateString<_Sz,_Utf>& pString);
-    ssize_t locateCase(const _Utf* pString);
+     /** @brief locate()  locates a substring pString in utftemplateString
+      *                            and returns its offset from beginning as a ssize_t value.*/
+     ssize_t locate(const _Utf *pString) const;
+     /** @brief locate()  locates a substring pString in utftemplateString and returns its offset
+      *                     since offset pOffset (zero meaning beginning of string) as a ssize_t value.*/
+     ssize_t locate(const _Utf *pString, size_t pOffset) const;
+     ssize_t locate(utftemplateString<_Sz,_Utf>& pString) const;
+     /** @brief locateCase()  locates a substring pString CASE REGARDLESS in utftemplateString
+      *                         and returns its offset from beginning as a ssize_t value.*/
+     ssize_t locateCase(const _Utf* pString) const;
+     /** @brief locateCase()  locates a substring pString CASE REGARDLESS in utftemplateString
+      *                        and returns its offset since pOffset (zero meaning beginning of string) as a ssize_t value.*/
+     ssize_t locateCase(const _Utf* pString,size_t pOffset) const;
 
      utftemplateString<_Sz,_Utf>& toUpper(void);
      utftemplateString<_Sz,_Utf>& toUpper(utftemplateString<_Sz,_Utf>& pOut);
@@ -823,14 +837,27 @@ utftemplateString<_Sz,_Utf>::addConditionalOR (const _Utf*pString)
  */
 template <size_t _Sz,class _Utf>
 ssize_t
-utftemplateString<_Sz,_Utf>::locate(const _Utf* pString)
+utftemplateString<_Sz,_Utf>::locate(const _Utf* pString) const
 {
     if (!pString)
             return -1;
-
-    return (ssize_t)(strstr(pString)-content);
+    ssize_t wRet = strstr(pString) - content;
+    if (wRet < 0)
+        return -1;
+    return wRet;
 }
 
+template <size_t _Sz,class _Utf>
+ssize_t
+utftemplateString<_Sz,_Utf>::locate(const _Utf* pString,size_t pOffset) const
+{
+    if (!pString)
+        return -1;
+    ssize_t wRet = strstr(pString,pOffset) - content;
+    if (wRet < 0)
+        return -1;
+    return wRet;
+}
 
 /**
  * @brief locate  locates a substring pString in utftemplateString and returns its offset from beginning as a ssize_t value.
@@ -838,10 +865,17 @@ utftemplateString<_Sz,_Utf>::locate(const _Utf* pString)
  * @param pString a utftemplateString of same type containing the substring to find
  * @return offset (starting from 0) of the substring in main string if substring is found, a negative value if not.
  */
-template <size_t _Sz,class _Utf>
-ssize_t
-utftemplateString<_Sz,_Utf>::locate(utftemplateString<_Sz,_Utf>& pString)
-                {return (ssize_t)(strstr(pString.content)-content);}
+template<size_t _Sz, class _Utf>
+ssize_t utftemplateString<_Sz, _Utf>::locate(utftemplateString<_Sz, _Utf> &pString) const
+
+{
+    if (pString.isEmpty())
+        return 0;
+    ssize_t wRet = strstr(pString.content) - content;
+    if (wRet < 0)
+        return -1;
+    return wRet;
+}
 
 #include <ztoolset/zcharset.h>
 /**
@@ -863,14 +897,22 @@ template <size_t _Sz,class _Utf>
  * @return
  */
 ssize_t
-utftemplateString<_Sz,_Utf>::locateCase(const _Utf* pString)
+utftemplateString<_Sz,_Utf>::locateCase(const _Utf* pString) const
 {
     if (!pString)
             return -1;
 
     return (ssize_t)(strcasestr(pString)-content);
 }
+template <size_t _Sz,class _Utf>
+ssize_t
+utftemplateString<_Sz,_Utf>::locateCase(const _Utf* pString, size_t pOffset) const
+{
+    if (!pString)
+        return -1;
 
+    return (ssize_t)(strcasestr(pString,pOffset)-content);
+}
 /**
  * @brief toUpper Upperizes characters of current string. Upperization is made into an output string of same type pOut.
  * @param[out] pOut a template string destinated to receive the upperized string
@@ -1029,7 +1071,7 @@ utftemplateString<_Sz,_Utf>::startsCaseWith(const _Utf* pString,const _Utf* pSet
  */
 template <size_t _Sz,class _Utf>
 bool
-utftemplateString<_Sz,_Utf>::startsWith(const _Utf* pString)
+utftemplateString<_Sz,_Utf>::startsWith(const _Utf* pString) const
 {
     return !utfStrncmp<_Utf>(content,pString,utfStrlen<_Utf>(pString));
 }
@@ -1101,20 +1143,26 @@ utftemplateString<_Sz,_Utf>::startsCaseWithApprox(const _Utf* pString,int pAppro
  */
 template <size_t _Sz,class _Utf>
 int
-utftemplateString<_Sz,_Utf>::Substr(const _Utf* pSub, int pOffset)
+utftemplateString<_Sz,_Utf>::Substr(const _Utf* pSub, int pOffset) const
 {
     const _Utf * wPtr = utfStrstr<_Utf>((const _Utf*)&content[pOffset],pSub);
         if (wPtr==nullptr)
                         return -1;
          return((int)(wPtr-content));
 }
-template<size_t _Sz, class _Utf>
-utftemplateString<_Sz, _Utf> utftemplateString<_Sz, _Utf>::subString(size_t pOffset, int pLen)
-{
-    utftemplateString<_Sz, _Utf> wStrReturn( this);  /* create same string type as current*/
 
-    if (pLen>=0)
+template<size_t _Sz, class _Utf>
+utftemplateString<_Sz, _Utf> utftemplateString<_Sz, _Utf>::subString(size_t pOffset, int pLen) const
+{
+    utftemplateString<_Sz, _Utf> wStrReturn; /* create same string type as current but empty*/
+
+    wStrReturn.utfStringDescriptor::_copyFrom(*this);
+
+    if (pLen > 0) {
+        if ((pLen + pOffset) > _Sz)
+                pLen = _Sz - pOffset ;
          wStrReturn.strnset(&content[pOffset],pLen);
+        }
     else
         wStrReturn.strset(&content[pOffset]);
     return wStrReturn;
@@ -1134,7 +1182,7 @@ utftemplateString<_Sz, _Utf> utftemplateString<_Sz, _Utf>::subString(size_t pOff
 
 template <size_t _Sz,class _Utf>
 int
-utftemplateString<_Sz,_Utf>::SubstrCase(const _Utf *pSub, int pOffset)
+utftemplateString<_Sz,_Utf>::SubstrCase(const _Utf *pSub, int pOffset) const
 {
     _Utf * wPtr = utfStrcasestr<_Utf>(&content[pOffset],pSub);
         if (wPtr==nullptr)
@@ -1652,6 +1700,27 @@ utftemplateString<_Sz,_Utf>::nadd_Char( const char *wSrc, size_t pCount)
                     *wPtr=(_Utf)'\0';
     return *this;
 }// nadd_char
+
+template<size_t _Sz, class _Utf>
+utftemplateString<_Sz, _Utf> &utftemplateString<_Sz, _Utf>::add_Char(const char *wSrc)
+{
+    size_t pCount = _Sz;
+    if (!wSrc)
+        return *this;
+    size_t wCurSize=0;
+    _Utf* wPtr=content;
+    while (*wPtr)
+    {
+        wPtr++;
+        wCurSize++;
+    }
+    while(*wSrc && (wCurSize++ < _Sz) && (pCount--))
+        *wPtr++=(_Utf)*wSrc++;
+    while (wCurSize++ < _Sz)
+        *wPtr=(_Utf)'\0';
+    return *this;
+}// nadd_char
+
 template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>&
 utftemplateString<_Sz,_Utf>::addUtfUnit(const _Utf pChar)

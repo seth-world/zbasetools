@@ -253,6 +253,7 @@ public:
 
 };
 
+class ZaiErrors;
 
 class ZExceptionMin : public ZExceptionStack
 {
@@ -267,7 +268,7 @@ public:
 
     void clearStack(void) ;
 
-    ZExceptionBase& newBlankException(void) {return (newBlankException());}
+    ZExceptionBase& newBlankException(void) {return (ZExceptionStack::newBlankException());}
 
     void toStack(ZExceptionBase *pException);
     void addToLast(const char *pFormat,...);
@@ -278,8 +279,8 @@ public:
     ZExceptionBase& last(void)
             {
                 if (ZExceptionStack::isEmpty())
-                    return(newBlankException());
-                return last();
+                    return(ZExceptionStack::newBlankException());
+                return *ZExceptionStack::last();
             }
 
     void removeLast(void);
@@ -324,6 +325,8 @@ public:
                      const Severity_type pSeverity,
                      const char* pFormat,...) ;
 
+/** getZaiError() captures last logged error from ZaiErrors and formats a ZException */
+    void getZaiError(ZaiErrors *pErrorlog);
 
     void setMessage (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
     void setMessageCplt (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
@@ -344,7 +347,10 @@ public:
     QString formatUserMessage (void){return last().formatUserMessage();}
     utf8VaryingString lastUtf8()   ;
 
-    int messageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){return last().messageBox(pTitle,pUserMessage);}
+    int messageBox(utfdescString &pTitle, utfexceptionString &pUserMessage)
+    {
+        return last().messageBox(pTitle,pUserMessage);
+    }
     int documentMessageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){ return last().documentMessageBox(pTitle,pUserMessage);}
     int messageBox(const char* pTitle,const char * pUserMessage){return last().documentMessageBox(pTitle,pUserMessage);}
     int documentMessageBox(char* pTitle,char * pUserMessage){return last().documentMessageBox(pTitle,pUserMessage);}
@@ -388,9 +394,12 @@ private:
 #endif // __USE_ZRANDOMFILE__
 
 
-static ZExceptionMin               ZException;
+
 
 #ifndef ZEXCEPTIONMIN_CPP
+
+extern ZExceptionMin               ZException;
+
 //      extern thread_local ZExceptionMin               ZException;
 //    extern ZExceptionMin               ZException;
 //        extern thread_local zbs::ZArray<ZExceptionMin>  ZExceptionStack;

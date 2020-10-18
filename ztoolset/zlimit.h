@@ -36,7 +36,7 @@ const char cst_spaceChar = 0x20;
 
 
 static constexpr int cst_checksum = SHA256_DIGEST_LENGTH;// could be SHA512_DIGEST_LENGTH
-static constexpr int cst_checksumHex   = cst_checksum*2 ;
+static constexpr int cst_checksumHexa   = cst_checksum*2 ;
 
 const size_t cst_md5 = MD5_DIGEST_LENGTH;
 const size_t cst_md5Hex = cst_md5*2;

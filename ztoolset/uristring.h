@@ -8,7 +8,7 @@
 
 #include <zcrypt/checksum.h>
 #include <ztoolset/zdate.h>
-
+#include <ztoolset/userid.h>
 
 
 #ifdef QT_CORE_LIB
@@ -33,20 +33,43 @@ enum ZDir_File_type {
 
 using namespace zbs;
 
+class utf8VaryingString;
+class utf16VaryingString;
+class utf32VaryingString;
+
 
 //
 //! \brief The uriStat_struct struct stores the statistics about uriString file
 //
-struct uriStat_struct {
-    char        Dev[50];        //!< device
-    ZDateFull   Created;        //!< creation date time
-    ZDateFull   LastModified;   //!< last modification date time
-    int         Rights;         //!< rights
+class uriStat {
+public:
+    char            Dev[50];        //!< device
+    ZDateFull       Created;        //!< creation date time
+    ZDateFull       LastModified;   //!< last modification date time
+    int             Rights;         //!< rights
+    ZSystemUserId   Uid;            //!< System user identification
+    long long       Size;           //!< file size
+    char            OwnerName[150]; //!< Owner name
 
-    long long   Size;           //!< file size
-    char        Owner[150];     //!< Owner name
+    uriStat(void) { clear(); }
+    uriStat(uriStat &pIn) { _copyFrom(pIn); }
+    uriStat(uriStat&&pIn) { _copyFrom(pIn); }
 
-    uriStat_struct (void) {memset(this,0,sizeof(uriStat_struct));}
+    uriStat &_copyFrom(uriStat &pIn)
+    {
+        clear();
+        strcpy(Dev, pIn.Dev);
+        Created = pIn.Created;
+        LastModified = pIn.LastModified;
+        Rights = pIn.Rights;
+        Size = pIn.Size;
+        strcpy(OwnerName, pIn.OwnerName);
+        return *this;
+    }
+
+    uriStat & operator= (uriStat &pIn) { return _copyFrom(pIn); }
+    uriStat & operator= (uriStat&&pIn) { return _copyFrom(pIn); }
+
     void clear(void)
     {
         memset(Dev,0,sizeof(Dev));
@@ -54,13 +77,12 @@ struct uriStat_struct {
         LastModified.clear();
         Rights=0;
         Size=0;
-        memset(Owner,0,sizeof(Owner));
+        Uid.clear();
+        memset(OwnerName,0,sizeof(OwnerName));
     }
 };
 
-class utf8VaryingString;
-class utf16VaryingString;
-class utf32VaryingString;
+
 #define __URISTRING__
 /**
  * @brief The uriString class Expand templateString template capabilities to file and directories management.
@@ -73,13 +95,21 @@ public:
 //    typedef  utftemplateString<cst_urilen+1,utf8_t> _Base;
     typedef utf8FixedString<cst_urilen+1>           _Base;
 
-    uriString(void) {}
+    uriString(void) = default;
+    uriString(const uriString &pIn) : _Base(pIn) {}
+    uriString(const uriString &&pIn) : _Base(pIn) {}
+
+    uriString &operator=(const uriString &pIn) { return (uriString&)_Base::operator=(pIn);}
+    uriString &operator=(const uriString &&pIn) { return (uriString&)_Base::operator=(pIn); }
+
     uriString(const utf8_t *pString) {fromUtf(pString);}
     uriString(const char* pString) {strset((const utf8_t*)pString);}
 //    uriString(const uriString& pURI) {fromURI(pURI);}
 
 //    const char* toCString_Strait() {return (const char*)content;}
     const char* toCChar() const {return (const char*)content;}
+
+    const uriString toConst() const { return *this; }
 
     using _Base::operator =;
     using _Base::operator +=;
@@ -97,7 +127,7 @@ public:
         return *this;
     }
 
-    uriString& operator = (utfdescString &pSource);
+    uriString& operator = (const utfdescString &pSource);
     uriString& operator += (utfdescString &pSource);
 
     uriString& operator = (utfcodeString &pCode) ;
@@ -113,8 +143,8 @@ public:
  //   uriString& fromURI(const uriString& pURI) ;
     uriString &fromURI(const uriString* pURI) ;
 
-    uriString& fromdescString(utfdescString &pString);
-    uriString & fromcodeString(utfcodeString &pURI) ;
+    uriString& fromdescString(const utfdescString &pString);
+    uriString & fromcodeString(const utfcodeString &pURI) ;
 
 //----------------URISTRING Section-------------------
 //Nota Bene descString must have been defined ( __DESCSTRING__ pre-proc parameter must be set)
@@ -156,7 +186,7 @@ public:
 // -----Control & file operations-------
 //
 
-    ZStatus getStatR(uriStat_struct &pZStat);
+    ZStatus getStatR(uriStat &pZStat);
 
     long long getFileSize(void) ;
 

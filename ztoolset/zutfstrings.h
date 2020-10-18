@@ -209,6 +209,7 @@ class utfidentityString : public utf8FixedString<cst_identitylen+1>
 public:
     typedef utf8FixedString<cst_identitylen+1> _Base;
     utfidentityString() {}
+    utfidentityString(const char*pString):_Base(pString){}
     utfidentityString(const utf8_t*pString){strset(pString);}
     utfidentityString(const utfidentityString& pIn ):_Base(pIn) {}
     utfidentityString(const utfidentityString&& pIn ):_Base(pIn) {}
@@ -217,6 +218,8 @@ public:
 
     using _Base::operator += ;
     using _Base::operator = ;
+    using _Base::operator == ;
+
 
     utfidentityString & operator = (const utfidentityString& pIn ) {return (utfidentityString&)_copyFrom(pIn);}
     utfidentityString & operator = (const utfidentityString&& pIn ) {return (utfidentityString&)_copyFrom(pIn);}
@@ -224,9 +227,12 @@ public:
     utfidentityString & operator = (const utfdescString& pDesc ) ;
     utfidentityString & operator = (const utfcodeString& pDesc ) {return (utfidentityString&) strset(pDesc.content);}
     utfidentityString & operator = (const char* pDesc ) {return (utfidentityString&) strset((const utf8_t*)pDesc); }
+
+
+
 };
 
-
+#include <ztoolset/utfvaryingstring.h>
 typedef utf8VaryingString utf8String;
 
 

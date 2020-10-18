@@ -13,6 +13,13 @@
 #include <cstdio>
 
 #include <ztoolset/zerror.h>
+#include <ztoolset/zmem.h>
+
+
+#include <ztoolset/zutfstrings.h>
+#include <ztoolset/zdatabuffer.h>
+
+
 //#include <ztoolset/zbasedatatypes.h>
 //#include <ztoolset/zdatabuffer.h>
 
@@ -250,8 +257,8 @@ _MODULEINIT_
  * In case of error, error description is printed on stderr.
  * In case of fatal error, _ABORT_ routine is invoked.
  */
-ZStatus ZCryptAES256::uncrypt(unsigned char **pPlainBuffer,
-                              size_t* pPlainBufferLen,
+ZStatus ZCryptAES256::uncrypt(unsigned char *&pPlainBuffer,
+                              size_t& pPlainBufferLen,
                               const unsigned char *pCryptedBuffer,
                               const size_t pCryptedBufferLen,
                                ZCryptKeyAES256 pKey,
@@ -273,32 +280,38 @@ _MODULEINIT_
   int len;
   //int plaintext_len;
 
-  float SizeCalc =  (float)*pPlainBufferLen + (float) EVP_MAX_BLOCK_LENGTH;
-  long wSize = (long)SizeCalc;
+//  float SizeCalc =  (float)*pPlainBufferLen + (float) EVP_MAX_BLOCK_LENGTH;
+//  float SizeCalc =  (float)(pPlainBufferLen +  EVP_MAX_BLOCK_LENGTH);
+//  long wSize = (long)SizeCalc;
 
-   *pPlainBuffer=(unsigned char*)malloc(wSize);
-  if (!*pPlainBuffer)
+  size_t wSize = pCryptedBufferLen + EVP_MAX_BLOCK_LENGTH;
+
+//   *pPlainBuffer=(unsigned char*)malloc(wSize);
+    pPlainBuffer=(unsigned char*)malloc(wSize);
+    if (!pPlainBuffer)
           {
           fprintf(stderr,"%s-F-malloc fails to allocate memory for plain text buffer (size is <%ld>)\n",
                   _GET_FUNCTION_NAME_,
                   wSize);
-          _ABORT_;
+          _ABORT_
           }
 
-//   pPlainBuffer.CryptMethod = ZCM_Uncrypted;
 
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
    * and IV size appropriate for your cipher
    * In this example we are using 256 bit AES (i.e. a 256 bit key). The
    * IV size for *most* modes is the same as the block size. For AES this
    * is 128 bits */
-  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, pKey.get(),pVector.get() ))
+  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, pKey.get(),pVector.get() ))
                       {
                       fprintf (stderr,
                                "%s-S-DECRYPTINIT Error in initialization of Crypting context (EVP_DecryptInit_ex)\n",
                                _GET_FUNCTION_NAME_);
 
                        handleErrors();
+                       _free(pPlainBuffer);
+                       pPlainBuffer = nullptr;
+                       pPlainBufferLen = 0;
                        _RETURN_ ZS_CRYPTERROR;
                       }
 
@@ -306,7 +319,7 @@ _MODULEINIT_
   /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
    */
-  if(1 != EVP_DecryptUpdate(ctx,*pPlainBuffer, &len, pCryptedBuffer, pCryptedBufferLen))
+  if(1 != EVP_DecryptUpdate(ctx,pPlainBuffer, &len, pCryptedBuffer, pCryptedBufferLen))
                 {
 
                   fprintf (stderr,
@@ -314,10 +327,13 @@ _MODULEINIT_
                            _GET_FUNCTION_NAME_);
 
                    handleErrors();
+                   free(pPlainBuffer);
+                   pPlainBufferLen = 0;
                    _RETURN_ ZS_CRYPTERROR;
                 }
 
-  *pPlainBufferLen = len;
+//  *pPlainBufferLen = len;
+  pPlainBufferLen = len;
 
   /* Finalise the decryption. Further plaintext bytes may be written at
    * this stage.
@@ -329,19 +345,25 @@ _MODULEINIT_
                            _GET_FUNCTION_NAME_);
 
                    handleErrors();
+                   free(pPlainBuffer);
+                   pPlainBufferLen = 0;
                    _RETURN_ ZS_CRYPTERROR;
                    }
 
 
-  (*pPlainBufferLen) += len;
+//  (*pPlainBufferLen) += len;
+  pPlainBufferLen += len;
 
-  *pPlainBuffer=(unsigned char*)realloc(*pPlainBuffer,*pPlainBufferLen);
-  if (!*pPlainBuffer)
+//  *pPlainBuffer=(unsigned char*)realloc(*pPlainBuffer,*pPlainBufferLen);
+  pPlainBuffer=(unsigned char*)realloc(pPlainBuffer,pPlainBufferLen);
+  if (!pPlainBuffer)
           {
           fprintf(stderr,"%s-F-malloc fails to reallocate memory for plain text buffer(size is <%ld>)\n",
                   _GET_FUNCTION_NAME_,
-                  *pPlainBufferLen);
-          _ABORT_;
+                  pPlainBufferLen);
+          free(pPlainBuffer);
+          pPlainBufferLen = 0;
+          _ABORT_
           }
 //  PlainBuffer.Data[PlainBuffer.Size]='\0' ;
 
@@ -462,8 +484,8 @@ ZStatus ZCryptAES256::writeCryptedBufferToFile (const char*pFilePath, unsigned c
  * In case of fatal error, _ABORT_ routine is invoked.
  */
 ZStatus ZCryptAES256::uncryptFromFile (const char* pFilePath,
-                                       unsigned char** pPlainBuffer,
-                                       size_t*          pPlainBufferLen,
+                                       unsigned char*& pPlainBuffer,
+                                       size_t&          pPlainBufferLen,
                                        const ZCryptKeyAES256& pKey,
                                        const ZCryptVectorAES256& pVector)
 {
@@ -482,7 +504,7 @@ struct stat wStatBuffer ;
             fprintf(stderr,"%s-F-malloc fails to allocate memory for crypted buffer (size is <%ld>)\n",
                     _GET_FUNCTION_NAME_,
                     wCryptedBufferLen);
-            _ABORT_;
+            _ABORT_
             }
     FILE *wInfile = fopen(pFilePath,"rb");
     if (wInfile==nullptr)
@@ -517,9 +539,11 @@ struct stat wStatBuffer ;
             }
 
     fclose(wInfile);
+    ZStatus wSts = uncrypt(pPlainBuffer, pPlainBufferLen, wCryptedBuffer, wCryptedBufferLen, pKey, pVector);
 
+    _free(wCryptedBuffer);
 //-----------------------------
-    _RETURN_ uncrypt(pPlainBuffer,pPlainBufferLen,wCryptedBuffer,wCryptedBufferLen,pKey,pVector);
+    _RETURN_ wSts;
 //------------------------------
 }// uncryptFile
 /**
@@ -684,5 +708,119 @@ size_t calcDecodeLengthB64(const unsigned char* b64input,size_t pSize)  //Calcul
 
     return (len*3)/4 - padding;
 }// calcDecodeLengthB64
+
+/* crypting key & vector */
+
+ZDataBuffer ZCryptKeyAES256::toB64()
+{
+    ZDataBuffer wReturn;
+    wReturn.encryptB64(content, cst_AES256cryptKeySize);
+    return wReturn;
+}
+int ZCryptKeyAES256::fromB64(ZDataBuffer &pZDB)
+{
+    pZDB.uncryptB64();
+    clear();
+    if (pZDB.Size < cst_AES256cryptKeySize) {
+        fprintf(stderr,
+                "ZCryptKeyAES256::fromB64-S-INVSIZ Severe Error : invalid size <%ld> of input "
+                "string from Hexadecimal "
+                "convertion.\n"
+                " Checksum hexadecimal string size must be greater than or equal to <%ld>\n",
+                pZDB.Size,
+                cst_AES256cryptKeySize);
+        return -1;
+    }
+    memmove(content, pZDB.Data, cst_AES256cryptKeySize);
+    return 0;
+}
+
+utf8VaryingString ZCryptKeyAES256::toHexa()
+{
+    utf8VaryingString wReturn;
+    wReturn.allocateUnitsBZero((cst_AES256cryptKeySize * 2) + 1);
+    int wi;
+    for (wi = 0; wi < cst_AES256cryptKeySize; wi++)
+        std::sprintf((char *) &wReturn.DataByte[wi * 2], "%02X", (unsigned int) content[wi]);
+    return (wReturn);
+}
+int ZCryptKeyAES256::fromHexa(const utf8VaryingString &pHexa)
+{
+    size_t wSize = (cst_AES256cryptKeySize * 2);
+    if (pHexa.UnitCount < wSize) {
+        fprintf(stderr,
+                "ZCryptKeyAES256::fromHexa-S-INVSIZ Severe Error : invalid size <%ld> of input string from Hexadecimal "
+                "convertion.\n"
+                " Crypting key hexadecimal string size must be greater than or equal to <%ld>\n",
+                pHexa.UnitCount,
+                wSize);
+        return -1;
+    }
+    char wBuf[3];
+    wBuf[2]='\0';
+    for(int wi=0; wi<cst_AES256cryptKeySize;wi++)
+        {
+        ::strncpy(wBuf,(const char*)&pHexa.DataByte[wi*2],2);
+        content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
+        }
+    return 0;
+}//ZCryptKeyAES256::fromHexa
+
+/* crypting vector */
+
+ZDataBuffer ZCryptVectorAES256::toB64()
+{
+    ZDataBuffer wReturn;
+    wReturn.encryptB64(content, cst_AES256cryptVectorSize);
+    return wReturn;
+}
+int ZCryptVectorAES256::fromB64(ZDataBuffer &pZDB)
+{
+    pZDB.uncryptB64();
+    clear();
+    if (pZDB.Size < cst_AES256cryptVectorSize) {
+        fprintf(stderr,
+                "ZCryptVectorAES256::fromB64-S-INVSIZ Severe Error : invalid size <%ld> of input "
+                "string from Hexadecimal "
+                "convertion.\n"
+                " Checksum hexadecimal string size must be greater than or equal to <%ld>\n",
+                pZDB.Size,
+                cst_AES256cryptVectorSize);
+        return -1;
+    }
+    memmove(content, pZDB.Data, cst_AES256cryptVectorSize);
+    return 0;
+}
+
+utf8VaryingString ZCryptVectorAES256::toHexa()
+{
+    utf8VaryingString wReturn;
+    wReturn.allocateUnitsBZero((cst_AES256cryptVectorSize * 2) + 1);
+    int wi;
+    for (wi = 0; wi < cst_AES256cryptVectorSize; wi++)
+        std::sprintf((char *) &wReturn.DataByte[wi * 2], "%02X", (unsigned int) content[wi]);
+    return (wReturn);
+}
+int ZCryptVectorAES256::fromHexa(const utf8VaryingString &pHexa)
+{
+    size_t wSize = (cst_AES256cryptVectorSize * 2);
+    if (pHexa.UnitCount < wSize) {
+        fprintf(stderr,
+                "ZCryptVectorAES256::fromHexa-S-INVSIZ Severe Error : invalid size <%ld> of input string from Hexadecimal "
+                "convertion.\n"
+                " Crypting key hexadecimal string size must be greater than or equal to <%ld>\n",
+                pHexa.UnitCount,
+                wSize);
+        return -1;
+    }
+    char wBuf[3];
+    wBuf[2]='\0';
+    for(int wi=0; wi<cst_AES256cryptVectorSize;wi++)
+    {
+        ::strncpy(wBuf,(const char*)&pHexa.DataByte[wi*2],2);
+        content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
+    }
+    return 0;
+}//ZCryptVectorAES256::fromHexa
 
 #endif // ZCRYPT_CPP

@@ -2,6 +2,7 @@
 #define ZAIERRORS_H
 
 #include <ztoolset/zarray.h>
+#include <ztoolset/zutfstrings.h>
 
 enum ZaiE_Severity{
     ZAIES_Info      =   0,
@@ -12,6 +13,8 @@ enum ZaiE_Severity{
 
 const char* decode_ZAIES(ZaiE_Severity pSeverity);
 
+ZaiE_Severity cvttoZAIESeverity(Severity_type pZEXSev);
+Severity_type cvttoZEXSeverity(ZaiE_Severity pZEXSev);
 
 struct ZaiError {
     ZaiError()=default;
@@ -57,13 +60,23 @@ struct ZaiError {
         Severity=pSeverity;
     }
 
-    const char* Message() {return _Message.c_str();}
+    ZaiError(ZaiE_Severity pSeverity, const utf8_t *pMessage)
+    {
+        _Message=pMessage;
+        Severity=pSeverity;
+    }
+/*    ZaiError(ZaiE_Severity pSeverity, const char *pMessage)
+    {
+        _Message=pMessage;
+        Severity=pSeverity;
+    }*/
+    const char* Message() {return _Message.toCChar();}
 
     ZStatus getZStatus() { return Status; }
 
     ZaiE_Severity   Severity;
     ZStatus         Status=ZS_NOTHING;
-    std::string     _Message ;
+    utf8String     _Message ;
 };
 
 /**
@@ -111,6 +124,7 @@ public:
         }
     }
 
+    void clear() { cleanupLogged();}
     void cleanupLogged()
     {
         ErrorLevel = 0;
@@ -127,6 +141,7 @@ public:
         }
     }
     ZStatus getLastZStatus() { return last()->getZStatus(); }
+
 
     /**
    * @brief displayAll prints to pOutput (defaulted to stdout) errors messages from least recent to most recent
@@ -204,6 +219,10 @@ public:
 
         va_end(args);
     }
+
+    void logZException();
+
+
     void errorLog(const char* pFormat,...)
     {
         ErrorLevel = ZAIES_Error;

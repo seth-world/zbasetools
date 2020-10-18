@@ -133,23 +133,6 @@ public:
 };
 
 
-
-
-
-enum ZMode_type {
-    ZMode_Nothing = 0,
-    ZMode_Create = 1,
-    ZMode_Suppress = 2,
-    ZMode_Delete = 2,
-    ZMode_Edit = 5,
-    ZMode_Display = 6,
-
-    ZMode_CreateFromChild   = 0x10,  //!< mode specific to Master document to create Master AND physical document at once.
-    ZMode_CreateFromMaster  = 0x20,  //!< specific to documents : workflow for creating physical document from pinboard URI
-    ZMode_DeleteFromMaster  = 0x40,  //!< specific to documents : workflow for creating physical document from pinboard URI
-    ZMode_EditFromMaster    = 0x80   //!< specific to documents : workflow for creating physical document from pinboard URI
-};
-
 enum SELDate_type
 {
     SEL_Nothing = 0,

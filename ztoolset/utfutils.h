@@ -33,7 +33,7 @@
 
 #include <ztoolset/zatomicconvert.h>
 
-void _free(void*pPtr);
+#include <ztoolset/zmem.h> // for _free()
 
 template <class _Utf>
 _Utf* utfStrdup(const _Utf* pString); // see strdup
@@ -1477,7 +1477,7 @@ _MODULEINIT_
 template <class _Utf>
  _Utf *
 utfStrstr(const _Utf *string,/* String to search. */
-          const _Utf* substring)/* Substring to try to find in string. */
+          const _Utf* substring) /* Substring to try to find in string. */
 /*    register _Utf *string;
     _Utf *substring;		*/
 {

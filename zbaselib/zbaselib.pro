@@ -287,13 +287,14 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/ztimer.h \
     $$TOOLSET_BASE/zthread/zthreadexithandler.h \
     $$TOOLSET_BASE/ztoolset/ztokenizer.h \
-    $$TOOLSET_BASE/ztoolset/zuser.h \
+    $$TOOLSET_BASE/ztoolset/zsystemuser.h \
     $$TOOLSET_BASE/ztoolset/zbitset.h \
     $$TOOLSET_BASE/ztoolset/templatewstring.h \
     $$TOOLSET_BASE/ztoolset/zfunctions.h \
  #   $$TOOLSET_BASE/ztoolset/templatestring.h \
 #    $$TOOLSET_BASE/ztoolset/zwstrings.h \
     ../ztoolset/charman.h \
+    ../ztoolset/userid.h \
     ../ztoolset/zaierrors.h \
     ../ztoolset/zstatus.h \
     ../zxml/zxmlprimitives.h \
@@ -325,7 +326,7 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/ztimer.cpp \
     $$TOOLSET_BASE/zthread/zthreadexithandler.cpp \
     $$TOOLSET_BASE/ztoolset/ztokenizer.cpp \
-    $$TOOLSET_BASE/ztoolset/zuser.cpp \
+    $$TOOLSET_BASE/ztoolset/zsystemuser.cpp \
     $$TOOLSET_BASE/ztoolset/zbitset.cpp \
     $$TOOLSET_BASE/ztoolset/templatewstring.cpp \
 #    $$TOOLSET_BASE/ztoolset/templatestring.cpp \

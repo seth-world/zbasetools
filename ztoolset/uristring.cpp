@@ -108,12 +108,11 @@ ZDir        wDir;
     wSt=wDir.setPath(toUtf());
     if (wSt!=ZS_SUCCESS)
             return wSt;
+    wSt=wDir.dir(wFile,pZDFT);
     while (wSt==ZS_SUCCESS)
         {
-        wFile.clear();
-        wSt=wDir.readDir(wFile,pZDFT);
-        if (wSt==ZS_SUCCESS)
-                    pList->push(wFile);
+        pList->push(wFile);
+        wSt=wDir.dirNext(wFile);
         }
     if (wSt!=ZS_EOF)
             return wSt;
@@ -158,20 +157,20 @@ uriString::fromQString(const QString *pQString){memset (content,0,sizeof(content
                                             return(*this);}
 */
 uriString&
-uriString::fromdescString(utfdescString &pString)
+uriString::fromdescString(const utfdescString &pString)
 {
     return (uriString&)strset(pString.toUtf());
 }
 
 uriString&
-uriString::fromcodeString(utfcodeString &pCode)
+uriString::fromcodeString(const utfcodeString &pCode)
 {
     return (uriString&)strset(pCode.toUtf());
 }
 
 
 uriString&
-uriString::operator = (utfdescString& pSource) {return fromdescString(pSource);}
+uriString::operator = (const utfdescString &pSource) {return fromdescString(pSource);}
 
 
 /**
@@ -221,10 +220,10 @@ size_t wS=strlen();
 }//addDirectoryDelimiter
 //#include <unistd.h>
 //#include <pwd.h>
-#include <ztoolset/zuser.h>
+#include <ztoolset/zsystemuser.h>
 uriString uriString::getHomeDir(void)
 {
-    ZUser wUser;
+    ZSystemUser wUser;
 
     uriString wHomeDir = wUser.setToCurrentUser().getHomeDir();
 
@@ -454,7 +453,7 @@ bool
 uriString::exists(void)
 {
 struct stat wStatBuffer ;
-    int wSt= stat(toCString_Strait(),&wStatBuffer);
+    int wSt= stat(toCChar(),&wStatBuffer);
     if (wSt<0)
             {
             return(false);
@@ -589,13 +588,13 @@ uriString::suppress(void)
 * @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.@see ZBSError
  */
 ZStatus
-uriString::getStatR(uriStat_struct &pZStat)
+uriString::getStatR(uriStat &pZStat)
 {
 struct stat wStatBuffer ;
 passwd *wUserInfo;
 
-    memset(&pZStat,0,sizeof(uriStat_struct));
-    int wSt= stat(toCString_Strait(),&wStatBuffer);
+    pZStat.clear();
+    int wSt= stat(toCChar(),&wStatBuffer);
     if (wSt<0)
             {
             ZException.setMessage (_GET_FUNCTION_NAME_,
@@ -610,9 +609,12 @@ passwd *wUserInfo;
     pZStat.Created.fromTimespec(wStatBuffer.st_ctim);
     pZStat.LastModified.fromTimespec((wStatBuffer.st_mtim));
     pZStat.Rights = wStatBuffer.st_mode;
+
+    pZStat.Uid = wStatBuffer.st_uid;
+
     wUserInfo = getpwuid(wStatBuffer.st_uid);
 
-    ::strcpy(pZStat.Owner , wUserInfo->pw_name);
+    ::strcpy(pZStat.OwnerName , wUserInfo->pw_name);
     return(ZS_SUCCESS);
 }// getStatR
 
@@ -624,7 +626,7 @@ passwd *wUserInfo;
 long long
 uriString::getFileSize(void)
 {
- uriStat_struct wStat;
+ uriStat wStat;
  if (getStatR(wStat)!=ZS_SUCCESS)
                  {
                 if (ZVerbose)
@@ -663,7 +665,7 @@ ZStatus
 uriString::loadContent (ZDataBuffer& pDBS)
 {
 ZStatus wSt;
-uriStat_struct wStat;
+uriStat wStat;
     if (!exists())
             {
             ZException.setMessage(_GET_FUNCTION_NAME_,
@@ -671,9 +673,10 @@ uriStat_struct wStat;
                                   Severity_Error,
                                   "-E-FILENOTFOUND Requested file %s does not exist \n",
                                   toString());
-    #if __DEBUG_LEVEL__ > 1
+/*    #if __DEBUG_LEVEL__ > 1
             ZException.printUserMessage();
     #endif
+*/
             return ZS_NOTFOUND;
           }
    if ((wSt=getStatR(wStat))!=ZS_SUCCESS)

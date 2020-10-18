@@ -319,12 +319,22 @@ public:
     utfVaryingString<_Utf>& fromStdString(const std::string pString);
     utfVaryingString<_Utf>& fromStdWString(const std::wstring pWString);
 
-    _Utf * strchr(_Utf wChar) {return utfStrchr<_Utf>(Data,wChar);} /** finds first occurrence of _Utf char wChar within current string content. returns an _Utf* pointer to char position */
-    _Utf * strrchr(_Utf wChar){return utfStrrchr<_Utf>(Data,wChar);} /** finds last occurrence of _Utf char wChar within current string content. returns an _Utf* pointer to char position */
-    _Utf * strstr(const _Utf *pSubstring) {return utfStrstr<_Utf>(Data,pSubstring);} /** finds first _Utf substring within current and returns a pointer to it */
-    _Utf* strcasestr(const _Utf *pSubstring){return utfStrcasestr<_Utf>(Data,pSubstring);}/** finds first _Utf substring CASE REGARDLESS within current and returns a pointer to it */
-    _Utf * strrstr(const _Utf *pSubstring) {return utfStrstr<_Utf>(Data,pSubstring);} /** finds last _Utf substring within current and returns a pointer to it */
-    _Utf* strrcasestr(const _Utf *pSubstring){return utfStrcasestr<_Utf>(Data,pSubstring);}/** finds last _Utf substring CASE REGARDLESS within current and returns a pointer to it */
+
+    /** @brief strchr() finds first occurrence of a single _Utf character wChar within current string content. returns an _Utf* pointer to char position */
+    _Utf * strchr(_Utf wChar) const {return utfStrchr<_Utf>(Data,wChar);}
+    /** @brief strrchr() finds last occurrence of _Utf char wChar within current string content. returns an _Utf* pointer to char position */
+    _Utf * strrchr(_Utf wChar)const {return utfStrrchr<_Utf>(Data,wChar);}
+    /** @brief strstr() finds first _Utf substring within current and returns a pointer to it */
+    _Utf * strstr(const _Utf *pSubstring) const {return utfStrstr<_Utf>(Data,pSubstring);}
+    /** @brief strcasestr() finds first _Utf substring CASE REGARDLESS within current and returns a pointer to it */
+    _Utf* strcasestr(const _Utf *pSubstring) const {return utfStrcasestr<_Utf>(Data,pSubstring);}
+    /** @brief strrstr() finds last _Utf substring within current and returns a pointer to it */
+    _Utf *strrstr(const _Utf *pSubstring) const { return utfStrstr<_Utf>(Data, pSubstring); }
+    /** finds last _Utf substring CASE REGARDLESS within current and returns a pointer to it */
+    _Utf *strrcasestr(const _Utf *pSubstring) const { return utfStrcasestr<_Utf>(Data, pSubstring); }
+
+    /** @brief subString() returns a new string with content of current string starting a position pOffset and with pLen character units */
+    utfVaryingString<_Utf> subString(size_t pOffset, int pLen=-1) const;
 
 //------------------ operator overloads  ------------------------------------------------
 
@@ -455,7 +465,8 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
         for (size_t wi=0;wi<UnitCount;wi++)
                 Data[wi]=utfUpper<_Utf>(Data[wi]);
 
-        return *this;}
+        return *this;
+                    }
 
     utfVaryingString& dropAccute(void)
                     {
@@ -518,6 +529,19 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
           {
             return !(strstr(pString)==nullptr);
           }
+    /** @brief locate()  locates a substring pString in utftemplateString
+    *                            and returns its offset from beginning as a ssize_t value.*/
+    ssize_t locate(const _Utf *pString) const;
+    /** @brief locate()  locates a substring pString in utftemplateString and returns its offset
+    *                     since offset pOffset (zero meaning beginning of string) as a ssize_t value.*/
+    ssize_t locate(const _Utf *pString, size_t pOffset) const;
+    ssize_t locate(const utfVaryingString<_Utf>& pString) const;
+    /** @brief locateCase()  locates a substring pString CASE REGARDLESS in utftemplateString
+    *                         and returns its offset from beginning as a ssize_t value.*/
+    ssize_t locateCase(const _Utf* pString) const;
+    /** @brief locateCase()  locates a substring pString CASE REGARDLESS in utftemplateString
+    *                        and returns its offset since pOffset (zero meaning beginning of string) as a ssize_t value.*/
+    ssize_t locateCase(const _Utf* pString,size_t pOffset) const;
 
    _Utf  operator [] (long pIdx) {return Data[pIdx];}
 
@@ -821,9 +845,12 @@ utfVaryingString<_Utf>::strnset ( const _Utf *wSrc, size_t pCount)
                 *wPtr=*wSrc;
                 wPtr++;
                 wSrc++;
-                }
-    while (wi++ < pCount)
-           *wPtr++=(_Utf)'\0';
+    }
+    while (wi++ < pCount) {
+        *wPtr = (_Utf) '\0';
+        wPtr++;
+    }
+    addConditionalTermination();
     return *this;
 }// strnset
 
@@ -1320,6 +1347,21 @@ utfVaryingString<_Utf>::fromStdWString(const std::wstring pWString)
     *wPtr=(_Utf)'\0';
     return *this;
 }// fromStdWString
+
+
+template<class _Utf>
+utfVaryingString<_Utf> utfVaryingString<_Utf>::subString(size_t pOffset, int pLen) const
+{
+    utfVaryingString<_Utf> wStrReturn; /* create same string type as current but empty */
+    wStrReturn.utfStringDescriptor::_copyFrom(*this);
+    if (pLen>=0)
+        wStrReturn.strnset(&Data[pOffset],pLen);
+    else
+        wStrReturn.strset(&Data[pOffset]);
+    return wStrReturn;
+}//subString
+
+
 
 
 //======================= Base operations==================================================================
@@ -2214,6 +2256,55 @@ utfVaryingString<_Utf>::ncompare(const _Utf* pString2,size_t pCount)
     //
     return 1; // string 1 is longer
 }/** corresponds to strncmp */
+
+
+/**
+ * @brief locate  locates a substring pString in utftemplateString and returns its offset from beginning as a ssize_t value.
+ * returns a negative value if substring has not been found.
+ * @param pString a const char* string containing the substring to find
+ * @return offset (starting from 0) of the substring in main string if substring is found, a negative value if not.
+ */
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::locate(const _Utf *pString) const
+{
+    if (!pString)
+        return -1;
+    ssize_t wRet = strstr(pString) - Data;
+    if (wRet < 0)
+        return -1;
+    return wRet;
+}
+
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::locate(const _Utf *pString, size_t pOffset) const
+{
+    if (!pString)
+        return -1;
+    ssize_t wRet = strstr(pString,pOffset) - Data;
+    if (wRet < 0)
+        return -1;
+    return wRet;
+}
+
+/**
+ * @brief locate  locates a substring pString in utftemplateString and returns its offset from beginning as a ssize_t value.
+ * Returns a negative value if substring has not been found.
+ * @param pString a utftemplateString of same type containing the substring to find
+ * @return offset (starting from 0) of the substring in main string if substring is found, a negative value if not.
+ */
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::locate(const utfVaryingString<_Utf> &pString) const
+{
+    if (pString.isEmpty())
+        return 0;
+    ssize_t wRet = strstr(pString.Data) - Data;
+    if (wRet < 0)
+        return -1;
+    return wRet;
+}
+
+
+
 
 //---------End utfVaryingString--------------------------
 

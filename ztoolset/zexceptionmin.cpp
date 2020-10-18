@@ -21,6 +21,10 @@
 
 #include <ztoolset/utfvaryingstring.h>
 
+#include <ztoolset/zaierrors.h>
+
+ZExceptionMin               ZException;
+
 utfexceptionString&
 utfexceptionString::setFromURI(const uriString &pUri)
 {
@@ -705,8 +709,9 @@ ZExceptionMin::printLastUserMessage (FILE *pOutput)
 utfexceptionString
 ZExceptionBase::formatFullUserMessage (void)
 {   utfexceptionString wRet;
-    wRet.sprintf(
-                 "------ZException content-----\n"
+    wRet.sprintf("------ZException content-----\n");
+    wRet+=Message.conditionalNL();
+    wRet.addsprintf(
                  "Module..............%s\n"
                  "System error code...%d\n"
                  "POSIX error code....%s\n"
@@ -717,8 +722,12 @@ ZExceptionBase::formatFullUserMessage (void)
                  decode_POSIXerrno(Error),
                  decode_ZStatus(Status),
                  decode_Severity(Severity));
-    wRet+=Message.conditionalNL();
-    wRet+=Complement.conditionalNL();
+    if (Complement.isEmpty())
+        wRet += "No additional information.\n";
+    else {
+        wRet += "Additional information follows:\n";
+        wRet += Complement.conditionalNL();
+    }
     return wRet;
 }
 
@@ -936,7 +945,7 @@ int ZExceptionBase::messageBox(const char* pTitle,const char * pUserMessage)
 
     return messageBox(wT,wM);
 }
-#include <ztoolset/zuser.h>
+#include <ztoolset/zsystemuser.h>
 int
 ZExceptionBase::messageBox(utfdescString &pTitle,utfexceptionString &pUserMessage)
 {
@@ -976,7 +985,7 @@ QString wM;
     QMessageBox wMsg (wIcon,
                       pTitle.toCString_Strait(),
                       QObject::tr(pUserMessage.toCChar()));
-    wMsg.setDetailedText(ZException.formatFullUserMessage().toCChar());
+    wMsg.setDetailedText(formatFullUserMessage().toCChar());
     wMsg.addButton(QObject::tr("Leave"),QMessageBox::DestructiveRole);
     wMsg.addButton(QObject::tr("Continue"),QMessageBox::AcceptRole);
 
@@ -996,7 +1005,7 @@ QString wM;
                         struct passwd * wuserdata = getpwuid(wuid);
                         wErrLog=wuserdata->pw_dir;
 */
-                        ZUser wUser;
+                        ZSystemUser wUser;
                         wErrLog = wUser.setToCurrentUser().getHomeDir().toString();
                         wErrLog.addConditionalDirectoryDelimiter();
                         wErrLog += (utf8_t*)"ErrLog";
@@ -1011,7 +1020,7 @@ QString wM;
                                     abort();
                                     }
  //                       wM=wuserdata->pw_name;
-                        wM=wUser.getName().toCString_Strait();
+                        wM=wUser.getSystemName().toCString_Strait();
                         wM += "\n";
                         wM += ZDateFull::currentDateTime().toLocaleFormatted().toCString_Strait();
                         wM += "\n";
@@ -1103,7 +1112,7 @@ QString wM;
                         struct passwd * wuserdata = getpwuid(wuid);
                         wErrLog=wuserdata->pw_dir;*/
 
-                        ZUser wUser;
+                        ZSystemUser wUser;
                         wErrLog = wUser.setToCurrentUser().getHomeDir().toString();
                         wErrLog.addConditionalDirectoryDelimiter();
                         wErrLog.addConditionalDirectoryDelimiter();
@@ -1119,7 +1128,7 @@ QString wM;
                                     abort();
                                     }
 //                       wM=wuserdata->pw_name;
-                        wM=wUser.getName().toCString_Strait();
+                        wM=wUser.getSystemName().toCString_Strait();
                         wM += "\n";
                         wM += ZDateFull::currentDateTime().toLocaleFormatted().toCString_Strait();
                         wM += "\n";
@@ -1309,5 +1318,22 @@ ZExceptionMin::getLDAP (int pError,
 }// getLDAP
 #endif // __USE_LDAP__
 
+
+void ZExceptionMin::getZaiError(ZaiErrors *pErrorlog)
+{
+    ZExceptionBase *wExceptionBase = new ZExceptionBase;
+    if (pErrorlog->count()) {
+        wExceptionBase->Status = pErrorlog->last()->getZStatus();
+        wExceptionBase->Severity = cvttoZEXSeverity(pErrorlog->last()->Severity);
+        wExceptionBase->Message = pErrorlog->last()->Message();
+        int wL = pErrorlog->last()->_Message.locate((const utf8_t *) "-");
+        if (wL > 0)
+            wExceptionBase->Module = pErrorlog->last()->_Message.subString(0, wL).toUtf();
+
+    } else
+        wExceptionBase->Message = "No error message logged yet.";
+    wExceptionBase->setComplement("from error log");
+    toStack(wExceptionBase);
+}//ZExceptionMin::getZaiError
 
 #endif //#ifndef ZEXCEPTIONMIN_CPP

@@ -12,4 +12,13 @@ typedef zxmlDoc*        zxmlDocPtr;
 typedef zxmlAttribute*  zxmlAttributePtr;
 typedef zxmlNameSpace*  zxmlNameSpacePtr;
 
+void XMLderegister(zxmlNode *&pNode);
+void XMLderegister(zxmlElement *&pNode)
+{
+    return XMLderegister((zxmlNode * &) pNode);
+}
+void XMLderegister(zxmlAttribute *&pNode);
+void XMLderegister(zxmlNameSpace *&pNode);
+
+
 #endif // ZXML_H

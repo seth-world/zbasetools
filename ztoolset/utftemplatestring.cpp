@@ -6,9 +6,6 @@
 #include <ztoolset/zexceptionmin.h>
 
 
-
-
-
 /**
  * @brief _getutfStringURFData Routine to get URF data header information for an utfxxFixedString or utfxxVaryingString.
  * @param pUniversal pointer to first byte of URF data header

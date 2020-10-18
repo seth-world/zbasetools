@@ -109,7 +109,7 @@ class ZCryptVectorAES256;
 
 class ZDataBuffer
 {
- private:
+ protected:
     ZDataBuffer& _copyFrom(const ZDataBuffer& pIn)
     {
        allocate (pIn.Size);
@@ -134,9 +134,10 @@ public:
     ZDataBuffer (void *pData,ssize_t pSize) { allocate (pSize); memmove(Data,pData,(size_t)pSize);Size=(size_t)pSize;}
     ZDataBuffer (size_t pSize) {allocate((ssize_t)pSize);}
 
-    ZDataBuffer (const ZDataBuffer& pIn) {_copyFrom(pIn);}                  // cannot copy
+    ZDataBuffer (const ZDataBuffer& pIn) {_copyFrom(pIn);}
+    ZDataBuffer (const ZDataBuffer&& pIn) {_copyFrom(pIn);}
     ZDataBuffer& operator= (const ZDataBuffer& pIn) {_copyFrom(pIn); return *this;}
-
+    ZDataBuffer& operator= (const ZDataBuffer&& pIn) {_copyFrom(pIn); return *this;}
 
     size_t getByteSize(void) {return Size;}
 
@@ -259,12 +260,32 @@ public:
 //    wchar_t* toWString(void) {return WDataChar;}
     ZDataBuffer& fromString(const char* pString) { allocate(strlen(pString)+1); strncpy(DataChar,pString,strlen(pString)); return *this; }
     ZDataBuffer&fromWString(const wchar_t* pWString) { allocate((wcslen(pWString)+1)*sizeof(WDataChar[0])); wcsncpy(WDataChar,pWString,wcslen(pWString)); return *this; }
-/*
+    /*
  *   ======ZDataBuffer has NO export/import facilities==============
  *
     ZDataBuffer *_exportURF(ZDataBuffer *pUniversal);
     ZDataBuffer &_importURF(unsigned char *pUniversal);
 */
+
+    template<class _Tp>
+    _Tp moveTo() const
+    {
+        _Tp wOut;
+
+        if (sizeof(_Tp) != Size)
+            {
+            fprintf(stderr,
+                "ZDataBuffer::moveTo-F-INVTYP Invalid data size <%ld> for type size <%ld>\n",
+                Size,
+                sizeof(_Tp));
+            abort();
+            }
+        memmove(&wOut, Data, sizeof(_Tp));
+
+        return wOut;
+    }
+    template<class _Tp>
+    _Tp* moveToPtr() { return static_cast<_Tp*>(Data); }
 
 /**
  * @brief moveOut <_Tp> loads the raw content of the ZDataBuffer to a template defined data structure pOutData (Compound) given as _Tp
@@ -357,7 +378,9 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
                                 DataChar[wi] += cst_upperization ;
         return *this;}
 
+    /** @brief allocate()  Allocates pSize bytes to storage space. If ZDataBuffer contains data : existing data will NOT be lost*/
     unsigned char *allocate(ssize_t pSize);
+    /** @brief allocate()  Allocates pSize bytes to storage space and set all space to binary zero- Existing data WILL BE lost*/
     unsigned char *allocateBZero(ssize_t pSize);
     unsigned char *extend(ssize_t pSize);
     unsigned char* extendBZero(ssize_t pSize);

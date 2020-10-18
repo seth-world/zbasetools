@@ -165,6 +165,64 @@ static ZStatus getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniv
 
 ZStatus getValueFromUniversal(unsigned char* pUniversalDataPtr);
 
+/* UTC ISO 8601 "2011-10-08T07:07:09.000Z" */
+utfcodeString toUTC()
+{
+    utfcodeString wUTC;
+    wUTC.sprintf("%04d-%02d-%02dT%02d:%02d:%02d-%03dZ", Year, Month, Day, Hour, Min, Sec, 0);
+    return wUTC;
+}
+void fromUTC(const utfcodeString &pIn)
+{
+    clear();
+    ssize_t wY = pIn.locate((const utf8_t *) "-");
+    if (wY < 0) {
+        fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
+        return;
+    }
+    Year = pIn.subString(0, wY).toInt(10);
+    wY++;
+    ssize_t wM = pIn.locate((const utf8_t *) "-", wY);
+    if (wM < 0)
+    {
+        fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
+        return;
+    }
+    Month = pIn.subString(wY, wM - wY).toInt(10);
+    wM++;
+    ssize_t wD = pIn.locate((const utf8_t *) "T", wM);
+    if (wD < 0)
+    {
+        fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
+        return;
+    }
+    Day = pIn.subString(wM, wD - wM).toInt(10);
+    wD++;
+    ssize_t wH = pIn.locate((const utf8_t *) ":", wD);
+    if (wH < 0)
+    {
+        fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
+        return;
+    }
+    Hour = pIn.subString(wD, wH - wD).toInt(10);
+    wH++;
+    ssize_t wm = pIn.locate((const utf8_t *) ":", wH);
+    if (wm < 0)
+    {
+        fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
+        return;
+    }
+    Min = pIn.subString(wH, wm - wH).toInt(10);
+    wm++;
+    ssize_t ws = pIn.locate((const utf8_t *) ":", wm);
+    if (ws < 0)
+    {
+        fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
+        return;
+    }
+    Sec = pIn.subString(wm, ws-wm).toInt(10);
+}
+
 void clear() {memset(this,0,sizeof(ZDateFull));}
 ZDateFull fromTimespec(timespec &pTimespec);
 timespec  toTimespec(void);

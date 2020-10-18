@@ -48,11 +48,40 @@ public:
         xmlCleanupParser();
     }
 
+
+
     void onAbort() {
                     if (ZXML_Init)
-                            this->~zxmlGlobal();
-                   }
+                        this->~zxmlGlobal();
+    }
 
+    void deregister(zxmlNode *&pNode)
+    {
+        for (long wi = 0; wi < RegisteredNodes.count(); wi++)
+            if (RegisteredNodes[wi] == pNode) {
+                xmlFree(RegisteredNodes[wi]);
+                pNode = nullptr;
+                RegisteredNodes.erase(wi);
+            }
+    }
+    void deregister(zxmlAttribute *&pNode)
+    {
+        for (long wi = 0; wi < RegisteredAttributes.count(); wi++)
+            if (RegisteredAttributes[wi] == pNode) {
+                xmlFree(RegisteredAttributes[wi]);
+                pNode = nullptr;
+                RegisteredAttributes.erase(wi);
+            }
+    }
+    void deregister(zxmlNameSpace *&pNode)
+    {
+        for (long wi = 0; wi < RegisteredNameSpaces.count(); wi++)
+            if (RegisteredNameSpaces[wi] == pNode) {
+                xmlFree(RegisteredNameSpaces[wi]);
+                pNode = nullptr;
+                RegisteredNameSpaces.erase(wi);
+            }
+    }
     ZArray<zxmlNode*> RegisteredNodes;
     ZArray<zxmlAttribute*> RegisteredAttributes;
     ZArray<zxmlNameSpace*> RegisteredNameSpaces;
@@ -60,6 +89,18 @@ public:
     bool ZXML_Init=false;
 } _xmlGlobal;
 
+void XMLderegister(zxmlNode *&pNode)
+{
+    _xmlGlobal.deregister(pNode);
+}
+void XMLderegister(zxmlAttribute *&pNode)
+{
+    _xmlGlobal.deregister(pNode);
+}
+void XMLderegister(zxmlNameSpace *&pNode)
+{
+    _xmlGlobal.deregister(pNode);
+}
 
 void cleanupXML(void)
 {
@@ -710,7 +751,7 @@ _MODULEINIT_
                          Severity_Error,
                          " Error while parsing memory loaded xml file <%s> requested encoding <%s> requested parsing options <%s>",
                          pURL,
-                         pEncoding,
+                         pEncoding?pEncoding:"default",
                          decode_XMLParseOptions(pOptions).toCChar()
                          );
         _RETURN_ ZS_XMLERROR;
@@ -739,9 +780,8 @@ _MODULEINIT_
         setXMLZException(_GET_FUNCTION_NAME_,
                          ZS_XMLERROR,
                          Severity_Error,
-                         " Error while parsing from memory xml file <%s> requested encoding <%s> requested parsing options <%s>",
-                         "memory.xml",
-                         pEncoding,
+                         " Error while parsing xml document from memory : requested encoding <%s> requested parsing options <%s>",
+                         pEncoding?pEncoding:"default",
                          decode_XMLParseOptions(pOptions).toCChar()
                          );
         _RETURN_ ZS_XMLERROR;

@@ -26,7 +26,7 @@ class checkSum
 public:
     unsigned char content[cst_checksum];
 
-    char StrHexa[cst_checksumHex+1];
+    char StrHexa[cst_checksumHexa+3];
 
     checkSum(void) {clear();}
     checkSum(unsigned char *pInBuffer,size_t pLen) {compute(pInBuffer,pLen);}
@@ -59,15 +59,20 @@ public:
 
     checkSum &operator = (const QByteArray &pQBA) {return(fromQByteArray(pQBA));}
 #endif
-    checkSum & fromHex(const char *pInput, const size_t pSize) ;
+    /** @brief fromHexa() converts a checkSum pInput expressed as a string containing hexadecimal printable values and set it as binary content
+     * remark : hexadecimal string must have a size of cst_checksumHexa, not less, not more  */
+    checkSum & fromHexa(const char *pInput, const size_t pSize) ;
+    checkSum & fromHexa(const char *pInput) ;
     void fromCheckSum(checkSum& pChecksum) { memmove(content,pChecksum.content,sizeof(content)); return ;}
 //    checkSum &  fromHex(QDataBuffer_struct &pQDB) ;
-
-    const char *toHex(void);
+    /** @brief toHexa() delivers checkSum content as a string containing hexadecimal printable values */
+    const char *toHexa(void);
+    /** @brief toBinary() delivers the content of checkSum in its binary format */
     unsigned char * toBinary(void) {return(content);}
 //    ZDataBuffer& toZDataBuffer (ZDataBuffer &pQDB) { pQDB.setData( content, size()); return(pQDB);}
 
-    bool        compareHex(const char *pDesc);
+    /** @brief compareHexa() converts string pDesc from text hexadecimal format to internal binary checksum then compares it with current*/
+    bool        compareHexa(const char *pDesc);
 
 //    checkSum &operator = (const checkSum &pcheckSum) { memmove(content,pcheckSum.content,sizeof(content)); return *this;}
 

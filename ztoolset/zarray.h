@@ -3,6 +3,8 @@
 
 #include <zconfig.h>
 
+#include <ztoolset/zmem.h>  // for _free()
+
 #include <ztoolset/zerror_min.h>
 #ifdef __USE_ZTHREAD__
     #include <zthread/zmutex.h>
@@ -168,7 +170,7 @@ public:
       _cloneFrom(pIn);
       return *this;
    }
-
+/*
    void _free(void* pPtr) // local to ZArray
    {
        if (pPtr!=nullptr)
@@ -176,7 +178,7 @@ public:
        pPtr=nullptr;
        return;
    }
-
+*/
    bool exists(long pIdx){if ((pIdx<0)||(pIdx>lastIdx())) return false; return true;}
 
 //#else
@@ -351,7 +353,7 @@ public:
 
     size_t bzero (size_t pOrig=0, long pNumber=-1, bool pLock=true);
     void reset(void);
-    void clear(bool pLock=true);
+    virtual void clear(bool pLock=true);
 
     ZArray<_Tp>* clone(void);
 

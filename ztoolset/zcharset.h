@@ -1352,16 +1352,16 @@ template <class _Utf=char>
 const _Utf* utfStrrchr(const _Utf* wStr,const _Utf wChar);
 
 template <class _Utf=char>
-_Utf* utfStrstr(_Utf *string,_Utf* substring);
+_Utf* utfStrstr(const _Utf *string,_Utf* substring);
 
 template <class _UTF=char>
-int utfStrcmp(_UTF* pString1, _UTF* pString2,int pMaxSize);
+int utfStrcmp(const _UTF* pString1, _UTF* pString2,int pMaxSize);
 
 template <class _UTF=char>
-int utfStrncmp(_UTF* pString1, _UTF* pString2,int pMaxSize);
+int utfStrncmp(const _UTF* pString1, _UTF* pString2,int pMaxSize);
 
 template <class _UTF=char>
-int utfStrncasecmp(_UTF* pString1, _UTF* pString2,int pMaxSize);
+int utfStrncasecmp(const _UTF* pString1, _UTF* pString2,int pMaxSize);
 
 template <class _Utf=char>
 const _Utf* utfFindLastNonChar(const _Utf *pContent,_Utf pChar);

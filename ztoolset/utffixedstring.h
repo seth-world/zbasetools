@@ -51,6 +51,11 @@ public:
         if (wSt != UST_SUCCESS)
             fprintf(stderr, "utf8FixedString-E-IVSTR Utf8 string is invalid <%s>\n",pString);
     }
+    utf8FixedString(const char *pString)
+        : utftemplateString<_Sz, utf8_t>(ZType_Utf8FixedString, ZCHARSET_UTF8)
+    {
+        _Base::strSetV(pString);
+    }
     using _Base::operator=;
     using _Base::operator!=;
     using _Base::operator+=;

@@ -18,6 +18,8 @@
 
 #include <openssl/sha.h>
 
+#include <ztoolset/zutfstrings.h>
+
 /**
  * @brief checkSum::compute computes/recomputes SHA256 checksum.
  * @param pInBuffer
@@ -40,45 +42,71 @@ checkSum::compute(ZDataBuffer &pDataBuffer)
 */
 
 checkSum &
-checkSum::fromHex(const char* pInput, const size_t pSize)
+checkSum::fromHexa(const char* pInput, const size_t pSize)
 {
 _MODULEINIT_
-    if (pSize <= cst_checksumHex)
+    if (pSize <= cst_checksumHexa)
                     {
                 fprintf(stderr,
                         "%s-F-INVSIZ Fatal Error : invalid size of input string from Hexadecimal convertion.\n"
-                        " Checksum hexadecimal string size must be greater than %ld\n",
+                        " Checksum hexadecimal string size must be greater than or equal to <%d>\n",
                         _GET_FUNCTION_NAME_,
-                        cst_checksumHex);
+                        cst_checksumHexa);
                 _ABORT_
                     }
     char wBuf[3];
     wBuf[2]='\0';
-    for(int wi=0; wi<cst_checksumHex;wi++)
+    for(int wi=0; wi<cst_checksumHexa;wi++)
                 {
                 ::strncpy(wBuf,(const char*)&pInput[wi*2],2);
                 content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
                 }
     _RETURN_ (*this);
-}//fromHex
+} //fromHexa
+
+checkSum &checkSum::fromHexa(const char *pInput)
+{
+    _MODULEINIT_
+    size_t wSize = ::strlen(pInput);
+    if (wSize < cst_checksumHexa)
+    {
+        fprintf(stderr,
+            "%s-F-INVSIZ Fatal Error : invalid size of input string from Hexadecimal convertion.\n"
+            " Checksum hexadecimal string size must be greater than or equal to <%d>\n",
+            _GET_FUNCTION_NAME_,
+            cst_checksumHexa);
+        _ABORT_
+    }
+    char wBuf[3];
+    wBuf[2]='\0';
+    for(int wi=0; wi < cst_checksumHexa;wi++)
+    {
+        ::strncpy(wBuf,(const char*)&pInput[wi*2],2);
+        content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
+    }
+    _RETURN_ (*this);
+}//fromHexa
 
 bool
-checkSum::compareHex(const char* pDesc)
+checkSum::compareHexa(const char* pDesc)
 {
-    return(::strncmp(toHex(),pDesc,cst_checksumHex));
+    checkSum wComp;
+    wComp.fromHexa(pDesc, strlen(pDesc));
+    return memcmp(content, wComp.content, cst_checksum) == 0;
+//    return(::strncmp(toHexa(),pDesc,cst_checksumHex));
 }
 
 
 const char*
-checkSum::toHex(void)
+checkSum::toHexa(void)
 {
 int wi;
     for(wi = 0; wi < cst_checksum; wi++)
-         std:sprintf(&StrHexa[wi*2],"%02X", (unsigned int)content[wi]);
+        std::sprintf(&StrHexa[wi*2],"%02X", (unsigned int)content[wi]);
     return(StrHexa);
 }
 
-bool checkSum::operator == (const char* pInput) {return(::strncmp(toHex(),pInput,cst_checksumHex));}
+bool checkSum::operator == (const char* pInput) {return(::strncmp(toHexa(),pInput,cst_checksumHexa+2));}
 
 #include <ztoolset/ztypetype.h>
 
