@@ -143,6 +143,7 @@ public:
     }
     utftemplateString(const utftemplateString& pIn) {_copyFrom(pIn);}
     utftemplateString(const utftemplateString&& pIn) {_copyFrom(pIn);}
+
     utftemplateString& operator = (const utftemplateString& pIn) {return _copyFrom(pIn); }
     utftemplateString& operator = (const utftemplateString&& pIn) {return _copyFrom(pIn); }
 
@@ -234,7 +235,7 @@ public:
     /* following is set to able to compare any utf varying string with a char string : it will be set within derived classes */
     /* Remark : this template definition has to remain here */
     template <class _Utf1>
-    int compareV(const _Utf1* pString2)
+    int compareV(const _Utf1* pString2) const
     {
     _Utf wCChar;
     if (pString2==nullptr)
@@ -593,18 +594,19 @@ public:
      //utftemplateString<_Sz,_Utf>& operator += (const char * pString) {return addCString(pString);}
 
 
-     bool operator == (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)==0);}
-     bool operator != (const utftemplateString<_Sz,_Utf> &pCompare) { return(!compare(pCompare.content)==0);}
-     bool operator != (const char* &pCompare) { return(!compareV<char>(pCompare)==0);}
-     bool operator > (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)>0);}
-     bool operator < (const utftemplateString<_Sz,_Utf> &pCompare) { return(compare(pCompare.content)<0);}
+     bool operator == (const utftemplateString<_Sz,_Utf> &pCompare) const  { return(compare(pCompare.content)==0);}
+     bool operator == (const utftemplateString<_Sz,_Utf>&& pCompare) const { return(compare(pCompare.content)==0);}
+     bool operator != (const utftemplateString<_Sz,_Utf> &pCompare) const { return(!compare(pCompare.content)==0);}
+     bool operator != (const char* pCompare) const { return(!compareV<char>(pCompare)==0);}
+     bool operator > (const utftemplateString<_Sz,_Utf> &pCompare) const { return(compare(pCompare.content)>0);}
+     bool operator < (const utftemplateString<_Sz,_Utf> &pCompare) const { return(compare(pCompare.content)<0);}
 
-     bool operator == (const _Utf *pCompare) { return(compare(pCompare)==0);}
-     bool operator == (const char *pCompare) { return(compareV<char>(pCompare)==0);}
+     bool operator == (const _Utf *pCompare) const { return(compare(pCompare)==0);}
+     bool operator == (const char *pCompare) const { return(compareV<char>(pCompare)==0);}
 
-     bool operator != (const _Utf *pCompare) { return!(compare(pCompare)==0);}
-     bool operator > (const _Utf *pCompare) { return(compare(pCompare)>0);}
-     bool operator < (const _Utf *pCompare) { return(compare(pCompare)<0);}
+     bool operator != (const _Utf *pCompare) const { return!(compare(pCompare)==0);}
+     bool operator > (const _Utf *pCompare) const { return(compare(pCompare)>0);}
+     bool operator < (const _Utf *pCompare) const { return(compare(pCompare)<0);}
 
 
 ZDataBuffer* toZDataBuffer(void)

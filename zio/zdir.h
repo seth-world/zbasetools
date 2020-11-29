@@ -97,6 +97,10 @@ public:
     ZDir(const ZDir &&pIn) { _copyFrom(pIn); }
 
     ZDir(const uriString &pIn) { setPath(pIn); }
+#ifdef QT_CORE_LIB
+    ZDir(const QString pIn) { setPath(pIn); }
+#endif
+
 
     ~ZDir()
     {
@@ -122,10 +126,23 @@ public:
     ZStatus setPath (const uriString& pPath);
     ZStatus setPath (const uriString&& pPath);
 
+
+
     /** @brief readDir() */
     ZStatus dir( uriString &pDirEntry, ZDir_File_type pZDFT=ZDFT_All);
     ZStatus dirNext(uriString &pDirEntry);
     void _closeReadDir();
+
+    static int countElements(uriString &pDirEntry,ZDir_File_type pZDFT=ZDFT_All);
+
+#ifdef QT_CORE_LIB
+    ZStatus setPath (const QString pPath);
+    static int countElements(const QString pDirEntry,ZDir_File_type pZDFT=ZDFT_All);
+//    static int count(QString &&pDirEntry,ZDir_File_type pZDFT)
+//    {
+//      return count((QString&)pDirEntry,pZDFT);
+//    }
+#endif
 
     ZStatus dirAll(zbs::ZArray<uriString> &pDirArray, ZDir_File_type pZDFT = ZDFT_All);
 

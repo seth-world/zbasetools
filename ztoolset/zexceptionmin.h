@@ -167,6 +167,7 @@ public:
 
     void setComplement (const char *pFormat,...);
     void setComplement (const char *pFormat,va_list arglist);
+    void setComplementToStatus();
 
 
 //    void printExceptionContent(FILE *pOutput=stderr);
@@ -181,6 +182,8 @@ public:
 
 #ifdef QT_CORE_LIB
     void setComplementQS (QString pQS);
+
+
 
     QString formatUserMessage (void);
 
@@ -331,6 +334,7 @@ public:
     void setMessage (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
     void setMessageCplt (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
     void setComplement (const char *pFormat,...);
+    void setComplementToZStatus();
 //    void setFromZNetException(const char *pModule,const ZNetException *pZException);
     void exit_abort(void);
     void zthrow(ZExceptionBase *pException);

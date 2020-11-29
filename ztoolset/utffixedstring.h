@@ -117,7 +117,7 @@ public:
 
 #ifdef QT_CORE_LIB
 
-    QString toQString(void) {return QString::fromUtf8((const char*)_Base::content,_Base::getUnitCount());}
+    QString toQString(void) const  {return QString::fromUtf8((const char*)_Base::content);}
     utf8FixedString<_Sz>& fromQString(QString pQStr) {_Base::strset((utf8_t*)pQStr.toUtf8().data()); return *this;}
     utf8FixedString<_Sz>& appendQString(QString pQString) {_Base::add((utf8_t*)pQString.toUtf8().data()); return this;}
 

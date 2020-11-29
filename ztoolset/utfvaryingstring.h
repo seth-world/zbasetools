@@ -92,7 +92,9 @@ typedef utf8_t                  _UtfBase;
     utf8VaryingString&  fromStdString(std::string& pIn) {strset((const utf8_t*)pIn.c_str()); return *this;}
 
 
-    /**
+
+
+/**
  * @brief utfVaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
  *
  *  Encode the exact content length of utfVaryingString given by Size, including termination character ('\0').
@@ -130,10 +132,17 @@ typedef utf8_t                  _UtfBase;
 
 #ifdef QT_CORE_LIB
 
+    QByteArray toQByteArray(void) { return (QByteArray (toCChar())); }
+    QString toQString(void)      {return QString(toCChar());}
+
     const utf8VaryingString & operator = (const QString pQString) { return fromQString(pQString);}
 
-    const QString toQString() {return QString(toCString_Strait());}
-    const utf8VaryingString & fromQString(const QString pQString) {_Base::strset(((const utf8_t*)pQString.toUtf8().data())); return *this;}
+//    const QString toQString() {return QString(toCString_Strait());}
+    const utf8VaryingString & fromQString(const QString pQString)
+    {
+      _Base::strset(((const utf8_t*)pQString.toUtf8().data()));
+      return *this;
+    }
 
 #endif
 
@@ -203,7 +212,30 @@ typedef utf16_t                  _UtfBase;
     utf32VaryingString *toUtf32(utf32VaryingString &pUtf32);
 
     utf16VaryingString& getLittleEndian(utf16VaryingString& pLittleEndian);
-    utf16VaryingString& getBigEndian(utf16VaryingString& pBigEndian);
+    utf16VaryingString &getBigEndian(utf16VaryingString &pBigEndian);
+
+#ifdef QT_CORE_LIB
+
+    QByteArray toQByteArray(void) {
+      utf8VaryingString wUtf8;
+      wUtf8.fromUtf16(toUtf());
+      return (QByteArray(wUtf8.toCChar()));
+    }
+    QString toQString(void) { return QString((const QChar *)toUtf()); }
+
+    const utf16VaryingString &operator=(const QString pQString) {
+      return fromQString(pQString);
+    }
+
+    //    const QString toQString() {return QString(toCString_Strait());}
+    const utf16VaryingString &fromQString(const QString pQString)
+    {
+      fromUtf16((const utf16_t*)pQString.data());
+      return *this;
+    }
+
+#endif
+
 
     bool operator == (const char* pIn) { return compareV<char>(pIn); }
     bool operator != (const char* pIn) { return !compareV<char>(pIn); }
@@ -282,7 +314,31 @@ typedef utf32_t                  _UtfBase;
      * @param pBigEndian an utf32VaryingString that will receive cloned data, converted to big endian if necessary.
      * @return utf32VaryingString with a certified big endian content : content is preceeded by a BOM
      */
-    utf32VaryingString& getBigEndianWBOM(utf32VaryingString& pBigEndian);
+    utf32VaryingString &getBigEndianWBOM(utf32VaryingString &pBigEndian);
+
+#ifdef QT_CORE_LIB
+
+    QByteArray toQByteArray(void) {
+      utf8VaryingString wUtf8;
+      wUtf8.fromUtf32(toUtf());
+      return (QByteArray(wUtf8.toCChar()));
+    }
+    QString toQString(void) {
+      QString wQS;
+      wQS.fromUcs4(toUtf());
+      return wQS;
+    }
+
+    const utf32VaryingString & operator = (const QString pQString) { return fromQString(pQString);}
+
+    //    const QString toQString() {return QString(toCString_Strait());}
+    const utf32VaryingString & fromQString(const QString pQString)
+    {
+      fromUtf16((const utf16_t*)pQString.data());
+      return *this;
+    }
+#endif
+
 
     bool operator == (const char* pIn) { return compareV<char>(pIn); }
     bool operator != (const char* pIn) { return !compareV<char>(pIn); }

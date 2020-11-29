@@ -122,7 +122,7 @@ ZDir        wDir;
  * @brief uriString::fileList creates a new content list with regular files contained within directory pointed by current uriString content.
  * @param pList a pointer to a ZArray of uriString. This pointer will be intialized within routine with the appropriate ZArray<uriString> object,
  * then populated.
- * if directory is empty or has no subdirectory then ZS_SUCCESS is returned, pList is instanciated with an empty ZArray<uriString>.
+ * if directory is empty or has no subdirectory then ZS_SUCCESS is returned, pList is instantiated with an empty ZArray<uriString>.
  *
  * @return a ZStatus set to ZS_SUCCESS if everything went OK, pList is loaded with the appropriate entries.
  *  - ZS_BADFILETYPE is not a directory

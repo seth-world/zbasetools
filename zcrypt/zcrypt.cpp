@@ -19,6 +19,8 @@
 #include <ztoolset/zutfstrings.h>
 #include <ztoolset/zdatabuffer.h>
 
+const char cst_ReplacementChar = '.';
+
 
 //#include <ztoolset/zbasedatatypes.h>
 //#include <ztoolset/zdatabuffer.h>
@@ -709,7 +711,39 @@ size_t calcDecodeLengthB64(const unsigned char* b64input,size_t pSize)  //Calcul
     return (len*3)/4 - padding;
 }// calcDecodeLengthB64
 
+
+
+
 /* crypting key & vector */
+
+
+void ZCryptKeyAES256::set(const unsigned char *pkey)
+{
+  const unsigned char *wPtrIn =  pkey;
+  unsigned char *wPtr = content;
+  size_t wi = 0;
+  while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
+    content[wi] = wPtrIn[wi];
+    wi++;
+  }
+  while (wi < cst_AES256cryptKeySize)
+    content[wi++] = 0;
+  return;
+}
+
+void ZCryptKeyAES256::set(const char *pkey)
+{
+  const unsigned char *wPtrIn = (const unsigned char *) pkey;
+  unsigned char *wPtr = content;
+  size_t wi = 0;
+  while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
+    content[wi] = wPtrIn[wi];
+    wi++;
+  }
+  while (wi < cst_AES256cryptKeySize)
+    content[wi++] = 0;
+  return;
+}
 
 ZDataBuffer ZCryptKeyAES256::toB64()
 {
@@ -733,6 +767,27 @@ int ZCryptKeyAES256::fromB64(ZDataBuffer &pZDB)
     }
     memmove(content, pZDB.Data, cst_AES256cryptKeySize);
     return 0;
+}
+
+utf8VaryingString ZCryptKeyAES256::toStr()
+{
+    utf8VaryingString wReturn;
+    wReturn.allocateUnitsBZero(cst_AES256cryptKeySize + 1);
+    int wi;
+    for (wi = 0; wi < cst_AES256cryptKeySize; wi++)
+          if ((content[wi]<32)||(content[wi]>122))
+            wReturn.DataByte[wi] = cst_ReplacementChar;
+          else
+            wReturn.DataByte[wi] = content[wi];
+    /*
+        if (isalpha((int) content[wi]))
+            wReturn.DataByte[wi] = content[wi];
+        else
+            wReturn.DataByte[wi] = cst_ReplacementChar;
+*/
+
+    wReturn.DataByte[cst_AES256cryptKeySize] = 0; // not necessary because allocateBZeroed
+    return wReturn;
 }
 
 utf8VaryingString ZCryptKeyAES256::toHexa()
@@ -766,7 +821,71 @@ int ZCryptKeyAES256::fromHexa(const utf8VaryingString &pHexa)
     return 0;
 }//ZCryptKeyAES256::fromHexa
 
+
+/* 33-126 : range 93   excluding space (32) */
+
+/*
+ * [48-57] ; [64-90] ; [97-122]
+
+48 - 122 -> 74
+
+wrong 58 - 63   91 - 96
+                       */
+
+inline unsigned char genRndChar()
+{
+//  std::srand(std::time(nullptr)); this must be done externally to the routine
+
+//  char wC = std::rand() % 93 + 33 ;
+//  while ((wC < 32)||(wC > 126))
+    unsigned char wC= std::rand() % 74 + 48;
+    while (((wC > 57)&&(wC <64))||((wC>90)&&(wC<97)))
+          wC= std::rand() % 74 + 48;
+  return wC;
+
+//  return std::rand() % 74 + 48 ;
+}
+
+ZCryptKeyAES256 ZCryptKeyAES256::generate()
+{
+ZCryptKeyAES256 wK;
+  std::srand(std::time(nullptr));
+  for (int wi=0;wi < cst_AES256cryptKeySize;wi++ )
+    wK.content[wi]=genRndChar();
+
+  return wK;
+}
+
+
+
 /* crypting vector */
+void ZCryptVectorAES256::set(const unsigned char *pVector)
+{
+  const unsigned char *wPtrIn = (const unsigned char *) pVector;
+  unsigned char *wPtr = content;
+  size_t wi = 0;
+  while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
+    content[wi] = wPtrIn[wi];
+    wi++;
+  }
+  while (wi < cst_AES256cryptVectorSize)
+    content[wi++] = 0;
+  return;
+}
+
+void ZCryptVectorAES256::set(const char *pVector)
+{
+  const unsigned char *wPtrIn = (const unsigned char *) pVector;
+  unsigned char *wPtr = content;
+  size_t wi = 0;
+  while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
+    content[wi] = wPtrIn[wi];
+    wi++;
+  }
+  while (wi < cst_AES256cryptVectorSize)
+    content[wi++] = 0;
+  return;
+}
 
 ZDataBuffer ZCryptVectorAES256::toB64()
 {
@@ -801,6 +920,40 @@ utf8VaryingString ZCryptVectorAES256::toHexa()
         std::sprintf((char *) &wReturn.DataByte[wi * 2], "%02X", (unsigned int) content[wi]);
     return (wReturn);
 }
+
+
+
+ZCryptVectorAES256 ZCryptVectorAES256::generate()
+{
+  ZCryptVectorAES256 wK;
+//  std::srand(std::time(nullptr));
+  for (int wi=0;wi < cst_AES256cryptVectorSize;wi++ )
+    wK.content[wi]=genRndChar();
+
+  return wK;
+}
+
+utf8VaryingString ZCryptVectorAES256::toStr()
+{
+    utf8VaryingString wReturn;
+    wReturn.allocateUnitsBZero(cst_AES256cryptVectorSize + 1);
+    int wi;
+    for (wi = 0; wi < cst_AES256cryptVectorSize; wi++)
+      if ((content[wi]<32)||(content[wi]>122))
+            wReturn.DataByte[wi] = cst_ReplacementChar;
+          else
+            wReturn.DataByte[wi] = content[wi];
+
+/*        if (isalpha((int) content[wi]))
+            wReturn.DataByte[wi] = content[wi];
+        else
+            wReturn.DataByte[wi] = cst_ReplacementChar;
+*/
+    wReturn.DataByte[cst_AES256cryptVectorSize] = 0; // not necessary because allocateBZeroed
+    return wReturn;
+}
+
+
 int ZCryptVectorAES256::fromHexa(const utf8VaryingString &pHexa)
 {
     size_t wSize = (cst_AES256cryptVectorSize * 2);
@@ -822,5 +975,10 @@ int ZCryptVectorAES256::fromHexa(const utf8VaryingString &pHexa)
     }
     return 0;
 }//ZCryptVectorAES256::fromHexa
+
+
+
+
+
 
 #endif // ZCRYPT_CPP

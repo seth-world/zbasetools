@@ -497,10 +497,7 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
 
 
 
-#ifdef QT_CORE_LIB
-   QByteArray toQByteArray(void) { return (QByteArray ((char *)Data,ByteSize)); }
-   QString toQString(void)      {return QString(toQByteArray());}
-#endif // QT_CORE_LIB
+
    ssize_t bsearch (void *pKey, const size_t pKeyByteSize, const size_t pOffset=0);
    ssize_t bsearch(utfVaryingString &pKey,const size_t pOffset=0);
 

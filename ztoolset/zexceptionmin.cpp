@@ -528,7 +528,11 @@ void ZExceptionBase::setComplement (const char *pFormat,va_list arglist)
 //        va_end(args);
 return;
 }
-
+void ZExceptionBase::setComplementToStatus()
+{
+    Complement.sprintf("Status is <%s>", decode_ZStatus(Status));
+    return;
+}
 /**
  * @brief ZExceptionMin::setComplement sets up the complement zone of ZException.
  *                  This information is generally coming from lower layers, and gives a more detailed explanaition
@@ -560,6 +564,24 @@ va_start (args, pFormat);
                                 exit_abort();
 return;
 }
+
+
+void ZExceptionMin::setComplementToZStatus()
+{
+#if __USE_ZTHREAD__
+    _Mtx.lock();
+#endif
+    ZExceptionStack::last()->setComplementToStatus();
+#if __USE_ZTHREAD__
+    _Mtx.unlock();
+#endif
+    if (ZExceptionStack::last()->Severity >= ThrowOnSeverity)
+        zthrow (ZExceptionStack::last());
+    if (ZExceptionStack::last()->Severity >= AbortOnSeverity)
+        exit_abort();
+    return;
+}
+
 
 void ZExceptionMin::clearStack(void)
 {

@@ -1,6 +1,10 @@
 #ifndef ZDIR_CPP
 #define ZDIR_CPP
 
+#ifdef QT_CORE_LIB
+#include <QString>
+#endif
+
 #include <zio/zdir.h>
 #include <ztoolset/uristring.h>
 
@@ -22,6 +26,45 @@ ZStatus ZDir::setPath(const uriString &&pPath)
 {
     return setPath((const char *)pPath.content);
 }
+
+int ZDir::countElements(uriString &pDirEntry,ZDir_File_type pZDFT)
+{
+  ZDir wDir(pDirEntry);
+  uriString wEntry;
+  ZStatus wSt=ZS_SUCCESS;
+  int wCount=0;
+  while ((wSt=wDir.dir(wEntry,pZDFT))==ZS_SUCCESS)
+    wCount++;
+
+    return wCount;
+}//count
+#ifdef QT_CORE_LIB
+int ZDir::countElements(const QString pDirEntry, ZDir_File_type pZDFT)
+{
+  uriString wEntry;
+  wEntry=pDirEntry;
+  return ZDir::countElements(wEntry,pZDFT);
+}//count
+
+ZStatus
+ZDir::setPath(const QString pPath)
+{
+  this->strset((const utf8_t*)pPath.toUtf8().data());
+  _SystDir=opendir((const char*)content);
+  if (_SystDir==nullptr)
+  {
+    ZException.getErrno(-1,
+        _GET_FUNCTION_NAME_,
+        ZS_NOTDIRECTORY,
+        Severity_Error,
+        "Error setting directory path to <%s>",
+        content);
+    return ZS_NOTDIRECTORY;
+  }
+  return ZS_SUCCESS;
+}
+#endif //QT_CORE_LIB
+
 ZStatus
 ZDir::setPath(const char *pPath)
 {
@@ -125,8 +168,12 @@ It is recommended that applications use readdir(3) instead of
         errno = 0;
         wDirEntry = readdir(_SystDir);
         wRet = errno; /* save errno */
-        if (wDirEntry == nullptr) // error or end of directory
+        if (wDirEntry == nullptr) // error (errno is then set) or end of directory entry list
             break;
+        if ( strcmp(wDirEntry->d_name,".")==0) /*  skip unix two 'dot - dotdot' files */
+          continue;
+        if ( strcmp(wDirEntry->d_name,"..")==0)
+          continue;
         pDirEntry.clear();
         pDirEntry = *this;
         pDirEntry.addConditionalDirectoryDelimiter();
@@ -213,6 +260,10 @@ It is recommended that applications use readdir(3) instead of
         wRet = errno; /* save errno */
         if (wDirEntry == nullptr) // error or end of directory
             break;
+        if ( strcmp(wDirEntry->d_name,".")==0) /*  skip unix two 'dot - dotdot' files */
+          continue;
+        if ( strcmp(wDirEntry->d_name,"..")==0)
+          continue;
 
         switch (ZDFT) {
         case ZDFT_All:

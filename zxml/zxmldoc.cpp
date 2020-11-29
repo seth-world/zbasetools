@@ -93,6 +93,10 @@ void XMLderegister(zxmlNode *&pNode)
 {
     _xmlGlobal.deregister(pNode);
 }
+void XMLderegister(zxmlElement *&pNode)
+{
+    return XMLderegister((zxmlNode * &) pNode);
+}
 void XMLderegister(zxmlAttribute *&pNode)
 {
     _xmlGlobal.deregister(pNode);

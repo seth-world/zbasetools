@@ -965,7 +965,7 @@ utfFormatInteger(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 
         } while (wUvalue);
 
-    if (pFmtFlags & FMTF_Hexa)
+/*    if (pFmtFlags & FMTF_Hexa)
         {
         if ((wPlace + 3) >= (int)wCAlloc )
             {
@@ -979,7 +979,8 @@ utfFormatInteger(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         wConvert[wPlace++] = (_Utf) __ZERO__;
         }//if (pFmtFlags & FMTF_Hexa)
 
-    else if (pFmtFlags & FMTF_Octal)
+    else
+      if (pFmtFlags & FMTF_Octal)
         {
         if ((wPlace + 3) >= (int)wCAlloc )
             {
@@ -992,7 +993,7 @@ utfFormatInteger(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
                 wConvert[wPlace++] = (_Utf) __X_LOW__;
         wConvert[wPlace++] = (_Utf) __O_LOW__;
         }//if (pFmtFlags & FMTF_Octal)
-
+*/
     wConvert[wPlace] = (_Utf)__ENDOFSTRING__;
 
     wZpadlen = pFieldMax - wPlace;
@@ -2922,12 +2923,12 @@ _MODULEINIT_
                         wPadlen = -wPadlen;       /* Left Justifty */
         if ((pFmtFlags & FMTF_ZeroPad) && (wPadlen > 0))
             {
-            utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__ZERO__);
+/*            utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__ZERO__);
             if (pFmtFlags&FMTF_Uppercase)
                 utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__X_UPPER__);
             else
                 utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__X_LOW__);
-            if (wSignvalue)
+*/            if (wSignvalue)
                 {
                 utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, wSignvalue);
                 --wPadlen;
@@ -3122,12 +3123,12 @@ _MODULEINIT_
 
     if ((pFmtFlags & FMTF_ZeroPad) && (wPadlen > 0))
         {
-        utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__ZERO__);
+/*        utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__ZERO__);
         if (pFmtFlags&FMTF_Uppercase)
             utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__X_UPPER__);
         else
             utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__X_LOW__);
-        if (wSignvalue)
+*/        if (wSignvalue)
             {
             utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, wSignvalue);
             --wPadlen;
@@ -3147,11 +3148,11 @@ _MODULEINIT_
         }
     if (wSignvalue)
         utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, wSignvalue);
-    utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__ZERO__);
+/*    utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__ZERO__);
     if (pFmtFlags&FMTF_Uppercase)
         utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__X_UPPER__);
     else
-        utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__X_LOW__);
+        utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__X_LOW__);*/
     }// else
 
 

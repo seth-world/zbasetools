@@ -385,14 +385,15 @@ const char * decode_ZStatus (ZStatus ZS)
                 return ("ZS_LOCKCREATE");  // resource is locked while being in creation and cannot be accessed
             }
 
-    case ZS_LOCKWRITEDELETE :
+    case ZS_LOCKENTITY :
             {
                 return ("ZS_LOCKWRITEDELETE");  // resource is locked and cannot be accessed
             }
-    case ZS_LOCKALL :
+/*    case ZS_LOCKALL :
             {
                 return ("ZS_LOCKALL");  // resource is locked and cannot be accessed
             }
+*/
     case ZS_LOCKBADOWNER :
             {
                 return ("ZS_LOCKBADOWNER");  //  Owner requesting lock modification is not the owner of the lock
@@ -409,7 +410,7 @@ const char * decode_ZStatus (ZStatus ZS)
             {
                 return ("ZS_LOCKINTERR");  // Bad lock id : no corresponding lock in lockmanager database
             }
-    case  ZS_LOCKINVALID :
+    case  ZS_LOCKALREADY :
             {
                 return ("ZS_LOCKINVALID");
             }

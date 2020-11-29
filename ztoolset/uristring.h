@@ -98,6 +98,13 @@ public:
     uriString(void) = default;
     uriString(const uriString &pIn) : _Base(pIn) {}
     uriString(const uriString &&pIn) : _Base(pIn) {}
+#ifdef QT_CORE_LIB
+    uriString(const QString pIn)
+    {
+      fromQString(pIn);
+    }
+#endif
+
 
     uriString &operator=(const uriString &pIn) { return (uriString&)_Base::operator=(pIn);}
     uriString &operator=(const uriString &&pIn) { return (uriString&)_Base::operator=(pIn); }
@@ -215,6 +222,20 @@ public:
 //    ZStatus writeText (varyingCString &pDBS) ;
 
     bool    exists(void)  ;
+    /**
+ * @brief uriString::suppress  suppresses the file pointed to by uriString content.
+ *
+ * - ZS_ACCESSRIGHTS : if file exists but cannot be suppressed due to accesrights limitation
+ * - ZS_LOCKED : the file exists but cannot be suppressed due to lock by another process/user
+ * - ZS_FILENOTEXIST : the file does not exist
+ * - ZS_ERROR : other error
+ *
+ * - ZS_SUCCESS : file has been successfully removed.
+ *
+ * @note no exception is set by this routine
+ *
+ * @return a ZStatus
+ */
     ZStatus suppress(void)  ;
 
 

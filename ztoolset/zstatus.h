@@ -105,17 +105,35 @@ enum ZStatus: ZStatusBase
 
 //                                           2X--------------> available for lock management status with prefix mask = 0x20
                 ZS_LOCKED             = -0x00200000,        //< resource is locked and cannot be accessed
-                ZS_LOCKREAD           = -0x00210000,        //< resource is locked for reading
-                ZS_LOCKWRITE          = -0x00220000,        //< resource is locked for writing
-                ZS_LOCKDELETE         = -0x00240000,        //< resource is locked for deleting
-                ZS_LOCKCREATE         = -0x00250000,        //< resource is locked being created
-                ZS_LOCKALL            = -0x00270000,        //< resource is locked for reading writing deleting
-                ZS_LOCKWRITEDELETE    = -0x00230000,        //< resource is locked for reading writing deleting
+                ZS_LOCKDELETE         = -0x00200001,        //< resource is locked for deleting
+                ZS_LOCKWRITE          = -0x00200003,        //< resource is locked for writing and deletion : read only allowed
+                ZS_LOCKREAD           = -0x00200007,        //< resource is locked for read write and delete
+
+                ZS_LOCKALL            = -0x00200007,        //< resource is locked for reading writing deleting : alias of ZS_LOCKREAD
+
+                ZS_LOCKCREATE         = -0x00210000,        //< resource is locked being created
+                ZS_LOCKENTITY         = -0x00220000,        //< the whole entity is locked
+
                 ZS_LOCKBADOWNER       = -0x00280000,        //< Owner requesting lock modification is not the owner of the lock
                 ZS_LOCKBADID          = -0x00280001,        //< Bad lockid given : no corresponding active lock in Lockmanager database
                 ZS_LOCKPENDING        = -0x00300000,        //< Lock is pending and has not yet been activated. It will be activated as soon as resource will be freed
                 ZS_LOCKINTERR         = -0x00310000,        //< Lock internal error
-                ZS_LOCKINVALID        = -0x00320000,        //< User has already locked the resource and tries to lock again the same resource
+                ZS_LOCKALREADY        = -0x00320000,        //< User has already locked the resource and tries to lock again the same resource
+
+    /*
+     *     ZLock_Nothing   = 0,            //!< NOP
+    ZLock_Nolock    = 0,            //!< no lock has been requested for this resource
+    ZLock_Read      = 0x02,         //!< cannot read the resource
+    ZLock_Modify    = 0x04,         //!< cannot write/modify the resource
+    ZLock_Write     = ZLock_Modify, //!< idem for easy naming use
+    ZLock_Delete    = 0x08,         //!< cannot delete resource. Can read everything and modify -except indeed the resource identification-
+    ZLock_All       = ZLock_Read|ZLock_Write|ZLock_Delete,          //!< cannot do anything
+    ZLock_Exclusive = 0x10,         //!< for compatibility with ZRF_Exclusive
+    ZLock_ReadWrite = ZLock_Read | ZLock_Modify,  //!< self explainatory
+    ZLock_WriteDelete = ZLock_Write | ZLock_Delete,  //!< cannot write or delete record or file : only read is allowed
+    ZLock_Omitted   = 0xFF         //!< Lock is deliberately omitted as an argument
+*/
+
 
                 ZS_MODEINVALID        = -0x00400000,        //< File open mode does not allow current access attempt. Example file open mode = ZRF_ReadOnly and attempt to _insertFirstPhasePrepare()
 

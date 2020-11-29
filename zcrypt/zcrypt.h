@@ -58,32 +58,14 @@ public:
     unsigned char content[cst_AES256cryptKeySize];
     unsigned char* get(void) {return content;}
 
-    void set(const unsigned char *pkey)
-    {
-        const unsigned char *wPtrIn =  pkey;
-        unsigned char *wPtr = content;
-        size_t wi = 0;
-        while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
-            content[wi] = wPtrIn[wi];
-            wi++;
-        }
-        while (wi < cst_AES256cryptKeySize)
-            content[wi++] = 0;
-        return;
-    }
-    void set(const char *pkey)
-    {
-        const unsigned char *wPtrIn = (const unsigned char *) pkey;
-        unsigned char *wPtr = content;
-        size_t wi = 0;
-        while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
-            content[wi] = wPtrIn[wi];
-            wi++;
-        }
-        while (wi < cst_AES256cryptKeySize)
-            content[wi++] = 0;
-        return;
-    }
+  /** @brief set()  assigns a content to crypting key : content must have cst_AES256cryptKeySize */
+
+    void set(const unsigned char *pkey);
+    void set(const char *pkey);
+
+    static ZCryptKeyAES256 generate();
+
+
     ZCryptKeyAES256 &operator=(const ZCryptKeyAES256 &pIn)
     {
         memmove(content,pIn.content,cst_AES256cryptKeySize);
@@ -100,11 +82,14 @@ public:
         return *this;
     }
 
+    utf8VaryingString toStr();
+
     ZDataBuffer toB64();
     int fromB64(ZDataBuffer &pZDB);
 
     utf8VaryingString toHexa();
     int fromHexa(const utf8VaryingString &pHexa);
+
 
     void clear() { memset(content, 0, cst_AES256cryptKeySize);}
 };
@@ -121,33 +106,10 @@ public:
     unsigned char content[cst_AES256cryptVectorSize];
     unsigned char* get(void) {return content;}
 
-    void set(const unsigned char *pVector)
-    {
-        const unsigned char *wPtrIn = (const unsigned char *) pVector;
-        unsigned char *wPtr = content;
-        size_t wi = 0;
-        while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
-            content[wi] = wPtrIn[wi];
-            wi++;
-        }
-        while (wi < cst_AES256cryptVectorSize)
-            content[wi++] = 0;
-        return;
-    }
-    //    void set(const char *pVector) { memmove(content, pVector, cst_AES256cryptVectorSize); }
-    void set(const char *pVector)
-    {
-        const unsigned char *wPtrIn = (const unsigned char *) pVector;
-        unsigned char *wPtr = content;
-        size_t wi = 0;
-        while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
-            content[wi] = wPtrIn[wi];
-            wi++;
-        }
-        while (wi < cst_AES256cryptVectorSize)
-            content[wi++] = 0;
-        return;
-    }
+    /** @brief set()  assigns a content to crypting vector : content must have cst_AES256cryptVectorSize */
+    void set(const unsigned char *pVector);
+    void set(const char *pVector);
+
 
     ZCryptVectorAES256 &operator=(const ZCryptVectorAES256 &pIn) { memmove(content, pIn.content, cst_AES256cryptVectorSize); return *this;}
     ZCryptVectorAES256 &operator=(const ZCryptVectorAES256 &&pIn) { set(pIn.content); return *this;}
@@ -158,6 +120,10 @@ public:
         return *this;
     }
     void clear() { memset(content, 0, cst_AES256cryptVectorSize);}
+
+    static ZCryptVectorAES256 generate();
+
+    utf8VaryingString toStr();
 
     ZDataBuffer toB64();
     int fromB64(ZDataBuffer &pZDB);
