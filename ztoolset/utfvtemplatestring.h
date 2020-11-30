@@ -232,7 +232,12 @@ public:
 
     void freeData(void);
 
-    const _Utf* toUtf(void) {return Data;}
+    const _Utf* toUtf(void)
+    {
+      if (Data==nullptr)
+        return (const _Utf*)"";
+      return Data;
+    }
 
 /*  string routines : strcpy is replaced by strset - strcat is replaced by stradd, etc. */
 

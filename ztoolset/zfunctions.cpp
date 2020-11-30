@@ -462,6 +462,23 @@ const char * decode_ZStatus (ZStatus ZS)
             {
                 return("ZS_LDAPFAIL");
             }
+            case ZS_SOCKBROKENPIPE :
+              return("ZS_SOCKBROKENPIPE");
+
+            case ZS_SMTP_TRANSMIT :
+              return("ZS_SMTP_TRANSMIT");
+            case ZS_SMTP_BADPARAM :
+              return("ZS_SMTP_BADPARAM");
+            case ZS_SMTP_INVPARAM :
+              return("ZS_SMTP_INVPARAM");
+            case ZS_CONNECTTIMEOUT :
+              return("ZS_CONNECTTIMEOUT");
+            case ZS_SOCKISCLOSED :
+              return("ZS_SOCKISCLOSED");
+
+
+
+
 // -------Users Authorization management
 //
 
@@ -481,6 +498,11 @@ const char * decode_ZStatus (ZStatus ZS)
             {
                 return ("ZS_BADPASSWORD");  // given password does not match
             }
+    case  ZS_USERPRIVILEGES :
+            {
+              return ("ZS_USERPRIVILEGES");  // user do not have privileges for doing such operation
+            }
+
 //----------Journaling Threads and system---------------------
     case  ZS_EMPTY :
                 return ("ZS_EMPTY");  // queue is empty

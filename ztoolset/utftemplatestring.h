@@ -124,7 +124,7 @@ protected:
         return *this;
     }
 
-    utftemplateString()=default;   /* private constructor for internal use only */
+    utftemplateString() {clear();}   /* private constructor for internal use only */
 public:
     _Utf        content[_Sz];
 

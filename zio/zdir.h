@@ -169,8 +169,12 @@ public:
     /** @brief setCurrentDirectory() this static method sets pDir as current directory without changing ZDir object content.*/
     static bool setCurrentDirectory(const char *pDir);
 
+    /** @brief mkdir() static routines that create a directory using given or defaulted access right as linux mode_t
+     *                              this routine resets errno, and errno will be set to internal error code if any.*/
     static ZStatus mkdir(const char *pPath);
     static ZStatus mkdir(const char *pPath, __mode_t pMode);
+    static ZStatus mkdir(const uriString& pPath, __mode_t pMode);
+    static ZStatus mkdir(const uriString& pPath);
 
     using uriString::operator=;
     using uriString::operator+=;

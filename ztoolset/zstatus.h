@@ -71,6 +71,26 @@ enum ZStatus: ZStatusBase
                 ZS_READTIMEOUT        =   -0x001202,        //< Timeout on read operation
                 ZS_WRITETIMEOUT       =   -0x001402,        //< Timeout on write operation
 
+
+  /*   *
+    zmail_nothing                           =     0,
+    zmail_success                           =     1,
+    zmail_timeout                           =     2,        // could be ANDED to get generic timeout error
+    zmail_connect_timeout                   =     8,
+
+    zmail_read_timeout                      =-0x1202,
+    zmail_write_timeout                     =-0x1402,
+
+    zmail_smtp_transmit_error               =-0x1801,
+    zmail_badparams                         =-0x1802,
+    zmail_invalidparams                     =-0x1804,
+    zmail_encrypt_conn_timeout              =-0x1808,
+
+    zmail_socketisclosed                    =-0x1810
+   *
+   */
+
+
                 ZS_ERROPEN            =   -0x001801,        //< File cannot be openned
                 ZS_FILENOTEXIST       =   -0x003801,        //< file must exist but no file with this name has been found
                 ZS_NOTDIRECTORY       =   -0x003802,        //< given path is NOT a Directory while directory was requested
@@ -151,7 +171,11 @@ enum ZStatus: ZStatusBase
 
                 ZS_LDAPFAIL           = -0x00800100,        //< Failed with LDAP (system or network error)
 
-
+                ZS_SMTP_TRANSMIT      = -0x00801801,   // zmail_smtp_transmit_error
+                ZS_SMTP_BADPARAM      = -0x00801802, //zmail_badparams
+                ZS_SMTP_INVPARAM      = -0x00801804, // zmail_invalidparams
+                ZS_CONNECTTIMEOUT     = -0x00801808,  //zmail_encrypt_conn_timeout
+                ZS_SOCKISCLOSED       = -0x00801810,  // zmail_socketisclosed
 
                 ZS_SOCKBROKENPIPE     = -0x00810001,        //< Received broken pipe signal : communication has been cancelled by pair while trying to write bytes.
 
@@ -172,6 +196,7 @@ enum ZStatus: ZStatusBase
                 ZS_BADUSERNAME        = -0x00110000,        //< user name is not recognized
                 ZS_BADUSERID          = -0x00120000,        //< user id is not recognized
                 ZS_BADPASSWORD        = -0x00140000,        //< given password does not match
+                ZS_USERPRIVILEGES     = -0x00180000,        // user do not have privileges for doing such operation
 /*                ZS_LOCKALL            = -0x02700000,        //< resource is locked for reading writing deleting
                 ZS_LOCKWRITEDELETE    = -0x02300000,        //< resource is locked for reading writing deleting
                 ZS_LOCKBADOWNER       = -0x02800000,        //< Owner requesting lock modification is not the owner of the lock

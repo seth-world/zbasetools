@@ -58,10 +58,10 @@ public:
     unsigned char content[cst_AES256cryptKeySize];
     unsigned char* get(void) {return content;}
 
-  /** @brief set()  assigns a content to crypting key : content must have cst_AES256cryptKeySize */
+  /** @brief set()  assigns a content to crypting key : content must must be exactly cst_AES256cryptKeySize */
 
-    void set(const unsigned char *pkey);
-    void set(const char *pkey);
+    ZStatus set(const unsigned char *pkey);
+    ZStatus set(const char *pkey);
 
     static ZCryptKeyAES256 generate();
 
@@ -106,9 +106,9 @@ public:
     unsigned char content[cst_AES256cryptVectorSize];
     unsigned char* get(void) {return content;}
 
-    /** @brief set()  assigns a content to crypting vector : content must have cst_AES256cryptVectorSize */
-    void set(const unsigned char *pVector);
-    void set(const char *pVector);
+    /** @brief set()  assigns a content to crypting vector : content must be exactly cst_AES256cryptVectorSize */
+    ZStatus set(const unsigned char *pVector);
+    ZStatus set(const char *pVector);
 
 
     ZCryptVectorAES256 &operator=(const ZCryptVectorAES256 &pIn) { memmove(content, pIn.content, cst_AES256cryptVectorSize); return *this;}

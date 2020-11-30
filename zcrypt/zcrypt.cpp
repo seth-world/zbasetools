@@ -717,32 +717,49 @@ size_t calcDecodeLengthB64(const unsigned char* b64input,size_t pSize)  //Calcul
 /* crypting key & vector */
 
 
-void ZCryptKeyAES256::set(const unsigned char *pkey)
+ZStatus ZCryptKeyAES256::set(const unsigned char *pkey)
 {
   const unsigned char *wPtrIn =  pkey;
   unsigned char *wPtr = content;
   size_t wi = 0;
-  while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
+//  while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi]))
+  while ((wi < cst_AES256cryptKeySize) )
+    {
+    if (wPtrIn[wi]==0)
+    {
+      fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
+          wi,cst_AES256cryptKeySize);
+      return ZS_INVSIZE;
+    }
     content[wi] = wPtrIn[wi];
     wi++;
   }
   while (wi < cst_AES256cryptKeySize)
     content[wi++] = 0;
-  return;
+  return ZS_SUCCESS;
 }
 
-void ZCryptKeyAES256::set(const char *pkey)
+ZStatus ZCryptKeyAES256::set(const char *pkey)
 {
   const unsigned char *wPtrIn = (const unsigned char *) pkey;
   unsigned char *wPtr = content;
   size_t wi = 0;
-  while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi])) {
+//  while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi]))
+  while ((wi < cst_AES256cryptKeySize))
+
+    {
+    if (wPtrIn[wi]==0)
+      {
+      fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
+          wi,cst_AES256cryptKeySize);
+      return ZS_INVSIZE;
+      }
     content[wi] = wPtrIn[wi];
     wi++;
-  }
+    }
   while (wi < cst_AES256cryptKeySize)
     content[wi++] = 0;
-  return;
+  return ZS_SUCCESS;
 }
 
 ZDataBuffer ZCryptKeyAES256::toB64()
@@ -859,32 +876,48 @@ ZCryptKeyAES256 wK;
 
 
 /* crypting vector */
-void ZCryptVectorAES256::set(const unsigned char *pVector)
+ZStatus ZCryptVectorAES256::set(const unsigned char *pVector)
 {
   const unsigned char *wPtrIn = (const unsigned char *) pVector;
   unsigned char *wPtr = content;
   size_t wi = 0;
-  while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
+//  while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi]))
+  while ((wi < cst_AES256cryptVectorSize))
+  {
+    if (wPtrIn[wi]==0)
+    {
+      fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
+          wi,cst_AES256cryptVectorSize);
+      return ZS_INVSIZE;
+    }
     content[wi] = wPtrIn[wi];
     wi++;
   }
   while (wi < cst_AES256cryptVectorSize)
     content[wi++] = 0;
-  return;
+  return ZS_SUCCESS;
 }
 
-void ZCryptVectorAES256::set(const char *pVector)
+ZStatus ZCryptVectorAES256::set(const char *pVector)
 {
   const unsigned char *wPtrIn = (const unsigned char *) pVector;
   unsigned char *wPtr = content;
   size_t wi = 0;
-  while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi])) {
+//  while ((wi < cst_AES256cryptVectorSize) && (wPtrIn[wi]))
+  while ((wi < cst_AES256cryptVectorSize))
+  {
+    if (wPtrIn[wi]==0)
+    {
+      fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
+          wi,cst_AES256cryptVectorSize);
+      return ZS_INVSIZE;
+    }
     content[wi] = wPtrIn[wi];
     wi++;
   }
   while (wi < cst_AES256cryptVectorSize)
     content[wi++] = 0;
-  return;
+  return ZS_SUCCESS;
 }
 
 ZDataBuffer ZCryptVectorAES256::toB64()

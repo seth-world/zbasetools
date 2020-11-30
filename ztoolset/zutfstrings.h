@@ -89,6 +89,8 @@ public:
     utfdescString(utfdescString& pIn):_Base(pIn) {}
     utfdescString(utfdescString&& pIn):_Base(pIn) {}
 
+    utfdescString(const char* pString) {fromUtf((const utf8_t*)pString);}
+
     utfdescString & fromcodeString(const utfcodeString &pCode) {return (utfdescString&)strset(pCode.content);}
 
 //        const char* toCString(void) {return (const char*)content;}

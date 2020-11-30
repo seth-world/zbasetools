@@ -550,6 +550,7 @@ struct stat wStatBuffer ;
 ZStatus
 uriString::suppress(void)
 {
+  errno=0;
     int wSt=remove(toCString_Strait());
     if (wSt<0)
             {
@@ -575,6 +576,36 @@ uriString::suppress(void)
 
     return(ZS_SUCCESS);
 }// suppress
+
+
+ZStatus uriString::changeAccessRights(mode_t pMode)
+{
+  errno=0;
+  int wRet=chmod(toCChar(),pMode);
+  if (wRet<0)
+  {
+    switch (errno)
+    {
+    case (EPERM) :
+    case (EACCES) :
+    {
+      return(ZS_ACCESSRIGHTS);
+    }
+    case (EBUSY) :
+    {
+      return(ZS_LOCKED);
+    }
+    case (ENOENT) :
+    {
+      return(ZS_FILENOTEXIST);
+    }
+    default:
+      return (ZS_ERROR);
+    }// switch
+  }// if
+
+return ZS_SUCCESS;
+}
 
 //uriStat_struct ZStat;
 

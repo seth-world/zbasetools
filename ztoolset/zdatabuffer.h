@@ -134,6 +134,10 @@ public:
     ZDataBuffer (void *pData,ssize_t pSize) { allocate (pSize); memmove(Data,pData,(size_t)pSize);Size=(size_t)pSize;}
     ZDataBuffer (size_t pSize) {allocate((ssize_t)pSize);}
 
+    ZDataBuffer (const char* pData)
+    {
+      setText(pData);
+    }
     ZDataBuffer (const ZDataBuffer& pIn) {_copyFrom(pIn);}
     ZDataBuffer (const ZDataBuffer&& pIn) {_copyFrom(pIn);}
     ZDataBuffer& operator= (const ZDataBuffer& pIn) {_copyFrom(pIn); return *this;}
@@ -160,14 +164,14 @@ public:
     //         ZDataBuffer storage is adjusted accordingly IF AVAILABLE MEMORY AMOUNT IS LESS than required.
     //         If amount of memory available is greater than required, no memory reallocation is done.
     //
-    const ZDataBuffer&
+    ZDataBuffer&
     setData(const void *pData,size_t pSize)
     {
                                         allocate (pSize);
                                         memmove(Data,pData,pSize);
                                         return(*this);
     }
-    const ZDataBuffer&
+    ZDataBuffer&
     setData(const unsigned char* &&pData,size_t pSize)
     {
         CryptMethod=ZCM_Uncrypted;
@@ -177,7 +181,7 @@ public:
     }
 
 
-    const ZDataBuffer&
+    ZDataBuffer&
     setData(const ZDataBuffer& pBuffer)
     {
         CryptMethod=pBuffer.CryptMethod;
@@ -186,21 +190,93 @@ public:
 
         return(*this);
     }
+    ZDataBuffer&
+    setInt(int pIn)
+    {
+      char wBuf[20];
+      sprintf(wBuf,"%d",pIn);
+      size_t wLen=0;
+      while (wBuf[wLen])
+          wLen++;
 
-    const ZDataBuffer&
+      setData(wBuf,wLen);
+      return *this;
+    }
+    ZDataBuffer&
+    setText(const char* pIn)
+    {
+      size_t wLen=0;
+      while (pIn[wLen])
+        wLen++;
+      allocate(wLen);
+      char* wPtr=DataChar;
+      size_t wL=0;
+      while (wL<wLen)
+        *wPtr++=pIn[wL++];
+      return *this;
+    }
+
+    template <class _Utf>
+    ZDataBuffer&
+    setUtf(const _Utf* pIn)
+    {
+      size_t wLen=0;
+      while (pIn[wLen])
+        wLen++;
+      allocate(wLen*sizeof(_Utf));
+      _Utf* wPtr=(_Utf*)DataChar;
+      size_t wL=0;
+      while (wL<wLen)
+        *wPtr++=pIn[wL++];
+      return *this;
+    }
+
+    ZDataBuffer&
     appendData(const void *pData,const size_t pSize) {
                                           size_t wOld=Size;
                                           extend(pSize);
                                           memmove(&Data[wOld],pData,pSize);
                                           return(*this);
                                          }
-    const ZDataBuffer&
+    ZDataBuffer&
     appendData(const ZDataBuffer& pBuffer) {
                                           size_t wOld=Size;
                                           extend(pBuffer.Size);
                                           memmove(&DataChar[wOld],pBuffer.DataChar,pBuffer.Size);
                                           return(*this);
                                            }
+
+
+     ZDataBuffer&
+     appendText(const char *pData)
+      {
+       size_t wOld=Size;
+       size_t wLen=0;
+       while (pData[wLen])
+         wLen++;
+       extend(wLen);
+       size_t wL=0;
+       while (wL<wLen)
+         DataChar[wOld++]=pData[wL++];
+//       memmove(&DataChar[wOld],pData,wLen);
+       return(*this);
+      }
+      template <class _Utf>
+      ZDataBuffer&
+      appendUtf(const _Utf *pData)
+      {
+        size_t wOld=Size;
+        size_t wLen=0;
+        while (pData[wLen])
+          wLen++;
+        extend(wLen*sizeof(_Utf));
+        _Utf* wPtr=&DataChar[wOld];
+        size_t wL=0;
+        while (wL<wLen)
+          *wPtr++=pData[wL++];
+//        memmove(&DataChar[wOld],pData,wLen);
+        return(*this);
+      }
     /** @brief truncate routines : truncate and Ctruncate reduce the size of ZDataBuffer to pLen (Ctruncate adds a '\0' termination)*/
     const ZDataBuffer& truncate(size_t pLen) {allocate(pLen); return *this;}
     const ZDataBuffer& Ctruncate(size_t pLen) {allocate(pLen);DataChar[pLen-1]='\0'; return *this;}

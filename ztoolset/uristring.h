@@ -95,7 +95,7 @@ public:
 //    typedef  utftemplateString<cst_urilen+1,utf8_t> _Base;
     typedef utf8FixedString<cst_urilen+1>           _Base;
 
-    uriString(void) = default;
+    uriString(void) {clear();}
     uriString(const uriString &pIn) : _Base(pIn) {}
     uriString(const uriString &&pIn) : _Base(pIn) {}
 #ifdef QT_CORE_LIB
@@ -179,6 +179,9 @@ public:
 
     uriString& addConditionalDirectoryDelimiter(void);
     uriString& addDirectoryDelimiter(void);
+    /** @brief changeAccessRights() change the access right of current file with pMode, linux mode
+     *                              this routine resets errno, and errno will be set to internal error code if any.*/
+    ZStatus changeAccessRights(mode_t pMode);
 
 #ifdef QT_CORE_LIB
 

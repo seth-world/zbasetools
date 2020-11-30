@@ -159,6 +159,8 @@ ZStatus utf8VaryingString::uncryptAES256(const ZDataBuffer &pEncryptedZDB,
 const char*
 utf8VaryingString::toCChar() const
 {
+  if (Data==nullptr)
+            return "";
     return (const char*)Data ;
 }// utf8VaryingString::toCChar
 

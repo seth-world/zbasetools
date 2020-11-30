@@ -11,7 +11,9 @@
 #include <map>
 
 #include <ztoolset/zarray.h>
-
+/* for mode_t */
+#include <sys/types.h>
+#include <sys/stat.h>
 
 ZDir::ZDir (const utf8_t *pDirName)
 {
@@ -102,8 +104,7 @@ ZDir::closeDir(void)
     return;
 }
 
-#include <sys/types.h>
-#include <sys/stat.h>
+
 
 ZStatus ZDir::mkdir(const char *pPath)
 {
@@ -114,9 +115,9 @@ ZStatus ZDir::mkdir(const char *pPath)
 
 ZStatus ZDir::mkdir(const char *pPath, __mode_t pMode)
 {
+  errno=0;
     int wRet = ::mkdir(pPath, pMode);
 
-    return ZS_SUCCESS;
     if (wRet) {
         ZException.getErrno(-1,
                             _GET_FUNCTION_NAME_,
@@ -128,7 +129,29 @@ ZStatus ZDir::mkdir(const char *pPath, __mode_t pMode)
     }
     return ZS_SUCCESS;
 }
+ZStatus ZDir::mkdir(const uriString& pPath, __mode_t pMode)
+{
+  errno=0;
+  int wRet = ::mkdir(pPath.toCChar(), pMode);
 
+  if (wRet) {
+    ZException.getErrno(-1,
+        _GET_FUNCTION_NAME_,
+        ZS_FILEERROR,
+        Severity_Error,
+        "Error creating directory path  <%s>",
+        pPath.toCChar());
+    return ZS_FILEERROR;
+  }
+  return ZS_SUCCESS;
+}
+
+
+ZStatus ZDir::mkdir(const uriString& pPath)
+{
+  __mode_t wMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
+  return ZDir::mkdir(pPath, wMode);
+}
 void ZDir::_closeReadDir()
 {
     if (_SystDir)

@@ -125,7 +125,7 @@ typedef utf8_t                  _UtfBase;
     }
 
 
-    utf8VaryingString& operator += (utf8VaryingString& pIn) {  appendData(pIn); return *this;}
+    utf8VaryingString& operator += (utf8VaryingString& pIn) {  add(pIn); return *this;}
 
     bool operator == (const char* pIn) { return compareV<char>(pIn)==0; }
     bool operator != (const char* pIn) { return compareV<char>(pIn); }
