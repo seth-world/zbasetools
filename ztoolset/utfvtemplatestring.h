@@ -24,6 +24,8 @@
 #include <zcrypt/checksum.h>
 #include <zcrypt/md5.h>
 
+
+
 size_t UVScalcDecodeLengthB64(const void *b64input, size_t pSize);
 
 
@@ -96,7 +98,7 @@ template <class _Utf>
 class utfVaryingString : public utfStringDescriptor
 {
 protected:
-    utfVaryingString& _copyFrom(utfVaryingString& pIn)
+    utfVaryingString& _copyFrom(const utfVaryingString& pIn)
     {
         CryptMethod=pIn.CryptMethod;
         allocateBytes( pIn.ByteSize);
@@ -105,8 +107,8 @@ protected:
     }
 
 public:
-    utfVaryingString (utfVaryingString& pIn);
-    utfVaryingString (utfVaryingString&& pIn);
+    utfVaryingString (const utfVaryingString& pIn);
+    utfVaryingString (const utfVaryingString&& pIn);
 
 
     _Utf *          Data=nullptr;
@@ -154,7 +156,42 @@ public:
 
         return(*this);
     }
-
+    utfVaryingString&
+    setInt(const int pIn)
+    {
+      char wBuffer[20];
+      int wL=::sprintf(wBuffer,"%d",pIn);
+      allocateUnitsBZero(wL+1);
+      _Utf* wPtr=Data;
+      size_t wi=0;
+      while (wL--)
+        *wPtr++=wBuffer[wi++];
+      return *this;
+    }
+    utfVaryingString&
+    setLong(const long pIn)
+    {
+      char wBuffer[20];
+      int wL=::sprintf(wBuffer,"%ld",pIn);
+      allocateUnitsBZero(wL+1);
+      _Utf* wPtr=Data;
+      size_t wi=0;
+      while (wL--)
+        *wPtr++=wBuffer[wi++];
+      return *this;
+    }
+    utfVaryingString&
+    setFloat(const double pIn)
+    {
+      char wBuffer[30];
+      int wL=::sprintf(wBuffer,"%g",pIn);
+      allocateUnitsBZero(wL+1);
+      _Utf* wPtr=Data;
+      size_t wi=0;
+      while (wL--)
+        *wPtr++=wBuffer[wi++];
+      return *this;
+    }
     utfVaryingString&
     appendData(const void *pData,const size_t pSize) {
                                           size_t wOld=ByteSize;
@@ -206,6 +243,54 @@ public:
                 return(*this);
                 }
 
+     /** @brief replace() replaces all occurrences of string pToBeReplaced by string pReplace */
+
+      utfVaryingString& replace(utfVaryingString<_Utf>& pToBeReplaced, utfVaryingString<_Utf>& pReplace)
+          {
+          ssize_t wSizeToBeReplaced=pToBeReplaced.strlen();
+          ssize_t wSizeReplace=pReplace.strlen();
+          ssize_t wDelta=wSizeReplace-wSizeToBeReplaced;
+          size_t wOffset=0;
+          _Utf* wPtr;
+          _Utf* wPtrRep=pReplace.Data;
+          wPtr=utfStrstr<_Utf>(wPtr,pToBeReplaced.Data);
+          while (wPtr!=nullptr)
+            {
+            wOffset=(wPtr-Data) / sizeof(_Utf);
+            if (wDelta < 0) /* tobereplaced greater than replace */
+              {
+              _Utf* wPtrSrc = wPtr + wSizeToBeReplaced ;
+              _Utf* wPtrDest = wPtr + wSizeReplace ;
+              size_t wMoveSize=UnitCount - wOffset - wSizeToBeReplaced;
+              while (wMoveSize-- > 0)
+                *wPtrDest++ = *wPtrSrc++;
+
+              truncate(UnitCount+wDelta);
+              }//if (wDelta < 0)
+            if (wDelta > 0) /* tobereplaced less than replace */
+              {
+              _Utf* wPtrSrc=Data+UnitCount - 1;
+              allocateUnits( wDelta ); /* make room */
+              _Utf* wPtrDest = Data + UnitCount - 1;
+              size_t wMoveSize=UnitCount - wOffset - wSizeToBeReplaced;
+              while (wMoveSize-- > 0)
+                *wPtrDest-- = *wPtrSrc--;
+              }//if (wDelta > 0
+              /* effective replacement */
+              while (wSizeReplace-- > 0)
+              {
+                *wPtr++=*wPtrRep++;
+              }
+              wPtrRep = pReplace.Data;
+              wPtr=utfStrstr<_Utf>(wPtr,pToBeReplaced.Data);
+            }//while (wPtr!=nullptr)
+
+            return(*this);
+          }//replace
+
+   utfVaryingString& replace(utfVaryingString<_Utf>&& pToBeReplaced,utfVaryingString<_Utf>&& pReplace)
+          {  return replace ((utfVaryingString<_Utf>&)pToBeReplaced,(utfVaryingString<_Utf>&)pReplace);}
+
     /** @brief removeData suppresses data content at pOffset on pCount character units.
      * Adjusts storage size.
      * Abort if pOffset+pLength greater than actual data size with ENOMEM.*/
@@ -227,8 +312,8 @@ public:
             _RETURN_ *this;
             }
 
-    bool isNull(void) {return (Data==nullptr);}
-    bool isEmpty(void) {return(ByteSize==0);}
+    bool isNull(void) const {return (Data==nullptr);}
+    bool isEmpty(void) const  {return(ByteSize==0);}
 
     void freeData(void);
 
@@ -279,16 +364,16 @@ public:
     utfVaryingString<_Utf> &nadd( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
     utfVaryingString<_Utf> &addUtfUnit(const _Utf pChar); /** adds an Utf unit at the end of varying string (not necessarily a character) plus _Utf \0 sign. */
 
-    utfVaryingString<_Utf> &add(utfVaryingString<_Utf>& wSrc) {return _add(wSrc);}
-    utfVaryingString<_Utf> &add(utfVaryingString<_Utf>&& wSrc){return _add(wSrc);}
+    utfVaryingString<_Utf> &add(const utfVaryingString<_Utf>& wSrc) {return _add(wSrc);}
+    utfVaryingString<_Utf> &add(const utfVaryingString<_Utf>&& wSrc){return _add(wSrc);}
 
-    utfVaryingString<_Utf> &add(std::string& wSrc){return _addV<char>(wSrc).c_str();}
-    utfVaryingString<_Utf> &add(std::string&& wSrc){return _addV<char>(wSrc).c_str();}
+    utfVaryingString<_Utf> &add(const std::string& wSrc){return _addV<char>((char*)wSrc.c_str());}
+    utfVaryingString<_Utf> &add(const std::string&& wSrc){return _addV<char>((char*)wSrc.c_str());}
 
-    utfVaryingString<_Utf>& _add(utfVaryingString<_Utf>& wSrc);
+    utfVaryingString<_Utf>& _add(const utfVaryingString<_Utf>& wSrc);
 
     template <class _Utf1>
-    utfVaryingString<_Utf> &_addV(const _Utf1* wSrc)
+    utfVaryingString<_Utf> &_addV( _Utf1* wSrc)
     {
         if (!wSrc[0])
                 return *this;
@@ -329,7 +414,7 @@ public:
     _Utf * strchr(_Utf wChar) const {return utfStrchr<_Utf>(Data,wChar);}
     /** @brief strrchr() finds last occurrence of _Utf char wChar within current string content. returns an _Utf* pointer to char position */
     _Utf * strrchr(_Utf wChar)const {return utfStrrchr<_Utf>(Data,wChar);}
-    /** @brief strstr() finds first _Utf substring within current and returns a pointer to it */
+    /** @brief strstr() finds first _Utf substring within current and returns a pointer to it - nullptr if not found */
     _Utf * strstr(const _Utf *pSubstring) const {return utfStrstr<_Utf>(Data,pSubstring);}
     /** @brief strcasestr() finds first _Utf substring CASE REGARDLESS within current and returns a pointer to it */
     _Utf* strcasestr(const _Utf *pSubstring) const {return utfStrcasestr<_Utf>(Data,pSubstring);}
@@ -352,14 +437,14 @@ public:
 //    utfVaryingString&fromWString(const wchar_t* pWString) { allocate((wcslen(pWString)+1)*sizeof(WDataChar[0])); wcsncpy(WDataChar,pWString,wcslen(pWString)); return *this; }
 
 
-     utfVaryingString& operator = (utfVaryingString&& pIn) { return _copyFrom(pIn); }
-     utfVaryingString& operator = (utfVaryingString& pIn) {return _copyFrom(pIn);}
+     utfVaryingString& operator = (const utfVaryingString&& pIn) { return _copyFrom(pIn); }
+     utfVaryingString& operator = (const utfVaryingString& pIn) {return _copyFrom(pIn);}
 
-     utfVaryingString& operator += (utfVaryingString& pIn) { return add(pIn); }
-     utfVaryingString& operator += (utfVaryingString&& pIn) { return add(pIn); }
+     utfVaryingString& operator += (const utfVaryingString& pIn) { return add(pIn); }
+     utfVaryingString& operator += (const utfVaryingString&& pIn) { return add(pIn); }
 
-     utfVaryingString& operator += (std::string& pIn) { return _addV<char>(pIn.c_str()); }
-     utfVaryingString& operator += (std::string&& pIn) { return _addV<char>(pIn.c_str()); }
+     utfVaryingString& operator += (const std::string& pIn) { return _addV<char>((char*)pIn.c_str()); }
+     utfVaryingString& operator += (const std::string&& pIn) { return _addV<char>((char*)pIn.c_str()); }
 
 
 
@@ -550,11 +635,11 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
    //const utfVaryingString<_Utf> & operator = (const char *pCharIn)
    //                             { return fromCString(pCharIn);}
 
-   const utfVaryingString<_Utf> & operator = (const utfVaryingString<_Utf> &pString)
+/*   const utfVaryingString<_Utf> & operator = (const utfVaryingString<_Utf> &pString)
                                 { allocateUnits(pString.ByteSize);
                                 memmove(Data,pString.Data,ByteSize);
                                 return(*this);}
-
+*/
    utfVaryingString & operator = (const long pValue)
                                {  setData (&pValue,sizeof(pValue)); return *this;}
    utfVaryingString & operator = (const size_t pValue)
@@ -569,8 +654,8 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
 
  //   const utfVaryingString & operator += (const char* pString)
  //                                { appendData(pString,strlen(pString)+1); return *this;}
-    utfVaryingString & operator += (const utfVaryingString &pDataBuffer)
-                                 { return appendData(pDataBuffer.Data,pDataBuffer.ByteSize);}
+ //   utfVaryingString & operator += (const utfVaryingString &pDataBuffer)
+ //                                { return appendData(pDataBuffer.Data,pDataBuffer.ByteSize);}
     utfVaryingString & operator += (const long pValue)
                                 { return appendData (&pValue,sizeof(pValue));}
     utfVaryingString & operator += (const size_t pValue)
@@ -695,7 +780,7 @@ utfVaryingString<_Utf>::utfVaryingString(void)
 
 
 template <class _Utf>
-utfVaryingString<_Utf>::utfVaryingString(utfVaryingString& pIn)
+utfVaryingString<_Utf>::utfVaryingString(const utfVaryingString& pIn)
 
 {
     Data=nullptr;
@@ -705,7 +790,7 @@ utfVaryingString<_Utf>::utfVaryingString(utfVaryingString& pIn)
     return;
 }
 template <class _Utf>
-utfVaryingString<_Utf>::utfVaryingString(utfVaryingString&& pIn)
+utfVaryingString<_Utf>::utfVaryingString(const utfVaryingString&& pIn)
 {
     Data=nullptr;
     DataByte=nullptr;
@@ -1174,7 +1259,7 @@ utfVaryingString<_Utf>::add(const _Utf *wSrc)
 
 template <class _Utf>
 utfVaryingString<_Utf>&
-utfVaryingString<_Utf>::_add(utfVaryingString<_Utf>& wSrc)
+utfVaryingString<_Utf>::_add(const utfVaryingString<_Utf>& wSrc)
 {
     if (wSrc.isEmpty())
             return *this;

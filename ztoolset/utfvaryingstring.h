@@ -6,6 +6,7 @@
 #include <ztoolset/zlimit.h>
 #include <stdarg.h>
 #include <ztoolset/zatomicconvert.h>
+#include <ztoolset/utfutils.h>
 
 #ifdef QT_CORE_LIB
 #include <QString>
@@ -41,14 +42,21 @@ typedef utf8_t                  _UtfBase;
     utf8VaryingString(std::string& pIn) {_setToUtf8() ; fromStdString(pIn);}
     utf8VaryingString(std::string&& pIn) {_setToUtf8() ; fromStdString(pIn);}
 
-    size_t strcount(UST_Status_type &pStatus)  /** Counts the effective number of utf8 characters : multi-character units counts for 1 - skipping BOM */
+    /** @brief strcount() Counts the effective number of utf8 characters : multi-character units counts for 1 - skipping BOM */
+    size_t strcount(UST_Status_type &pStatus)
     {
         size_t wCount;
         pStatus= utf8CharCount(Data,&wCount,&Context);
         return wCount;
     }
-    size_t strlen(void) {return utfStrlen<_UtfBase>(Data);}  /** counts the effective number of utf8_t char size : multi bytes char counts for x utf8_t char*/
+    /** @brief strlen() Counts the effective number of utf8 character units : multi-character units counts for its number of bytes - skipping BOM */
+    size_t strlen(void) const {return utfStrlen<_UtfBase>(Data);}  /** counts the effective number of utf8_t char size : multi bytes char counts for x utf8_t char*/
 
+    utf8VaryingString& replace(const char* pToBeReplaced,const char* pReplace)
+    {
+      _Base::replace(utf8VaryingString(pToBeReplaced),utf8VaryingString(pReplace));
+      return *this;
+    }
 
     const char* toCString_Strait(void) {return (const char*)Data;}
 
@@ -62,6 +70,7 @@ typedef utf8_t                  _UtfBase;
     UST_Status_type fromUtf8(const utf8_t *pInString);
 
     utf8VaryingString& fromChar(const char* pInString) {_Base::strset((const utf8_t*)pInString); return *this;}
+    utf8VaryingString& fromnChar(const char* pInString,size_t pSize){_Base::strnset((const utf8_t*)pInString,pSize); return *this;}
     /**
      * @brief fromUtf16 converts an utf16_t string pUtf16 into utf8 format and sets this as current string content.
      *  equivalent as strset, but with utf16 to utf8 conversion.

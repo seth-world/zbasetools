@@ -465,17 +465,46 @@ const char * decode_ZStatus (ZStatus ZS)
             case ZS_SOCKBROKENPIPE :
               return("ZS_SOCKBROKENPIPE");
 
-            case ZS_SMTP_TRANSMIT :
-              return("ZS_SMTP_TRANSMIT");
-            case ZS_SMTP_BADPARAM :
-              return("ZS_SMTP_BADPARAM");
-            case ZS_SMTP_INVPARAM :
+            case ZS_IMAP_TRANSMIT :
+              return("ZS_IMAP_TRANSMIT");
+            case ZS_IMAP_BADPARAM :
+              return("ZS_IMAP_BADPARAM");
+            case ZS_IMAP_INVPARAM :
               return("ZS_SMTP_INVPARAM");
+              /* not errors */
+            case ZS_IMAPNEXT :        /* not an error */
+              return("ZS_IMAPNEXT");
+            case ZS_IMAPWAITNEXT :    /* not an error */
+              return("ZS_IMAPWAITNEXT");
+              /* errors again */
+            case ZS_IMAPREJECTED :
+              return("ZS_IMAPREJECTED");
+            case ZS_SMTP_ERROR :      // smtp error - error message follows
+              return("ZS_SMTP_ERROR");
+
             case ZS_CONNECTTIMEOUT :
               return("ZS_CONNECTTIMEOUT");
             case ZS_SOCKISCLOSED :
               return("ZS_SOCKISCLOSED");
 
+            case ZS_SSLINIT :
+              return("ZS_SSLINIT");
+            case ZS_SSLCERT :
+              return("ZS_SSLCERT");
+            case ZS_SSLINVKEY :
+              return("ZS_SSLINVKEY");
+            case ZS_SSLACCEPT :
+              return("ZS_SSLACCEPT");
+            case ZS_SSLCERTREJECTED :
+              return("ZS_SSLCERTREJECTED");
+
+            case ZS_SSLREADERR :
+              return("ZS_SSLREADERR");
+            case ZS_SSLWRITEERR :
+              return("ZS_SSLWRITEERR");
+
+            case ZS_BIOERR :
+              return("ZS_BIOERR");
 
 
 

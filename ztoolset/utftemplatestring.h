@@ -32,7 +32,9 @@
 #include <ztoolset/ztypetype.h>
 #include <ztoolset/zatomicconvert.h>
 #include <ztoolset/zcharset.h>
+
 #include <ztoolset/utfutils.h>
+
 #include <ztoolset/utfsprintf.h>
 
 #include <ztoolset/utfstringcommon.h>
@@ -373,6 +375,7 @@ public:
     _Utf * strchr(const _Utf wChar) {return utfStrchr<_Utf>(content,wChar);}
     _Utf * strrchr(const _Utf wChar){return utfStrrchr<_Utf>(content,wChar);}
     _Utf * strstr(const _Utf *pSubstring) const {return utfStrstr<_Utf>(content,pSubstring);}
+    /** @brief strstr() finds first _Utf substring within current and returns a pointer to it - nullptr if not found */
     _Utf * strstr(const _Utf *pSubstring,const size_t pOffset) const {return utfStrstr<_Utf>(content+pOffset,pSubstring);}
     /** @brief strcasestr() finds first _Utf substring pSubstring CASE REGARDLESS within current since beginning and returns a pointer to it */
     _Utf* strcasestr(const _Utf *pSubstring) const {return utfStrcasestr<_Utf>(content,pSubstring);}

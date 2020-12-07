@@ -34,12 +34,12 @@
 #include <ztoolset/zatomicconvert.h>
 
 #include <ztoolset/zmem.h> // for _free()
-
+/*
 template <class _Utf>
 _Utf* utfStrdup(const _Utf* pString); // see strdup
 template <class _Utf>
 _Utf* utfStrrev(_Utf* pStr);        // see strrev (strrev is not standard)
-
+*/
 //================ numeric to string and string to numeric conversions===================
 
 template <class _Utf>
@@ -68,53 +68,6 @@ static  int is_real(double x)
 
 
 
-template <class _Utf>
-/**
- * @brief utfItoa converts an int number to its _Utf string equivalent according pBase ( 10 by default)
- * @param pInt integer to convert
- * @param pString   destination _Utf string
- * @param pLen      available _Utf character units in pString
- * @param pBase     base of conversion
- * @return  0 if anything went OK, -1 if a problem raised
- */
-int
-utfItoa(int pInt, _Utf* pString, size_t pLen, int pBase=10)
-{
-    int wSum = pInt;
-    int wi = 0;
-    int wDigit;
-    bool wNegative=false;
-    if (!pString)
-            return -1;
-    if (pLen == 0)
-            return -1;
-    if (pInt<0)
-            {
-            pInt = pInt * -1;
-            wNegative=true;
-            }
-    do
-    {
-        wDigit = wSum % pBase;
-        if (wDigit < 0xA)
-            pString[wi++] = ((_Utf)'0') + wDigit;
-        else
-            pString[wi++] = ((_Utf)'A') + wDigit - 0xA;
-        wSum /= pBase;
-    }while (wSum && (wi < (pLen - 1)));
-
-    if (wNegative)
-        {
-        if (wi == (pLen - 2) && wSum)
-                                return -1;
-        pString[wi++]=(_Utf)'-';
-        }
-    if (wi == (pLen - 1) && wSum)
-                            return -1;
-    pString[wi] = (_Utf)'\0';
-    utfStrrev<_Utf>(pString);
-    return 0;
-}// utfItoa
 
 
 enum ZNumBase_type:uint8_t
@@ -127,7 +80,44 @@ enum ZNumBase_type:uint8_t
     ZNBase_Any  = 0xF0,
     ZNBase_Invalid=0xFF
 };
-
+/** ANSI says:
+ *   The `utfStrcpy' function copies the string pointed to by `pStr2' (including
+ *   the terminating null character) into the array pointed to by `pStr1'.
+ *   If copying takes place between objects that overlap, the behavior
+ *   is undefined.
+ *   The `strcpy' function returns the value of `pStr1'.  [4.11.2.3]
+ *  if pStr2 is nullptr nothing is done.
+ *  if pStr1 is nullptr nothing is done, nullptr is returned.
+ */
+template <class _Utf>
+_Utf *
+utfStrcpy(_Utf *pStr1, const _Utf *pStr2)
+{
+  if (pStr1==nullptr)
+    return 0;
+  if (pStr2==nullptr)
+    return pStr1;
+  _Utf *s = pStr1;
+  while ((*s++ = *pStr2++) != 0) ;
+  *s=0;
+  return (pStr1);
+}
+template <class _Utf>
+/**
+ * @brief utfStrdup duplicates the _Utf string pStr into a new memory allocated string.
+ * Remark: it is up to calling routine to free allocated memory
+ * @param pStr _Utf string to duplicate
+ * @return  duplicated _Utf string
+ */
+_Utf*
+utfStrdup(const _Utf* pStr)
+{
+  size_t wSize=utfStrlen<_Utf>(pStr) ;
+  _Utf* wDup= (_Utf*)malloc((wSize+1)*sizeof(_Utf));
+  utfStrcpy<_Utf>(wDup,pStr);
+  wDup[wSize]=0;
+  return wDup;
+}
 
 template <class _Utf>
 /**
@@ -1050,28 +1040,7 @@ _MODULEINIT_
 }
 
 #endif // __COMMENT__
-/** ANSI says:
- *   The `utfStrcpy' function copies the string pointed to by `pStr2' (including
- *   the terminating null character) into the array pointed to by `pStr1'.
- *   If copying takes place between objects that overlap, the behavior
- *   is undefined.
- *   The `strcpy' function returns the value of `pStr1'.  [4.11.2.3]
- *  if pStr2 is nullptr nothing is done.
- *  if pStr1 is nullptr nothing is done, nullptr is returned.
- */
-template <class _Utf>
- _Utf *
-utfStrcpy(_Utf *pStr1, const _Utf *pStr2)
-{
-    if (pStr1==nullptr)
-                    return 0;
-    if (pStr2==nullptr)
-                    return pStr1;
-   _Utf *s = pStr1;
-   while ((*s++ = *pStr2++) != 0) ;
-   *s=0;
-   return (pStr1);
-}
+
 /**
 
  */
@@ -1195,30 +1164,7 @@ utfStrrchr(_Utf* wStr,_Utf wChar)
      return wD;
  }
 
-template <class _Utf>
-/**
- * @brief utfStrdup duplicates the _Utf string pStr into a new memory allocated string.
- * Remark: it is up to calling routine to free allocated memory
- * @param pStr _Utf string to duplicate
- * @return  duplicated _Utf string
- */
-_Utf*
-utfStrdup(const _Utf* pStr)
-{
-    size_t wSize=utfStrlen<_Utf>(pStr) ;
-    _Utf* wDup= (_Utf*)malloc((wSize+1)*sizeof(_Utf));
-    utfStrcpy<_Utf>(wDup,pStr);
-    wDup[wSize]=0;
-    return wDup;
-}
 
-
-template <class _Utf>
-bool
-utfIsTerminatedBy(_Utf *pStr,_Utf pChar)
-{
-    return (utfLastNotChar((_Utf*)pStr,(_Utf)0x20)[0]==pChar);
-}
 
 
 template <class _Utf>
@@ -1287,6 +1233,7 @@ long wi;
     return (nullptr);     // return NULL pointer if not found pointer to pChar within string if found
 }
 
+
 template <class _Utf>
  _Utf *
 utfLastNotChar(const _Utf *pStr, const _Utf pChar)
@@ -1298,6 +1245,13 @@ utfLastNotChar(const _Utf *pStr, const _Utf pChar)
                         wPtr --;
                         }
     return(wPtr);
+}
+
+template <class _Utf>
+bool
+utfIsTerminatedBy(_Utf *pStr,_Utf pChar)
+{
+  return (utfLastNotChar((_Utf*)pStr,(_Utf)0x20)[0]==pChar);
 }
 
 
@@ -1354,6 +1308,54 @@ utfStrrev(_Utf* pStr)
         }
     return pStr;
 }
+
+template <class _Utf>
+/**
+ * @brief utfItoa converts an int number to its _Utf string equivalent according pBase ( 10 by default)
+ * @param pInt integer to convert
+ * @param pString   destination _Utf string
+ * @param pLen      available _Utf character units in pString
+ * @param pBase     base of conversion
+ * @return  0 if anything went OK, -1 if a problem raised
+ */
+int
+utfItoa(int pInt, _Utf* pString, size_t pLen, int pBase=10)
+{
+  int wSum = pInt;
+  int wi = 0;
+  int wDigit;
+  bool wNegative=false;
+  if (!pString)
+    return -1;
+  if (pLen == 0)
+    return -1;
+  if (pInt<0)
+  {
+    pInt = pInt * -1;
+    wNegative=true;
+  }
+  do
+  {
+    wDigit = wSum % pBase;
+    if (wDigit < 0xA)
+      pString[wi++] = ((_Utf)'0') + wDigit;
+    else
+      pString[wi++] = ((_Utf)'A') + wDigit - 0xA;
+    wSum /= pBase;
+  }while (wSum && (wi < (pLen - 1)));
+
+  if (wNegative)
+  {
+    if (wi == (pLen - 2) && wSum)
+      return -1;
+    pString[wi++]=(_Utf)'-';
+  }
+  if (wi == (pLen - 1) && wSum)
+    return -1;
+  pString[wi] = (_Utf)'\0';
+  utfStrrev<_Utf>(pString);
+  return 0;
+}// utfItoa
 #include <string.h>
 template <class _Utf>
 /**
@@ -1498,7 +1500,7 @@ utfStrstr(const _Utf *string,/* String to search. */
         continue;
     }
     a = wString;
-    while (1) {
+    while (true) {
         if (*b == 0) {
         return (_Utf*)wString;
         }
@@ -1508,7 +1510,7 @@ utfStrstr(const _Utf *string,/* String to search. */
     }
     b = substring;
     }
-    return NULL;
+    return nullptr;
 }// utfStrstr
 /*
  *----------------------------------------------------------------------

@@ -68,6 +68,8 @@ enum ZStatus: ZStatusBase
                 ZS_READERROR          =   -0x001201,        //< there has been an error while reading file
                 ZS_WRITEERROR         =   -0x001401,        //< there has been an error while writing file
 
+                ZS_TIMEOUT            =   -0x001002,        // timeout mask
+
                 ZS_READTIMEOUT        =   -0x001202,        //< Timeout on read operation
                 ZS_WRITETIMEOUT       =   -0x001402,        //< Timeout on write operation
 
@@ -171,11 +173,23 @@ enum ZStatus: ZStatusBase
 
                 ZS_LDAPFAIL           = -0x00800100,        //< Failed with LDAP (system or network error)
 
-                ZS_SMTP_TRANSMIT      = -0x00801801,   // zmail_smtp_transmit_error
-                ZS_SMTP_BADPARAM      = -0x00801802, //zmail_badparams
-                ZS_SMTP_INVPARAM      = -0x00801804, // zmail_invalidparams
-                ZS_CONNECTTIMEOUT     = -0x00801808,  //zmail_encrypt_conn_timeout
-                ZS_SOCKISCLOSED       = -0x00801810,  // zmail_socketisclosed
+
+                ZS_SMTP_ERROR         = -0x00802000,    // smtp error - error message follows
+
+
+
+
+                ZS_IMAP_TRANSMIT      = -0x00801801,   // zmail_smtp_transmit_error
+                ZS_IMAP_BADPARAM      = -0x00801802, //zmail_badparams
+                ZS_IMAP_INVPARAM      = -0x00801804, // zmail_invalidparams
+
+                ZS_IMAPNEXT           =  0x00801801,   // not an error : imap server will send a next message
+                ZS_IMAPWAITNEXT       =  0x00801802,   // not an error : imap server is waiting for a complement
+
+                ZS_IMAPREJECTED       = -0x00801808,   // not an error : imap server is waiting for a complement
+
+                ZS_CONNECTTIMEOUT     = -0x00801820,  //zmail_encrypt_conn_timeout
+                ZS_SOCKISCLOSED       = -0x00801840,  // zmail_socketisclosed
 
                 ZS_SOCKBROKENPIPE     = -0x00810001,        //< Received broken pipe signal : communication has been cancelled by pair while trying to write bytes.
 
@@ -188,6 +202,9 @@ enum ZStatus: ZStatusBase
                 ZS_SSLACCEPT          = -0x00820020,        //< OpenSSL error cannot initiate SSL handshake (SSL_accept)
 
                 ZS_SSLCERTREJECTED    = -0x00820030,        //< OpenSSL error Certificated is rejected
+
+                ZS_SSLREADERR         = -0x00820040,        //< OpenSSL read error
+                ZS_SSLWRITEERR        = -0x00820050,        //< OpenSSL write error
 
                 ZS_BIOERR             = -0x00821000,        //< BIO error
 

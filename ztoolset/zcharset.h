@@ -1308,6 +1308,7 @@ ssize_t detectCharsetAll(const char*pInString,
 /*
  *  utf strings utilities
  */
+/*
 bool utfIsSpace (utf16_t pChar);
 
 utf8_t utf8DropAccute(utf8_t pCharacter);
@@ -1404,7 +1405,7 @@ void utfConditionalNL(_Utf *pString);
 
 template<class _Utf=char>
 void utfAddConditionalTermination(_Utf *pString,size_t pSize);
-
+*/
 
 #ifdef QT_CORE_LIB
 #include <QString>
@@ -1442,6 +1443,14 @@ ssize_t utfCharCount(_Utf* pString, ZStatus *pStatus, _Utf** pUtfEffective, uint
 }
 
 template <class _Utf>
+_Utf utfUpper(_Utf pCharacter)
+{
+  if (pCharacter >= sizeof(cst_ToUpper))
+    return pCharacter;
+  return (_Utf)cst_ToUpper[(int)pCharacter];
+}//utfUpper
+
+template <class _Utf>
 _Utf* utfToUpper(const _Utf*pString,_Utf*pOutString)
 {
     if (!pString)
@@ -1477,14 +1486,6 @@ bool utfIsSpace (_Utf pChar)
                           return true;
     return false;
 }// utfIsSpace
-
-template <class _Utf>
- _Utf utfUpper(_Utf pCharacter)
-{
-    if (pCharacter >= sizeof(cst_ToUpper))
-              return pCharacter;
-    return (_Utf)cst_ToUpper[(int)pCharacter];
-}//utfUpper
 
 template <class _Utf>
  _Utf utfDropAccute(_Utf pCharacter)
