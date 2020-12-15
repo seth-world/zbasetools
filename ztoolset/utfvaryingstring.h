@@ -36,7 +36,10 @@ typedef utf8_t                  _UtfBase;
     using _Base::operator +=;
     using _Base::operator ==;
     using _Base::operator !=;
-    utf8VaryingString() {_setToUtf8() ;}
+    utf8VaryingString() {_setToUtf8();}
+
+    utf8VaryingString(const utf8VaryingString& pIn) {_setToUtf8(); strset(pIn.Data);}
+    utf8VaryingString(const utf8VaryingString&& pIn) {_setToUtf8(); strset(pIn.Data);}
 
     utf8VaryingString(const char* pIn) {_setToUtf8() ; fromChar(pIn);}
     utf8VaryingString(std::string& pIn) {_setToUtf8() ; fromStdString(pIn);}
@@ -125,6 +128,8 @@ typedef utf8_t                  _UtfBase;
                             const ZCryptVectorAES256& pVector);
 
     utf8VaryingString & operator = (const char* pString) { return fromChar(pString);}
+    utf8VaryingString & operator = (const utf8VaryingString& pString) { strset(pString.Data); return *this;}
+    utf8VaryingString & operator = (const utf8VaryingString&& pString) { strset(pString.Data); return *this;}
     utf8VaryingString & operator = (std::string&  pString) { return fromStdString(pString);}
     utf8VaryingString & operator += (const char* pString)
     {
@@ -134,7 +139,10 @@ typedef utf8_t                  _UtfBase;
     }
 
 
-    utf8VaryingString& operator += (utf8VaryingString& pIn) {  add(pIn); return *this;}
+    utf8VaryingString& operator += (const utf8VaryingString& pIn) {  add(pIn); return *this;}
+    utf8VaryingString& operator += (const utf8VaryingString&& pIn) {  add(pIn); return *this;}
+    utf8VaryingString& operator + (const utf8VaryingString& pIn) {  add(pIn); return *this;}
+    utf8VaryingString& operator + (const utf8VaryingString&& pIn) {  add(pIn); return *this;}
 
     bool operator == (const char* pIn) { return compareV<char>(pIn)==0; }
     bool operator != (const char* pIn) { return compareV<char>(pIn); }

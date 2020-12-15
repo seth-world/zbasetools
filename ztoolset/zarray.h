@@ -287,9 +287,9 @@ public:
  *      Methods to be protected when using ZSortedArray
  */
 
-    long push(const _Tp& pElement) ;
+    long push(_Tp &pElement) ;
 //    long push(const _Tp& pElement);
-    long push( const _Tp&& pElement);
+    long push(  _Tp&& pElement);
 
     /** @brief push_back Alias for push() */
     long push_back (_Tp pElement) {return push(pElement);}
@@ -1506,7 +1506,7 @@ template <typename _Tp>
  * @brief ZArray<_Tp>::push pushes pElement at the top of ZArray. pElement becomes the ZArray last element. Returns the new number of elements.
  * @param pElement
  */
-long ZArray<_Tp>::push(const _Tp &pElement)
+long ZArray<_Tp>::push( _Tp &pElement)
 {
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
@@ -1514,7 +1514,8 @@ long ZArray<_Tp>::push(const _Tp &pElement)
     addCheck(1) ;
     if (ZCurrentNb<0)
             ZCurrentNb=0;
-    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
+    Data.Tab[ZCurrentNb]=pElement;
+//    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
     size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1548,7 +1549,7 @@ template <typename _Tp>
  * @brief ZArray<_Tp>::push pushes pElement at the top of ZArray. pElement becomes the ZArray last element. Returns the new number of elements.
  * @param pElement
  */
-long ZArray<_Tp>::push(const _Tp&& pElement)
+long ZArray<_Tp>::push(_Tp &&pElement)
 {
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
@@ -1556,7 +1557,8 @@ long ZArray<_Tp>::push(const _Tp&& pElement)
     addCheck(1) ;
     if (ZCurrentNb<0)
             ZCurrentNb=0;
-    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
+    Data.Tab[ZCurrentNb]=pElement;
+//    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
     size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__

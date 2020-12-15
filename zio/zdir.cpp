@@ -389,7 +389,7 @@ public:
         if (wi < count())
             insert(pIn, wi);
         else
-            push(pIn);
+          push((DirMap&)pIn);
         return wi;
     }
 
@@ -411,7 +411,7 @@ public:
         if (wi < count())
             insert(pIn, wi);
         else
-            push(pIn);
+          push((DirMap &)pIn);
     }
     long add(const uriString &pName, const size_t pSize,userid_type pUid) { return add(DirMap(pName, pSize,pUid)); }
 };

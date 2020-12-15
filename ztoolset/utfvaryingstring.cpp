@@ -54,16 +54,18 @@ utf8VaryingString::encodeB64( void )
     const unsigned char*  wPtr;
     int wRet;
 
+    size_t wLenIn=utfStrlen<utf8_t>(Data);
+
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new(BIO_s_mem());
     b64 = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line do not add \n
-    int wLen = BIO_write(b64, Data, ByteSize);
+    int wLen = BIO_write(b64, Data, wLenIn);
     if (wLen<1)
     {
         fprintf(stderr,"%s-E>BIO_write fails to copy utfVaryingString data (byte size is %ld>\n",
                 _GET_FUNCTION_NAME_,
-                ByteSize);
+                wLenIn);
         return (*this);
     }
     wRet=BIO_flush(b64);
@@ -75,6 +77,7 @@ utf8VaryingString::encodeB64( void )
 
     BIO_free_all(b64);
     CryptMethod = ZCM_Base64;
+    addTermination();
     return *this;
 } //-----------------encodeB64-------------------
 
@@ -113,6 +116,7 @@ utf8VaryingString::decodeB64(void)
 
     free(buffer);
     CryptMethod = ZCM_Uncrypted;
+    addConditionalTermination();
     //    return(*this);
 } // ------------decodeB64---------------------
 

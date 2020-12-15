@@ -236,6 +236,8 @@ public:
 
 #include <ztoolset/utfvaryingstring.h>
 typedef utf8VaryingString utf8String;
+typedef utf16VaryingString utf16String;
+typedef utf32VaryingString utf32String;
 
 
 #endif // ZUTFSTRINGS_H
