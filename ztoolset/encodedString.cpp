@@ -12,7 +12,7 @@ encodedString::encodedString()
 ZStatus
 encodedString::fromISOLatin1(const unsigned char* pInString, size_t pInSize)
 {
-_MODULEINIT_
+
 ZStatus wSt;
 ZDataBuffer wZDB;
 size_t wSize;
@@ -23,10 +23,10 @@ size_t wSize;
                       Charset,
                       this);
     if (wSt!=ZS_SUCCESS)
-                    _RETURN_ wSt;
+                    return wSt;
    addConditionalTermination();
     Canonical= xmlStrlen(Data);
-    _RETURN_ wSt;
+    return wSt;
 }//fromISOLatin1
 
 #endif // ENCODEDSTRING_CPP

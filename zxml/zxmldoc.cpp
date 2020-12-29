@@ -226,14 +226,14 @@ zxmlNameSpace* zxmlsearchNameSpaceByInternal(xmlNsPtr pInternal)
 
 zxmlDoc::zxmlDoc(const char *pVersion)
 {
-_MODULEINIT_
+
     _xmlInternalDoc =xmlNewDoc((const xmlChar*) pVersion);
     if (_xmlInternalDoc==nullptr)
     {
       ZException.setMessage(_GET_FUNCTION_NAME_,ZS_XMLERROR,Severity_Fatal,"Fatal error creating Dom Document");
       ZException.exit_abort();
     }
-    _RETURN_;
+    return ;
 }//zxmlDoc
 
 /*
@@ -280,14 +280,14 @@ zxmlDoc::codeFromUtf8(xmlCharEncoding &pEncodingCode,ZDataBuffer &pEncoded,ZData
 ZStatus
 zxmlDoc::createDomDocument(const char* pVersion)
 {
-_MODULEINIT_
+
     if (_xmlInternalDoc)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVOP,
                               Severity_Severe,
                               "Cannot create document. Document already in use.");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     if (!pVersion)
         {
@@ -295,15 +295,15 @@ _MODULEINIT_
                               ZS_INVVALUE,
                               Severity_Severe,
                               "No document version has been mentionned. Version cannot be null while creating DOM Document.");
-        _RETURN_ ZS_INVVALUE;
+        return  ZS_INVVALUE;
         }
     _xmlInternalDoc= xmlNewDoc((const xmlChar*)pVersion);
     if (!_xmlInternalDoc)
         {
         setXMLZException(_GET_FUNCTION_NAME_,ZS_XMLERROR, Severity_Severe,"cannot create Dom document-xml internal error");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 
 
@@ -311,7 +311,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::createBlankRootElement(zxmlElement* &pNode,const char*pRootNodeName,zxmlNameSpace*pNameSpace)// no xml error on that routine
 {
-_MODULEINIT_
+
     pNode=nullptr;
     xmlNsPtr wNameSpace=nullptr;
     if (pNameSpace)
@@ -324,20 +324,20 @@ _MODULEINIT_
     if (!wNode)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,ZS_XMLERROR, Severity_Severe,"Cannot create blank node for root element");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
 
     if (xmlDocSetRootElement(_xmlInternalDoc, wNode))
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,ZS_INVOP, Severity_Severe,"Cannot associate blank node as root element : root element exist already. Replace root node instead.");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
 
 
 //    pNode= new zxmlNode(wNode);
     RootElement=pNode=(zxmlElement*)zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//createRootNodefromBlank
 /**
  * @brief zxmlDoc::createRootNodefromTree
@@ -355,7 +355,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::createRootElementfromTree(zxmlElement* &pNode) // no xml error on that routine
 {
-_MODULEINIT_
+
 
 
     if ((pNode->_xmlInternalNode)||(!pNode->isElement()))
@@ -364,7 +364,7 @@ _MODULEINIT_
                               ZS_XMLINVROOTNAME,
                               Severity_Error,
                               "Given node is not an element or is not active.");
-        _RETURN_ ZS_XMLINVROOTNAME;
+        return  ZS_XMLINVROOTNAME;
         }
     if (RootElement)
             {
@@ -374,7 +374,7 @@ _MODULEINIT_
                                   "Cannot associate tree node as root element : "
                                   "root element <%s>exist already. Replace root node instead.",
                                   RootElement->getName().toString());
-            _RETURN_ ZS_INVOP;
+            return  ZS_INVOP;
             }
     if (!xmlDocSetRootElement(_xmlInternalDoc, pNode->_xmlInternalNode))
             {
@@ -383,7 +383,7 @@ _MODULEINIT_
                              Severity_Severe,
                              "Cannot associate tree node <%s> as root element.",
                              pNode->getName().toCChar());
-            _RETURN_ ZS_XMLERROR;
+            return  ZS_XMLERROR;
             }
     RootElement=pNode;
     if (ZVerbose)
@@ -391,7 +391,7 @@ _MODULEINIT_
                     _GET_FUNCTION_NAME_,
                     RootElement->getName().toCChar());
 
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//createRootElementfromTree
 
 /**
@@ -410,7 +410,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::replaceRootElementfromTree(zxmlElement* &pNode) // no xml error on that routine
 {
-_MODULEINIT_
+
 
     if ((pNode->_xmlInternalNode)||(!pNode->isElement()))
         {
@@ -418,7 +418,7 @@ _MODULEINIT_
                               ZS_XMLINVROOTNAME,
                               Severity_Error,
                               "Given node is not an element or is not active.");
-        _RETURN_ ZS_XMLINVROOTNAME;
+        return  ZS_XMLINVROOTNAME;
         }
 
     xmlNodePtr wOldNode= xmlDocSetRootElement(_xmlInternalDoc, pNode->_xmlInternalNode);
@@ -427,7 +427,7 @@ _MODULEINIT_
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,ZS_INVOP, Severity_Severe,"Cannot associate tree node as root element : root element exist already."
                               "Replace root node instead.");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     if (RootElement)
         {
@@ -444,7 +444,7 @@ _MODULEINIT_
             fprintf(stdout,"%s>>Root element has been set to <%s>\n",
                     _GET_FUNCTION_NAME_,
                     RootElement->getName().toString());
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//setRootElementfromTree
 /**
  * @brief zxmlDoc::newCDataSection create a CData section for the document, free to be set as child to an Element
@@ -456,7 +456,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::newCDataSection(zxmlNode* pCDataSection,ZDataBuffer& pCDataContent)
 {
-_MODULEINIT_
+
     pCDataSection=nullptr;
 
     xmlNodePtr wInternalNode = xmlNewCDataBlock	( _xmlInternalDoc,
@@ -465,30 +465,30 @@ _MODULEINIT_
     if (wInternalNode==nullptr)
         {
         setXMLZException (_GET_FUNCTION_NAME_,ZS_XMLERROR,Severity_Error,"Error while creating CDATA section name ");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
 //    pNode= new zxmlNode(wInternalNode);
     pCDataSection=zxmlcreateNode(wInternalNode);
 
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }// newCDataNode$
 ZStatus
 zxmlDoc::newComment(zxmlNode* pComment,utf8VaryingString& pCommentContent)
 {
-_MODULEINIT_
+
     pComment=nullptr;
     xmlNodePtr wInternalNode = xmlNewDocComment( _xmlInternalDoc,
                                                   (const xmlChar *) pCommentContent.toUtf());
     if (wInternalNode==nullptr)
         {
         setXMLZException (_GET_FUNCTION_NAME_,ZS_XMLERROR,Severity_Error,"Error while creating comment node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 //    pNode= new zxmlNode(wInternalNode);
     pComment=zxmlcreateNode(wInternalNode);
 
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }// newComment
 /**
  * @brief zxmlDoc::newDocumentNameSpace creates a global namespace for the whole document
@@ -501,7 +501,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::newDocumentNameSpace(zxmlNameSpace* pNameSpace,const char* pURL,const char* pPrefix)
 {
-_MODULEINIT_
+
     xmlNsPtr wNs=nullptr;
     wNs=xmlNewGlobalNs(_xmlInternalDoc,(const xmlChar *)pURL,(const xmlChar *)pPrefix);
     if (!wNs)
@@ -515,12 +515,12 @@ _MODULEINIT_
                          pPrefix);
 
 
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pNameSpace=zxmlcreateNameSpace(wNs);
 
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }// newDocumentNameSpace
 /**
  * @brief zxmlDoc::newTextElement creates for the current document a new text element with pContent
@@ -538,7 +538,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::newTextElement(zxmlElement* pTextNode, const char *pNodeName, utf8VaryingString &pContent, zxmlNameSpace* pNameSpace)
 {
-_MODULEINIT_
+
     pTextNode=nullptr;
 
     xmlNsPtr wNs=nullptr;
@@ -552,7 +552,7 @@ _MODULEINIT_
                           ZS_XMLERROR,
                           Severity_Error,
                           "Error while creating Element Text node <%s>",pNodeName);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     xmlNodePtr wTextNode = xmlNewDocTextLen(_xmlInternalDoc, (const xmlChar *) pContent.toUtf(),(int)pContent.strlen());
@@ -564,7 +564,7 @@ _MODULEINIT_
                           Severity_Error,
                           "Error while creating Text node <%s>",pNodeName);
         xmlFreeNode(wEltNode);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
     if (!xmlAddChild(wEltNode,wTextNode))
         {
@@ -574,12 +574,12 @@ _MODULEINIT_
                               "Cannot link element node <%s> to its text child. Nodes have not been created. ",pNodeName);
         xmlFreeNode(wEltNode);
         xmlFreeNode(wTextNode);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
  //   pTextNode= new zxmlNode(wEltNode);
     pTextNode=(zxmlElement*)zxmlcreateNode(wEltNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//createTextNode
 /**
  * @brief zxmlDoc::newAttribute creates a new attribute for the document, without being linked to a particular node yet
@@ -591,7 +591,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::newAttribute(zxmlAttribute*pAttribute , const char*pName, const char*pValue)
 {
-_MODULEINIT_
+
     pAttribute=nullptr;
 
     xmlAttrPtr wInternalAttribute = xmlNewDocProp(_xmlInternalDoc, (const xmlChar *) pName,(const xmlChar *) pValue);
@@ -602,19 +602,19 @@ _MODULEINIT_
                           ZS_XMLERROR,
                           Severity_Error,
                           "Error while creating Attribute <%s> for document ",pName);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
 //    pAttribute= new zxmlAttribute(wInternalAttribute);
     pAttribute=zxmlcreateAttribute(wInternalAttribute);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//createTextNode
 //==================Dom document parsing===================================
 
 ZStatus
 zxmlDoc::parseXMLFile(const char*pFilename)
 {
-_MODULEINIT_
+
 
     if (_xmlInternalDoc)
         {
@@ -622,7 +622,7 @@ _MODULEINIT_
                               ZS_INVOP,
                               Severity_Severe,
                               "Cannot parse an existing DOM document (active)");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
 
     if(DocParser!=nullptr)
@@ -642,16 +642,16 @@ _MODULEINIT_
                               Severity_Error,
                               " Error while parsing xml file <%s>",pFilename
                               );
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
-    _RETURN_ getRootElement(RootElement);  // update the RootElement with what has been parsed
+    return  getRootElement(RootElement);  // update the RootElement with what has been parsed
 } // parseXMLLoadedDoc
 
 ZStatus
 zxmlDoc::parseXMLLoadedDoc(void)
 {
-_MODULEINIT_
+
 
     if(DocParser!=nullptr)
                 {
@@ -669,10 +669,10 @@ _MODULEINIT_
                               Severity_Error,
                               " Error while parsing memory loaded xml file <%s>",URIDocFile.toString()
                               );
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 } //
 
 
@@ -737,14 +737,14 @@ utfdescString wOptions;
 ZStatus
 zxmlDoc::loadAndParseXMLDoc(const char* pURL,const char* pEncoding,int pOptions)
 {
-_MODULEINIT_
+
     if (_xmlInternalDoc)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVOP,
                               Severity_Severe,
                               "Cannot parse an existing DOM document (active)");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     pOptions += XML_PARSE_NOBLANKS ; // by default remove blank nodes
     _xmlInternalDoc= xmlReadFile(pURL,pEncoding,pOptions);
@@ -758,22 +758,22 @@ _MODULEINIT_
                          pEncoding?pEncoding:"default",
                          decode_XMLParseOptions(pOptions).toCChar()
                          );
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
-    _RETURN_ getRootElement(RootElement);
+    return  getRootElement(RootElement);
 }// loadAndParseXMLDoc
 ZStatus
 zxmlDoc::ParseXMLDocFromMemory(const char* pMemory,int pSize,const char* pEncoding,int pOptions)
 {
-_MODULEINIT_
+
     if (_xmlInternalDoc)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVOP,
                               Severity_Severe,
                               "Cannot parse an existing DOM document (active)");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     pOptions += XML_PARSE_NOBLANKS ; // by default remove blank nodes
 
@@ -788,10 +788,10 @@ _MODULEINIT_
                          pEncoding?pEncoding:"default",
                          decode_XMLParseOptions(pOptions).toCChar()
                          );
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
-    _RETURN_ getRootElement(RootElement);
+    return  getRootElement(RootElement);
 }// loadAndParseXMLDoc
 
 bool zxmlDoc::isWellFormed(void)
@@ -817,7 +817,7 @@ bool zxmlDoc::isHtmlDocument(void)
 ZStatus
 zxmlDoc::getNamedRootElement(const char*pRootNodeName, zxmlElement* &pRootElement)
 {
-_MODULEINIT_
+
     if (RootElement)
             {
             if (!strcmp(RootElement->getName().toCString_Strait(),pRootNodeName))
@@ -869,7 +869,7 @@ xmlNodePtr wNodePtr=nullptr;
 ZStatus
 zxmlDoc::getRootElement( zxmlElement* &pRootElement)
 {
-_MODULEINIT_
+
 
 xmlNodePtr wNodePtr=nullptr;
     pRootElement=nullptr;
@@ -886,20 +886,20 @@ xmlNodePtr wNodePtr=nullptr;
                                   URIDocFile.toString()
                                   );
     //        ZException.setComplement(getXMLLastParserError().toString());
-            _RETURN_ ZS_XMLEMPTY;
+            return  ZS_XMLEMPTY;
             }
 //        RootElement=pRootElement=new zxmlNode(wNodePtr);
         RootElement=(zxmlElement*)zxmlcreateNode(wNodePtr);
         }
 
     pRootElement=RootElement;
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 } // getRootElement
 
 ZStatus
 zxmlDoc::getDocComment(utf8VaryingString& pNodeComment)
 {
-_MODULEINIT_
+
 
 xmlNodePtr wNodePtr=nullptr;
     wNodePtr=   xmlDocGetRootElement (_xmlInternalDoc);
@@ -912,14 +912,14 @@ xmlNodePtr wNodePtr=nullptr;
                               URIDocFile.toString()
                               );
 //        ZException.setComplement(getXMLLastParserError().toString());
-        _RETURN_ ZS_XMLEMPTY;
+        return  ZS_XMLEMPTY;
         }
     wNodePtr = wNodePtr->children;
     while (wNodePtr&&(wNodePtr->type!=XML_COMMENT_NODE))
                     wNodePtr = wNodePtr->next ;
     if (!wNodePtr)
         {
-        _RETURN_ ZS_NOTFOUND;
+        return  ZS_NOTFOUND;
         }
     xmlBufferPtr wxmlBuf;
     if (xmlNodeBufGetContent(wxmlBuf,wNodePtr)<0) // gets any node content including CDATA section
@@ -930,25 +930,25 @@ xmlNodePtr wNodePtr=nullptr;
                               Severity_Error,
                               "Cannot get CData content for node <%s>",
                               getName().toString());
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pNodeComment.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 } // getDocComment
 
 
 ZStatus
 zxmlDoc::searchNameSpaceByHref (zxmlNameSpace*pNameSpace, const char* pRef, zxmlElement *&pElement)
 {
-_MODULEINIT_
+
     if (!pElement && !RootElement)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVOP,
                               Severity_Severe,
                               "Root element has not yet been defined for DOM document and no element has been given for search from");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     xmlNodePtr wNodeStart;
     if (RootElement)
@@ -965,20 +965,20 @@ _MODULEINIT_
         return ZS_NOTFOUND;
         }
     pNameSpace=zxmlcreateNameSpace(wNs);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 
 ZStatus
 zxmlDoc::searchNameSpaceByURL(zxmlNameSpace*pNameSpace, const char* pURL, zxmlElement *&pElement)
 {
-_MODULEINIT_
+
     if (!pElement && !RootElement)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVOP,
                               Severity_Severe,
                               "Root element has not yet been defined for DOM document and no element has been given for search from");
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     xmlNodePtr wNodeStart;
     if (RootElement)
@@ -995,7 +995,7 @@ _MODULEINIT_
         return ZS_NOTFOUND;
         }
     pNameSpace=zxmlcreateNameSpace(wNs);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 
 utffieldNameString zxmlDoc::getName(void)
@@ -1016,17 +1016,17 @@ ZStatus zxmlDoc::getDocEncoding(utffieldNameString &pEncoding)
 ZStatus
 zxmlDoc::getDocEncoding(xmlCharEncoding &pEncodingCode)
 {
-_MODULEINIT_
+
     ZStatus wSt;
     ZDataBuffer wZDB;
     wSt=URIDocFile.loadContent(wZDB);
     if (wSt!=ZS_SUCCESS)
-                _RETURN_ wSt;
+                return  wSt;
     pEncodingCode= xmlDetectCharEncoding(wZDB.Data,wZDB.Size);
     if (pEncodingCode<0)
-            _RETURN_ ZS_INVVALUE;
+            return  ZS_INVVALUE;
 
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 
 int
@@ -1039,7 +1039,7 @@ zxmlDoc::getDocCharset(void)
 //#include <libxml/encoding.h>
 utffieldNameString zxmlDoc::getDocVersion(void)
 {
-_MODULEINIT_
+
     if (_xmlInternalDoc==nullptr)
             {
             ZException.setMessage(_GET_FUNCTION_NAME_,ZS_INVOP,Severity_Error,"Current xml document is not an active document");
@@ -1050,13 +1050,13 @@ _MODULEINIT_
         ZException.setMessage(_GET_FUNCTION_NAME_,ZS_XMLERROR,Severity_Error,"No version for current xml document");
         ZException.exit_abort();
         }
-    _RETURN_ utffieldNameString((const utf8_t*) _xmlInternalDoc->version);
+    return  utffieldNameString((const utf8_t*) _xmlInternalDoc->version);
 }//getDocVersion
 
 
 zxmlParser::zxmlParser()
 {
-_MODULEINIT_
+
 
     if (!ZXML_Init)
         {
@@ -1081,17 +1081,17 @@ _MODULEINIT_
         ZException.exit_abort();
         }
 
-    _RETURN_;
+    return ;
 }
 
 ZStatus
 zxmlDoc::logicalDump(FILE*pOutput,int pSpaceIndent)
 {
-_MODULEINIT_
+
     if (_xmlInternalDoc==nullptr)
             {
             ZException.setMessage(_GET_FUNCTION_NAME_,ZS_INVOP,Severity_Error,"Current xml document is not an active document");
-            _RETURN_ ZS_INVOP;
+            return  ZS_INVOP;
             }
 
     if (!RootElement)
@@ -1100,7 +1100,7 @@ _MODULEINIT_
                                   ZS_INVOP,
                                   Severity_Severe,
                                   "Current xml document does not have a root element yet defined");
-            _RETURN_ ZS_INVOP;
+            return  ZS_INVOP;
             }
     fprintf(pOutput," Document <%s> <%s> version <%s> \n",
           RootElement->getName().toString(),
@@ -1109,7 +1109,7 @@ _MODULEINIT_
 
     RootElement->dumpCurrent(pOutput,0,pSpaceIndent);
     RootElement->cascadeDump(pOutput,1,pSpaceIndent);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlDoc::writeDOMDocument Saves the current DOM Document to file pFilename using UTF8 standard character encoding
@@ -1121,16 +1121,16 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::writeDOMDocument (const char* pFilename, bool pFormat)
 {
-_MODULEINIT_
+
     if (xmlSaveFormatFile(pFilename,_xmlInternalDoc,(int)pFormat?1:0) < 0)
     {
         setXMLZException(_GET_FUNCTION_NAME_,
                          ZS_XMLERROR,
                          Severity_Error,
                          "Cannot write DOM document to <%s>",pFilename);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
     }
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlDoc::writeDocumentEncoded Saves the current DOM Document to file pFilename using character encoding pEncoding
@@ -1143,7 +1143,7 @@ _MODULEINIT_
 ZStatus
 zxmlDoc::writeDOMDocumentEncoded (const char* pFilename,const char*pEncoding, bool pFormat)
 {
-_MODULEINIT_
+
     xmlOutputBufferPtr wDocBuffer;
 
     if (xmlSaveFormatFileEnc(pFilename,_xmlInternalDoc,pEncoding,(int)pFormat?1:0) < 0)
@@ -1152,9 +1152,9 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          " Cannot write DOM Document as encoded <%s> on filename <%s>",pEncoding,pFilename);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }// writeDocumentEncoded
 
 

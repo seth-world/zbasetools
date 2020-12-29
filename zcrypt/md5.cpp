@@ -21,14 +21,14 @@ md5::compute(unsigned char* pData, const size_t pSize)
 md5&
 md5::fromHex(const char* pInput)
 {
-_MODULEINIT_
+
     if (::strlen(pInput)<=cst_md5Hex)
                     {
                     fprintf(stderr,
                             "%s>> Fatal Error : invalid size of input string from Hexadecimal convertion - md5 string size must be at least %ld\n",
                             _GET_FUNCTION_NAME_,
                             cst_md5Hex);
-                    _ABORT_;
+                    abort();
                     }
     char wBuf[3];
     wBuf[2]='\0';
@@ -37,7 +37,7 @@ _MODULEINIT_
                 ::strncpy(wBuf,(const char*)pInput[wi*2],2);
                 content[wi]=(unsigned char)strtoul(wBuf,nullptr,16);
                 }
-    _RETURN_ (*this);
+    return (*this);
 }//fromHex
 /**
  * @brief md5::toHex  converts md5 content to printable hexadecimal value

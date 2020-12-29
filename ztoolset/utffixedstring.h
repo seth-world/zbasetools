@@ -138,19 +138,44 @@ public:
 typedef utftemplateString<_Sz,utf16_t> _Base;
 
     utf16FixedString<_Sz>():utftemplateString<_Sz,utf16_t>(ZType_Utf16FixedString,ZCHARSET_UTF16)
-            {
-            _Base::ZType = ZType_Utf16FixedString;
-            if (is_little_endian())
-                        _Base::Charset=ZCHARSET_UTF16LE;
-                else
-                        _Base::Charset=ZCHARSET_UTF16BE;
-            }
+            {setUtf16();}
+    utf16FixedString<_Sz>(const utf16FixedString& pIn):
+              utftemplateString<_Sz,utf16_t>(ZType_Utf16FixedString,ZCHARSET_UTF16)
+    {
+      _Base::_copyFrom(pIn);
+    }
+    utf16FixedString<_Sz>(const utf16FixedString&& pIn):
+              utftemplateString<_Sz,utf16_t>(ZType_Utf16FixedString,ZCHARSET_UTF16)
+    {
+      _Base::_copyFrom(pIn);
+    }
+    utf16FixedString<_Sz>(const utf16_t* pIn):
+        utftemplateString<_Sz,utf16_t>(ZType_Utf16FixedString,ZCHARSET_UTF16)
+    {
+      setUtf16();
+      _Base::strset(pIn);
+    }
+    utf16FixedString<_Sz>(const char16_t* pIn):
+      utftemplateString<_Sz,utf16_t>(ZType_Utf16FixedString,ZCHARSET_UTF16)
+    {
+      setUtf16();
+      _Base::strset((const utf16_t*)pIn);
+    }
+    void setUtf16()
+    {
+      _Base::ZType = ZType_Utf16FixedString;
+      if (is_little_endian())
+        _Base::Charset=ZCHARSET_UTF16LE;
+      else
+        _Base::Charset=ZCHARSET_UTF16BE;
+    }
 
     using _Base::operator=;
     using _Base::toUtf;
 
     using _Base::fromUtf;
     using _Base::fromUtfCount;
+    using _Base::strset;
 
 
 
@@ -201,7 +226,37 @@ typedef utftemplateString<_Sz,utf32_t> _Base;
                 else
                         _Base::Charset=ZCHARSET_UTF32BE;
             }
+    utf32FixedString<_Sz>(const utf32FixedString<_Sz>& pIn):
+          utftemplateString<_Sz,utf16_t>(ZType_Utf32FixedString,ZCHARSET_UTF32)
+            {
+            utftemplateString<_Sz,utf32_t>::_copyFrom(pIn);
+            }
+    utf32FixedString<_Sz>(const utf32FixedString<_Sz>&& pIn):
+          utftemplateString<_Sz,utf32_t>(ZType_Utf32FixedString,ZCHARSET_UTF32)
+            {
+            utftemplateString<_Sz,utf32_t>::_copyFrom(pIn);
+            }
 
+    utf32FixedString<_Sz>(const char32_t* pIn):
+              utftemplateString<_Sz,utf32_t>(ZType_Utf32FixedString,ZCHARSET_UTF32)
+            {
+              if (is_little_endian())
+                _Base::Charset=ZCHARSET_UTF32LE;
+              else
+                _Base::Charset=ZCHARSET_UTF32BE;
+
+              _Base::strset((const utf32_t*)pIn);
+            }
+    utf32FixedString<_Sz>(const utf32_t* pIn):
+            utftemplateString<_Sz,utf32_t>(ZType_Utf32FixedString,ZCHARSET_UTF32)
+            {
+              if (is_little_endian())
+                _Base::Charset=ZCHARSET_UTF32LE;
+              else
+                _Base::Charset=ZCHARSET_UTF32BE;
+
+              _Base::strset((const utf32_t*)pIn);
+            }
     using _Base::operator=;
     using _Base::toUtf;
 
@@ -258,23 +313,23 @@ template <size_t _Sz>
 utf8FixedString<_Sz>*
 utf8FixedString<_Sz>::fromWArray(const wchar_t* pInWString)
 {
-_MODULEINIT_
+
     if (!pInWString)
         {
         fprintf(stderr,
                 "%s-E-NULLPTR wchar_t string pInWString is nullptr.\n",
                 _GET_FUNCTION_NAME_);
-        _RETURN_ ZS_NULLPTR;
+        return  ZS_NULLPTR;
         }
     _Base::clear();
 
     if (sizeof(wchar_t)==sizeof(utf32_t)) // wchar_t is supposed to be utf32_t (unix)
     {
-        _RETURN_ fromUtf32((const utf32_t*)pInWString,nullptr);
+        return  fromUtf32((const utf32_t*)pInWString,nullptr);
     }
     if (sizeof(wchar_t)==sizeof(utf16_t)) // wchar_t is supposed to be utf16_t (windows)
     {
-        _RETURN_ fromUtf16((const utf16_t*)pInWString,nullptr);
+        return  fromUtf16((const utf16_t*)pInWString,nullptr);
     }
 // what is this wchar_t ?
     fprintf(stderr,"%s-F-INVSIZ Fatal error : size of wchar_t  <%ld> does not correspond to either utf16 <%ld> or utf32 <%ld>.\n",
@@ -317,7 +372,7 @@ template<size_t _Sz>
 UST_Status_type
 utf8FixedString<_Sz>::fromUtf8(const utf8_t* pInString)
 {
-_MODULEINIT_
+
 
 utf32_t wCodePoint=0;
 
@@ -337,25 +392,25 @@ const utf8_t* wInPtr;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
     // Context.Strlen has the number of char units for the string
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -399,7 +454,7 @@ const utf8_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf16_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -458,7 +513,7 @@ const utf8_t* wInPtr;
         Context.Count ++;       // One character has been processed
     }// while true
     *wOutPtr=(utf16_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf8FixedString<_Sz>::fromUtf8
 
@@ -466,7 +521,7 @@ template <size_t _Sz>
 UST_Status_type
 utf8FixedString<_Sz>::getByChunk(const utf8_t* pInString,size_t pChunkSize)
 {
-_MODULEINIT_
+
 
 utf32_t wCodePoint=0;
 
@@ -491,12 +546,12 @@ const utf8_t* wInPtr;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
      wRemainingChunk = pChunkSize;
@@ -508,7 +563,7 @@ const utf8_t* wInPtr;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(pChunkSize > 4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -562,7 +617,7 @@ const utf8_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf8_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -575,7 +630,7 @@ const utf8_t* wInPtr;
                          {
                          *wOutPtr=(utf8_t)'\0';
                          Context.Status=UST_TRUNCATED;
-                         _RETURN_ Context.Status;
+                         return  Context.Status;
                          }
             for (size_t wi=0;wi<sizeof(utf8Replacement);wi++)  //
                         {
@@ -637,7 +692,7 @@ utf8_getByChunk_Main:
             Context.SavedChunkSize=wRemainingChunk; /* set context with size that belongs to current chunk */
             Context.SavedChunkFullSize=wInCount;    /* set context with total theorical length of character */
 
-            _RETURN_ UST_TRUNCATEDCHAR;
+            return  UST_TRUNCATEDCHAR;
             }
         wRemainingChunk -= wInCount;
         Context.CharUnits+=wInCount;
@@ -661,7 +716,7 @@ utf8_getByChunk_Main:
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf16_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -679,7 +734,7 @@ utf8_getByChunk_Main:
                     {
                     *wOutPtr=(utf8_t)'\0';
                     Context.Status=UST_TRUNCATED;
-                    _RETURN_ Context.Status;
+                    return  Context.Status;
                     }
         if (Context.Status<0)
             for (size_t wi=0;wi<sizeof(utf8Replacement);wi++)  //
@@ -702,7 +757,7 @@ utf8_getByChunk_Main:
         Context.Count ++;       // One character has been processed
     }// while true
     *wOutPtr=(utf8_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf8FixedString<_Sz>::getByChunck
 /**
@@ -715,7 +770,7 @@ template <size_t _Sz>
 UST_Status_type
 utf8FixedString<_Sz>::fromUtf16(const utf16_t* pInString, ZBool *plittleEndian) /** converts an utf16 input string to utf8 string */
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 ssize_t wOutCount=0,wInCount=0;
@@ -745,25 +800,25 @@ utfSCErr_struct wError;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
         {
         Context.Status=UST_EMPTY;
-        _RETURN_ UST_EMPTY;
+        return  UST_EMPTY;
         }
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
     ZBOM_type wBOM = Context.LittleEndian ? ZBOM_UTF16_LE : ZBOM_UTF16_BE;
 
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -807,7 +862,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf8_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status; // exit with nullptr return
+                                return  Context.Status; // exit with nullptr return
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -858,7 +913,7 @@ utfSCErr_struct wError;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             *wOutPtr=(utf8_t)'\0';   // end of string mark
-                            _RETURN_ Context.Status; // exit with nullptr return
+                            return  Context.Status; // exit with nullptr return
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -876,7 +931,7 @@ utfSCErr_struct wError;
                     {
                     *wOutPtr=(utf8_t)'\0';
                     Context.Status=UST_TRUNCATED;
-                    _RETURN_ Context.Status;
+                    return  Context.Status;
                     }
         for (long wi=0;wi<wOutCount;wi++)
                         {
@@ -888,7 +943,7 @@ utfSCErr_struct wError;
         wInPtr += wInCount;  // NB: in case of error utf8 count is correctly set to try to skip errored character units
     }// while true
     *wOutPtr=(utf8_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 } // fromUtf16
 
 
@@ -903,7 +958,7 @@ template <size_t _Sz>
 UST_Status_type
 utf8FixedString<_Sz>::fromUtf32(const utf32_t* pInString, ZBool *plittleEndian) /** converts an utf32 input string to utf8 string */
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 size_t wOutCount=0,wInCount=0;
 utf8_t wUtf8Char[5];
@@ -922,19 +977,19 @@ const utf32_t* wInPtr;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
 
     if (plittleEndian)
@@ -954,7 +1009,7 @@ const utf32_t* wInPtr;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -998,7 +1053,7 @@ const utf32_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf8_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -1049,7 +1104,7 @@ const utf32_t* wInPtr;
             if ((Context.StopOnConvErr) ||(Context.Status <  UST_SEVERE))  // if error is severe
                             {
                             *wOutPtr=(utf8_t)'\0';   // end of string mark
-                            _RETURN_ Context.Status;
+                            return  Context.Status;
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -1085,7 +1140,7 @@ const utf32_t* wInPtr;
                     {
                     *wOutPtr=(utf8_t)'\0';
                     Context.Status=UST_TRUNCATED;
-                    _RETURN_ Context.Status;
+                    return  Context.Status;
                     }
         for (long wi=0;wi<wOutCount;wi++)
                             {
@@ -1098,7 +1153,7 @@ const utf32_t* wInPtr;
         wInPtr += wInCount;  // NB: in case of error utf8 count is correctly set to try to skip errored character units
     }// while true
     *wOutPtr=(utf8_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf8FixedString<_Sz>::fromUtf32
 
@@ -1114,19 +1169,19 @@ template <size_t _Sz>
 utf16FixedString<_Sz>*
 utf16FixedString<_Sz>::fromWArray(const wchar_t* pInWString)
 {
-_MODULEINIT_
+
     if (!pInWString)
         {
         fprintf(stderr,
                 "%s-E-NULLPTR wchar_t string pInWString is nullptr.\n",
                 _GET_FUNCTION_NAME_);
-        _RETURN_ ZS_NULLPTR;
+        return  ZS_NULLPTR;
         }
     _Base::clear();
 
     if (sizeof(wchar_t)==sizeof(utf32_t)) // wchar_t is supposed to be utf32_t (unix)
         {
-        _RETURN_ fromUtf32((const utf32_t*)pInWString,nullptr);
+        return  fromUtf32((const utf32_t*)pInWString,nullptr);
         }
     if (sizeof(wchar_t)==sizeof(utf16_t)) // wchar_t is supposed to be utf16_t (windows)
         {
@@ -1148,7 +1203,7 @@ _MODULEINIT_
                     wSize-1);
             }
         *wPtr++=(utf16_t)'\0';
-        _RETURN_ this;
+        return  this;
         }
 // what is this wchar_t ?
     fprintf(stderr,"%s-F-INVSIZ Fatal error : size of wchar_t  <%ld> does not correspond to either utf16 <%ld> or utf32 <%ld>.\n",
@@ -1173,7 +1228,7 @@ template<size_t _Sz>
 UST_Status_type
 utf16FixedString<_Sz>::fromUtf16(const utf16_t* pInString,ZBool* plittleEndian)
 {
-_MODULEINIT_
+
 
 utf32_t wCodePoint=0;
 
@@ -1193,19 +1248,19 @@ const utf16_t* wInPtr;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
     // Context.Strlen has the number of char units for the string
     if (plittleEndian)
@@ -1225,7 +1280,7 @@ const utf16_t* wInPtr;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
 
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -1270,7 +1325,7 @@ const utf16_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf16_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -1309,7 +1364,7 @@ const utf16_t* wInPtr;
                     {
                     *wOutPtr=(utf16_t)'\0';
                     Context.Status=UST_TRUNCATED;
-                    _RETURN_ Context.Status;
+                    return  Context.Status;
                     }
         if (Context.Status<0)
             for (size_t wi=0;wi<sizeof(utf16Replacement);wi++)  //
@@ -1330,7 +1385,7 @@ const utf16_t* wInPtr;
         Context.Count ++;       // One character has been processed
     }// while true
     *wOutPtr=(utf16_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf16FixedString<_Sz>::fromUtf16
 
@@ -1387,7 +1442,7 @@ template <size_t _Sz>
  */
 UST_Status_type utf16FixedString<_Sz>::fromUtf8(const utf8_t* pInString)
 {
-_MODULEINIT_
+
 
 utf32_t wCodePoint=0;
 
@@ -1408,25 +1463,25 @@ const utf8_t* wInPtr;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
     // Context.Strlen has the number of char units for the string
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -1469,7 +1524,7 @@ const utf8_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf16_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -1500,7 +1555,7 @@ const utf8_t* wInPtr;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             *wOutPtr=(utf16_t)'\0';   // end of string mark
-                            _RETURN_ Context.Status;
+                            return  Context.Status;
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -1538,7 +1593,7 @@ const utf8_t* wInPtr;
                     {
                     *wOutPtr=(utf16_t)'\0';
                     Context.Status=UST_TRUNCATED;
-                    _RETURN_ Context.Status;
+                    return  Context.Status;
                     }
 
         *wOutPtr = wUtf16Char[0];
@@ -1555,7 +1610,7 @@ const utf8_t* wInPtr;
         wInPtr += wInCount;  // NB: in case of error utf8 count is correctly set to try to skip errored character units
     }// while true
     *wOutPtr=(utf16_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf16FixedString<_Sz>::fromUtf8
 
@@ -1565,7 +1620,7 @@ template <size_t _Sz>
 UST_Status_type
 utf16FixedString<_Sz>::fromUtf32(const utf32_t* pInString,  ZBool *plittleEndian) /** converts an utf16 input string to utf8 string */
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 ssize_t wOutCount=0,wInCount=0;
@@ -1585,19 +1640,19 @@ utfSCErr_struct wError;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
 
     if (plittleEndian)
@@ -1617,7 +1672,7 @@ utfSCErr_struct wError;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -1660,7 +1715,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf16_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -1712,7 +1767,7 @@ utfSCErr_struct wError;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             *wOutPtr=(utf16_t)'\0';   // end of string mark
-                            _RETURN_ Context.Status;
+                            return  Context.Status;
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -1747,7 +1802,7 @@ utfSCErr_struct wError;
                     {
                     *wOutPtr=(utf16_t)'\0';
                     Context.Status=UST_TRUNCATED;
-                    _RETURN_ Context.Status;
+                    return  Context.Status;
                     }
         for (size_t wi=0;wi<wOutCount;wi++)
                     {
@@ -1760,7 +1815,7 @@ utfSCErr_struct wError;
 
     }// while true
     *wOutPtr=(utf16_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf16FixedString<_Sz>::fromUtf32
 
@@ -1842,19 +1897,19 @@ template <size_t _Sz>
 utf32FixedString<_Sz>*
 utf32FixedString<_Sz>::fromWArray(const wchar_t* pInWString)
 {
-_MODULEINIT_
+
     if (!pInWString)
         {
         fprintf(stderr,
                 "%s-E-NULLPTR wchar_t string pInWString is nullptr.\n",
                 _GET_FUNCTION_NAME_);
-        _RETURN_ ZS_NULLPTR;
+        return  ZS_NULLPTR;
         }
     _Base::clear();
 
     if (sizeof(wchar_t)==sizeof(utf16_t)) // wchar_t is supposed to be utf16_t (windows)
         {
-        _RETURN_ fromUtf16((const utf32_t*)pInWString,nullptr);
+        return  fromUtf16((const utf32_t*)pInWString,nullptr);
         }
     if (sizeof(wchar_t)==sizeof(utf32_t)) // wchar_t is supposed to be utf32_t (unix)
         {
@@ -1878,7 +1933,7 @@ _MODULEINIT_
                     _Base::getUnitCount(),
                     wSize-1);
              }
-        _RETURN_ this;
+        return  this;
         }
 // what is this wchar_t ?
     fprintf(stderr,"%s-F-INVSIZ Fatal error : size of wchar_t  <%ld> does not correspond to either utf16 <%ld> or utf32 <%ld>.\n",
@@ -1894,7 +1949,7 @@ template<size_t _Sz>
 UST_Status_type
 utf32FixedString<_Sz>::fromUtf32(const utf32_t* pInString,ZBool* plittleEndian)
 {
-_MODULEINIT_
+
 
 utf32_t wCodePoint=0;
 
@@ -1914,19 +1969,19 @@ const utf32_t* wInPtr;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
     // Context.Strlen has the number of char units for the string
     if (plittleEndian)
@@ -1946,7 +2001,7 @@ const utf32_t* wInPtr;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
 
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -1991,7 +2046,7 @@ const utf32_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf16_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return  Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -2042,7 +2097,7 @@ const utf32_t* wInPtr;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             *wOutPtr=(utf32_t)'\0';// end of string mark
-                            _RETURN_ Context.Status; // exit with nullptr return
+                            return  Context.Status; // exit with nullptr return
                             }
             //in any other error cases, use replacement character
             if (Context.Action==ZCNV_Skip)
@@ -2080,7 +2135,7 @@ const utf32_t* wInPtr;
                     {
                     *wOutPtr=(utf32_t)'\0';
                     Context.Status=UST_TRUNCATED;
-                    _RETURN_ Context.Status;
+                    return  Context.Status;
                     }
         *wOutPtr=wCodePoint;
         wOutPtr++;
@@ -2090,7 +2145,7 @@ const utf32_t* wInPtr;
         Context.Count ++;       // One character has been processed
     }// while true
     *wOutPtr=(utf32_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf32FixedString<_Sz>::fromUtf32
 
@@ -2103,7 +2158,7 @@ template <size_t _Sz>
 UST_Status_type
 utf32FixedString<_Sz>::fromUtf8(const utf8_t* pInString) /** converts an utf16 input string to utf8 string */
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0,wUtf32Char;
 
 ssize_t wInCount=0,wOutCount=0;
@@ -2122,26 +2177,26 @@ const utf8_t* wInPtr;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return  UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return  UST_STRNOENDMARK;
                     }
 
     // Context.Strlen has the number of char units for the input string
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -2185,7 +2240,7 @@ const utf8_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf32_t)'\0'; // end of string mark
-                                _RETURN_ UST_to_ZStatus(Context.Status);
+                                return  UST_to_ZStatus(Context.Status);
                                 }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -2237,7 +2292,7 @@ const utf8_t* wInPtr;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             *wOutPtr=(utf32_t)'\0';// end of string mark
-                            _RETURN_ Context.Status; // exit with nullptr return
+                            return  Context.Status; // exit with nullptr return
                             }
             //in any other error cases, use replacement character
             if (Context.Action==ZCNV_Skip)
@@ -2284,7 +2339,7 @@ const utf8_t* wInPtr;
 
     }// while true
     *wOutPtr=(utf32_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 
 } // utf32FixedString<_Sz>::fromUtf8
 
@@ -2293,7 +2348,7 @@ UST_Status_type
 utf32FixedString<_Sz>::fromUtf16(const utf16_t* pInString,
                                  ZBool *plittleEndian) /** converts an utf16 input string to utf8 string */
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 size_t wOutCount=0,wInCount=0;
@@ -2320,19 +2375,19 @@ utfSCErr_struct wError;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return  UST_NULLPTR;
             }
     if (!*pInString)
         {
         Context.Status=UST_EMPTY;
-        _RETURN_ UST_EMPTY;
+        return  UST_EMPTY;
         }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ ZS_STRNOENDMARK;
+                    return  ZS_STRNOENDMARK;
                     }
 
     ZBOM_type wBOM = Context.LittleEndian ? ZBOM_UTF32_LE : ZBOM_UTF32_BE;
@@ -2340,7 +2395,7 @@ utfSCErr_struct wError;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return  UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -2383,7 +2438,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf32_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status; // exit with nullptr return
+                                return  Context.Status; // exit with nullptr return
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -2435,7 +2490,7 @@ utfSCErr_struct wError;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             *wOutPtr=(utf32_t)'\0'; // end of string mark
-                            _RETURN_ Context.Status; // exit with nullptr return
+                            return  Context.Status; // exit with nullptr return
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -2480,7 +2535,7 @@ utfSCErr_struct wError;
 
     }// while true
     *wOutPtr=(utf32_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 } // utf32FixedString<_Sz>::fromUtf16
 
 

@@ -49,19 +49,22 @@ void zprintStack(void) ;
 
 #ifndef __ERROR_MANAGEMENT_LEVEL__
 
-#define _MODULEINIT_  \
+#define   __MODULEINIT__ \
     const char *_MODULENAME=_GET_FUNCTION_NAME_ ;
 
-#define _RETURN_  return
-
+#define __RETURN__   return
+/*
 #define _EXIT_  exit
 #define _ABORT_  {  fprintf(stderr,"...Abort called from module/function <%s>\n",_MODULENAME); \
                     abort();}
-
+*/
 #define _PRINTMESSAGE_(__SEVERITY__ ,__SHORTMESSAGE__, ...)  \
  \
 sprintf(wMsg,__VA_ARGS__); \
 zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg) ;
+
+#define _ABORT_ {\
+        abort() ;}
 
 #define _ASSERT_(__CONDITION__,__ABORT_MESSAGE__,...) \
 { if (__CONDITION__)  \
@@ -72,12 +75,14 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
 #else
 /** @brief MODULEINIT this macro has to be put at the top of the function / method */
 
-#define _MODULEINIT_  \
+#define   __MODULEINIT__ \
     const char *_MODULENAME =_GET_FUNCTION_NAME_ ;\
+    if (!zbs::CurStack) \
+        zbs::CurStack=new zbs::ZModuleStack; \
     zbs::CurStack->push(_MODULENAME);
 
 /** @brief replaces the 'return' instruction. Warning: you must first have used MODULEINIT macro at top of the function/method */
-#define _RETURN_  zbs::CurStack->pop(); return
+#define __RETURN__   zbs::CurStack->pop(); return
 
 #define ZRETURN(pInst) { zbs::CurStack->pop(); return pInst ;}
 
@@ -140,7 +145,7 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
 
 
 #endif // __ERROR_MANAGEMENT_LEVEL__
-#ifdef __DEPRECATED_MACRO__
+#ifdef __DEPRECATED_utfcodeStringMACRO__
 #define _INFORMATION_(__SHORTMESSAGE__, ...) _PRINTMESSAGE_(Severity_Information,__SHORTMESSAGE__,__VA_ARGS__)
 #define _WARNING_(__SHORTMESSAGE__, ...) _PRINTMESSAGE_(Severity_Warning,__SHORTMESSAGE__, __VA_ARGS__)
 #define _ERROR_(__SHORTMESSAGE__, ...) _PRINTMESSAGE_(Severity_Error,__SHORTMESSAGE__, __VA_ARGS__)

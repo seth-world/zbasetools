@@ -2067,7 +2067,7 @@ ZStatus utf8StrToCharStr (char **pOutCharStr,
                          const ssize_t pInByteSize,
                          ZBool pWarningSignal)
 {
-_MODULEINIT_
+
 ZStatus wSt;
 static UConverter* wUtf8Conv=nullptr;
 static UConverter* wExtConv=nullptr;
@@ -2091,7 +2091,7 @@ ZCharset_type wCharset;
                               "Invalid charset <%s> for converting to char string - size of character unit is <%ld> \n",
                               decode_ZCharset(wCharset),
                               charsetUnitSize(wCharset));
-        _RETURN_ ZS_INVCHARSET ;
+        return  ZS_INVCHARSET ;
         }
     const char* wOutName=decode_ZCharset(wCharset);
     if (!wOutName)
@@ -2102,7 +2102,7 @@ ZCharset_type wCharset;
                               "Unsupported charset value <%X> for converting to char string - size of character unit is <%ld> \n",
                               wCharset,
                               charsetUnitSize(wCharset));
-        _RETURN_ ZS_INVCHARSET;
+        return  ZS_INVCHARSET;
         }
 
     utf8Converter wutf8Cnv(true);
@@ -2128,7 +2128,7 @@ ZCharset_type wCharset;
                              wErr,
                              pWarningSignal,
                              " while opening ICU  utf-8 converter for converting <%s> to utf8\n",
-                             wOutName))<0) { _RETURN_ wSt;}
+                             wOutName))<0) { return  wSt;}
             }
         else
              ucnv_reset(wUtf8Conv);
@@ -2140,7 +2140,7 @@ ZCharset_type wCharset;
                              wErr,
                              pWarningSignal,
                              " while opening ICU  utf-8 converter for converting <%s> to utf8\n",
-                             wOutName))<0) { _RETURN_ wSt;}
+                             wOutName))<0) { return  wSt;}
             }
         else
              ucnv_reset(wExtConv);
@@ -2178,7 +2178,7 @@ ZCharset_type wCharset;
                      wErr,
                      pWarningSignal,
                      " while Converting ut8 string to unicode pivot\n",
-                     wOutName))<0) { _RETURN_ wSt;}
+                     wOutName))<0) { return  wSt;}
 
 
 
@@ -2219,7 +2219,7 @@ ZCharset_type wCharset;
                      wErr,
                      pWarningSignal,
                      " while Converting ut8 string to unicode pivot\n",
-                     wOutName))<0) { _RETURN_ wSt;}
+                     wOutName))<0) { return  wSt;}
 
     //  free allocated memory
 
@@ -2265,7 +2265,7 @@ ZCharset_type wCharset;
                      pWarningSignal,
                      " while converting utf-8 (icu algo built in) to charset <%s>\n",
                      wOutName)>0)
-                        { _RETURN_ ZS_ICUERROR; }
+                        { return  ZS_ICUERROR; }
 
     char* wOutString = (char*)malloc(wTheoLen);
     wTheoLen= ucnv_fromAlgorithmic(wExtConv,
@@ -2280,10 +2280,10 @@ ZCharset_type wCharset;
                      " while converting utf-8 (icu algo built in) to charset <%s>\n",
                      wOutName)>0){
                         free (wOutString);
-                        _RETURN_ ZS_ICUERROR;
+                        return  ZS_ICUERROR;
                         }
     *pOutCharStr=wOutString;
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 } // utf8StrToCharStr
 
 ZStatus utf16StrToCharStr (char **pOutCharStr,
@@ -2293,7 +2293,7 @@ ZStatus utf16StrToCharStr (char **pOutCharStr,
                                    ZBool pWarningSignal,
                                    ZBool* plittleEndian)
 {
-_MODULEINIT_
+
 
     if (!pOutCharStr)
             _ABORT_;
@@ -2316,7 +2316,7 @@ ZCharset_type wCharset;
                               "Invalid charset <%s> for converting to char string - size of character unit is <%ld> \n",
                                     decode_ZCharset(wCharset),
                                     charsetUnitSize(wCharset));
-        _RETURN_ ZS_INVCHARSET;
+        return  ZS_INVCHARSET;
         }
     const char* wOutName=decode_ZCharset(wCharset);
     if (!wOutName)
@@ -2326,7 +2326,7 @@ ZCharset_type wCharset;
                               Severity_Severe,
                               "Invalid charset code <%X> for converting to char string - code is not recognized/managed. \n",
                                     wCharset);
-        _RETURN_ ZS_INVCHARSET;
+        return  ZS_INVCHARSET;
         }
     UConverterType wInputCnv=UCNV_UTF16_BigEndian;
     const char* wUCNV_Name="UCNV_UTF16_BigEndian";
@@ -2344,7 +2344,7 @@ ZCharset_type wCharset;
                      wErr,
                      true,
                      " while opening icu converter for charset <%s>\n",
-                     wOutName) < UST_SEVERE) {_RETURN_ ZS_ICUERROR;}
+                     wOutName) < UST_SEVERE) {return  ZS_ICUERROR;}
 
     wErr=U_ZERO_ERROR;
 
@@ -2358,7 +2358,7 @@ ZCharset_type wCharset;
                      pWarningSignal,
                      " while converting <%s> (icu algo built in) to charset <%s>\n",
                      wUCNV_Name,
-                     wOutName) < UST_SEVERE) { _RETURN_ ZS_ICUERROR;}
+                     wOutName) < UST_SEVERE) { return  ZS_ICUERROR;}
     char* wOutString = (char*)malloc(wTheoLen);
     if (!wOutString)
         {
@@ -2366,7 +2366,7 @@ ZCharset_type wCharset;
                               ZS_MEMERROR,
                               Severity_Fatal,
                               "Cannot allocate memory size <%d>", wTheoLen);
-        _RETURN_ ZS_MEMERROR;
+        return  ZS_MEMERROR;
         }
     wTheoLen= ucnv_fromAlgorithmic(wConv,
                                    wInputCnv,
@@ -2381,10 +2381,10 @@ ZCharset_type wCharset;
                      wUCNV_Name,
                      wOutName) < UST_SEVERE){
                                             free (wOutString);
-                                            _RETURN_ ZS_ICUERROR;
+                                            return  ZS_ICUERROR;
                                             }
     *pOutCharStr=wOutString;
-_RETURN_ ZS_SUCCESS;
+return  ZS_SUCCESS;
 } // utf16StrToCStr
 
 ZStatus utf32StrToCharStr (char **pOutCharStr,
@@ -2394,7 +2394,7 @@ ZStatus utf32StrToCharStr (char **pOutCharStr,
                                    ZBool pWarningSignal,
                                    ZBool *plittleEndian)
 {
-_MODULEINIT_
+
 
     if (!pOutCharStr)
             _ABORT_;
@@ -2416,7 +2416,7 @@ ZCharset_type wCharset;
                               "Invalid charset <%s> for converting to char string - size of character unit is <%ld> \n",
                                     decode_ZCharset(wCharset),
                                     charsetUnitSize(wCharset));
-        _RETURN_ ZS_INVCHARSET;
+        return  ZS_INVCHARSET;
         }
     const char* wOutName=decode_ZCharset(wCharset);
     if (!wOutName)
@@ -2426,7 +2426,7 @@ ZCharset_type wCharset;
                               Severity_Severe,
                               "Invalid charset code <%X> for converting to char string - code is not recognized/managed. \n",
                                     wCharset);
-        _RETURN_ ZS_INVCHARSET;
+        return  ZS_INVCHARSET;
         }
 
     UConverterType wInputCnv=UCNV_UTF32_BigEndian;
@@ -2447,7 +2447,7 @@ ZCharset_type wCharset;
                      pWarningSignal,
                      " while opening icu converter for charset <%s>\n",
                      wOutName) < UST_SEVERE)
-                                {_RETURN_ ZS_ICUERROR;}
+                                {return  ZS_ICUERROR;}
 
     wErr=U_ZERO_ERROR;
 
@@ -2462,7 +2462,7 @@ ZCharset_type wCharset;
                      pWarningSignal,
                      " while converting <%s> (icu algo built in) to charset <%s>\n",
                      wUCNV_Name,
-                     wOutName) < UST_SEVERE) {_RETURN_ ZS_ICUERROR;}
+                     wOutName) < UST_SEVERE) {return  ZS_ICUERROR;}
     char* wOutString = (char*)malloc(wTheoLen);
     if (!wOutString)
         {
@@ -2470,7 +2470,7 @@ ZCharset_type wCharset;
                               ZS_MEMERROR,
                               Severity_Fatal,
                               "Cannot allocate memory size <%d>", wTheoLen);
-        _RETURN_ ZS_MEMERROR;
+        return  ZS_MEMERROR;
         }
     wTheoLen= ucnv_fromAlgorithmic(wConv,
                                    wInputCnv,
@@ -2487,10 +2487,10 @@ ZCharset_type wCharset;
                      wUCNV_Name,
                      wOutName) < UST_SEVERE){
                                             free (wOutString);
-                                            _RETURN_ ZS_ICUERROR;
+                                            return  ZS_ICUERROR;
                                             }
     *pOutCharStr=wOutString;
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 } // utf32StrToCStr
 
 /**
@@ -2520,7 +2520,7 @@ ZCharset_type wCharset;
  */
 UST_Status_type utf8StrToCStr (char **pCStr, const utf8_t* pInString, utfStrCtx *pContext)
 {
-_MODULEINIT_
+
 
     if (!pCStr)
             _ABORT_;
@@ -2911,7 +2911,7 @@ utfStrCtx wCountContext;
  */
 utf8_t* addUtf8Bom(utf8_t*pString, size_t *pByteSize)
 {
-_MODULEINIT_
+
     size_t wSize=utfStrlen<utf8_t>(pString)+1;
     wSize=(wSize*sizeof(utf8_t))+2;
     *pByteSize=wSize;
@@ -2931,7 +2931,7 @@ _MODULEINIT_
     while (*pString)
         *wPtr++ = *pString++;
     *wPtr=(utf8_t)'\0';
-    _RETURN_ wNewString;
+    return  wNewString;
 }// addUtf8Bom
 /**
  * @brief addUtf16Bom allocates memory and adds a leading utf16 BOM to given utf16_t* string.
@@ -2945,7 +2945,7 @@ _MODULEINIT_
  */
 utf16_t* addUtf16Bom(utf16_t* pString, size_t*pByteSize, ZBool *plittleEndian)
 {
-_MODULEINIT_
+
     utf16_t* wBOM=(utf16_t*)cst_utf16BOMBE;
     if (plittleEndian)
         {
@@ -2970,7 +2970,7 @@ _MODULEINIT_
     while (*pString)
         *wPtr++= *pString++;
     *wPtr=(utf16_t)'\0';
-    _RETURN_ wNewString;
+    return  wNewString;
 }// addUtf16Bom
 /**
  * @brief addUtf32Bom allocates memory and adds a leading utf32 BOM to given utf32_t* string.
@@ -2984,7 +2984,7 @@ _MODULEINIT_
  */
 utf32_t* addUtf32Bom(utf32_t* pString,size_t*pByteSize, ZBool* plittleEndian)
 {
-    _MODULEINIT_
+    
         utf32_t* wBOM=(utf32_t*)cst_utf32BOMBE_Byte;
         if (plittleEndian)
             {
@@ -3009,7 +3009,7 @@ utf32_t* addUtf32Bom(utf32_t* pString,size_t*pByteSize, ZBool* plittleEndian)
         while (*pString)
             *wPtr++ = *pString++;
         *wPtr=(utf32_t)'\0';
-        _RETURN_ wNewString;
+        return  wNewString;
 }// addUtf32Bom
 /*================End copy==================================================*/
 /**
@@ -3062,7 +3062,7 @@ const utf8_t *detectUtf8Bom(const utf8_t *pInString,ZBOM_type* pBOM)
 */
 const utf16_t* detectUtf16Bom(const utf16_t *pInString, ZBOM_type* pBOM)
 {
-_MODULEINIT_
+
 
 
   if (!pInString)
@@ -3121,7 +3121,7 @@ utf8_t* wPtr=(utf8_t*)pInString;
 */
 const utf32_t* detectUtf32Bom(const utf32_t *pInString,ZBOM_type* pBOM)
 {
-_MODULEINIT_
+
   if (!pInString)
               _ABORT_;
   if (!pBOM)
@@ -3879,7 +3879,7 @@ ZStatus iconvFromTo(const ZCharset_type pFromCharset,
                   const ZCharset_type pToCharset,
                   ZDataBuffer* pOutString)
 {
-_MODULEINIT_
+
 
 ZStatus wSt;
   const char* wfromCharset=decode_ZCharset(pFromCharset);
@@ -3890,13 +3890,13 @@ ZStatus wSt;
   if (wCharCount<0)
           {
           ZException.addToLast(" while getting character count from input string");
-          _RETURN_ (ZException.getLastStatus());
+          return  (ZException.getLastStatus());
           }
   ssize_t wOutSize= approxSizeFromCharCount(pToCharset,wCharCount);
   if (wOutSize<0)
           {
           ZException.addToLast(" while getting char size from encoding for output string");
-          _RETURN_ (ZException.getLastStatus());
+          return  (ZException.getLastStatus());
           }
 
   pOutString->allocateBZero((size_t)(wOutSize));
@@ -3935,7 +3935,7 @@ ZStatus wSt;
           break;
           }
       }
-      _RETURN_ ZS_ICONVINIT;
+      return  ZS_ICONVINIT;
   }// if (wiconvCtx==(iconv_t)-1)
 
   size_t wC=0;
@@ -3980,21 +3980,21 @@ ZStatus wSt;
       case EILSEQ:
           {
           ZException.setComplement("Input conversion stopped due to an input byte that does not belong to the input codeset.");
-          _RETURN_ wSt;
+          return  wSt;
           }
 /*       case E2BIG:
           {
-          _RETURN_ ZS_NEEDMORESPACE;
+          return  ZS_NEEDMORESPACE;
           }*/
       case EINVAL:
           {
           ZException.setComplement("Input conversion stopped due to an incomplete character or shift sequence at the end of the input buffer.");
-          _RETURN_ wSt;
+          return  wSt;
           }
       case EBADF:
           {
           ZException.setComplement("Bad iconv context : The cd argument is not a valid open conversion descriptor.");
-          _RETURN_ wSt;
+          return  wSt;
           }
       }// switch(errno)
       }// if (wC==(size_t)-1)
@@ -4005,7 +4005,7 @@ ZStatus wSt;
 
   iconv_close (wiconvCtx);
 
-  _RETURN_ wSt;
+  return  wSt;
 }// iconvFromTo
 
 
@@ -4058,7 +4058,7 @@ template <size_t _Sz>
 ZStatus
 _fromISOLatin1(templateString<_Sz>& pOutString,const unsigned char* pInString, size_t pInSize)
 {
-_MODULEINIT_
+
 ZStatus wSt;
 ZDataBuffer wZDB;
 size_t wSize;
@@ -4068,7 +4068,7 @@ size_t wSize;
                     pOutString.Charset,
                     wZDB);
   if (wSt!=ZS_SUCCESS)
-                  _RETURN_ wSt;
+                  return  wSt;
   wZDB.addConditionalTermination();
   wSize=wZDB.Size;
   if (wSize >= pOutString._capacity)
@@ -4078,14 +4078,14 @@ size_t wSize;
                   }
   pOutString.clear();
   pOutString=wZDB.DataChar;
-  _RETURN_ wSt;
+  return  wSt;
 }// _fromISOLatin1
 
   template <size_t _Sz>
   ZStatus
 _toISOLatin1(ZDataBuffer& pOutString,templateString<_Sz>& pInString)
 {
-_MODULEINIT_
+
 const char* toConvCode="ISO8991-1";
 ZStatus wSt;
 ZDataBuffer wZDB;
@@ -4096,16 +4096,16 @@ size_t wSize;
                    pInString.size(),
                    wZDB);
   if (wSt!=ZS_SUCCESS)
-                  _RETURN_ wSt;
+                  return  wSt;
   wZDB.addConditionalTermination();
-  _RETURN_ wSt;
+  return  wSt;
 }// _toISOLatin1
 
 template <size_t _Sz>
 ZStatus
 _fromGuessEncoding(templateString<_Sz>& pOutString,const unsigned char* pInString, size_t pInSize)
 {
-_MODULEINIT_
+
 ZStatus wSt;
 size_t wSize;
 ZDataBuffer wZDB;
@@ -4117,7 +4117,7 @@ ZDataBuffer wZDB;
                    pInSize,
                    wZDB);
   if (wSt!=ZS_SUCCESS)
-          _RETURN_ wSt;
+          return  wSt;
   wSize=wZDB.Size;
   if (wSize > pOutString._capacity)
                   {
@@ -4126,13 +4126,13 @@ ZDataBuffer wZDB;
                   }
   pOutString.clear();
   pOutString=wZDB.DataChar;
-  _RETURN_ pOutString;
+  return  pOutString;
 }// _fromGuessEncoding
 template <size_t _Sz,size_t _Sz1>
 ZStatus
 _fromEncoded(templateString<_Sz>& pOutString, templateString<_Sz1>& pInString)
 {
-_MODULEINIT_
+
 const char* wfromConvCode=decode_ZCharset(pInString.Charset);
 const char* wtoConvCode=decode_ZCharset(pOutString.Charset);
 ZStatus wSt;
@@ -4144,7 +4144,7 @@ size_t wSize;
                    pInString.size(),
                    wZDB);
   if (wSt!=ZS_SUCCESS)
-                  _RETURN_ wSt;
+                  return  wSt;
   wZDB.addConditionalTermination();
   wSize=wZDB.Size;
   if (wSize > pOutString._capacity)
@@ -4154,14 +4154,14 @@ size_t wSize;
                   }
   pOutString.clear();
   pOutString=wZDB.DataChar;
-  _RETURN_ wSt;
+  return  wSt;
 }// _fromEncoded
 
 template <size_t _Sz>
 ZStatus
 _fromZCharset(templateString<_Sz>& pOutString,const ZCharset_type pInCharset, const unsigned char* pInString, size_t pInSize)
 {
-_MODULEINIT_
+
 const char* toConvCode="ISO8991-1";
 ZStatus wSt;
 ZDataBuffer wZDB;
@@ -4172,7 +4172,7 @@ size_t wSize;
                    pOutString.Charset,
                    wZDB);
   if (wSt!=ZS_SUCCESS)
-                  _RETURN_ wSt;
+                  return  wSt;
   wZDB.addConditionalTermination();
   wSize=wZDB.Size;
   if (wSize > pOutString._capacity)
@@ -4182,7 +4182,7 @@ size_t wSize;
                   }
   pOutString.clear();
   strncpy(pOutString.content,wZDB.DataChar,wSize);
-  _RETURN_ wSt;
+  return  wSt;
 }// _fromZCharset
 
 #ifdef QT_CORE_LIB
@@ -4683,7 +4683,7 @@ singleUtf8toUtf16 (utf16_t* pOutChar,size_t* pOutCount,
                    utf8_t*pInChar,size_t pInSize,
                    size_t* pCurrLen,size_t pMaxLength)
 {
-_MODULEINIT_
+
     utf32_t wCodePoint;
     size_t  wUtf8Count,wUtf16Count;
 
@@ -4697,11 +4697,11 @@ _MODULEINIT_
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)+= wUtf16Count;
-            _RETURN_ UST_SUCCESS;
+            return  UST_SUCCESS;
             }
 
     if (((*pCurrLen) + wUtf16Count) >= pMaxLength)
-                        {_RETURN_ UST_TRUNCATED;}
+                        {return  UST_TRUNCATED;}
 
     *pOutCount=wUtf16Count;
 
@@ -4714,7 +4714,7 @@ _MODULEINIT_
         (*pCurrLen)++;
         }
 
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 }//singleUtf8toUtf16
 
 UST_Status_type
@@ -4722,22 +4722,22 @@ singleUtf8toUtf32 (utf32_t *pOutChar, size_t* pOutSize,
                    utf8_t*pInChar, size_t pInSize,
                    size_t* pCurrLen, size_t pMaxLength)
 {
-_MODULEINIT_
+
     utf32_t wCodePoint;
     size_t  wUtf8Count;
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)++;
-            _RETURN_ UST_SUCCESS;
+            return  UST_SUCCESS;
             }
     if (((*pCurrLen) + 1) >= pMaxLength)
-                            {_RETURN_ UST_TRUNCATED;}
+                            {return  UST_TRUNCATED;}
     if (utf8Decode(pInChar,pOutChar,&wUtf8Count,&pInSize) < UST_SEVERE)
                             _ABORT_;
     *pOutSize=1;
     pOutChar++;
     (*pCurrLen)++;
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 }//singleUtf8toUtf32
 
 UST_Status_type
@@ -4745,7 +4745,7 @@ singleUtf16toUtf8 (utf8_t* pOutChar,size_t* pOutCount,
                    utf16_t*pInChar,size_t pInSize,
                    size_t* pCurrLen,size_t pMaxLength)
 {
-_MODULEINIT_
+
     utf32_t wCodePoint;
     size_t  wUtf8Count;
     utf8_t wUtf8Char[5];
@@ -4757,10 +4757,10 @@ _MODULEINIT_
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)+= wUtf8Count;
-            _RETURN_ UST_SUCCESS;
+            return  UST_SUCCESS;
             }
     if (((*pCurrLen) + wUtf8Count) >= pMaxLength)
-                                {_RETURN_ UST_TRUNCATED;}
+                                {return  UST_TRUNCATED;}
 
     *pOutCount=wUtf8Count;
     size_t wi=0;
@@ -4770,35 +4770,35 @@ _MODULEINIT_
         wi++;
         (*pCurrLen)++;
         }
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 }//singleUtf16toUtf8
 UST_Status_type
 singleUtf16toUtf32 (utf32_t* pOutChar,size_t* pOutSize,
                     utf16_t*pInChar,size_t pInSize,
                     size_t* pCurrLen,size_t pMaxLength)
 {
-_MODULEINIT_
+
     utf32_t wCodePoint;
     size_t  wUtf16Count;
     if (((*pCurrLen) + 1) >= pMaxLength)
-                            {_RETURN_ UST_TRUNCATED;}
+                            {return  UST_TRUNCATED;}
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)++;
-            _RETURN_ UST_SUCCESS;
+            return  UST_SUCCESS;
             }
     if (utf16Decode(pInChar,pOutChar,&wUtf16Count,nullptr) < UST_SEVERE)
                             _ABORT_;
     *pOutSize=1;
     (*pCurrLen)++;
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 }//singleUtf16toUtf32
 UST_Status_type
 singleUtf32toUtf8 (utf8_t* pOutChar,size_t* pOutCount,
                    utf32_t*pInChar,size_t pInSize,
                    size_t* pCurrLen,size_t pMaxLength)
 {
-_MODULEINIT_
+
     utf32_t wCodePoint;
     size_t  wUtf32Count,wUtf8Count;
     utf8_t wUtf8Char[5];
@@ -4811,10 +4811,10 @@ _MODULEINIT_
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)+= wUtf8Count;
-            _RETURN_ UST_SUCCESS;
+            return  UST_SUCCESS;
             }
     if (((*pCurrLen) + wUtf8Count) >= pMaxLength)
-                        {_RETURN_ UST_TRUNCATED;}
+                        {return  UST_TRUNCATED;}
 
     *pOutCount=wUtf8Count;
     size_t wi=0;
@@ -4825,14 +4825,14 @@ _MODULEINIT_
         (*pCurrLen)++;
         }
 
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 }//singleUtf32toUtf8
 UST_Status_type
 singleUtf32toUtf16 (utf16_t *pOutChar, size_t* pOutCount,
                     utf32_t pInChar, size_t pInSize,
                     size_t* pCurrLen, size_t pMaxLength)
 {
-_MODULEINIT_
+
     utf32_t wCodePoint;
     size_t  wUtf16Count;
     utf16_t wUtf16Char[3];
@@ -4841,10 +4841,10 @@ _MODULEINIT_
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)+= wUtf16Count;
-            _RETURN_ UST_SUCCESS;
+            return  UST_SUCCESS;
             }
     if (((*pCurrLen) + wUtf16Count) >= pMaxLength)
-                        {_RETURN_ UST_TRUNCATED;}
+                        {return  UST_TRUNCATED;}
     size_t wi=0;
     while (wUtf16Count--)
         {
@@ -4853,7 +4853,7 @@ _MODULEINIT_
         (*pCurrLen)++;
         }
     *pOutCount=wUtf16Count;
-    _RETURN_ UST_SUCCESS;
+    return  UST_SUCCESS;
 }//singleUtf32toUtf16
 
 

@@ -29,7 +29,7 @@ size_t      wOffset=0;
                               decode_ZType(pZType),
                               ZType_String,
                               "ZType_String");
-        _RETURN_ ZS_INVTYPE;
+        return ZS_INVTYPE;
         }
 
 
@@ -50,7 +50,7 @@ template <size_t _Sz,size_t _Sz1,class _Utf>
 ZStatus
 fromEncoded (utftemplateString<_Sz,_Utf>* pOutString,utftemplateString<_Sz1,_Utf>* pInString)
 {
-_MODULEINIT_
+
 ZDataBuffer wZDB;
 size_t wSize;
     ZStatus wSt= iconvFromTo(pInString->Charset,
@@ -59,7 +59,7 @@ size_t wSize;
                        pOutString->Charset,
                        wZDB);
     if (wSt!=ZS_SUCCESS)
-                    _RETURN_ wSt;
+                    return wSt;
     wZDB.addConditionalTermination();
     wSize=wZDB.Size;
     if (wSize >= pOutString->_capacity)
@@ -69,7 +69,7 @@ size_t wSize;
                     }
     pOutString->clear();
     pOutString=wZDB.DataChar;
-    _RETURN_ wSt;
+    return wSt;
 }// fromISOLatin1
 
 

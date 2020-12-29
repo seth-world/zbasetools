@@ -313,7 +313,7 @@ ZDataBuffer::newcheckSum(void)
 unsigned char*
 ZDataBuffer::allocate(ssize_t pSize)
 {
-_MODULEINIT_
+
     if ((pSize>__INVALID_SIZE__)||((ssize_t)pSize<0))
     {
         fprintf(stderr,
@@ -347,7 +347,7 @@ _MODULEINIT_
     DataChar=(char *)Data;
     VoidPtr=(void*)Data;
     WDataChar=(wchar_t*)Data;
-    _RETURN_ Data;
+    return  Data;
 }//allocate
 
 
@@ -378,7 +378,7 @@ ZDataBuffer::allocateBZero(ssize_t pSize)
 unsigned char*
 ZDataBuffer::extend(ssize_t pSize)
 {
-_MODULEINIT_
+
     if ((pSize>__INVALID_SIZE__)||(pSize<0))
     {
         fprintf(stderr,
@@ -409,7 +409,7 @@ _MODULEINIT_
         DataChar=(char *)Data;
         VoidPtr=(char*)Data;
         WDataChar=(wchar_t*)Data;
-        _RETURN_ Data;
+        return  Data;
     }// Data==nullptr
 
     Data =(unsigned char*)realloc(Data,Size+pSize);
@@ -432,7 +432,7 @@ _MODULEINIT_
     DataChar=(char *)Data;
     VoidPtr=(void*)Data;
     WDataChar=(wchar_t*)Data;
-    _RETURN_ wExtentPtr;  // returns the first byte of extended memory
+    return  wExtentPtr;  // returns the first byte of extended memory
 }// extend
 /**
  * @brief ZDataBuffer::extendBZero extends allocated space with pSize bytes and set the new allocated space to binary 0
@@ -911,8 +911,10 @@ ZDataBuffer::dumpHexa (const size_t pOffset,const long pSize,ZDataBuffer &pLineH
     unsigned char wHexa ;
     unsigned char* wPtr = &Data[pOffset] ;
 
-    pLineChar.allocate(pSize+1);
-    pLineHexa.allocate((pSize*3)+1);
+    pLineChar.allocateBZero(pSize*2+1); /* twice the number of possible characters because  of  "¶" */
+    pLineHexa.allocateBZero((pSize*3)+1);
+
+    int wiUtf8=0;
 
     for (size_t wi=0; wi < pSize;wi ++)
     {
@@ -920,24 +922,62 @@ ZDataBuffer::dumpHexa (const size_t pOffset,const long pSize,ZDataBuffer &pLineH
         _Zsprintf(&pLineHexa.DataChar[wj],"%02X ",wHexa);
         if ((wPtr[wi]>31)&&(wPtr[wi]<127))
         {
-            pLineChar.DataChar[wi]=wPtr[wi];
+            pLineChar.DataChar[wiUtf8]=wPtr[wi];
             wj+=3;
+            wiUtf8++;
             continue;
         }
         if (((wPtr[wi]>6)&&(wPtr[wi]<14))||(wPtr[wi]==27))
         {
-            pLineChar.DataChar[wi] = '@' ;
+            strcpy(&pLineChar.DataChar[wiUtf8],"¶");  // "¶"
             wj+=3;
+            wiUtf8+=sizeof("¶")-1;
             continue;
         }
-        pLineChar.DataChar[wi] = '.' ;
+        pLineChar.DataChar[wiUtf8] = '.' ;
         wj+=3;
+        wiUtf8++;
     }// for
     pLineHexa.DataChar[pSize*3]='\0';
-    pLineChar.DataChar[pSize]='\0';
+    pLineChar.DataChar[wiUtf8]='\0';
     return ;
 } // dumpHexa
 
+void
+ZDataBuffer::dumpHexa_1 (const size_t pOffset,const long pSize,ZDataBuffer &pLineHexa,ZDataBuffer &pLineChar)
+{
+  size_t wj=0;
+  unsigned char wHexa ;
+  unsigned char* wPtr = &Data[pOffset] ;
+
+  pLineChar.allocate(pSize+1);
+  pLineHexa.allocate((pSize*3)+1);
+
+  int wiUtf8=0;
+
+  for (size_t wi=0; wi < pSize;wi ++)
+  {
+    wHexa = wPtr[wi];
+    _Zsprintf(&pLineHexa.DataChar[wj],"%02X ",wHexa);
+    if ((wPtr[wi]>31)&&(wPtr[wi]<127))
+    {
+      pLineChar.DataChar[wi]=wPtr[wi];
+      wj+=3;
+      continue;
+    }
+    if (((wPtr[wi]>6)&&(wPtr[wi]<14))||(wPtr[wi]==27))
+    {
+      pLineChar.DataChar[wi] = '@' ;  // "¶"
+      wj+=3;
+      continue;
+    }
+    pLineChar.DataChar[wi] = '.' ;
+    wj+=3;
+  }// for
+  pLineHexa.DataChar[pSize*3]='\0';
+  pLineChar.DataChar[pSize]='\0';
+  return ;
+} // dumpHexa_1
 
 /**
  * @brief ZDataBuffer::Dump reports to pOutput the whole content of ZDataBuffer in both ascii and hexa.
@@ -987,7 +1027,7 @@ void ZDataBuffer::Dump_old(const int pColumn,FILE* pOutput)
     fprintf(pOutput,wFormat,wL,wLineHexa.DataChar,wLineChar.DataChar);
 */
 
-}//Dump
+}//Dump_old
 void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
 {
     ZDataBuffer wRulerAscii;
@@ -1006,10 +1046,11 @@ void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
         }
 
     size_t wLimit;
-    if (pLimit>0)
-        wLimit = ((size_t)pLimit) > Size?Size:(size_t)pLimit;
+    if ( (pLimit > 0 ) && ((size_t)pLimit > Size ) )
+        wLimit = (size_t)pLimit;
     else
         wLimit = Size;
+
     fprintf (pOutput,
              "Offset  %s  %s\n",
              wRulerHexa.DataChar,
@@ -1030,22 +1071,36 @@ void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
         fprintf (pOutput," <%ld> bytes more not dumped.\n",Size-pLimit);
         return;
         }
+
     if (wOffset < wLimit)
         {
+        dumpHexa(wOffset,(wLimit-wOffset),wLineHexa,wLineChar);
+
+        int wUtf8Column=pColumn;
+        /* count utf8 characters */
+        for (long wi=0;(wLineChar.Data[wi] != 0) && (wi < wLineChar.Size);wi++)
+          {
+          if ( wLineChar.Data[wi] > 127)
+            {
+            wUtf8Column ++;
+            wi++;     // it is an utf8, skip next (hoping not three units per char
+            }
+          }
+
         char wFormat [50];
 
-        sprintf (wFormat,"#6d |#-%ds |#-%ds|\n",pColumn*3,pColumn);
+        sprintf (wFormat,"#6d |#-%ds |#-%ds|\n",pColumn*3,wUtf8Column);
         wFormat[0]='%';
         for (int wi=0;wFormat [wi]!='\0';wi++)
             if (wFormat[wi]=='#')
                 wFormat[wi]='%';
 
-        dumpHexa(wOffset,(wLimit-wOffset),wLineHexa,wLineChar);
+
 
         fprintf(pOutput,wFormat,wL,wLineHexa.DataChar,wLineChar.DataChar);
         }
     return;
-}//DumpLimit
+}//Dump
 
 //---------End ZDataBuffer--------------------------
 
@@ -1184,7 +1239,7 @@ ZBlob::_exportURF(ZDataBuffer*pUniversal)
 ZStatus
 ZBlob::_importURF(unsigned char* pUniversal)
 {
-_MODULEINIT_
+
     ZTypeBase wType;
     uint64_t wSize;
     size_t wOffset=0;
@@ -1200,7 +1255,7 @@ _MODULEINIT_
                               decode_ZType(ZType_Blob),
                               wType,
                               decode_ZType(wType));
-        _RETURN_ ZS_INVTYPE;
+        return  ZS_INVTYPE;
     }
     wOffset+= sizeof(ZTypeBase);
 
@@ -1208,7 +1263,7 @@ _MODULEINIT_
     wSize=reverseByteOrder_Conditional<uint64_t>(wSize);
     wOffset+= sizeof(wSize);
     setData(pUniversal+wOffset,(size_t)wSize);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 
 }// _importURF
 

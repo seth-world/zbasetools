@@ -10,7 +10,7 @@
 charVaryingString*
 charVaryingString::fromUtf8(const utf8_t* pUtf8, const ssize_t pByteSize)
 {
-_MODULEINIT_
+
 
     if (_Base::getCharset()==ZCHARSET_UTF8) // then straight forward
         {
@@ -44,7 +44,7 @@ _MODULEINIT_
                  wSt,
                  decode_UST(wSt));
         _free(wString);
-        _RETURN_ this;
+        return this;
     }
     if (wSt!=UST_SUCCESS)
         {
@@ -390,7 +390,7 @@ charVaryingString::toUtf32(utf32VaryingString &pUtf32,bool *plittleEndian)
  ZStatus
  varyingCString::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
  {
- _MODULEINIT_
+
   uint64_t wEffectiveUSize ;
   ZTypeBase wType;
   unsigned char* wURFDataPtr = pURFDataPtr;
@@ -406,7 +406,7 @@ charVaryingString::toUtf32(utf32VaryingString &pUtf32,bool *plittleEndian)
                    wType,
                    decode_ZType(wType),
                    decode_ZType(ZType_VaryingCString));
-          _RETURN_ ZS_INVTYPE;
+          return ZS_INVTYPE;
           }
 
       memmove (&wEffectiveUSize,wURFDataPtr,sizeof(uint64_t));        // first is URF byte size (including URF header size)
@@ -417,7 +417,7 @@ charVaryingString::toUtf32(utf32VaryingString &pUtf32,bool *plittleEndian)
       pUniversal.allocateBZero((wEffectiveUSize)); // fixed string must have canonical characters count allocated
 
      memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
-     _RETURN_ ZS_SUCCESS;
+     return ZS_SUCCESS;
  }//getUniversalFromURF
 
 

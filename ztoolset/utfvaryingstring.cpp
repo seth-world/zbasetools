@@ -41,7 +41,8 @@ size_t UVScalcDecodeLengthB64(const uint8_t *b64input, size_t pSize) { //Calcula
 /**
  * @brief utf8VaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
  *
- *  Encode the exact content length of utfVaryingString given by Size, including termination character ('\0').
+ *  Encode the exact content length of utfVaryingString EXCLUDING termination character ('\0').
+ *  termination character is added AFTER encoding to string content.
  *
  * @return  a reference to utfVaryingString with encoded data
  */
@@ -54,30 +55,39 @@ utf8VaryingString::encodeB64( void )
     const unsigned char*  wPtr;
     int wRet;
 
-    size_t wLenIn=utfStrlen<utf8_t>(Data);
+//    size_t wLenIn=utfStrlen<utf8_t>(Data);
+    size_t wLenIn=0;
+
+    utf8_t* wDataPtr=Data;
+    while ((*wDataPtr) && (wLenIn < ByteSize))
+    {
+      wDataPtr++;
+      wLenIn++;
+    }
 
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new(BIO_s_mem());
     b64 = BIO_push(b64, bio);
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line do not add \n
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);//Ignore newlines - write everything in one line do not add \n
     int wLen = BIO_write(b64, Data, wLenIn);
     if (wLen<1)
-    {
+      {
         fprintf(stderr,"%s-E>BIO_write fails to copy utfVaryingString data (byte size is %ld>\n",
                 _GET_FUNCTION_NAME_,
                 wLenIn);
         return (*this);
-    }
+      }
     wRet=BIO_flush(b64);
     //    BIO_get_mem_ptr(b64, &bptr);
     //    setData(bptr->data,bptr->length);
     wLen=BIO_get_mem_data(b64, &wPtr);
     setData(wPtr,wLen);
-    addTermination();
-
     BIO_free_all(b64);
     CryptMethod = ZCM_Base64;
-    addTermination();
+    if (Data[wLen-1]=='\n')   // BIO_FLAGS_BASE64_NO_NL seems not to work correctly a newline is systematically added at the end
+      Data[wLen-1]='\0';
+    else
+      addTermination();
     return *this;
 } //-----------------encodeB64-------------------
 
@@ -196,14 +206,14 @@ utf8VaryingString::toCString(ZDataBuffer& pZDB)
 utf16VaryingString*
 utf16VaryingString::fromLatin1(const char* pInString)
 {
-_MODULEINIT_
+
     UErrorCode wErr=U_ZERO_ERROR;
     UConverter* wConv=  ucnv_open("UTF-16",&wErr);
     if (testIcuFatal(_GET_FUNCTION_NAME_,
                      wErr,
                      WarningSignal,
                      " Opening utf8 converter")<0)
-                                    {_RETURN_ nullptr;}
+                                    {return nullptr;}
     UConverterFromUCallback wOldCallback;
     const void* wOldContext;
     ucnv_setFromUCallBack(wConv,
@@ -216,7 +226,7 @@ _MODULEINIT_
                      wErr,
                      WarningSignal,
                      " setting up from unicode callback of utf16 converter")<0)
-                                    {_RETURN_ nullptr;}
+                                    {return nullptr;}
     Context.reset();
 
     size_t wStrlen=0;
@@ -244,15 +254,15 @@ _MODULEINIT_
                      wErr,
                      WarningSignal,
                      "while converting Latin-1 to utf16")<0)
-                        {_RETURN_ nullptr;}
+                        {return nullptr;}
 
-    _RETURN_ this;
+    return this;
 }
 
 UST_Status_type
 utf16VaryingString::fromEncoding(const char* pInString,const char*pEncoding)
 {
-_MODULEINIT_
+
 UST_Status_type wSt;
     UErrorCode wErr=U_ZERO_ERROR;
     UConverter* wConv=  ucnv_open(pEncoding,&wErr);
@@ -260,7 +270,7 @@ UST_Status_type wSt;
                      wErr,
                      WarningSignal,
                      " Opening converter for <%s>",pEncoding)) < UST_SEVERE)
-                                    {_RETURN_ wSt;}
+                                    {return wSt;}
 
     UConverterToUCallback wOldCallback;
     const void* wOldContext;
@@ -274,13 +284,13 @@ UST_Status_type wSt;
                      wErr,
                      WarningSignal,
                      " setting up from unicode callback of converter name <%s>",pEncoding)) < UST_SEVERE)
-                                    {_RETURN_ wSt;}
+                                    {return wSt;}
     Context.reset();
 
     size_t wStrlen=0;
     while (pInString[wStrlen++]&& (wStrlen<__STRING_MAX_LENGTH__));
     if (wStrlen >=__STRING_MAX_LENGTH__)
-                    _ABORT_;
+                    abort();
     wStrlen++;
     size_t wByteSize=wStrlen*sizeof(utf16_t);
 
@@ -295,21 +305,21 @@ UST_Status_type wSt;
                      wErr,
                      WarningSignal,
                      "while converting %s to utf16",pEncoding)) < UST_SEVERE)
-                                    {_RETURN_ wSt;}
+                                    {return wSt;}
     if (testIcuError(_GET_FUNCTION_NAME_,
                      wErr,
                      WarningSignal,
                      "while converting %s to utf16",pEncoding)<0)
-                        {_RETURN_ wSt;}
+                        {return wSt;}
 
-    _RETURN_ wSt;
+    return wSt;
 }
 
 
 UST_Status_type
 utf8VaryingString::fromUtf8(const utf8_t* pInString)
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 size_t wOutCount=0,wInCount=0;
@@ -327,24 +337,24 @@ utfSCErr_struct wError;
     if (!pInString)
          {
          Context.Status=UST_NULLPTR;
-         _RETURN_ UST_NULLPTR;
+         return UST_NULLPTR;
          }
     if (!*pInString)
         {
         Context.Status=UST_EMPTY;
-        _RETURN_ UST_EMPTY;
+        return UST_EMPTY;
         }
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return UST_STRNOENDMARK;
                     }
 
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr);
 
@@ -393,7 +403,7 @@ utfSCErr_struct wError;
           if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
           if (Context.Action==ZCNV_Skip)
               {
@@ -466,14 +476,14 @@ utfSCErr_struct wError;
     }// while true
     addConditionalTermination();
 //     *wUtf8Ptr=(utf8_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 }//utf8VaryingString::fromUtf8
 
 
 UST_Status_type
 utf8VaryingString::getByChunk(const utf8_t* pInString,size_t pChunkSize)
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 size_t wOutCount=0,wInCount=0;
@@ -499,17 +509,17 @@ const utf8_t* wInPtr;
     if (!pInString)
          {
          Context.Status=UST_NULLPTR;
-         _RETURN_ UST_NULLPTR;
+         return UST_NULLPTR;
          }
     if (!*pInString)
         {
         Context.Status=UST_EMPTY;
-        _RETURN_ UST_EMPTY;
+        return UST_EMPTY;
         }
 
     wRemainingChunk = pChunkSize;
 
-    extendCharsBZero(pChunkSize);
+    extendUnitsBZero(pChunkSize);
     wOutPtr=Data+Context.OutUnitOffset;
 
     if (!Context.Strlen) // is that a warm start ?
@@ -519,7 +529,7 @@ const utf8_t* wInPtr;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(pChunkSize > 4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -572,7 +582,7 @@ const utf8_t* wInPtr;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 *wOutPtr=(utf8_t)'\0'; // end of string mark
-                                _RETURN_ Context.Status;
+                                return Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -609,7 +619,7 @@ const utf8_t* wInPtr;
 
              if ((Context.OutUnitOffset+wInCount) >= (_Base::getUnitCount()-2)) /* allocated unit size is not enough */
                          {
-                         extendCharsBZero(pChunkSize);
+                         extendUnitsBZero(pChunkSize);
                          wOutPtr=Data+Context.OutUnitOffset;
                          }
             for (size_t wi=0;wi<sizeof(utf8Replacement);wi++)  //
@@ -675,7 +685,7 @@ utf8Varying_getByChunk_Main:
          Context.SavedChunkSize=wRemainingChunk; /* set context with size that belongs to current chunk */
          Context.SavedChunkFullSize=wInCount;    /* set context with total theorical length of character */
 
-         _RETURN_ UST_TRUNCATEDCHAR;
+         return UST_TRUNCATEDCHAR;
          }
      wRemainingChunk -= wInCount;
      Context.CharUnits+=wInCount;
@@ -699,7 +709,7 @@ utf8Varying_getByChunk_Main:
           if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
           if (Context.Action==ZCNV_Skip)
               {
@@ -770,13 +780,13 @@ utf8Varying_getByChunk_Main:
 
     }// while true
     addConditionalTermination();
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 }//utf8VaryingString::getByChunk
 
 UST_Status_type
 utf8VaryingString::fromUtf16(const utf16_t* pInString, ZBool *plittleEndian)
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 size_t wOutCount=0,wInCount=0;
@@ -805,32 +815,32 @@ utfSCErr_struct wError;
     if (!pInString)
          {
          Context.Status=UST_NULLPTR;
-         _RETURN_ UST_NULLPTR;
+         return UST_NULLPTR;
          }
     if (!*pInString)
         {
         Context.Status=UST_EMPTY;
-        _RETURN_ UST_EMPTY;
+        return UST_EMPTY;
         }
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return UST_STRNOENDMARK;
                     }
     ZBOM_type wBOM = Context.LittleEndian ? ZBOM_UTF16_LE : ZBOM_UTF16_BE;
 
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
     Context.setEffective(wInPtr);
 
     Context.Status =utf16CharCount(wInPtr,&wOutCount,plittleEndian);
     if (Context.Status < UST_SEVERE)
                 {
-                _RETURN_ Context.Status;
+                return Context.Status;
                 }
 
     allocateUnitsBZero(wOutCount+1); // starting with current number of utf8 character units in input string
@@ -875,7 +885,7 @@ utfSCErr_struct wError;
           if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
           if (Context.Action==ZCNV_Skip)
               {
@@ -932,7 +942,7 @@ utfSCErr_struct wError;
          if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                          {
                          addConditionalTermination();// end of string mark
-                         _RETURN_ Context.Status;
+                         return Context.Status;
                          }
          if (Context.Action==ZCNV_Skip)
              {
@@ -998,13 +1008,13 @@ utfSCErr_struct wError;
     }// while true
     addConditionalTermination();
 //     *wUtf8Ptr=(utf8_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 }//utf8VaryingString::fromUtf16
 
 UST_Status_type
 utf8VaryingString::fromUtf32(const utf32_t* pInString, ZBool *plittleEndian)
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 size_t wOutCount=0,wInCount=0;
@@ -1021,18 +1031,18 @@ utfSCErr_struct wError;
      if (!pInString)
              {
              Context.Status=UST_NULLPTR;
-             _RETURN_ UST_NULLPTR;
+             return UST_NULLPTR;
              }
      if (!*pInString)
              {
              Context.Status=UST_EMPTY;
-             _RETURN_ UST_EMPTY;
+             return UST_EMPTY;
              }
     Context.Strlen=0;
      while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
      if (Context.Strlen == __STRING_MAX_LENGTH__)
                      {
-                     _RETURN_ UST_STRNOENDMARK;
+                     return UST_STRNOENDMARK;
                      }
      if (plittleEndian)
              {
@@ -1051,7 +1061,7 @@ utfSCErr_struct wError;
      size_t wBOMSize=0;
      Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
      if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                             {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                             {return UST_IVBOM;} // invalid BOM could have been detected
      wInPtr=pInString+wBOMSize;
      Context.setEffective(wInPtr); // set string pointer to character next BOM if any
 
@@ -1102,7 +1112,7 @@ utfSCErr_struct wError;
               if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                  {
                                  addConditionalTermination();// end of string mark
-                                 _RETURN_ Context.Status;
+                                 return Context.Status;
                                  }
               if (Context.Action==ZCNV_Skip)
                   {
@@ -1159,7 +1169,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -1224,7 +1234,7 @@ utfSCErr_struct wError;
      }// while true
      addConditionalTermination();
 //     *wUtf8Ptr=(utf8_t)'\0';
-     _RETURN_ UST_SUCCESS;
+     return UST_SUCCESS;
 
 } // utf8VaryingString::fromUtf32
 
@@ -1232,7 +1242,7 @@ utfSCErr_struct wError;
 UST_Status_type
 utf8VaryingString::toUtf16(utf16VaryingString &pUtf16,ZBool *pEndian)
 {
-_MODULEINIT_
+
 const utf8_t *wInPtr=Data;
 utf32_t wCodePoint;
 size_t wInCount=0,wOutCount=0;
@@ -1282,7 +1292,7 @@ utfSCErr_struct wError;
               if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                  {
                                  pUtf16.addConditionalTermination();// end of string mark
-                                 _RETURN_ Context.Status;
+                                 return Context.Status;
                                  }
 
              Context.Substit++;
@@ -1308,7 +1318,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              pUtf16.addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -1341,13 +1351,13 @@ utfSCErr_struct wError;
 //         wOutUnitOffset += wOutCount;
          Context.Count ++;
          }
-     _RETURN_ UST_SUCCESS;
+     return UST_SUCCESS;
  }//utf8VaryingString::toUtf16
 
 UST_Status_type
 utf8VaryingString::toUtf32(utf32VaryingString &pUtf32, ZBool *pEndian)
 {
-_MODULEINIT_
+
 const utf8_t *wInPtr=Data;
 utf32_t wCodePoint;
 size_t wInCount=0,wOutCount=0;
@@ -1396,7 +1406,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 pUtf32.addConditionalTermination();// end of string mark
-                                _RETURN_ Context.Status;
+                                return Context.Status;
                                 }
             Context.Substit++;
             }
@@ -1422,7 +1432,7 @@ utfSCErr_struct wError;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             pUtf32.addConditionalTermination();// end of string mark
-                            _RETURN_ Context.Status;
+                            return Context.Status;
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -1450,7 +1460,7 @@ utfSCErr_struct wError;
         wInPtr += wInCount;
         Context.Count ++;
         }
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 }//utf8VaryingString::toUtf32
  //================ utf16VaryingString conversions to and from other formats==============================
 
@@ -1472,7 +1482,7 @@ utf16VaryingString::toCString(ZDataBuffer& pZDB)
 UST_Status_type
 utf16VaryingString::fromUtf8(const utf8_t* pInString)
 {
-_MODULEINIT_
+
 
 utf32_t wCodePoint=0;
 utf16_t wUtf16Char[3];
@@ -1494,25 +1504,25 @@ utfSCErr_struct wError;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return UST_EMPTY;
             }
 
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return UST_STRNOENDMARK;
                     }
     // Context.Strlen has the number of char units for the string
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
 
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -1522,7 +1532,7 @@ utfSCErr_struct wError;
 
     if (Context.Status < UST_SEVERE)
                 {
-                _RETURN_ Context.Status;
+                return Context.Status;
                 }
 
     wInCount++;  // size in char unit of input string including endofstring mark (for chars allocation)
@@ -1568,7 +1578,7 @@ utfSCErr_struct wError;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe or 'stop on error' requested
                                 {
                                 addConditionalTermination();// end of string mark
-                                _RETURN_ Context.Status;
+                                return Context.Status;
                                 }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -1625,7 +1635,7 @@ utfSCErr_struct wError;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             addConditionalTermination();// end of string mark
-                            _RETURN_ Context.Status;
+                            return Context.Status;
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -1688,7 +1698,7 @@ utfSCErr_struct wError;
     }// while true
     addConditionalTermination();
 
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 
 }// utf16VaryingString::fromUtf8
 
@@ -1696,7 +1706,7 @@ utfSCErr_struct wError;
 UST_Status_type
 utf16VaryingString::fromUtf16(const utf16_t* pInString, ZBool *plittleEndian)
 {
- _MODULEINIT_
+
 utf32_t wCodePoint=0;
 utf16_t wUtf16Char[3];
 
@@ -1717,19 +1727,19 @@ utfSCErr_struct wError;
      if (!pInString)
              {
              Context.Status=UST_NULLPTR;
-             _RETURN_ UST_NULLPTR;
+             return UST_NULLPTR;
              }
      if (!*pInString)
              {
              Context.Status=UST_EMPTY;
-             _RETURN_ UST_EMPTY;
+             return UST_EMPTY;
              }
 
      Context.Strlen=0;
      while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
      if (Context.Strlen == __STRING_MAX_LENGTH__)
                      {
-                     _RETURN_ UST_STRNOENDMARK;
+                     return UST_STRNOENDMARK;
                      }
      if (plittleEndian)
              {
@@ -1748,7 +1758,7 @@ utfSCErr_struct wError;
      size_t wBOMSize=0;
      Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
      if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                             {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                             {return UST_IVBOM;} // invalid BOM could have been detected
      wInPtr=pInString+wBOMSize;
 
      Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -1797,7 +1807,7 @@ utfSCErr_struct wError;
               if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                  {
                                  addConditionalTermination();// end of string mark
-                                 _RETURN_ Context.Status;
+                                 return Context.Status;
                                  }
               if (Context.Action==ZCNV_Skip)
                   {
@@ -1855,7 +1865,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -1917,13 +1927,13 @@ utfSCErr_struct wError;
      }// while true
      addConditionalTermination();
 //     *wUtf8Ptr=(utf8_t)'\0';
-     _RETURN_ UST_SUCCESS;
+     return UST_SUCCESS;
 } // utf16VaryingString::fromUtf32
 
 UST_Status_type
 utf16VaryingString::fromUtf32(const utf32_t* pInString, ZBool *plittleEndian)
 {
- _MODULEINIT_
+
 utf32_t wCodePoint=0;
 utf16_t wUtf16Char[3];
 
@@ -1944,19 +1954,19 @@ utfSCErr_struct wError;
      if (!pInString)
              {
              Context.Status=UST_NULLPTR;
-             _RETURN_ UST_NULLPTR;
+             return UST_NULLPTR;
              }
      if (!*pInString)
              {
              Context.Status=UST_EMPTY;
-             _RETURN_ UST_EMPTY;
+             return UST_EMPTY;
              }
 
      Context.Strlen=0;
      while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
      if (Context.Strlen == __STRING_MAX_LENGTH__)
                      {
-                     _RETURN_ UST_STRNOENDMARK;
+                     return UST_STRNOENDMARK;
                      }
      if (plittleEndian)
              {
@@ -1975,7 +1985,7 @@ utfSCErr_struct wError;
      size_t wBOMSize=0;
      Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
      if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                             {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                             {return UST_IVBOM;} // invalid BOM could have been detected
      wInPtr=pInString+wBOMSize;
 
      Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -2025,7 +2035,7 @@ utfSCErr_struct wError;
               if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                  {
                                  addConditionalTermination();// end of string mark
-                                 _RETURN_ Context.Status;
+                                 return Context.Status;
                                  }
               if (Context.Action==ZCNV_Skip)
                   {
@@ -2083,7 +2093,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -2145,7 +2155,7 @@ utfSCErr_struct wError;
      }// while true
      addConditionalTermination();
 //     *wUtf8Ptr=(utf8_t)'\0';
-     _RETURN_ UST_SUCCESS;
+     return UST_SUCCESS;
 } // utf16VaryingString::fromUtf32
 
 
@@ -2261,15 +2271,14 @@ size_t wInCount=0;
  * @param pLittleEndian an utf16VaryingString that will receive cloned data, modified to little endian if necessary.
  * @return utf16VaryingString with a certified big endian content
  */
- utf16VaryingString&
- utf16VaryingString::getLittleEndian(utf16VaryingString& pLittleEndian)
+ utf16VaryingString
+ utf16VaryingString::getLittleEndian()
  {
   if (is_little_endian())
           {
-          pLittleEndian=*this;
-          return pLittleEndian;
+          return *this;
           }
-
+  utf16VaryingString  pLittleEndian;
   pLittleEndian.allocateUnitsBZero(_Base::getUnitCount());
   utf16_t* wPtr=_Base::getContentPtr();
   utf16_t* wPtr1=pLittleEndian.getContentPtr();
@@ -2284,14 +2293,14 @@ size_t wInCount=0;
   * @return utf16VaryingString with a certified big endian content
   */
 
- utf16VaryingString&
- utf16VaryingString::getBigEndian(utf16VaryingString& pBigEndian)
+ utf16VaryingString
+ utf16VaryingString::getBigEndian()
  {
      if (!is_little_endian())
              {
-             pBigEndian=*this;
-             return pBigEndian;
+             return *this;
              }
+    utf16VaryingString pBigEndian;
      pBigEndian.allocateUnitsBZero(_Base::getUnitCount());
      utf16_t* wPtr=_Base::getContentPtr();
      utf16_t* wPtr1=pBigEndian.getContentPtr();
@@ -2328,7 +2337,7 @@ utf32VaryingString::toCString(ZDataBuffer& pZDB)
 UST_Status_type
 utf32VaryingString::fromUtf8(const utf8_t* pInString)
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 const utf8_t* wInPtr;
@@ -2348,24 +2357,24 @@ utfSCErr_struct wError;
     if (!pInString)
             {
             Context.Status=UST_NULLPTR;
-            _RETURN_ UST_NULLPTR;
+            return UST_NULLPTR;
             }
     if (!*pInString)
             {
             Context.Status=UST_EMPTY;
-            _RETURN_ UST_EMPTY;
+            return UST_EMPTY;
             }
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return UST_STRNOENDMARK;
                     }
 
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=ZBOM_UTF8))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
 
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -2374,7 +2383,7 @@ utfSCErr_struct wError;
     Context.Status=utf8CharCount(wInPtr,&wInCount);
     if (Context.Status < UST_SEVERE)
                 {
-                _RETURN_ Context.Status;
+                return Context.Status;
                 }
     wInCount++; // size in char unit of input string including endofstring mark (for chars allocation)
 
@@ -2418,7 +2427,7 @@ utfSCErr_struct wError;
              if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                                 {
                                 addConditionalTermination();// end of string mark
-                                _RETURN_ Context.Status;
+                                return Context.Status;
                                 }
              if (Context.Action==ZCNV_Skip)
                  {
@@ -2475,7 +2484,7 @@ utfSCErr_struct wError;
             if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                             {
                             addConditionalTermination();// end of string mark
-                            _RETURN_ Context.Status;
+                            return Context.Status;
                             }
             if (Context.Action==ZCNV_Skip)
                 {
@@ -2537,7 +2546,7 @@ utfSCErr_struct wError;
     }// while true
     addConditionalTermination();
 
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 
 }// utf32VaryingString::fromUtf8
 
@@ -2555,7 +2564,7 @@ utfSCErr_struct wError;
 UST_Status_type
 utf32VaryingString::fromUtf16(const utf16_t* pInString, ZBool *plittleEndian)
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 size_t wOutCount=0,wInCount=0;
@@ -2586,18 +2595,18 @@ utfSCErr_struct wError;
     if (!pInString)
          {
          Context.Status=UST_NULLPTR;
-         _RETURN_ UST_NULLPTR;
+         return UST_NULLPTR;
          }
     if (!*pInString)
         {
         Context.Status=UST_EMPTY;
-        _RETURN_ UST_EMPTY;
+        return UST_EMPTY;
         }
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return UST_STRNOENDMARK;
                     }
     ZBOM_type wBOM = Context.LittleEndian ? ZBOM_UTF16_LE : ZBOM_UTF16_BE;
 
@@ -2605,7 +2614,7 @@ utfSCErr_struct wError;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
 
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -2614,7 +2623,7 @@ utfSCErr_struct wError;
     Context.Status =utf16CharCount(wInPtr,&wInCount,plittleEndian);
     if (Context.Status < UST_SEVERE)
                 {
-                _RETURN_ Context.Status;
+                return Context.Status;
                 }
     wInCount++;
     allocateUnitsBZero(wInCount); // starting with current number of utf8 character units in input string
@@ -2661,7 +2670,7 @@ utfSCErr_struct wError;
           if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
           if (Context.Action==ZCNV_Skip)
               {
@@ -2718,7 +2727,7 @@ utfSCErr_struct wError;
          if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                          {
                          addConditionalTermination();// end of string mark
-                         _RETURN_ Context.Status;
+                         return Context.Status;
                          }
          if (Context.Action==ZCNV_Skip)
              {
@@ -2776,14 +2785,14 @@ utfSCErr_struct wError;
     }// while true
     addConditionalTermination();
 //     *wUtf8Ptr=(utf8_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 }// utf32VaryingString::fromUtf16
 
 
 UST_Status_type
 utf32VaryingString::fromUtf32(const utf32_t* pInString, ZBool *plittleEndian)
 {
-_MODULEINIT_
+
 utf32_t wCodePoint=0;
 
 size_t wOutCount=0,wInCount=0;
@@ -2814,18 +2823,18 @@ utfSCErr_struct wError;
     if (!pInString)
          {
          Context.Status=UST_NULLPTR;
-         _RETURN_ UST_NULLPTR;
+         return UST_NULLPTR;
          }
     if (!*pInString)
         {
         Context.Status=UST_EMPTY;
-        _RETURN_ UST_EMPTY;
+        return UST_EMPTY;
         }
     Context.Strlen=0;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    _RETURN_ UST_STRNOENDMARK;
+                    return UST_STRNOENDMARK;
                     }
     ZBOM_type wBOM = Context.LittleEndian ? ZBOM_UTF32_LE : ZBOM_UTF32_BE;
 
@@ -2833,7 +2842,7 @@ utfSCErr_struct wError;
     size_t wBOMSize=0;
     Context.BOM=detectBOM(pInString,(Context.Strlen>4)? 5 : Context.Strlen,wBOMSize);
     if ((Context.BOM!=ZBOM_NoBOM)&&(Context.BOM!=wBOM))
-                                            {_RETURN_ UST_IVBOM;} // invalid BOM could have been detected
+                                            {return UST_IVBOM;} // invalid BOM could have been detected
     wInPtr=pInString+wBOMSize;
 
     Context.setEffective(wInPtr); // set string pointer to character next BOM if any
@@ -2883,7 +2892,7 @@ utfSCErr_struct wError;
           if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                              {
                              addConditionalTermination();// end of string mark
-                             _RETURN_ Context.Status;
+                             return Context.Status;
                              }
           if (Context.Action==ZCNV_Skip)
               {
@@ -2940,7 +2949,7 @@ utfSCErr_struct wError;
          if ((Context.StopOnConvErr) ||(Context.Status < UST_SEVERE))  // if error is severe
                          {
                          addConditionalTermination();// end of string mark
-                         _RETURN_ Context.Status;
+                         return Context.Status;
                          }
          if (Context.Action==ZCNV_Skip)
              {
@@ -2998,7 +3007,7 @@ utfSCErr_struct wError;
     }// while true
     addConditionalTermination();
 //     *wUtf8Ptr=(utf8_t)'\0';
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 }// utf32VaryingString::fromUtf32
 
 utf8VaryingString*
@@ -3127,16 +3136,16 @@ return *this;
 }*/
 
 
-utf32VaryingString&
-utf32VaryingString::getLittleEndian(utf32VaryingString& pLittleEndian)
+utf32VaryingString
+utf32VaryingString::getLittleEndian()
 {
  if (is_little_endian())
          {
-         pLittleEndian=*this;
-         return pLittleEndian;
+         return *this;
          }
 
- pLittleEndian.allocateUnitsBZero(_Base::getUnitCount());
+  utf32VaryingString pLittleEndian;
+  pLittleEndian.allocateUnitsBZero(_Base::getUnitCount());
  utf32_t* wPtr=_Base::getContentPtr();
  utf32_t* wPtr1=pLittleEndian.getContentPtr();
  while (*wPtr)
@@ -3144,9 +3153,10 @@ utf32VaryingString::getLittleEndian(utf32VaryingString& pLittleEndian)
  *wPtr1=(utf32_t)'\0';
  return pLittleEndian;
 }
-utf32VaryingString&
-utf32VaryingString::getLittleEndianWBOM(utf32VaryingString& pLittleEndian)
+utf32VaryingString
+utf32VaryingString::getLittleEndianWBOM()
 {
+  utf32VaryingString pLittleEndian;
     pLittleEndian.setData(&cst_utf32BOMLE,sizeof(utf32_t));
     if (is_little_endian())
          {
@@ -3154,7 +3164,7 @@ utf32VaryingString::getLittleEndianWBOM(utf32VaryingString& pLittleEndian)
          return pLittleEndian;
          }
 
- utf32_t* wPtr1=pLittleEndian.extendCharsBZero(_Base::getUnitCount()); // creates room for populating current string content
+ utf32_t* wPtr1=pLittleEndian.extendUnitsBZero(_Base::getUnitCount()); // creates room for populating current string content
  utf32_t* wPtr=_Base::getContentPtr();
  while (*wPtr)
          *wPtr1++=forceReverseByteOrder<utf32_t>(*wPtr++);
@@ -3162,14 +3172,14 @@ utf32VaryingString::getLittleEndianWBOM(utf32VaryingString& pLittleEndian)
  return pLittleEndian;
 }
 
-utf32VaryingString&
-utf32VaryingString::getBigEndian(utf32VaryingString& pBigEndian)
+utf32VaryingString
+utf32VaryingString::getBigEndian()
 {
     if (!is_little_endian())
             {
-            pBigEndian=*this;
-            return pBigEndian;
+            return *this;
             }
+    utf32VaryingString pBigEndian;
     pBigEndian.allocateUnitsBZero(_Base::getUnitCount());
     utf32_t* wPtr=_Base::getContentPtr();
     utf32_t* wPtr1=pBigEndian.getContentPtr();
@@ -3178,9 +3188,10 @@ utf32VaryingString::getBigEndian(utf32VaryingString& pBigEndian)
     *wPtr1=(utf32_t)'\0';
     return pBigEndian;
 }
-utf32VaryingString&
-utf32VaryingString::getBigEndianWBOM(utf32VaryingString& pBigEndian)
+utf32VaryingString
+utf32VaryingString::getBigEndianWBOM()
 {
+  utf32VaryingString pBigEndian;
     pBigEndian.setData(&cst_utf32BOMBE,sizeof(utf32_t));
 
     if (!is_little_endian())
@@ -3189,7 +3200,7 @@ utf32VaryingString::getBigEndianWBOM(utf32VaryingString& pBigEndian)
          return pBigEndian;
          }
 
- utf32_t* wPtr1=pBigEndian.extendCharsBZero(_Base::getUnitCount()); // creates room for populating current string content
+ utf32_t* wPtr1=pBigEndian.extendUnitsBZero(_Base::getUnitCount()); // creates room for populating current string content
  utf32_t* wPtr=_Base::getContentPtr();
  while (*wPtr)
          *wPtr1++=forceReverseByteOrder<utf32_t>(*wPtr++);
@@ -3354,7 +3365,7 @@ utf32VaryingString::getBigEndianWBOM(utf32VaryingString& pBigEndian)
  ZStatus
  varyingCString::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
  {
- _MODULEINIT_
+
   uint64_t wEffectiveUSize ;
   ZTypeBase wType;
   unsigned char* wURFDataPtr = pURFDataPtr;
@@ -3370,7 +3381,7 @@ utf32VaryingString::getBigEndianWBOM(utf32VaryingString& pBigEndian)
                    wType,
                    decode_ZType(wType),
                    decode_ZType(ZType_VaryingCString));
-          _RETURN_ ZS_INVTYPE;
+          return ZS_INVTYPE;
           }
 
       memmove (&wEffectiveUSize,wURFDataPtr,sizeof(uint64_t));        // first is URF byte size (including URF header size)
@@ -3381,7 +3392,7 @@ utf32VaryingString::getBigEndianWBOM(utf32VaryingString& pBigEndian)
       pUniversal.allocateBZero((wEffectiveUSize)); // fixed string must have canonical characters count allocated
 
      memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
-     _RETURN_ ZS_SUCCESS;
+     return ZS_SUCCESS;
  }//getUniversalFromURF
 
 

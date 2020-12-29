@@ -381,7 +381,7 @@ public:
 
     using zbs::ZArray<DirMap>::operator[];
 
-    long add(const DirMap &pIn)
+    long add(DirMap &pIn)
     {
         long wi = 0;
         while ((Tab[wi].Name.compare(pIn.Name) < 0) && (wi < count()))
@@ -392,8 +392,18 @@ public:
           push((DirMap&)pIn);
         return wi;
     }
-
-    long add(const uriString &pName,
+    long add(DirMap &&pIn)
+    {
+      long wi = 0;
+      while ((Tab[wi].Name.compare(pIn.Name) < 0) && (wi < count()))
+        wi++;
+      if (wi < count())
+        insert(pIn, wi);
+      else
+        push((DirMap&)pIn);
+      return wi;
+    }
+    long add(uriString &pName,
              size_t pSize,
              userid_type pUid) { return add(DirMap(pName, pSize,pUid)); }
 };
@@ -403,7 +413,7 @@ public:
     ZDirSortedBySize() = default;
 
 
-    long add(const DirMap &pIn)
+    long add(DirMap &pIn)
     {
         long wi = 0;
         while ((Tab[wi].Size < pIn.Size) && (wi < count()))
@@ -413,7 +423,18 @@ public:
         else
           push((DirMap &)pIn);
     }
-    long add(const uriString &pName, const size_t pSize,userid_type pUid) { return add(DirMap(pName, pSize,pUid)); }
+    long add(DirMap &&pIn)
+    {
+      long wi = 0;
+      while ((Tab[wi].Size < pIn.Size) && (wi < count()))
+        wi++;
+      if (wi < count())
+        return insert(pIn, wi);
+      else
+        return push((DirMap &)pIn);
+    }
+    long add(const uriString &pName, const size_t pSize,userid_type pUid)
+    { return add(DirMap(pName, pSize,pUid)); }
 };
 
 

@@ -435,9 +435,9 @@ template <class _Utf>
  */
  size_t utfStrlen (const _Utf* pString)
 {
-_MODULEINIT_
+
     if (pString==nullptr)
-                    {_RETURN_ 0;}
+                    {return 0;}
     size_t wLen=0;
     _Utf wC=*pString;
     while ((wC=pString[wLen])&&(wLen < __STRING_MAX_LENGTH__))
@@ -445,7 +445,7 @@ _MODULEINIT_
         wLen++;
         }
     _ASSERT_(wLen >= __STRING_MAX_LENGTH__,"Fatal error: endofmark has not been found in string\n",1)
-    _RETURN_ wLen;
+    return wLen;
 }
 
 

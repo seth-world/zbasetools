@@ -185,7 +185,7 @@ utfidentityString & utfidentityString::operator = (const utfdescString& pDesc ) 
  ZStatus
  varyingCString::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
  {
- _MODULEINIT_
+ 
   uint64_t wEffectiveUSize ;
   ZTypeBase wType;
   unsigned char* wURFDataPtr = pURFDataPtr;
@@ -201,7 +201,7 @@ utfidentityString & utfidentityString::operator = (const utfdescString& pDesc ) 
                    wType,
                    decode_ZType(wType),
                    decode_ZType(ZType_VaryingCString));
-          _RETURN_ ZS_INVTYPE;
+          return  ZS_INVTYPE;
           }
 
       memmove (&wEffectiveUSize,wURFDataPtr,sizeof(uint64_t));        // first is URF byte size (including URF header size)
@@ -212,7 +212,7 @@ utfidentityString & utfidentityString::operator = (const utfdescString& pDesc ) 
       pUniversal.allocateBZero((wEffectiveUSize)); // fixed string must have canonical characters count allocated
 
      memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
-     _RETURN_ ZS_SUCCESS;
+     return  ZS_SUCCESS;
  }//getUniversalFromURF
 
 

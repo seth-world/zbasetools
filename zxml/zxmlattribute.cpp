@@ -10,7 +10,7 @@
 
 zxmlAttribute::zxmlAttribute(zxmlNode& pNode,const char*pName,const char* pValue,zxmlNameSpace* pNameSpace)
 {
-_MODULEINIT_
+
 
     xmlAttrPtr wAttribute=nullptr;
     if (pNameSpace)
@@ -23,7 +23,7 @@ _MODULEINIT_
       ZException.exit_abort();
         }
   _xmlInternalAttribute =wAttribute;
-  _RETURN_;
+  return ;
 }
 
 

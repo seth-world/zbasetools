@@ -10,16 +10,16 @@
 void
 utfKeyContent::setKeyData(utfKeyData_type pKeyData,size_t pKeyCount)
 {
-    _MODULEINIT_
+
     allocate (KeyCount);
     memmove(KeyData,pKeyData,pKeyCount);
-    _RETURN_;
+    return;
 }
 
 utfKeyData_type
 utfKeyContent::allocate (ssize_t pCount)
 {
-    _MODULEINIT_
+
     if (KeyData)
             {
             free(KeyData);
@@ -28,9 +28,9 @@ utfKeyContent::allocate (ssize_t pCount)
     if (!KeyData)
     {
         fprintf(stderr,"%s-Fatal error cannot allocate memory for utfKeyContent key content\n",_GET_FUNCTION_NAME_);
-        _ABORT_
+        abort();
     }
-    _RETURN_ KeyData;
+    return KeyData;
 }
 ZDataBuffer*
 utfKeyContent::exportUVF(void)
@@ -45,7 +45,9 @@ utfKeyContent&
 utfKeyContent::importUVF(ZDataBuffer&pUVFValue)
 {
     UVF_Size_type wKeyCount;
-    pUVFValue.moveOut<UVF_Size_type>(wKeyCount);
+//    pUVFValue.moveOut<UVF_Size_type>(wKeyCount);
+    wKeyCount = pUVFValue.moveTo<UVF_Size_type>();
+
 
     KeyCount=reverseByteOrder_Conditional<UVF_Size_type>((UVF_Size_type)wKeyCount);
     allocate((size_t)wKeyCount);
@@ -80,13 +82,13 @@ void utfKey::setlocale(const char*pLanguage,const char*pCountry,const char*pVari
 utfKeyData_type
 utfKey::_computeKey(void)
     {
-    _MODULEINIT_
+
     LastError=U_ZERO_ERROR;
     if (Col==nullptr)
             {
             Col = icu::Collator::createInstance(LastError);  // should be created with a icu::Locale object -> database will depend on
             if (testIcuFatal(_GET_FUNCTION_NAME_,LastError,true,"While instantiating icu::Collator object"))
-                                                                                                _ABORT_
+                                                                                                abort();
             }
     int32_t wKeyCount=Col->getSortKey((const char16_t*)Data,(int32_t)getUnitCount(),nullptr,_BaseKey::KeyCount);
 
@@ -94,11 +96,11 @@ utfKey::_computeKey(void)
 
     wKeyCount=Col->getSortKey((const char16_t*)Data,(int32_t)getUnitCount(),_BaseKey::KeyData,_BaseKey::KeyCount);
 
-    _RETURN_ _BaseKey::KeyData;
+    return _BaseKey::KeyData;
     }
 void utfKey::_newCollator(void)
 {
-_MODULEINIT_
+
     if (Col)
                 delete Col;
     if (Locale==nullptr)
@@ -106,8 +108,8 @@ _MODULEINIT_
         else
         Col = icu::Collator::createInstance(*Locale,LastError);  // should be created with a icu::Locale object -> database will depend on
     if (testIcuFatal(_GET_FUNCTION_NAME_,LastError,true,"While instantiating icu::Collator object"))
-                                                                                        _ABORT_
-    _RETURN_ ;
+                                                                                        abort();
+    return ;
 }
 bool utfKey::setNormalization (bool pOnOff)
 {

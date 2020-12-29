@@ -1,11 +1,12 @@
 
+#define __MAIN__
 
 #include <zconfig.h>
-#include <ztoolset/zutfstrings.h>
 
 #include <QCoreApplication>
 
 
+#include <ztoolset/zutfstrings.h>
 
 int main(int argc, char *argv[])
 {

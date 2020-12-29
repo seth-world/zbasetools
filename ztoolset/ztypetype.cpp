@@ -433,7 +433,7 @@ encodeZTypeFromString (ZTypeBase &pZType ,ZDataBuffer &pString)
  */
 ZStatus typeDemangler(const char*pName, char* pOutName, size_t pOutSizeMax)
 {
-_MODULEINIT_
+
 int wStatus = 0;
 char *wName = nullptr;
     wName = abi::__cxa_demangle(pName, nullptr, nullptr, &wStatus);
@@ -444,7 +444,7 @@ switch (wStatus)
             {
             strncpy(pOutName,wName,cst_desclen);
             free (wName);
-            _RETURN_ ZS_SUCCESS;
+            return  ZS_SUCCESS;
             }
 
     case -1:
@@ -452,7 +452,7 @@ switch (wStatus)
         fprintf(stderr,"Demangler cannot allocate memory ");
         if (wName)
             free (wName);
-        _RETURN_ ZS_MEMERROR ;
+        return  ZS_MEMERROR ;
         }
     case -2:
         {
@@ -460,16 +460,16 @@ switch (wStatus)
                                 pName);
         if (wName)
                 free(wName);
-        _RETURN_ ZS_INVNAME ;
+        return  ZS_INVNAME ;
         }
     case -3:
         {
         fprintf(stderr,"Invalid arguments passed to demangler\n");
         free(wName);
-        _RETURN_ ZS_INVVALUE ;
+        return  ZS_INVVALUE ;
         }
     }//switch
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }// typeDemangler
 
 #endif// __GNUG__

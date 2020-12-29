@@ -47,9 +47,10 @@ class utfcodeString : public utf8FixedString<cst_codelen+1>
 {
 public:
     typedef utf8FixedString<cst_codelen+1> _Base;
-    utfcodeString () {}
+    utfcodeString () {utfInit(ZType_Utf8FixedString,ZCHARSET_UTF8);}
     utfcodeString(utfcodeString& pIn):_Base(pIn) { }
     utfcodeString(utfcodeString&& pIn):_Base(pIn) { }
+    utfcodeString(const char* pIn) {utfInit(ZType_Utf8FixedString,ZCHARSET_UTF8); _Base::strset((const utf8_t*)pIn);}
 
 #ifdef QT_CORE_LIB
     utfcodeString (QString &pQS)
@@ -83,13 +84,13 @@ class utfdescString : public utf8FixedString<cst_desclen+1>
 public:
 //    typedef utftemplateString<cst_desclen+1,utf8_t> _Base;
     typedef utf8FixedString<cst_desclen+1> _Base;
-    utfdescString(void) {}
-    utfdescString(const utf8_t* pString) {fromUtf(pString);return ;}
+    utfdescString(void) {utfInit(ZType_Utf8FixedString,ZCHARSET_UTF8);}
+    utfdescString(const utf8_t* pString) {utfInit(ZType_Utf8FixedString,ZCHARSET_UTF8);fromUtf(pString);return ;}
 
     utfdescString(utfdescString& pIn):_Base(pIn) {}
     utfdescString(utfdescString&& pIn):_Base(pIn) {}
 
-    utfdescString(const char* pString) {fromUtf((const utf8_t*)pString);}
+    utfdescString(const char* pString) {utfInit(ZType_Utf8FixedString,ZCHARSET_UTF8);fromUtf((const utf8_t*)pString);}
 
     utfdescString & fromcodeString(const utfcodeString &pCode) {return (utfdescString&)strset(pCode.content);}
 

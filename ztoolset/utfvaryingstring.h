@@ -3,6 +3,7 @@
 /**
 
  */
+#include <zconfig.h>
 #include <ztoolset/zlimit.h>
 #include <stdarg.h>
 #include <ztoolset/zatomicconvert.h>
@@ -26,7 +27,12 @@ class stringKey;
 class utf8VaryingString: public utfVaryingString<utf8_t>
 {
 protected:
-    void _setToUtf8() {ZType=ZType_Utf8VaryingString;Charset=ZCHARSET_UTF8;}
+    void _setToUtf8()
+          {
+          ZType=ZType_Utf8VaryingString;
+          Charset=ZCHARSET_UTF8;
+          Check=0xFFFFFFFF;
+          }
 public:
 
 typedef utfVaryingString<utf8_t> _Base;
@@ -36,12 +42,14 @@ typedef utf8_t                  _UtfBase;
     using _Base::operator +=;
     using _Base::operator ==;
     using _Base::operator !=;
-    utf8VaryingString() {_setToUtf8();}
+    utf8VaryingString():_Base() {_setToUtf8();}
 
     utf8VaryingString(const utf8VaryingString& pIn) {_setToUtf8(); strset(pIn.Data);}
     utf8VaryingString(const utf8VaryingString&& pIn) {_setToUtf8(); strset(pIn.Data);}
 
     utf8VaryingString(const char* pIn) {_setToUtf8() ; fromChar(pIn);}
+    utf8VaryingString(const utf8_t* pIn) {_setToUtf8() ; strset(pIn);}
+
     utf8VaryingString(std::string& pIn) {_setToUtf8() ; fromStdString(pIn);}
     utf8VaryingString(std::string&& pIn) {_setToUtf8() ; fromStdString(pIn);}
 
@@ -57,7 +65,7 @@ typedef utf8_t                  _UtfBase;
 
     utf8VaryingString& replace(const char* pToBeReplaced,const char* pReplace)
     {
-      _Base::replace(utf8VaryingString(pToBeReplaced),utf8VaryingString(pReplace));
+      _Base::replace((const utf8_t*)pToBeReplaced,(const utf8_t*)pReplace);
       return *this;
     }
 
@@ -127,10 +135,10 @@ typedef utf8_t                  _UtfBase;
                             const ZCryptKeyAES256& pKey,
                             const ZCryptVectorAES256& pVector);
 
-    utf8VaryingString & operator = (const char* pString) { return fromChar(pString);}
-    utf8VaryingString & operator = (const utf8VaryingString& pString) { strset(pString.Data); return *this;}
-    utf8VaryingString & operator = (const utf8VaryingString&& pString) { strset(pString.Data); return *this;}
-    utf8VaryingString & operator = (std::string&  pString) { return fromStdString(pString);}
+    utf8VaryingString & operator = (const char* pString) { _setToUtf8(); return fromChar(pString);}
+    utf8VaryingString & operator = (const utf8VaryingString& pString) { _Base::_copyFrom(pString); return *this;}
+    utf8VaryingString & operator = (const utf8VaryingString&& pString) { _Base::_copyFrom(pString); return *this;}
+    utf8VaryingString & operator = (std::string&  pString) {_setToUtf8(); return fromStdString(pString);}
     utf8VaryingString & operator += (const char* pString)
     {
         utf8VaryingString wIn(pString);
@@ -157,7 +165,7 @@ typedef utf8_t                  _UtfBase;
 //    const QString toQString() {return QString(toCString_Strait());}
     const utf8VaryingString & fromQString(const QString pQString)
     {
-      _Base::strset(((const utf8_t*)pQString.toUtf8().data()));
+      strset((const utf8_t*)pQString.toUtf8().data());
       return *this;
     }
 
@@ -182,12 +190,24 @@ typedef utf16_t                  _UtfBase;
     using _Base::operator !=;
 
 
-    utf16VaryingString() {
-                            ZType=ZType_Utf16VaryingString;
-                            Charset=ZCHARSET_UTF16;
-                            if (is_little_endian())
-                                       Charset=(ZCharset_type)(int(Charset)|ZCHARSET_LITTLEENDIAN);
-                         }
+    utf16VaryingString() {setToUtf16();}
+
+    utf16VaryingString(const utf16VaryingString& pIn):_Base(pIn) {setToUtf16(); strset(pIn.Data);}
+    utf16VaryingString(const utf16VaryingString&& pIn):_Base(pIn) {setToUtf16(); strset(pIn.Data);}
+
+    utf16VaryingString(const char* pIn) {setToUtf16() ; fromLatin1(pIn);}
+    utf16VaryingString(const utf16_t* pIn) {setToUtf16() ; strset(pIn);}
+
+    utf16VaryingString(std::string& pIn) {setToUtf16() ; fromStdString(pIn);}
+    utf16VaryingString(std::string&& pIn) {setToUtf16() ; fromStdString(pIn);}
+
+  void setToUtf16()
+    {
+    ZType=ZType_Utf16VaryingString;
+    Charset=ZCHARSET_UTF16;
+    if (is_little_endian())
+      Charset=(ZCharset_type)(int(Charset)|ZCHARSET_LITTLEENDIAN);
+    }
 
     ssize_t strcount(UST_Status_type &pStatus)  /** Counts the effective number of utf16 characters : multi-character units counts for 1 - skipping BOM */
     {
@@ -228,8 +248,8 @@ typedef utf16_t                  _UtfBase;
     utf8VaryingString *toUtf8(utf8VaryingString &pUtf8);
     utf32VaryingString *toUtf32(utf32VaryingString &pUtf32);
 
-    utf16VaryingString& getLittleEndian(utf16VaryingString& pLittleEndian);
-    utf16VaryingString &getBigEndian(utf16VaryingString &pBigEndian);
+    utf16VaryingString getLittleEndian();
+    utf16VaryingString getBigEndian();
 
 #ifdef QT_CORE_LIB
 
@@ -276,12 +296,26 @@ typedef utf32_t                  _UtfBase;
     using _Base::operator ==;
     using _Base::operator !=;
 
-    utf32VaryingString() {
-                         ZType=ZType_Utf32VaryingString;
-                         Charset=ZCHARSET_UTF32;
-                         if (is_little_endian())
-                                    Charset=(ZCharset_type)(int(Charset)|ZCHARSET_LITTLEENDIAN);
-                         }
+
+     utf32VaryingString() {setToUtf32();}
+
+     utf32VaryingString(const utf32VaryingString& pIn):_Base(pIn) {setToUtf32(); strset(pIn.Data);}
+     utf32VaryingString(const utf32VaryingString&& pIn):_Base(pIn) {setToUtf32(); strset(pIn.Data);}
+
+     utf32VaryingString(const char* pIn) {setToUtf32() ; fromLatin1(pIn);}
+     utf32VaryingString(const utf32_t* pIn) {setToUtf32() ; strset(pIn);}
+
+     utf32VaryingString(std::string& pIn) {setToUtf32() ; fromStdString(pIn);}
+     utf32VaryingString(std::string&& pIn) {setToUtf32() ; fromStdString(pIn);}
+
+     void setToUtf32()
+     {
+       ZType=ZType_Utf32VaryingString;
+       Charset=ZCHARSET_UTF32;
+       if (is_little_endian())
+         Charset=(ZCharset_type)(int(Charset)|ZCHARSET_LITTLEENDIAN);
+     }
+
 
     ssize_t strcount(UST_Status_type &pStatus)  /** Counts the effective number of utf32 characters - skipping BOM */
         {
@@ -311,27 +345,27 @@ typedef utf32_t                  _UtfBase;
     * @param pLittleEndian an utf32VaryingString that will receive cloned data, converted to little endian if necessary.
     * @return utf32VaryingString with a certified big endian content
     */
-    utf32VaryingString& getLittleEndian(utf32VaryingString& pLittleEndian);
+    utf32VaryingString getLittleEndian();
     /**
      * @brief utf32VaryingString::getBigEndian  returns a clone as utf32VaryingString with a certified big endian content
      * @param pBigEndian an utf32VaryingString that will receive cloned data, converted to big endian if necessary.
      * @return utf32VaryingString with a certified big endian content
      */
-    utf32VaryingString& getBigEndian(utf32VaryingString& pBigEndian);
+    utf32VaryingString getBigEndian();
     /**
      * @brief utf32VaryingString::getLittleEndianWBOM  returns a clone as utf32VaryingString with a certified little endian content.<br>
      *  String content is leaded with the appropriate BOM (Byte Order Mark), i. e. utf32 BOM little endian: 0xFEFF0000 .
      * @param pBigEndian an utf32VaryingString that will receive cloned data, converted to little endian if necessary.
      * @return utf32VaryingString with a certified little endian content : content is preceeded by a BOM
      */
-    utf32VaryingString& getLittleEndianWBOM(utf32VaryingString& pLittleEndian);
+    utf32VaryingString getLittleEndianWBOM();
     /**
      * @brief utf32VaryingString::getBigEndianWBOM  returns a clone as utf32VaryingString with a certified big endian content.<br>
      *  String content is leaded with the appropriate BOM (Byte Order Mark), i. e. utf32 BOM big endian: 0x0000FFFE .
      * @param pBigEndian an utf32VaryingString that will receive cloned data, converted to big endian if necessary.
      * @return utf32VaryingString with a certified big endian content : content is preceeded by a BOM
      */
-    utf32VaryingString &getBigEndianWBOM(utf32VaryingString &pBigEndian);
+    utf32VaryingString getBigEndianWBOM();
 
 #ifdef QT_CORE_LIB
 

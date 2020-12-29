@@ -44,7 +44,7 @@ checkSum::compute(ZDataBuffer &pDataBuffer)
 checkSum &
 checkSum::fromHexa(const char* pInput, const size_t pSize)
 {
-_MODULEINIT_
+
     if (pSize <= cst_checksumHexa)
                     {
                 fprintf(stderr,
@@ -61,12 +61,12 @@ _MODULEINIT_
                 ::strncpy(wBuf,(const char*)&pInput[wi*2],2);
                 content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
                 }
-    _RETURN_ (*this);
+    return (*this);
 } //fromHexa
 
 checkSum &checkSum::fromHexa(const char *pInput)
 {
-    _MODULEINIT_
+
     size_t wSize = ::strlen(pInput);
     if (wSize < cst_checksumHexa)
     {
@@ -84,7 +84,7 @@ checkSum &checkSum::fromHexa(const char *pInput)
         ::strncpy(wBuf,(const char*)&pInput[wi*2],2);
         content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
     }
-    _RETURN_ (*this);
+    return (*this);
 }//fromHexa
 
 bool
@@ -136,7 +136,7 @@ ZStatus
 checkSum::_importURF(unsigned char* &pUniversal)
 {
 ZTypeBase   wType;
-_MODULEINIT_
+
 
     memmove(&wType,pUniversal,sizeof(ZTypeBase));
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
@@ -148,11 +148,11 @@ _MODULEINIT_
                 wType,
                 decode_ZType(wType));
 
-        _RETURN_ ZS_INVTYPE;
+        return ZS_INVTYPE;
         }
     memmove(content,(pUniversal+sizeof(ZTypeBase)),cst_checksum);
 
-    _RETURN_ ZS_SUCCESS;
+    return ZS_SUCCESS;
 }// _importURF
 
 ZStatus
@@ -185,7 +185,7 @@ checkSum::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal
 checkSum &
 checkSum::fromQByteArray (const QByteArray &pQBA)
 {
-_MODULEINIT_
+
     if (pQBA.size()!=cst_checksum)
                 {
                 fprintf(stderr,

@@ -7,8 +7,14 @@
 
 namespace zbs {
 
-ZModuleStack GStack ;
-ZModuleStack* CurStack=&GStack ;
+ZModuleStack* GStack=nullptr ;
+ZModuleStack* CurStack=GStack ;
+
+void clearModuleStack()
+{
+  if (GStack!=nullptr)
+    delete GStack;
+}
 
 // for ZOpenZRFPool methods see at beginning of <zrandomfile/zrandomfile.cpp>
 
@@ -20,9 +26,9 @@ ZOpenZRFPool* ZRFPool=&GZRFPool;
 using namespace zbs;
 
 
-ZModuleStack::ZModuleStack()
+ZModuleStack::ZModuleStack():zbs::ZArray<const char *>()
 {
-
+  atexit(&clearModuleStack);
 }
 
 char wMsg[__MESSAGE_SIZEMAX__] ;

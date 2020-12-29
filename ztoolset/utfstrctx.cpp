@@ -74,14 +74,14 @@ utfSCErr_struct* utfSCErrQueue::get(size_t pIndex)
 utfSCErrQueue*
 utfSCErrQueue::_clone (void)
 {
-_MODULEINIT_
+
     utfSCErrQueue* wNewQueue= new utfSCErrQueue;
     size_t wByteSize= sizeof(utfSCErr_struct)*Size;
     wNewQueue->Queue=(utfSCErr_struct*)malloc (wByteSize);
     if (!wNewQueue->Queue)
-            _ABORT_
+      abort();
     memmove(wNewQueue->Queue,Queue,wByteSize);
-    _RETURN_ wNewQueue;
+    return wNewQueue;
 }
 
 void

@@ -213,7 +213,7 @@ unsigned char* wURFPtr;
 unsigned char*
 ZBitset::_importURF(unsigned char* pBitsetPtr)
 {
-_MODULEINIT_
+
 uint16_t    wByteSize,wEffectiveBitSize;
 ZTypeBase   wType;
 
@@ -230,7 +230,7 @@ ZTypeBase   wType;
                               "Invalid ZType_type in imported data. found 0x%X <%s> while expected <ZType_bitset>",
                               wType,
                               decode_ZType(wType));
-        _RETURN_ nullptr;
+        return  nullptr;
     }
 
     pBitsetPtr=getURFBufferValue<uint16_t>(&wByteSize,pBitsetPtr);
@@ -247,7 +247,7 @@ ZTypeBase   wType;
     printf (" Bitset after import\n");
     print(stdout);
 
-    _RETURN_ pBitsetPtr;
+    return  pBitsetPtr;
 } // _importURF
 
 

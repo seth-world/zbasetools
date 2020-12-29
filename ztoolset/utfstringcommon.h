@@ -30,7 +30,8 @@ class utfStringDescriptor
 protected:
     utfStringDescriptor &_copyFrom(const utfStringDescriptor &pIn)
     {
-        DataByte = pIn.DataByte;
+        Check=0xFFFFFFFF;
+//        DataByte = pIn.DataByte;
         UnitCount = pIn.UnitCount;
         ByteSize = pIn.ByteSize;
         ZType = pIn.ZType;
@@ -41,6 +42,7 @@ protected:
     }
     utfStringDescriptor& _copyFrom(const utfStringDescriptor* pIn)
     {
+        Check=0xFFFFFFFF;
         DataByte = pIn->DataByte;
         UnitCount = pIn->UnitCount;
         ByteSize = pIn->ByteSize;
@@ -58,6 +60,7 @@ public:
     ZCharset_type       Charset=ZCHARSET_UTF8;
     ZCryptMethod_type   CryptMethod=ZCM_Uncrypted;
     ZBool               littleEndian=false;  // RFFU:this induce we might have native strings with endianness different from system default
+    unsigned int        Check=0xFFFFFFFF;
 public:
     utfStringDescriptor() {}
     utfStringDescriptor(const utfStringDescriptor& pIn) { _copyFrom(pIn); }
@@ -106,7 +109,7 @@ template <class _Utf>
 _Utf*
 utfStringHeader::allocateChars(ssize_t pCharCount)
 {
-_MODULEINIT_
+
     if (!(ZType&ZType_VaryingLength))
         {
         fprintf(stderr,

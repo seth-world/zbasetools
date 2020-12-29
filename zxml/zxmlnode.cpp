@@ -448,7 +448,7 @@ zxmlNode::getLine(void) const
 ZStatus
 zxmlNode::getCData(ZDataBuffer& pCData) const
 {
-_MODULEINIT_
+
     if (!isCData())
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
@@ -456,7 +456,7 @@ _MODULEINIT_
                               Severity_Error,
                               "Node <%s> is either invalid or is not a CData node ",
                               getName().toString());
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     xmlBufferPtr wxmlBuf=nullptr;
     if (xmlNodeBufGetContent(wxmlBuf,_xmlInternalNode)<0) // gets any node content including CDATA section
@@ -467,10 +467,10 @@ _MODULEINIT_
                               Severity_Error,
                               "Cannot get CData content for node <%s>",
                               getName().toString());
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
     pCData.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//getCData
 /**
  * @brief zxmlNode::getNodeContent extract a node's CData content
@@ -480,7 +480,7 @@ _MODULEINIT_
 ZStatus
 zxmlNode::getNodeContent(utf8VaryingString& pContent) const
 {
-_MODULEINIT_
+
 
     xmlBufPtr wxmlBuf=nullptr;
     if (xmlBufGetNodeContent(wxmlBuf,_xmlInternalNode)<0) // gets any node content including CDATA section
@@ -490,16 +490,16 @@ _MODULEINIT_
                               ZS_XMLERROR,
                               Severity_Error,
                               "Cannot get node content ");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
     pContent.strset(( utf8_t*)xmlBufContent(wxmlBuf));
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//getNodeContent
 
 ZStatus
 zxmlNode::getNodeText(utf8VaryingString& pText)
 {
-_MODULEINIT_
+
 
  //   xmlBufPtr wxmlBuf=nullptr;
 
@@ -514,7 +514,7 @@ _MODULEINIT_
         pText.strset((utf8_t*)wBuf);
         xmlFree (wBuf);
         }
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//getNodeContent
 /**
  * @brief zxmlNode::getNodeRaw get a node's raw content including CDATA Section content
@@ -526,13 +526,13 @@ _MODULEINIT_
 ZStatus
 zxmlNode::getNodeRaw(utf8VaryingString& pText)
 {
-_MODULEINIT_
+
 
         pText.clear();
 //    pText.setString((const char*)_xmlInternalNode->content);
         if (_xmlInternalNode->content)
                     pText.strset((const utf8_t*)_xmlInternalNode->content);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//getNodeContent
 
 
@@ -546,7 +546,7 @@ _MODULEINIT_
 ZStatus
 zxmlNode::getText(ZDataBuffer& pText) const
 {
-_MODULEINIT_
+
     if (!isText())
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
@@ -554,7 +554,7 @@ _MODULEINIT_
                               Severity_Error,
                               "Node <%s> is either invalid or is not a Text node ",
                               getName().toString());
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }
     xmlBufferPtr wxmlBuf=nullptr;
     if (xmlNodeBufGetContent(wxmlBuf,_xmlInternalNode)<0) // gets any node content including CDATA section
@@ -565,7 +565,7 @@ _MODULEINIT_
                               Severity_Error,
                               "Cannot get content for node <%s>",
                               getName().toString());
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
     pText.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
 
@@ -574,13 +574,13 @@ _MODULEINIT_
 //    xmlCharEncodingHandler
     //
     pText.addConditionalTermination();
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//getText
 
 ZStatus
 zxmlNode::getText(utf8VaryingString& pText) const
 {
-_MODULEINIT_
+
 /*    if (!isText())
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
@@ -588,7 +588,7 @@ _MODULEINIT_
                               Severity_Error,
                               "Node <%s> is either invalid or is not a Text node ",
                               getName().toString());
-        _RETURN_ ZS_INVOP;
+        return  ZS_INVOP;
         }*/
     xmlBufferPtr wxmlBuf=nullptr;
     if (xmlNodeBufGetContent(wxmlBuf,_xmlInternalNode)<0) // gets any node content including CDATA section
@@ -599,7 +599,7 @@ _MODULEINIT_
                               Severity_Error,
                               "Cannot get content for node <%s>",
                               getName().toString());
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
     pText.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
 
@@ -608,7 +608,7 @@ _MODULEINIT_
     //
     xmlFree(wxmlBuf);
     pText.addConditionalTermination();
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//getText
 bool
 zxmlNode::isComment(void) const
@@ -646,14 +646,14 @@ zxmlNode::isHtmlDocument(void) const
 ZStatus
 zxmlElement::addChild(zxmlNode* pNode)
 {
-_MODULEINIT_
+
     if (!pNode)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVVALUE,
                               Severity_Severe,
                               "Cannot add nullptr child to current node");
-        _RETURN_ ZS_INVVALUE;
+        return  ZS_INVVALUE;
         }
     if (!xmlAddChild(_xmlInternalNode,pNode->_xmlInternalNode))
         {
@@ -661,9 +661,9 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot add child to current node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlElement::addChildList adds a tree of nodes (element, attribute, comment, etc...) to current element
@@ -675,14 +675,14 @@ _MODULEINIT_
 ZStatus
 zxmlElement::addChildList(zxmlNode* pNode)
 {
-_MODULEINIT_
+
     if (!pNode)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVVALUE,
                               Severity_Severe,
                               "Cannot add nullptr child list to current node");
-        _RETURN_ ZS_INVVALUE;
+        return  ZS_INVVALUE;
         }
     if (!xmlAddChildList(_xmlInternalNode,pNode->_xmlInternalNode))
         {
@@ -690,9 +690,9 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot add child list  to current node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlNode::setAttribute creates and sets the attribute with pName and pValue to current node and returns the created attribute object
@@ -706,7 +706,7 @@ _MODULEINIT_
 ZStatus
 zxmlElement::newAttribute(zxmlAttribute* &pAttribute, const char* pName, const char*pValue, zxmlNameSpace *pNameSpace)
 {
-_MODULEINIT_
+
     pAttribute=nullptr;
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
@@ -718,11 +718,11 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot add create attribute name <%s> to current element <%s>",pName,getName().toString());
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 //    pAttribute=new zxmlAttribute(wAttr);
     pAttribute=zxmlcreateAttribute(wAttr);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlElement::setAttribute set or reset an attribute to the given value
@@ -737,7 +737,7 @@ _MODULEINIT_
 ZStatus
 zxmlElement::setAttribute(zxmlAttribute* pAttribute,const char*pName,const char*pValue,zxmlNameSpace* pNameSpace)
 {
-_MODULEINIT_
+
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
             wNs=pNameSpace->_xmlInternalNameSpace;
@@ -748,12 +748,12 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot add set attribute name <%s> to current element <%s>",pName,getName().toString());
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
 //    pAttribute=new zxmlAttribute(wAttr);
     pAttribute=zxmlcreateAttribute(wAttr);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlElement::setNameSpace sets pNameSpace namespace object to current Element
@@ -763,9 +763,9 @@ _MODULEINIT_
 ZStatus
 zxmlElement::setNameSpace(zxmlNameSpace* pNameSpace)
 {
-_MODULEINIT_
+
     xmlSetNs(_xmlInternalNode,pNameSpace->_xmlInternalNameSpace);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 
 //=======================Element======================================
@@ -777,7 +777,7 @@ _MODULEINIT_
  */
 zxmlElement::zxmlElement(const char*pName,zxmlNameSpace*pNameSpace)
 {
-_MODULEINIT_
+
 
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
@@ -792,7 +792,7 @@ _MODULEINIT_
     ZException.exit_abort();
     }
 
-   _RETURN_;
+   return ;
 }
 
 
@@ -953,7 +953,7 @@ zxmlElement::getFirstComment(zxmlNode* &pTextNode,utf8VaryingString& pText)
 ZStatus
 zxmlElement::newElementTextChild(zxmlElement* &pNode, const char* pNodeName, const char *pText, zxmlNameSpace*pNameSpace)
 {
-_MODULEINIT_
+
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
             wNs=pNameSpace->_xmlInternalNameSpace;
@@ -965,17 +965,17 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot add element text child to current node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pNode = (zxmlElement*)zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 
 ZStatus
 zxmlElement::newElementTextsprintf(zxmlElement* &pNode, const char *pNodeName, zxmlNameSpace*pNameSpace, const char *pFormat,...)
 {
-_MODULEINIT_
+
 utfdescString wString;
     va_list args;
     va_start (args, pFormat);
@@ -991,17 +991,17 @@ utfdescString wString;
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot add element text child to current node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pNode = (zxmlElement*)zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 
 ZStatus
 zxmlElement::newElementLongTextChild(zxmlElement* &pNode, const char *pNodeName, utf8VaryingString &pText, zxmlNameSpace*pNameSpace)
 {
-_MODULEINIT_
+
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
             wNs=pNameSpace->_xmlInternalNameSpace;
@@ -1013,11 +1013,11 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot add element text child to current node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pNode = (zxmlElement*)zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlElement::newComment adds a new comment node child for current element
@@ -1031,7 +1031,7 @@ _MODULEINIT_
 ZStatus
 zxmlElement::newComment(zxmlNode* &pNode, const char *pText)
 {
-_MODULEINIT_
+
 
     xmlNodePtr wNode=xmlNewComment((const xmlChar*)pText);
     if (!wNode)
@@ -1040,7 +1040,7 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot create comment node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     if (!xmlAddChild(_xmlInternalNode,wNode))
@@ -1051,10 +1051,10 @@ _MODULEINIT_
                               Severity_Error,
                               "Cannot add comment node to Element named <%s>",(const char*)_xmlInternalNode->name);
         xmlFreeNode(wNode);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
     pNode=zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlElement::newText adds a new text node child for current element
@@ -1067,7 +1067,7 @@ _MODULEINIT_
 ZStatus
 zxmlElement::newText(zxmlNode* &pNode, utf8VaryingString &pText)
 {
-_MODULEINIT_
+
     xmlNodePtr wNode=xmlNewText((const xmlChar*)pText.toUtf());
     if (!wNode)
         {
@@ -1075,7 +1075,7 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot create text node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     if (!xmlAddChild(_xmlInternalNode,wNode))
@@ -1086,11 +1086,11 @@ _MODULEINIT_
                               Severity_Error,
                               "Cannot add text node to Element named <%s>",(const char*)_xmlInternalNode->name);
         xmlFreeNode(wNode);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pNode=zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }
 /**
  * @brief zxmlElement::newCData creates a new CData Section for current element and returns its zxmlNode object pointer
@@ -1102,7 +1102,7 @@ _MODULEINIT_
 ZStatus
 zxmlElement::newCData(zxmlNode* &pNode,ZDataBuffer &pCData)
 {
-_MODULEINIT_
+
     xmlNodePtr wNode=xmlNewCDataBlock(_xmlInternalNode->doc,(const xmlChar*)pCData.DataChar,(int)pCData.Size);
     if (!wNode)
         {
@@ -1110,7 +1110,7 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot create CData section node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     if (!xmlAddChild(_xmlInternalNode,wNode))
@@ -1123,14 +1123,14 @@ _MODULEINIT_
         return ZS_XMLERROR;
         }
     pNode=zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//newCData
 
 
 ZStatus
 zxmlElement::newCDataElement(zxmlElement* &pElement, const char *pName, ZDataBuffer &pCData, zxmlNameSpace* pNameSpace)
 {
-_MODULEINIT_
+
 
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
@@ -1145,7 +1145,7 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot create element name <%s>",pName);
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
     xmlNodePtr wNode=xmlNewCDataBlock(_xmlInternalNode->doc,(const xmlChar*)pCData.DataChar,(int)pCData.Size);
     if (!wNode)
@@ -1154,7 +1154,7 @@ _MODULEINIT_
                          ZS_XMLERROR,
                          Severity_Error,
                          "cannot create CData section node");
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pElement=(zxmlElement*) zxmlcreateNode(wElement);
@@ -1185,7 +1185,7 @@ _MODULEINIT_
         }
 
 //    zxmlcreateNode(wNode);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//newCData
 
 /**
@@ -1213,7 +1213,7 @@ zxmlElement::setName(const char* pName)
 ZStatus
 zxmlElement::newNameSpace(zxmlNameSpace* &pNameSpace, const char *pURL, const char *pPrefix)
 {
-_MODULEINIT_
+
     xmlNsPtr wNs=nullptr;
     wNs=xmlNewNs(_xmlInternalNode,(const xmlChar *)pURL,(const xmlChar *)pPrefix);
     if (!wNs)
@@ -1227,12 +1227,12 @@ _MODULEINIT_
                          pPrefix);
 
 
-        _RETURN_ ZS_XMLERROR;
+        return  ZS_XMLERROR;
         }
 
     pNameSpace=zxmlcreateNameSpace(wNs);
 
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }// newElementNameSpace
 /**
  * @brief zxmlElement::dumpCurrent prints current element's immediate content, text(s) nodes, comment(s), CData section(s)
@@ -1243,7 +1243,7 @@ _MODULEINIT_
 void
 zxmlElement::dumpCurrent(FILE*pOutput,int pLevel,int pSpaceIndent)
 {
-_MODULEINIT_
+
 ZStatus wSt;
 char wSpace[500];
 
@@ -1331,7 +1331,7 @@ utf8VaryingString wNodeText;
             }
         }
 
-    _RETURN_;
+    return ;
 
 }// dumpCurrent
 /**
@@ -1343,7 +1343,7 @@ utf8VaryingString wNodeText;
 void
 zxmlElement::cascadeDump(FILE*pOutput,int pLevel,int pSpaceIndent)
 {
-_MODULEINIT_
+
 
 ZStatus wSt;
 char wSpace[500];
@@ -1367,7 +1367,7 @@ zxmlElement* wElement=nullptr;
             }
         wSt=wElement->getNextElementSibling (wElement);
         }
-    _RETURN_;
+    return ;
 }
 
 

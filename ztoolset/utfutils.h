@@ -1026,9 +1026,9 @@ template <class _Utf>
  */
  size_t utfStrlen (const _Utf* pString)
 {
-_MODULEINIT_
+
     if (pString==nullptr)
-                    {_RETURN_ 0;}
+                    {return 0;}
     size_t wLen=0;
     _Utf wC;
     while ((wC=pString[wLen])&&(wLen < __STRING_MAX_LENGTH__))
@@ -1036,7 +1036,7 @@ _MODULEINIT_
         wLen++;
         }
     _ASSERT_(wLen >= __STRING_MAX_LENGTH__,"Fatal error: endofmark has not been found in string\n",1)
-    _RETURN_ wLen;
+    return wLen;
 }
 
 #endif // __COMMENT__
@@ -1429,27 +1429,27 @@ template<class _Utf>
 UST_Status_type
 utfDecode(_Utf* pString,utf32_t* pUtf32CodePoint, size_t* pUtfCount,ZBool *plittleEndian=nullptr )
 {
-_MODULEINIT_
+
     if (typeid(_Utf).hash_code()==typeid(char).hash_code())
         {
         *pUtf32CodePoint=(utf32_t)pString[0];
         pString++;
-        _RETURN_ UST_SUCCESS;
+        return UST_SUCCESS;
         }
 
     switch (sizeof(_Utf))
     {
     case sizeof(utf8_t):
-     _RETURN_ utf8Decode((const utf8_t*)pString,pUtf32CodePoint,pUtfCount)  ;
+     return utf8Decode((const utf8_t*)pString,pUtf32CodePoint,pUtfCount)  ;
     case sizeof(utf16_t):
     {
 //     return utf16NextCharValue((const utf16_t*)pString,pUtfSize, pUtf32CodePoint,plittleEndian)  ;
-     _RETURN_ utf16Decode((const utf16_t*)pString, pUtf32CodePoint,pUtfCount,plittleEndian)  ;
+     return utf16Decode((const utf16_t*)pString, pUtf32CodePoint,pUtfCount,plittleEndian)  ;
 
     }
     case sizeof(utf32_t):
     {
-     _RETURN_ utf32Decode((const utf32_t*)pString,pUtf32CodePoint,pUtfCount,plittleEndian)  ;
+     return utf32Decode((const utf32_t*)pString,pUtf32CodePoint,pUtfCount,plittleEndian)  ;
     }
     default:
         _ABORT_;

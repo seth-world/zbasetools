@@ -892,7 +892,7 @@ template <size_t _Sz,class _Utf>
 ZDataBuffer*
 utftemplateString<_Sz,_Utf>::_exportURF(ZDataBuffer*pURFData)
 {
-_MODULEINIT_
+
 ZTypeBase wType=ZType_FixedCString;
 uint16_t wCanonical=(uint16_t)capacity();
 
@@ -928,7 +928,7 @@ size_t wOffset=0;
 
     memmove(pURFData->Data+wOffset,content,(size_t)wUniversalSize);  // nb: '\0' is put by difference of 1 char in the end
 
-    _RETURN_ pURFData;
+    return  pURFData;
 }// _exportURF
 
 template <size_t _Sz,class _Utf>

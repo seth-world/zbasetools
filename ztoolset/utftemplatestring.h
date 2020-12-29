@@ -128,7 +128,7 @@ protected:
 
     utftemplateString() {clear();}   /* private constructor for internal use only */
 public:
-    _Utf        content[_Sz];
+    _Utf          content[_Sz];
 
     typedef utfStringDescriptor _Base;
 
@@ -149,15 +149,23 @@ public:
     utftemplateString& operator = (const utftemplateString& pIn) {return _copyFrom(pIn); }
     utftemplateString& operator = (const utftemplateString&& pIn) {return _copyFrom(pIn); }
 
-    utftemplateString& operator = (const char* pIn) {return strSetV<char>(pIn);}
-    utftemplateString& operator = (std::string& pIn) {return strSetV<char>(pIn.c_str());}
+    utftemplateString& operator = (const char* pIn)
+    {
+      Check = 0xFFFFFFFF;
+      return strSetV<char>(pIn);
+    }
+    utftemplateString& operator = (std::string& pIn)
+    {
+      Check = 0xFFFFFFFF;
+      return strSetV<char>(pIn.c_str());
+    }
 
     utftemplateString& operator += (const char* pIn) {return addV<char>(pIn);}
     utftemplateString &operator+=(std::string &pIn) { return addV<char>(pIn.c_str()); }
 
     void utfInit(ZType_type pZType,ZCharset_type pCharset)
     {
-        _MODULEINIT_
+      Check = 0xFFFFFFFF;
         DataByte=(uint8_t*)content;
         UnitCount=_Sz;
         ByteSize=_Sz*sizeof(_Utf);
@@ -176,7 +184,7 @@ public:
         Charset=pCharset;
 
         littleEndian=is_little_endian();
-        _RETURN_;
+        return ;
     }// utfInit
 
     ~utftemplateString(void) {}
@@ -328,12 +336,12 @@ public:
     /** sets currents string content with an _Utf formatted content.Maximum size is capacity of template string */
 //    utftemplateString<_Sz,_Utf>&
 //    sprintf(const typename std::enable_if_t<!std::is_same<_NotChar,char>::value,_NotChar> * pFormat,...) /** sets currents string content with a formatted content.Maximum size is capacity of template string */
-//    sprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,char,_Utf> * pFormat,...); /** sets currents string content with a formatted content.Maximum size is capacity of template string */
+//    sprintf(const typename std::conditional<std::is_same<_Utf,char>::value,char,_Utf> * pFormat,...); /** sets currents string content with a formatted content.Maximum size is capacity of template string */
 
     /** adds _Utf formatted  string to current string. Maximum size is capacity of template string : see method banner for explainations*/
 //    utftemplateString<_Sz,_Utf>&
 //    addsprintf(const typename std::enable_if_t<!std::is_same<_Utf,char>::value,_Utf>* pFormat,...);  /** adds formatted _Utf string to current string. Maximum size is capacity of template string */
-//    addsprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,char,_Utf>* pFormat,...);  /** adds formatted _Utf string to current string. Maximum size is capacity of template string */
+//    addsprintf(const typename std::conditional<std::is_same<_Utf,char>::value,char,_Utf>* pFormat,...);  /** adds formatted _Utf string to current string. Maximum size is capacity of template string */
     /**
      * @brief utftemplateString<_Sz, _Utf>::sprintf set current fixed string content to a formatted char* string.<br>
      * Resulting formatted string cannot exceed string boundaries.<br>
@@ -568,7 +576,7 @@ public:
 //
 
      _Utf& operator [] (const size_t pIdx)
-        {_MODULEINIT_ if(pIdx>getUnitCount()) _ABORT_ _RETURN_ (content[pIdx]);}
+        { if(pIdx>getUnitCount()) _ABORT_ return  (content[pIdx]);}
 
 
      utftemplateString<_Sz,_Utf>& operator = (const _Utf *pString) {return utftemplateString<_Sz,_Utf>::strset(pString);}
@@ -1345,7 +1353,7 @@ template <size_t _Sz,class _Utf>
 ZDataBuffer*
 utftemplateString<_Sz,_Utf>::_exportURF(ZDataBuffer*pURFData)
 {
-_MODULEINIT_
+
 
 URF_Capacity_type wCanonical=(URF_Capacity_type)getUnitCount();
 
@@ -1381,7 +1389,7 @@ size_t wOffset=0;
 
     memmove(pURFData->Data+wOffset,content,(size_t)wUniversalSize);  // nb: '\0' is put by difference of 1 char in the end
 
-    _RETURN_ pURFData;
+    return  pURFData;
 }// _exportURF
 
 template <size_t _Sz,class _Utf>
@@ -1398,7 +1406,7 @@ uint16_t    wCanonical;
 uint16_t    wUniversalSize;
 //size_t      wURFByteSize;
 size_t      wOffset=0;
-_MODULEINIT_
+
     memmove(&wType,pURFDataPtr,sizeof(ZTypeBase));
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
     if (!(wType&ZType_String))
@@ -1431,7 +1439,7 @@ _MODULEINIT_
                 wUniversalSize=UnitCount-1 ;
                 }
     utfStrnset<_Utf>(content,_Sz,pURFDataPtr+wOffset,wUniversalSize);
-    _RETURN_ *this;
+    return  *this;
 }// _importURF
 
 /**  Routine to get URF data header information for an utfxxFixedString or utfxxVaryingString. */
@@ -1899,7 +1907,7 @@ template <size_t _Sz,class _Utf>
  * @return utftemplateString object after operation
  */
 utftemplateString<_Sz,_Utf>&
-utftemplateString<_Sz,_Utf>::sprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,char,_Utf> * pFormat,...) /** sets currents string content with a formatted content.Maximum size is capacity of template string */
+utftemplateString<_Sz,_Utf>::sprintf(const typename std::conditional<std::is_same<_Utf,char>::value,char,_Utf> * pFormat,...) /** sets currents string content with a formatted content.Maximum size is capacity of template string */
 
 {
     if (!pFormat)
@@ -1936,7 +1944,7 @@ utftemplateString<_Sz,_Utf>::sprintf(const typename std::conditional_t<std::is_s
 template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>&
 //utftemplateString<_Sz,_Utf>::addsprintf(const typename std::enable_if_t<!std::is_same<_Utf,char>::value,_Utf>* pFormat,...)
-utftemplateString<_Sz,_Utf>::addsprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,char,_Utf>* pFormat,...)
+utftemplateString<_Sz,_Utf>::addsprintf(const typename std::conditional<std::is_same<_Utf,char>::value,char,_Utf>* pFormat,...)
 {
     if (!pFormat)
             {
@@ -2033,11 +2041,11 @@ template <size_t _Sz,class _Utf>
 ZStatus
 utftemplateString<_Sz,_Utf>::setCharSet(const ZCharset_type pCharset)
 {
-_MODULEINIT_
+
     if (charsetToICU(pCharset)==ZCHARSET_NOTSUPPORTED)
                 return ZS_INVCHARSET;
     Charset=pCharset;
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//setCharSet
 #endif// __COMMENT__
 
@@ -2045,9 +2053,9 @@ template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>&
 utftemplateString<_Sz,_Utf>::fromISOLatin1(const unsigned char* pString, size_t pInSize,ZStatus* pStatus)
 {
-_MODULEINIT_
+
     *pStatus =_fromISOLatin1(*this,pString,pInSize);
-    _RETURN_ *this;
+    return  *this;
 }// fromISOLatin1
 
 
@@ -2055,9 +2063,9 @@ template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>*
 utftemplateString<_Sz,_Utf>::toISOLatin1(utftemplateString<_Sz,_Utf>* pString, ZStatus* pStatus)
 {
-_MODULEINIT_
+
    * pStatus =_toISOLatin1(*this,pString->content,pString->UnitCount);
-   _RETURN_ *this;
+   return  *this;
 }// fromISOLatin1
 
 

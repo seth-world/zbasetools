@@ -23,7 +23,7 @@ class utf8Converter: zicuConverter
 public:
     utf8Converter(ZBool pWarningSignal=false)
     {
-    _MODULEINIT_
+    
         if (zis_Error(zicuConverter::setup("UTF8",pWarningSignal)))
                     _ABORT_;
     }
@@ -74,13 +74,13 @@ public:
             }
         if (wlittleEndian)
             {
-            _MODULEINIT_
+            
             if (zis_Error(zicuConverter::setup("UTF16LE",pWarningSignal)))
                         _ABORT_;
             }
         else
             {
-            _MODULEINIT_
+            
             if (zis_Error(zicuConverter::setup("UTF16BE",pWarningSignal)))
                         _ABORT_;
             }
@@ -154,13 +154,13 @@ public:
             }
         if (wlittleEndian)
             {
-            _MODULEINIT_
+            
             if (zis_Error(zicuConverter::setup("UTF32LE",pWarningSignal)))
                         _ABORT_;
             }
         else
             {
-            _MODULEINIT_
+            
             if (zis_Error(zicuConverter::setup("UTF32BE",pWarningSignal)))
                         _ABORT_;
             }

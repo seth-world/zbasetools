@@ -133,7 +133,7 @@ void ZCryptAES256::handleErrors(void)
  * @param[in] pVector           mandatory ZCryptVectorAES256 object containing encryption vector
  * @return a ZStatus set to ZS_SUCCESS if everything went well, set to a value describing the error if not.
  * In case of error, error description is printed on stderr.
- * In case of fatal error, _ABORT_ routine is invoked.
+ * In case of fatal error, abort(); routine is invoked.
  */
 ZStatus ZCryptAES256::encrypt(unsigned char**      pCryptedBuffer,
                               size_t*              pCryptedBufferLen,
@@ -142,14 +142,14 @@ ZStatus ZCryptAES256::encrypt(unsigned char**      pCryptedBuffer,
                               ZCryptKeyAES256      pKey,
                               ZCryptVectorAES256   pVector)
 {
-_MODULEINIT_
+
 
     if ((pPlainBuffer==nullptr)||(pCryptedBufferLen==nullptr))
                 {
                 fprintf (stderr,
                          "%s-F-NNULLPTR  Fatal error :Plain buffer text and/or Crypted buffer length are nullptr\n",
                          _GET_FUNCTION_NAME_);
-                _ABORT_
+                abort();
                 }
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new()))
@@ -157,7 +157,7 @@ _MODULEINIT_
                 fprintf (stderr,
                          "%s-F-CIPHERCTXNEW Fatal error in cipher context allocation\n",
                          _GET_FUNCTION_NAME_);
-                _ABORT_
+                abort();
                 }
 
 
@@ -175,7 +175,7 @@ _MODULEINIT_
           fprintf(stderr,"%s-F-malloc fails to allocate memory for crypted buffer (size is <%ld>)\n",
                   _GET_FUNCTION_NAME_,
                   wSize);
-          _ABORT_;
+          abort();
           }
 //  pCryptedBuffer.allocate   (wSize);
 //  pCryptedBuffer.CryptMethod =ZCM_AES256;
@@ -192,7 +192,7 @@ _MODULEINIT_
                                _GET_FUNCTION_NAME_);
 
                        handleErrors();
-                       _RETURN_ ZS_CRYPTERROR;
+                       return ZS_CRYPTERROR;
                       }
   /* Provide the message to be encrypted, and obtain the encrypted output.
    * EVP_EncryptUpdate can be called multiple times if necessary
@@ -207,7 +207,7 @@ _MODULEINIT_
                            _GET_FUNCTION_NAME_);
 
                    handleErrors();
-                   _RETURN_ ZS_CRYPTERROR;
+                   return ZS_CRYPTERROR;
                   }
 
   *pCryptedBufferLen = len;
@@ -222,7 +222,7 @@ _MODULEINIT_
                            _GET_FUNCTION_NAME_);
 
                    handleErrors();
-                   _RETURN_ ZS_CRYPTERROR;
+                   return ZS_CRYPTERROR;
                   }
     (*pCryptedBufferLen)  += len;
     (*pCryptedBuffer)=(unsigned char*)realloc((*pCryptedBuffer),(*pCryptedBufferLen) ); // adjust the size to effective crypted buffer size
@@ -231,14 +231,14 @@ _MODULEINIT_
               fprintf(stderr,"%s-F-malloc fails to reallocate memory for crypted buffer (size is <%ld>)\n",
                       _GET_FUNCTION_NAME_,
                       *pCryptedBufferLen);
-              _ABORT_;
+              abort();
               }
       /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
     ctx=nullptr;
     /* Clean up */
 
-  _RETURN_ ZS_SUCCESS;
+  return ZS_SUCCESS;
 }// encrypt
 
 /**
@@ -257,7 +257,7 @@ _MODULEINIT_
  * @param[in]  pVector          mandatory ZCryptVectorAES256 object containing encryption vector
  * @return a ZStatus : ZS_SUCCESS if everything went well. A status describing the error in other cases.
  * In case of error, error description is printed on stderr.
- * In case of fatal error, _ABORT_ routine is invoked.
+ * In case of fatal error, abort(); routine is invoked.
  */
 ZStatus ZCryptAES256::uncrypt(unsigned char *&pPlainBuffer,
                               size_t& pPlainBufferLen,
@@ -266,7 +266,7 @@ ZStatus ZCryptAES256::uncrypt(unsigned char *&pPlainBuffer,
                                ZCryptKeyAES256 pKey,
                                ZCryptVectorAES256 pVector)
 {
-_MODULEINIT_
+
 
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new()))
@@ -274,7 +274,7 @@ _MODULEINIT_
                     fprintf (stderr,
                              "%s-F-CIPHERCTXNEW Fatal error in cipher context allocation\n",
                              _GET_FUNCTION_NAME_);
-                    _ABORT_
+                    abort();
                     }
  //   EVP_CIPHER_CTX_set_key_length(ctx,32);
     EVP_CIPHER_CTX_set_padding( ctx,1);
@@ -295,7 +295,7 @@ _MODULEINIT_
           fprintf(stderr,"%s-F-malloc fails to allocate memory for plain text buffer (size is <%ld>)\n",
                   _GET_FUNCTION_NAME_,
                   wSize);
-          _ABORT_
+          abort();
           }
 
 
@@ -314,7 +314,7 @@ _MODULEINIT_
                        _free(pPlainBuffer);
                        pPlainBuffer = nullptr;
                        pPlainBufferLen = 0;
-                       _RETURN_ ZS_CRYPTERROR;
+                       return ZS_CRYPTERROR;
                       }
 
 
@@ -331,7 +331,7 @@ _MODULEINIT_
                    handleErrors();
                    free(pPlainBuffer);
                    pPlainBufferLen = 0;
-                   _RETURN_ ZS_CRYPTERROR;
+                   return ZS_CRYPTERROR;
                 }
 
 //  *pPlainBufferLen = len;
@@ -349,7 +349,7 @@ _MODULEINIT_
                    handleErrors();
                    free(pPlainBuffer);
                    pPlainBufferLen = 0;
-                   _RETURN_ ZS_CRYPTERROR;
+                   return ZS_CRYPTERROR;
                    }
 
 
@@ -365,7 +365,7 @@ _MODULEINIT_
                   pPlainBufferLen);
           free(pPlainBuffer);
           pPlainBufferLen = 0;
-          _ABORT_
+          abort();
           }
 //  PlainBuffer.Data[PlainBuffer.Size]='\0' ;
 
@@ -373,7 +373,7 @@ _MODULEINIT_
   EVP_CIPHER_CTX_free(ctx);
   ctx=nullptr;
   /* Clean up */
-  _RETURN_ ZS_SUCCESS;
+  return ZS_SUCCESS;
 }
 
 #ifdef __COMMENT__ // not used any more : key and vector are NOT (and must not be) stored
@@ -398,7 +398,7 @@ ZCryptAES256::setupKeyandVector (unsigned char* pKey,unsigned char* pIV)
  * @param[in] pVector           mandatory encryption vector as a ZCryptVectorAES256 object
  * @return a ZStatus : ZS_SUCCESS if everything went well. A status describing the error in other cases.
  * In case of error, error description is printed on stderr.
- * In case of fatal error, _ABORT_ routine is invoked.
+ * In case of fatal error, abort(); routine is invoked.
  */
 ZStatus ZCryptAES256::encryptToFile (const char*pFilePath,
                                      unsigned char* pPlainBuffer,
@@ -483,7 +483,7 @@ ZStatus ZCryptAES256::writeCryptedBufferToFile (const char*pFilePath, unsigned c
  * @param[in] pVector           mandatory ZCryptVectorAES256 object containing encryption vector
  * @return a ZStatus : ZS_SUCCESS if everything went well. A status describing the error in other cases.
  * In case of error, error description is printed on stderr.
- * In case of fatal error, _ABORT_ routine is invoked.
+ * In case of fatal error, abort(); routine is invoked.
  */
 ZStatus ZCryptAES256::uncryptFromFile (const char* pFilePath,
                                        unsigned char*& pPlainBuffer,
@@ -491,7 +491,7 @@ ZStatus ZCryptAES256::uncryptFromFile (const char* pFilePath,
                                        const ZCryptKeyAES256& pKey,
                                        const ZCryptVectorAES256& pVector)
 {
-_MODULEINIT_
+
 
 struct stat wStatBuffer ;
     int wSt= stat(pFilePath,&wStatBuffer);
@@ -506,7 +506,7 @@ struct stat wStatBuffer ;
             fprintf(stderr,"%s-F-malloc fails to allocate memory for crypted buffer (size is <%ld>)\n",
                     _GET_FUNCTION_NAME_,
                     wCryptedBufferLen);
-            _ABORT_
+            abort();
             }
     FILE *wInfile = fopen(pFilePath,"rb");
     if (wInfile==nullptr)
@@ -520,7 +520,7 @@ struct stat wStatBuffer ;
                  wErrno,
                  decode_POSIXerrno(wErrno),
                  strerror(wErrno));
-         _RETURN_ ZS_ERROPEN;
+         return ZS_ERROPEN;
         }
 
         size_t wSize=fread (wCryptedBuffer,wCryptedBufferLen,1,wInfile);
@@ -537,7 +537,7 @@ struct stat wStatBuffer ;
                      decode_POSIXerrno(wErrno),
                      strerror(wErrno));
             fclose(wInfile);
-             _RETURN_ ZS_READERROR;
+             return ZS_READERROR;
             }
 
     fclose(wInfile);
@@ -545,7 +545,7 @@ struct stat wStatBuffer ;
 
     _free(wCryptedBuffer);
 //-----------------------------
-    _RETURN_ wSts;
+    return wSts;
 //------------------------------
 }// uncryptFile
 /**
@@ -555,17 +555,18 @@ struct stat wStatBuffer ;
  *
  * @param[out] pB64String   a pointer to an unsigned char* string.
  *                          Will receive Base64 encrypted string data after having allocated memory enough.
+ *                          String will be zero terminated because B64 is used as a string.
  * @param[out] pB64Size     a pointer to a size_t that will contain Base64 encrypted string data length
  * @param[in] pInString     plain text string to encrypt
  * @param[in] pInSize       plain text string length
  * @return a ZStatus : ZS_SUCCESS if everything went well. A status describing the error in other cases.
  * In case of error, error description is printed on stderr.
- * In case of fatal error, _ABORT_ routine is invoked.
+ * In case of fatal error, abort(); routine is invoked.
  */
 ZStatus
 encryptB64( unsigned char**pB64String,size_t *pB64Size,unsigned char* pInString,const size_t pInSize )
 {
-_MODULEINIT_
+
     if (!ZCryptActive)
             ZCrypContextInit();
     BIO *bio, *b64;
@@ -585,26 +586,35 @@ _MODULEINIT_
                 pInSize);
         ERR_print_errors_fp(stderr);
         BIO_free_all(b64);
-        _RETURN_ ZS_BIOERR;
+        return ZS_BIOERR;
         }
     wRet=BIO_flush(b64);
     //    BIO_get_mem_ptr(b64, &bptr);
     //    setData(bptr->data,bptr->length);
     wLen=BIO_get_mem_data(b64, &wPtr);
-    *pB64String=(unsigned char*)malloc(wLen+1);
+
+// BIO_FLAGS_BASE64_NO_NL seems not to work correctly a newline is systematically added at the end of B64string
+
+    if (wPtr[wLen-1]==10)  // newline '\n' is 0x10
+      wLen --; // skip last character as newline despite BIO_FLAGS_BASE64_NO_NL
+
+    *pB64Size=wLen;
+    *pB64String=(unsigned char*)malloc(wLen);
+
     if (!*pB64String)
             {
             fprintf(stderr,"%s-F-malloc fails to allocate memory (size is <%d>)\n",
                     _GET_FUNCTION_NAME_,
                     wLen);
-            _ABORT_;
+            abort();
             }
-    *pB64Size=wLen+1;
+//    *pB64Size=wLen+1;
     memmove(*pB64String,wPtr,wLen);
+/* last character is set to binary zero because B64 is used as a string */
     (*pB64String)[wLen]='\0';
 
     BIO_free_all(b64);
-    _RETURN_ ZS_SUCCESS;
+    return ZS_SUCCESS;
 }
 /**
  * @brief uncryptB64 uncrypt Base64 crypted string pInString of length pInSize into allocated string pOutString.
@@ -619,18 +629,18 @@ _MODULEINIT_
  * @param[in] pB64Size      length of the Base64 crypted string to uncrypt
  * @return a ZStatus : ZS_SUCCESS if everything went well. A status describing the error in other cases.
  * In case of error, error description is printed on stderr.
- * In case of fatal error, _ABORT_ routine is invoked.
+ * In case of fatal error, abort(); routine is invoked.
  */
 ZStatus
 uncryptB64( unsigned char**pOutString,size_t *pOutSize,unsigned char* pB64String,const size_t pB64Size )
 {
-_MODULEINIT_
+
     if ((pB64String==nullptr)||(pOutSize==nullptr))
                 {
                 fprintf (stderr,
                          "%s-F-NNULLPTR  Fatal error : Encrypted input string and/or plain buffer length are nullptr\n",
                          _GET_FUNCTION_NAME_);
-                _ABORT_
+                abort();
                 }
     if (!ZCryptActive)
             ZCrypContextInit();
@@ -651,7 +661,7 @@ _MODULEINIT_
                     pB64Size);
             ERR_print_errors_fp(stderr);
             BIO_free_all(b64);
-            _RETURN_ ZS_BIOERR;
+            return ZS_BIOERR;
             }
     wRet=BIO_flush(b64);
     if (wRet<1)
@@ -660,7 +670,7 @@ _MODULEINIT_
                 _GET_FUNCTION_NAME_);
         ERR_print_errors_fp(stderr);
         BIO_free_all(b64);
-        _RETURN_ ZS_BIOERR;
+        return ZS_BIOERR;
         }
     //    BIO_get_mem_ptr(b64, &bptr);
     //    setData(bptr->data,bptr->length);
@@ -672,7 +682,7 @@ _MODULEINIT_
                     _GET_FUNCTION_NAME_,
                     wLen);
             BIO_free_all(b64);
-            _ABORT_;
+            abort();
             }
 
     *pOutSize = wLen;
@@ -688,7 +698,7 @@ _MODULEINIT_
                 *pOutString=(unsigned char*)realloc(*pOutString,wLen); // if already zero terminated, resize(truncate) to fit
                 }
     BIO_free_all(b64);
-    _RETURN_ ZS_SUCCESS;
+    return ZS_SUCCESS;
 }// uncryptB64
 
 /**

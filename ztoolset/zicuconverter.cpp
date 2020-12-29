@@ -9,18 +9,18 @@ zicuConverter::zicuConverter()
 ZStatus
 zicuConverter::setup(const char*pName, ZBool pWarningSignal)
 {
-    _MODULEINIT_
+    
     setWarningSignal(pWarningSignal);
-    _RETURN_ _mainCnvOpen(pName);
+    return  _mainCnvOpen(pName);
 }
 
 ZStatus
 zicuConverter::setup(utfStrCtx* pContext,const char*pName, ZBool pWarningSignal)
 {
-    _MODULEINIT_
+    
     setWarningSignal(pWarningSignal);
     mainCnvContext._from(pContext);
-    _RETURN_ _mainCnvOpen(pName);
+    return  _mainCnvOpen(pName);
 
 
 }
@@ -85,7 +85,7 @@ void _fromCallback (
         UConverterCallbackReason pReason,
         UErrorCode *pErrorCode)
 {
-_MODULEINIT_
+
     const char* wEscType=nullptr;
     UErrorCode wICUErr;
     if (pContext==nullptr)
@@ -120,7 +120,7 @@ _MODULEINIT_
                                &OldContext,
                                &wICUErr
                                );
-        _RETURN_;
+        return ;
         }
     case UCNV_RESET:
         {
@@ -137,7 +137,7 @@ _MODULEINIT_
                                &OldContext,
                                &wICUErr
                                );
-        _RETURN_;
+        return ;
         }
     case UCNV_CLOSE:
         {
@@ -146,7 +146,7 @@ _MODULEINIT_
              */
         if (wContext->Cloned)
                     delete wContext;
-        _RETURN_;
+        return ;
         }
 
 /* all other reasons are managed by underneeth standard ICU routines - according to ZCNV_Action
@@ -201,7 +201,7 @@ _MODULEINIT_
                                           pCodePoint,
                                           pReason,
                                           pErrorCode);
-                _RETURN_;
+                return ;
                 }
             case ZCNV_Skip:
                     {
@@ -223,7 +223,7 @@ _MODULEINIT_
                                                       pReason,
                                                       pErrorCode);
                             }
-                    _RETURN_;
+                    return ;
                     }//ZCNV_Skip
             case ZCNV_Substitute:
                     {
@@ -245,7 +245,7 @@ _MODULEINIT_
                                                       pReason,
                                                       pErrorCode);
                             }
-                    _RETURN_;
+                    return ;
                     }//ZCNV_Substitute
 
 
@@ -305,7 +305,7 @@ void U_EXPORT2 _toCallback (
         UConverterCallbackReason pReason,
         UErrorCode *pErrorCode)
 {
-_MODULEINIT_
+
     const char* wEscType=nullptr;
     UErrorCode wICUErr;
     if (pContext==nullptr)
@@ -338,7 +338,7 @@ _MODULEINIT_
                                &OldContext,
                                &wICUErr
                                );
-        _RETURN_;
+        return ;
         }
     case UCNV_RESET:
         {
@@ -355,7 +355,7 @@ _MODULEINIT_
                                &OldContext,
                                &wICUErr
                                );
-        _RETURN_;
+        return ;
         }
     case UCNV_CLOSE:
         {
@@ -364,7 +364,7 @@ _MODULEINIT_
              */
         if (wContext->Cloned)
                     delete wContext;
-        _RETURN_;
+        return ;
         }
 
 /* all other reasons are managed by underneeth standard ICU routines - according to ZCNV_Action
@@ -424,7 +424,7 @@ _MODULEINIT_
                                           pLength,
                                           pReason,
                                           pErrorCode);
-                _RETURN_;
+                return ;
                 }
             case ZCNV_Skip:
                     {
@@ -444,7 +444,7 @@ _MODULEINIT_
                                                       pReason,
                                                       pErrorCode);
                             }
-                    _RETURN_;
+                    return ;
                     }//ZCNV_Skip
             case ZCNV_Substitute:
                     {
@@ -464,7 +464,7 @@ _MODULEINIT_
                                                       pReason,
                                                       pErrorCode);
                             }
-                    _RETURN_;
+                    return ;
                     }//ZCNV_Substitute
 
 
@@ -494,7 +494,7 @@ _MODULEINIT_
 
         }//switch-default
     }// switch pReason
-    _RETURN_;
+    return ;
 }// _FromCallback
 
 
@@ -502,7 +502,7 @@ _MODULEINIT_
 ZStatus
 zicuConverter::_mainCnvOpen(const char*pName)
 {
-_MODULEINIT_
+
     ICUErr=U_ZERO_ERROR;
     mainICUcnv= ucnv_open(pName,&ICUErr);
     ZStatus wSt=ztestIcuFatal(_GET_FUNCTION_NAME_,
@@ -511,7 +511,7 @@ _MODULEINIT_
                       " while opening main converter <%s>", pName);
 
     if (zis_Error(wSt))
-                      {_RETURN_ wSt;}
+                      {return  wSt;}
 
     mainCharset= pName;
     if (!mainOld_SaveOnce)
@@ -529,7 +529,7 @@ _MODULEINIT_
                       WarningSignal,
                       " Setting up (from unicode callback) main <%s> converter ",mainCharset);
     if (zis_Error(wSt))
-                      {_RETURN_ wSt;}
+                      {return  wSt;}
     ICUErr=U_ZERO_ERROR;
     ucnv_setToUCallBack(mainICUcnv,
                         &_toCallback,
@@ -543,7 +543,7 @@ _MODULEINIT_
                       WarningSignal,
                       " Setting up (to unicode callback) main <%s> converter ", mainCharset);
     if (zis_Error(wSt))
-                      {_RETURN_ wSt;}
+                      {return  wSt;}
     mainOld_SaveOnce=true;
     }
     else
@@ -561,7 +561,7 @@ _MODULEINIT_
                       WarningSignal,
                       " Setting up (from unicode callback) main <%s> converter ",mainCharset);
     if (zis_Error(wSt))
-                      {_RETURN_ wSt;}
+                      {return  wSt;}
     ICUErr=U_ZERO_ERROR;
     ucnv_setToUCallBack(mainICUcnv,
                         &_toCallback,
@@ -575,9 +575,9 @@ _MODULEINIT_
                       WarningSignal,
                       " Setting up (to unicode callback) main <%s> converter ", mainCharset);
     if (zis_Error(wSt))
-                      {_RETURN_ wSt;}
+                      {return  wSt;}
     }
-_RETURN_ wSt;
+return  wSt;
 }
 
 
@@ -585,7 +585,7 @@ _RETURN_ wSt;
 UST_Status_type
 zicuConverter::open_toEncoding (const char* pExtEncoding)
 {
-_MODULEINIT_
+
 UST_Status_type wSt;
 
     if (!pExtEncoding)
@@ -605,7 +605,7 @@ UST_Status_type wSt;
                            WarningSignal,
                            "Opening converter for external charset encoding <%s>",
                            pExtEncoding))<0)
-                                    {_RETURN_ wSt;}
+                                    {return  wSt;}
 
     extCnvType = ucnv_getType(extICUcnv);
 
@@ -624,14 +624,14 @@ UST_Status_type wSt;
                            WarningSignal,
                            "Setting up (from Unicode callback) converter for external charset encoding <%s>",
                            pExtEncoding))<0)
-                                {_RETURN_ wSt;}
-    _RETURN_ UST_SUCCESS;
+                                {return  wSt;}
+    return  UST_SUCCESS;
 }// open_toEncoding
 
 ZStatus
 zicuConverter::open_toEncoding_reuse (void)
 {
-_MODULEINIT_
+
     ucnv_resetToUnicode(mainICUcnv); // from utf8 to charset means for utf8converter from utf8 'to Unicode' (utf16 pivot)
 
     if (!extICUcnv)
@@ -644,13 +644,13 @@ _MODULEINIT_
 
     ucnv_resetFromUnicode(extICUcnv);
 
-_RETURN_ ZS_SUCCESS;
+return  ZS_SUCCESS;
 }//open_toEncoding_reuse
 
 ZStatus
 zicuConverter::open_fromEncoding (const char* pExtEncoding)
 {
-_MODULEINIT_
+
 ZStatus wSt;
     ucnv_resetFromUnicode(mainICUcnv); // to utf8 from charset means for utf8converter to utf8 'from Unicode' (utf16 pivot)
 
@@ -666,7 +666,7 @@ ZStatus wSt;
                            WarningSignal,
                            "Opening converter for external charset encoding <%s>",
                            pExtEncoding))<0)
-                                    {_RETURN_ wSt;}
+                                    {return  wSt;}
 
     // setting to Unicode callback : 'from charset' means 'to Unicode' (utf16 pivot) from charset
     ICUErr=U_ZERO_ERROR;
@@ -682,14 +682,14 @@ ZStatus wSt;
                            WarningSignal,
                            "Setting up (callback) converter for external charset encoding <%s>",
                            pExtEncoding))<0)
-                                    {_RETURN_ wSt;}
-    _RETURN_ ZS_SUCCESS;
+                                    {return  wSt;}
+    return  ZS_SUCCESS;
 }// open_fromEncoding
 
 ZStatus
 zicuConverter::open_fromEncoding_reuse (void)
 {
-_MODULEINIT_
+
 
     if (!mainICUcnv)
             {
@@ -708,7 +708,7 @@ _MODULEINIT_
             _ABORT_
             }
     ucnv_resetToUnicode(extICUcnv); // 'from charset' means from charset 'to Unicode' (utf16 pivot)
-_RETURN_ ZS_SUCCESS;
+return  ZS_SUCCESS;
 }// open_fromEncoding_reuse
 
 /**
@@ -728,11 +728,11 @@ UST_Status_type
 zicuConverter::Utf16toEncoding (const char* pOutEncoding, char* pOutCharStr, size_t pOutCapacity,
                                 utf16_t* putf16String,size_t pInCount)
 {
-_MODULEINIT_
+
 
    UST_Status_type wSt=open_toEncoding(pOutEncoding);
     if (wSt<UST_SEVERE)
-           { _RETURN_ wSt;}
+           { return  wSt;}
 
     // step 1- convert to utf16 pivot string
 
@@ -762,7 +762,7 @@ _MODULEINIT_
                      " while Converting _Utf string to external encoding <%s>\n",
                      pOutEncoding);
 
-    _RETURN_ wSt;
+    return  wSt;
 }//Utf16toEncoding
 
 

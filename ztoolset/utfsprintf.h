@@ -1131,7 +1131,7 @@ utfSPFConvertInt(_ITp pValue,
                  int    pInitDigits,             /* initial digits allocation (target)- may be bypassed */
                  FMT_Flags_type pFmtFlags)    /* only 2 flag values are used if set : FMTF_Hexa FMTF_Uppercase   */
 {
-_MODULEINIT_
+
     size_t          wCAlloc   = pInitDigits + 5 ;
     _Utf *          wConvert  = nullptr;
 
@@ -1178,7 +1178,7 @@ _MODULEINIT_
     if (pAllocated)
             *pAllocated = wCAlloc;
     *pOutconvert=wConvert;
-    _RETURN_ *pOutDigits;
+    return  *pOutDigits;
 }// utfConvertLong
 
 #include <cmath>
@@ -1203,7 +1203,7 @@ utfConvertLDouble (LONG_DOUBLE pValue,      /* value to convert as a long double
                    int    pInitDigits,      /* initial digits allocation (target)- could be bypassed according number of digits to write */
                    FMT_Flags_type pFmtFlags)/* only 2 flag values are used if set : FMTF_Hexa FMTF_Uppercase   */
 {
-_MODULEINIT_
+
     size_t          wCAlloc   = pInitDigits + 5 ;
     _Utf *          wConvert  = nullptr;
 
@@ -1285,7 +1285,7 @@ _MODULEINIT_
     if (pAllocated)
             *pAllocated = wCAlloc;
     *pOutconvert=wConvert;
-    _RETURN_ *pOutDigits;
+    return  *pOutDigits;
 }// utfConvertLDouble
 
 
@@ -1404,7 +1404,7 @@ LDoubleToUtfDigits_F(LONG_DOUBLE pValue,
                    int pFieldPrecision,
                    FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
  int wDigitsNb=0;
  LONG_DOUBLE wLDBase=10.0;
  size_t wAllocatedSlots;
@@ -1533,7 +1533,7 @@ _MODULEINIT_
     *pFractionalNb=wFractionalDigitsNb;
     *pIntegralNb = wIntegralDigitsNb;
     *pDigitStr = wDigitStr;
-    _RETURN_ wDigitsNb;
+    return  wDigitsNb;
 }//LDoubleToUtfDigits_F
 
 int getExponent(LONG_DOUBLE pLDValue,LONG_DOUBLE pLDBase);
@@ -1555,7 +1555,7 @@ LDoubleToUtfDigits_G(LONG_DOUBLE pValue,
                      int pFieldPrecision,
                      FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
  int wDigitsNb=0;
  LONG_DOUBLE wLDBase=10.0;
  size_t wAllocatedSlots;
@@ -1807,7 +1807,7 @@ _MODULEINIT_
     *pFractionalNb=wFractionalDigitsNb;
     *pIntegralNb = wIntegralDigitsNb;
     *pDigitStr = wDigitStr;
-    _RETURN_ wDigitsNb;
+    return  wDigitsNb;
 }//LDoubleToUtfDigits_G
 
 
@@ -1843,7 +1843,7 @@ size_t
 utfFormatFPF(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
       _FTp pFvalue, int pFieldMin, int pFieldPrecision, FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
     _Utf            wSignvalue=0;        /* sign of expression to be printed 0: no sign __MINUS__ or __PLUS__ or __SPACE__ */
     _Utf            wDecimalPoint=0;     /* decimal point : if has to be written, will be set from locale */
     _FTp            wUfvalue;            /* fvalue unsigned value */
@@ -1862,22 +1862,22 @@ _MODULEINIT_
         {
         if (pFmtFlags & FMTF_Uppercase)
             {
-            _RETURN_ utfSignalNan(pFvalue, pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
+            return  utfSignalNan(pFvalue, pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
             }
         else
             {
-           _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
+           return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
             }
         }// if (isnan(pFvalue))
     if (!isfinite(pFvalue))
         {
         if (pFmtFlags & FMTF_Uppercase)
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
                 }
             else
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
 
@@ -2037,7 +2037,7 @@ _MODULEINIT_
 
     _free(wDigitStr);
     _free(wFconvert);
-    _RETURN_ (*pCurrlen-wLocalSize);
+    return  (*pCurrlen-wLocalSize);
 }// utfFormatFPF
 
 
@@ -2077,7 +2077,7 @@ size_t
 utfFormatFPE(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
       _FTp pFvalue, int pFieldMin, int pFieldPrecision, FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
     _Utf            wSignvalue=0;        /* sign of expression to be printed 0: no sign __MINUS__ or __PLUS__ or __SPACE__ */
     _Utf            wDecimalPoint=0;     /* decimal point : if has to be written, will be set from locale */
     _FTp            wUfvalue;            /* fvalue unsigned value */
@@ -2110,22 +2110,22 @@ _MODULEINIT_
         {
         if (pFmtFlags & FMTF_Uppercase)
             {
-            _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
+            return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
             }
         else
             {
-           _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
+           return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
             }
         }// if (isnan(pFvalue))
     if (!isfinite(pFvalue))
         {
         if (pFmtFlags & FMTF_Uppercase)
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
                 }
             else
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
 
@@ -2455,7 +2455,7 @@ _MODULEINIT_
 
     _free(wFDigitStr);
     _free(wEDigitStr);
-    _RETURN_ (*pCurrlen-wLocalSize);
+    return  (*pCurrlen-wLocalSize);
 }// utfFormatFPS
 
 /**
@@ -2512,7 +2512,7 @@ size_t
 utfFormatFPG(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
              _FTp pFvalue, int pFieldMin, int pFieldPrecision, FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
     _Utf            wSignvalue=0;        /* sign of expression to be printed 0: no sign __MINUS__ or __PLUS__ or __SPACE__ */
     _Utf            wDecimalPoint=0;     /* decimal point : if has to be written, will be set from locale */
     _FTp            wUfvalue;            /* fvalue unsigned value */
@@ -2545,22 +2545,22 @@ _MODULEINIT_
         {
         if (pFmtFlags & FMTF_Uppercase)
             {
-            _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
+            return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
             }
         else
             {
-           _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
+           return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
             }
         }// if (isnan(pFvalue))
     if (!isfinite(pFvalue))
         {
         if (pFmtFlags & FMTF_Uppercase)
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
                 }
             else
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
 
@@ -2609,7 +2609,7 @@ _MODULEINIT_
 
         if (wFieldPrecision<0)
                     wFieldPrecision=0;
-        _RETURN_ utfFormatFPE(pBuffer, pCurrlen,pMaxlen,
+        return  utfFormatFPE(pBuffer, pCurrlen,pMaxlen,
                               pFvalue, pFieldMin,wFieldPrecision,pFmtFlags | FMTF_NonSignif);
         }
 
@@ -2755,7 +2755,7 @@ _MODULEINIT_
         utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, wSignvalue);
 
     _free(wDigitStr);
-    _RETURN_ (*pCurrlen-wLocalSize);
+    return  (*pCurrlen-wLocalSize);
 }// utfFormatFPG
 
 
@@ -2806,7 +2806,7 @@ size_t
 utfFormatFPA(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
       _FTp pFvalue, int pFieldMin, int pFieldPrecision, FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
     _Utf            wSignvalue=0;       /* sign of expression to be printed 0: no sign __MINUS__ or __PLUS__ or __SPACE__ */
     _Utf            wDecimalPoint=0;    /* decimal point : if has to be written, will be set from locale */
     _FTp            wUfvalue;           /* fvalue unsigned value */
@@ -2838,22 +2838,22 @@ _MODULEINIT_
         {
         if (pFmtFlags & FMTF_Uppercase)
             {
-            _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
+            return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
             }
         else
             {
-           _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
+           return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
             }
         }// if (isnan(pFvalue))
     if (!isfinite(pFvalue))
         {
         if (pFmtFlags & FMTF_Uppercase)
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
                 }
             else
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
 
@@ -2976,7 +2976,7 @@ _MODULEINIT_
         utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__PLUS__);
         utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, (_Utf)__ZERO__);
 
-        _RETURN_ (*pCurrlen)- wLocalSize;
+        return  (*pCurrlen)- wLocalSize;
     }
 
 /* ------------up to here value is not 0.0 ---------------------*/
@@ -3200,7 +3200,7 @@ _MODULEINIT_
 
     _free(wDigitStr);
     _free(wEDigitStr);
-    _RETURN_ (*pCurrlen-wLocalSize);
+    return  (*pCurrlen-wLocalSize);
 }// utfFormatFPA
 
 /**
@@ -3250,7 +3250,7 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
              _FTp pFvalue, int pFieldMin, int pFieldPrecision, int pCurrencySpaces,
              FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
     _Utf            wSignvalue=0;        /* sign of expression to be printed 0: no sign __MINUS__ or __PLUS__ or __SPACE__ */
     _Utf            wDecimalPoint=0;     /* decimal point : if has to be written, will be set from locale */
     _FTp            wUfvalue;            /* fvalue unsigned value */
@@ -3282,22 +3282,22 @@ _MODULEINIT_
         {
         if (pFmtFlags & FMTF_Uppercase)
             {
-            _RETURN_ utfSignalNan(pFvalue, pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
+            return  utfSignalNan(pFvalue, pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
             }
         else
             {
-           _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
+           return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
             }
         }// if (isnan(pFvalue))
     if (!isfinite(pFvalue))
         {
         if (pFmtFlags & FMTF_Uppercase)
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
                 }
             else
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
 
@@ -3520,7 +3520,7 @@ _MODULEINIT_
     _free(wValueBuffer);
     _free(wDigitStr);
     _free(wFconvert);
-    _RETURN_ (*pCurrlen-wLocalSize);
+    return  (*pCurrlen-wLocalSize);
 }// utfFormatFPK
 
 template <class _Utf, class _FTp>
@@ -3529,7 +3529,7 @@ utfFormatFPK_1(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
              _FTp pFvalue, int pFieldMin, int pFieldPrecision, int pCurrencySpaces,
              FMT_Flags_type pFmtFlags)
 {
-_MODULEINIT_
+
     _Utf            wSignvalue=0;        /* sign of expression to be printed 0: no sign __MINUS__ or __PLUS__ or __SPACE__ */
     _Utf            wDecimalPoint=0;     /* decimal point : if has to be written, will be set from locale */
     _FTp            wUfvalue;            /* fvalue unsigned value */
@@ -3560,22 +3560,22 @@ _MODULEINIT_
         {
         if (pFmtFlags & FMTF_Uppercase)
             {
-            _RETURN_ utfSignalNan(pFvalue, pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
+            return  utfSignalNan(pFvalue, pBuffer, pCurrlen, pMaxlen, pFieldMin,(_Utf*)cst_NAN<_Utf>,  pFmtFlags);
             }
         else
             {
-           _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
+           return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_nan<_Utf>,  pFmtFlags);
             }
         }// if (isnan(pFvalue))
     if (!isfinite(pFvalue))
         {
         if (pFmtFlags & FMTF_Uppercase)
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_INFINITE<_Utf>,  pFmtFlags);
                 }
             else
                 {
-                _RETURN_ utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
+                return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
 
@@ -3870,7 +3870,7 @@ _MODULEINIT_
 
     _free(wDigitStr);
     _free(wFconvert);
-    _RETURN_ (*pCurrlen-wLocalSize);
+    return  (*pCurrlen-wLocalSize);
 }// utfFormatFPK_1
 
 template <class _ITp>
@@ -4015,7 +4015,7 @@ size_t
 utfFormatGeneric(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
              _FTp pFvalue, int pFieldMin, int pFieldPrecision, FMT_Flags_type pFmtFlags,const char* pFormat,size_t pFormatLen)
 {
-_MODULEINIT_
+
 
     char wIntermediateBuffer[150];
     char* wFormatChunk=nullptr;
@@ -4041,7 +4041,7 @@ _MODULEINIT_
             }
 
     _free(wFormatChunk);
-    _RETURN_ (*pCurrlen-wLocalSize);
+    return  (*pCurrlen-wLocalSize);
 }// utfFormatGeneric
 
 template <class _ITp>

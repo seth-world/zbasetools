@@ -41,7 +41,7 @@ GGetLocaleCodes(const char*pLocale)
 UST_Status_type
  GChangeLocaleCurrencyCode(const utf8_t *pCurrency)
 {
-_MODULEINIT_
+
 UST_Status_type wSt;
     if (!pCurrency)
            {

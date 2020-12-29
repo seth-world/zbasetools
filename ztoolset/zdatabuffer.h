@@ -14,6 +14,7 @@
 #include <ztoolset/zarray.h>
 #include <stdint.h>
 #include <ztoolset/zcharset.h>
+#include <type_traits>
 /*
 typedef uint8_t     utf8_t ;
 typedef uint16_t    utf16_t ;
@@ -167,14 +168,13 @@ public:
     ZDataBuffer&
     setData(const void *pData,size_t pSize)
     {
-                                        allocate (pSize);
-                                        memmove(Data,pData,pSize);
-                                        return(*this);
+        allocate (pSize);
+        memmove(Data,pData,pSize);
+        return(*this);
     }
     ZDataBuffer&
     setData(const unsigned char* &&pData,size_t pSize)
     {
-        CryptMethod=ZCM_Uncrypted;
         allocate (pSize);
         memmove(Data,pData,pSize);
         return(*this);
@@ -368,8 +368,9 @@ public:
  * @param pOutData
  * @return
  */
+/*
 template <typename _Tp>
-_Tp& moveOut(typename std::enable_if_t<!(std::is_pointer<_Tp>::value||std::is_array<_Tp>::value),_Tp> &pOutData,ssize_t pOffset=0)
+_Tp& moveOut(typename std::enable_if<!(std::is_pointer<_Tp>::value||std::is_array<_Tp>::value),_Tp> &pOutData,ssize_t pOffset=0)
 {
     ssize_t wSize;
     if (sizeof(_Tp) >= Size )
@@ -380,8 +381,21 @@ _Tp& moveOut(typename std::enable_if_t<!(std::is_pointer<_Tp>::value||std::is_ar
     memmove(&pOutData,Data+pOffset,wSize);
     return pOutData;
 }
+*/
 template <typename _Tp>
-_Tp& moveOut(typename std::enable_if_t<std::is_array<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
+_Tp& moveOut(typename std::enable_if<std::is_integral<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
+{
+  ssize_t wSize;
+  if (sizeof(_Tp) >= Size )
+    wSize=Size;
+  else
+    wSize=sizeof(_Tp);
+
+  memmove(&pOutData,Data+pOffset,wSize);
+  return pOutData;
+}
+template <typename _Tp>
+_Tp& moveOut(typename std::enable_if<std::is_array<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
 {
     ssize_t wSize;
     if (sizeof(_Tp) >= Size )
@@ -393,7 +407,7 @@ _Tp& moveOut(typename std::enable_if_t<std::is_array<_Tp>::value,_Tp> &pOutData,
     return pOutData;
 }
 template <typename _Tp>
-_Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
+_Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
 {
     ssize_t wSize;
     if (sizeof(_Tp) >= Size )
@@ -656,6 +670,7 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
     ZDataBuffer& setUcs4(const ucs4_t* pString);
 
     void dumpHexa (const size_t pOffset, const long pSize, ZDataBuffer &pLineHexa, ZDataBuffer &pLineChar);
+    void dumpHexa_1 (const size_t pOffset, const long pSize, ZDataBuffer &pLineHexa, ZDataBuffer &pLineChar);
 
     friend int rulerSetup (ZDataBuffer &pRulerHexa, ZDataBuffer &pRulerAscii,int pColumn);
 

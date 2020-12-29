@@ -156,7 +156,7 @@ typedef     utfKeyContent       _BaseKey;
                         {
 // need to import from various ZCharset (Latin1,...)
                         if (_BaseString::fromLatin1(pInString)==nullptr)
-                                                            {_RETURN_ nullptr;}
+                                                            {return  nullptr;}
                         return this;
                         }
 
@@ -164,7 +164,7 @@ typedef     utfKeyContent       _BaseKey;
                         {
 // need to import from various ZCharset (Latin1,...)
                         if (_BaseString::fromUtf8(pInString)!=ZS_SUCCESS)
-                                                            {_RETURN_ nullptr;}
+                                                            {return  nullptr;}
                         return this;
                         }
     const utfKeyData_type getKeyData(ssize_t& pKeyCount) {pKeyCount=KeyCount; return KeyData;}

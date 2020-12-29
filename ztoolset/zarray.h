@@ -137,11 +137,40 @@ typedef long ZArrayIndex_type;
 template <typename _Tp>
 class ZArray
 {
+  /*
+ *  Data Attributes
+ */
+
+public :
+  union ZUData { char *zptr_char;
+    void *zptr_void;
+    _Tp *Tab ;
+  } Data ;
+
+  _Tp * Tab=nullptr  ;
+
+  ssize_t ZCurrentNb=0 ;        // current number of elements : 0 if ZArray is empty lastIdx() returns -1
+  const size_t ZElementSize=sizeof(_Tp); // for Qt debug interface purpose
+
+protected:
+  size_t ZAllocation=0 ;        // allocated number of elements
+  size_t ZAllocatedSize=0 ;     // allocated size in bytes (excepted one char of highvalue mark )
+  size_t ZReallocQuota=0 ;      // reallocation quota in number of elements to reallocate each reallocation operation
+  size_t ZInitialAllocation=0;  // keep initial allocation for reset purpose : ZClear will get back to this memory allocation
+  _Tp ZReturn ;               // memory zone for returning element (WARNING: not to be used with multi-thread)
+
+private :
+  void *ZPtr =nullptr;
+  long ZIdx=0 ;                 // Last index accessed
+
+#ifdef __USE_ZTHREAD__  //   in any case (__ZTHREAD_AUTOMATIC__ or not) we have to define a ZMutex
+  ZMutex _Mutex ;
+#endif
 public:
 
-//    ZArray(){_mInit(_cst_default_allocation,_cst_realloc_quota);}
-   ZArray (size_t pInitialAlloc=_cst_default_allocation,
-           size_t pReallocQuota=_cst_realloc_quota)
+   ZArray():_Mutex() {_mInit(_cst_default_allocation,_cst_realloc_quota);}
+   ZArray (size_t pInitialAlloc,
+       size_t pReallocQuota) : _Mutex()
                 {_mInit(pInitialAlloc,pReallocQuota);}
 
 //   ZArray(size_t pCount,_Tp pInitValue);
@@ -155,19 +184,25 @@ public:
    ZArray(ZArray& pIn)
    {
 //       _mInit(); /* init with default allocation values */
-       _cloneFrom(pIn);
+       _copyFrom(pIn);
        return;
    }
-   ZArray& operator = (const ZArray&pIn)
+   ZArray(ZArray&& pIn)
+   {
+     //       _mInit(); /* init with default allocation values */
+     _copyFrom(pIn);
+     return;
+   }
+   ZArray& operator = (ZArray&pIn)
     {
 //       _mInit(); /* init with default allocation values */
-       _cloneFrom(pIn);
+       _copyFrom(pIn);
        return *this;
     }
-   ZArray& operator = (const ZArray&&pIn)
+   ZArray& operator = (ZArray&&pIn)
    {
 //      _mInit(); /* init with default allocation values */
-      _cloneFrom(pIn);
+      _copyFrom(pIn);
       return *this;
    }
 /*
@@ -192,21 +227,21 @@ public:
 
 
 
-   ZArray(_Tp const& __a) _GLIBCXX_NOEXCEPT
+   ZArray(_Tp const& __a) //_GLIBCXX_NOEXCEPT
    {
-       _mInit();
+       _mInit(_cst_default_allocation,_cst_realloc_quota);
        push(__a);
    }
 
 
    ZArray(std::initializer_list<_Tp> l)
    {
-       _mInit(); /* initialize with default allocation values */
-     const _Tp*       it  = l.begin();  // raw pointer!
-     const _Tp* const end = l.end();    // raw pointer!
+    _mInit(_cst_default_allocation,_cst_realloc_quota); /* initialize with default allocation values */
+    _Tp*       it  =(_Tp*) l.begin();  // raw pointer!
+    _Tp* const end = (_Tp*)l.end();    // raw pointer!
 
-     for (; it != end; ++it)
-       this->push(*it);
+    for (; it != end; ++it)
+       this->push((_Tp&)*it);
    }
 
    void addValues(size_t pCount,_Tp pInitValue);
@@ -225,15 +260,15 @@ public:
    ZArray&
    operator=(std::initializer_list<_Tp> __l)
    {
-       const _Tp*       it  = __l.begin();  // raw pointer!
-       const _Tp* const end = __l.end();    // raw pointer!
+     _Tp*       it  = (_Tp*)__l.begin();  // raw pointer!
+       _Tp* const end =(_Tp*) __l.end();    // raw pointer!
 
        for (; it != end; ++it)
-         this->push(*it);
+         this->push((_Tp&)*it);
     return *this;
    }
 
-   _Tp* data() _GLIBCXX_NOEXCEPT
+   _Tp* data()  _GLIBCXX_NOEXCEPT
    {return Tab;}
 
    const _Tp* data() const _GLIBCXX_NOEXCEPT
@@ -307,8 +342,8 @@ public:
 
     long swap (size_t pDest, size_t pOrig,  size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
 
-    long insert (const _Tp &pElement, size_t pIdx);
-    long insert (_Tp* pElement,size_t pIdx) {return(insert((const _Tp&)(*pElement),pIdx));}
+    long insert (_Tp &pElement, size_t pIdx);
+    long insert (_Tp* pElement,size_t pIdx) {return(insert((_Tp&)(*pElement),pIdx));}
     long insert (_Tp *pElement, size_t pIdx, size_t pNumber);
     long erase(size_t pIdx,size_t pNumber=1);
 
@@ -349,16 +384,20 @@ public:
 
     bool isEmpty(void) {return (ZCurrentNb==0);}
 
+    _Tp & assign (_Tp &pValue, const long pIdx);
+    _Tp & assignReturn ( const long pIdx);
+    void clearValue (const long pIdx);
+
     _Tp & reverse (long pIdx);
 
     size_t bzero (size_t pOrig=0, long pNumber=-1, bool pLock=true);
     void reset(void);
-    virtual void clear(bool pLock=true);
+    void clear(bool pLock=true);
 
     ZArray<_Tp>* clone(void);
 
  //   void copy(ZArray<_Tp> &pZCopied)  {copy(static_cast<const ZArray<_Tp>> (pZCopied));}
-    void _cloneFrom(const ZArray<_Tp> &pZCopied)  ;
+    void _copyFrom(ZArray<_Tp> &pIn)  ;
 
 
 //  ------------------------ Export Import utilities---------------------------
@@ -534,35 +573,9 @@ private :
     void allocate(long pAlloc) ;
     void _sizeAllocate(size_t pSizeAlloc);
     void _setContent (void *pContent,size_t pSize) {memmove(Data,pContent,pSize); return;}
-/*
- *  Data Attributes
- */
-
-public :
-    union ZUData { char *zptr_char;
-                   void *zptr_void;
-                    _Tp *Tab ;
-                 } Data ;
-
-    _Tp * Tab=nullptr  ;
-
-    ssize_t ZCurrentNb ;        // current number of elements : 0 if ZArray is empty lastIdx() returns -1
 
 
-protected:
-    size_t ZAllocation ;        // allocated number of elements
-    size_t ZAllocatedSize ;     // allocated size in bytes (excepted one char of highvalue mark )
-    size_t ZReallocQuota ;      // reallocation quota in number of elements to reallocate each reallocation operation
-    size_t ZInitialAllocation;  // keep initial allocation for reset purpose : ZClear will get back to this memory allocation
-    _Tp ZReturn ;               // memory zone for returning element (WARNING: not to be used with multi-thread)
-
-private :
-    void *ZPtr =nullptr;
-    long ZIdx=0 ;                 // Last index accessed
-
-#ifdef __USE_ZTHREAD__  //   in any case (__ZTHREAD_AUTOMATIC__ or not) we have to define a ZMutex
-    ZMutex _Mutex ;
-#endif
+    unsigned int Check=0xFFFFFFFF;
 
 }; // class ZArray
 
@@ -679,10 +692,11 @@ template <typename _Tp>
 ZArray<_Tp>*
 ZArray<_Tp>::clone(void)
 {
-    ZArray<_Tp> *wRet= new ZArray<_Tp>(ZAllocation,ZReallocQuota);
-    memmove (wRet->Data.zptr_void,Data.zptr_void,ZAllocatedSize);
-    wRet->ZCurrentNb = ZCurrentNb;
-    wRet->ZIdx=ZIdx;
+//    ZArray<_Tp> *wRet= new ZArray<_Tp>(ZAllocation,ZReallocQuota);
+//    memmove (wRet->Data.zptr_void,Data.zptr_void,ZAllocatedSize);
+//    wRet->ZCurrentNb = ZCurrentNb;
+//    wRet->ZIdx=ZIdx;
+    ZArray<_Tp> *wRet= new ZArray<_Tp>(*this);
     return (wRet);
 }// clone
 
@@ -697,29 +711,53 @@ ZArray<_Tp>::clone(void)
  */
 template <typename _Tp>
 void
-ZArray<_Tp>::_cloneFrom (const ZArray<_Tp> &pCopied)
+ZArray<_Tp>::_copyFrom (ZArray<_Tp> &pIn)
 {
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
 //        pCopied.lock(
-    const ZArray<_Tp>* wC=&pCopied;
-    const_cast<ZArray<_Tp>*>(wC)->lock();
+//    const ZArray<_Tp>* wC=&pIn;
+//    const_cast<ZArray<_Tp>*>(wC)->lock();
+    pIn.lock();
 #endif
 
     this->clear(false);
-    this->setQuota(pCopied.ZReallocQuota);
-    this->allocate(pCopied.ZAllocation);
-    this->ZCurrentNb = pCopied.ZCurrentNb ;
+    this->setQuota(pIn.ZReallocQuota);
+    this->allocate(pIn.ZAllocation);
+    this->ZCurrentNb = pIn.ZCurrentNb ;
 //    memmove (Tab,pCopied.Tab,ZAllocatedSize);
     memset (Tab,0,ZAllocatedSize);
-    memmove (Tab,pCopied.Tab,(pCopied.ZCurrentNb*sizeof(_Tp)));
+    for (long wi=0;wi<pIn.ZCurrentNb;wi++)
+                      assign (pIn.Tab[wi],wi);
+//    memmove (Tab,pCopied.Tab,(pCopied.ZCurrentNb*sizeof(_Tp)));
 
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
 //        pCopied.unlock();
-        const_cast<ZArray<_Tp>*>(wC)->unlock();
+//        const_cast<ZArray<_Tp>*>(wC)->unlock();
+    pIn.unlock();
 #endif
 
 }
-
+/**
+ *  --------Allocation / clear of single element-----------
+ */
+template<class _Tp>
+inline _Tp & ZArray<_Tp>::assign (_Tp &pValue, const long pIdx)
+{
+  Tab[pIdx]=pValue;
+  return Tab[pIdx];
+}
+template<class _Tp>
+inline _Tp & ZArray<_Tp>::assignReturn (const long pIdx)
+{
+  ZReturn= Tab[pIdx];
+  return ZReturn;
+}
+template<class _Tp>
+inline void ZArray<_Tp>::clearValue (const long pIdx)
+{
+  memset(&Tab[pIdx],0,sizeof(_Tp));
+  return ;
+}
 template <typename _Tp>
 /**
  * @brief ZArray::reverse returns the ZArray data in reverse rank order (0 corresponds to the last ZArray index, etc.)
@@ -802,7 +840,14 @@ long ZArray<_Tp>::_move (size_t pDest, size_t pOrig, size_t pNumber)
 //                ZCurrentNb=ZCurrentNb + wA ;        // new current number of ZArray elements
                 }
 
-    memmove(&Data.Tab[pDest],&Data.Tab[pOrig],(size_t)(pNumber*(sizeof(_Tp))));
+
+//    memmove(&Data.Tab[pDest],&Data.Tab[pOrig],(size_t)(pNumber*(sizeof(_Tp))));
+
+    for (long wi=0;wi < pNumber;wi++)
+      {
+      assign(Tab[pOrig+wi],pDest+wi);
+      }
+
     ZIdx = pDest ;
 
     return pDest ;
@@ -878,7 +923,7 @@ template <typename _Tp>
  * @param pNumber
  * @returnpIdx if successful -1 if input parametes are errored : index out of range
  */
-long ZArray<_Tp>::insert(const _Tp &pElement, size_t pIdx)
+long ZArray<_Tp>::insert(_Tp &pElement, size_t pIdx)
 {
     if (pIdx>ZCurrentNb)
                 {
@@ -894,7 +939,10 @@ long ZArray<_Tp>::insert(const _Tp &pElement, size_t pIdx)
             }
 
     ZCurrentNb=ZCurrentNb + 1;
-    memmove(&Data.Tab[pIdx],&pElement,(sizeof(_Tp)));
+//    memmove(&Data.Tab[pIdx],&pElement,(sizeof(_Tp)));
+
+    assign(pElement,pIdx);
+
     ZIdx=pIdx;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
@@ -928,7 +976,9 @@ long ZArray<_Tp>::insert(_Tp *pElement, size_t pIdx,size_t pNumber)
             }
 //            else
             ZCurrentNb=ZCurrentNb + pNumber;  // done in 'move'
-    memmove(&Data.Tab[pIdx],pElement,(sizeof(_Tp)*pNumber));
+//    memmove(&Data.Tab[pIdx],pElement,(sizeof(_Tp)*pNumber));
+    for (long wi=0;wi<pNumber;wi++)
+            assign(pElement[wi],pIdx + wi);
     ZIdx=pIdx;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
@@ -959,7 +1009,9 @@ long ZArray<_Tp>::_insertNoLock(_Tp *pElement, size_t pIdx,size_t pNumber)
             }
 //            else
             ZCurrentNb=ZCurrentNb + pNumber;  // done in 'move'
-    memmove(&Data.Tab[pIdx],pElement,(sizeof(_Tp)*pNumber));
+//    memmove(&Data.Tab[pIdx],pElement,(sizeof(_Tp)*pNumber));
+    for (long wi=0;wi<pNumber;wi++)
+      assign(pElement[wi],pIdx + wi);
     ZIdx=pIdx;
     return (pIdx);
 }// insertNoLock
@@ -985,7 +1037,10 @@ long ZArray<_Tp>::erase(size_t pIdx,size_t pNumber)
     _move(pIdx,pIdx+pNumber,(ZCurrentNb-pIdx-pNumber));
 
 _Tp* wPtr = &last()-(sizeof(_Tp)*(pNumber-1));
-    memset(wPtr,0,sizeof(_Tp));  // set available space to zero in the End of ZArray (recuperated space)
+//    memset(wPtr,0,sizeof(_Tp));// set available space to zero in the End of ZArray (recuperated space)
+    long wi=lastIdx()-pNumber-1;
+    while (wi<ZAllocation)
+      clearValue(wi++);
 
     ZCurrentNb = ZCurrentNb -pNumber ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1514,7 +1569,8 @@ long ZArray<_Tp>::push( _Tp &pElement)
     addCheck(1) ;
     if (ZCurrentNb<0)
             ZCurrentNb=0;
-    Data.Tab[ZCurrentNb]=pElement;
+//    Data.Tab[ZCurrentNb]=pElement;
+    assign(pElement,ZCurrentNb);
 //    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
     size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
@@ -1557,7 +1613,9 @@ long ZArray<_Tp>::push(_Tp &&pElement)
     addCheck(1) ;
     if (ZCurrentNb<0)
             ZCurrentNb=0;
-    Data.Tab[ZCurrentNb]=pElement;
+
+//    Data.Tab[ZCurrentNb]=pElement;
+    assign(pElement,ZCurrentNb);
 //    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
     size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
@@ -1582,7 +1640,9 @@ long ZArray<_Tp>::push_front(_Tp pElement)
 
     memmove(Data.Tab,&pElement,sizeof(_Tp));
 
-    memmove (&ZReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    memmove (&ZReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    ZReturn = Tab[ZCurrentNb];
+    assignReturn(ZCurrentNb);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
 #endif
@@ -1612,7 +1672,9 @@ _Tp & ZArray<_Tp>::popR(void)
 #endif
     ZCurrentNb -- ;
     //    memmove (ZReturn,   &ZPtr[ZCurrentNb],sizeof(_Tp));
-        memmove (&ZReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//        memmove (&ZReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    ZReturn = Data.Tab[ZCurrentNb];
+    assignReturn(ZCurrentNb);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
 #endif
@@ -1636,7 +1698,8 @@ _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
         _Mutex.lock();
 #endif
     ZCurrentNb -- ;
-    memmove (pReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    memmove (pReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+    *pReturn = Tab[ZCurrentNb];
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
 #endif
@@ -1657,7 +1720,8 @@ _Tp &ZArray<_Tp>::popRP_NL(_Tp* pReturn)
         exit (EXIT_FAILURE);
             }
     ZCurrentNb -- ;
-    memmove (pReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    memmove (pReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+    *pReturn = Tab[ZCurrentNb];
     return (*pReturn);
 } // popRP
 
@@ -1721,7 +1785,11 @@ long ZArray<_Tp>::pop_front(void)
 #endif
 
     //memmove (&ZPtr[0],&ZPtr[1],size_t (ZCurrentNb*sizeof(_Tp)));
-    memmove (&Data.Tab[0],   &Data.Tab[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
+//    memmove (&Data.Tab[0],   &Data.Tab[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
+
+    for (long wi=0;wi < ZCurrentNb-1;wi++)
+        assign(Tab[wi+1],wi);
+
     memset(&last(),0,sizeof(_Tp));  // set available space to zero
     ZCurrentNb -- ;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
@@ -1748,9 +1816,12 @@ _Tp &ZArray<_Tp>::popR_front(void)
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-    memmove (&ZReturn,   &Data.Tab[0],sizeof(_Tp));
-
-    memmove (&Data.Tab[0], &Data.Tab[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
+//    memmove (&ZReturn,   &Data.Tab[0],sizeof(_Tp));
+//    ZReturn=Tab[0];
+    assignReturn(0);
+//    memmove (&Data.Tab[0], &Data.Tab[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
+    for (long wi=0;wi < ZCurrentNb-1;wi++)
+      assign(Tab[wi],wi+1);
     memset(&last(),0,sizeof(_Tp));  // set available space to zero
 
     ZCurrentNb -- ;
@@ -1778,10 +1849,13 @@ _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-    memmove (pReturn,   &Data.Tab[0],size_t (sizeof(_Tp)));
-
-    memmove (&Data.Tab[0], &Data.Tab[1],size_t(sizeof(_Tp)*ZCurrentNb));
-    memset(&last(),0,sizeof(_Tp));  // set available space to zero
+    assignReturn(0);
+    for (long wi=0;wi < ZCurrentNb-1;wi++)
+      assign(Tab[wi],wi+1);
+    clearValue(lastIdx());
+//    memmove (pReturn,   &Data.Tab[0],size_t (sizeof(_Tp)));
+//    memmove (&Data.Tab[0], &Data.Tab[1],size_t(sizeof(_Tp)*ZCurrentNb));
+//    memset(&last(),0,sizeof(_Tp));  // set available space to zero
     ZCurrentNb -- ;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();

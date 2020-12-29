@@ -9,7 +9,7 @@
 
 zxmlNameSpace::zxmlNameSpace(zxmlDoc* pDoc,const char* pURL,const char* pPrefix)
 {
-_MODULEINIT_
+
 
     if (!pDoc)
     {
@@ -33,11 +33,11 @@ _MODULEINIT_
 
         ZException.exit_abort();
         }
-    _RETURN_;
+    return ;
 }// zxmlNameSpace
 zxmlNameSpace::zxmlNameSpace(zxmlNode* pNode,const char* pURL,const char* pPrefix)
 {
-_MODULEINIT_
+
     if (!pNode)
     {
     ZException.setMessage(_GET_FUNCTION_NAME_,
@@ -57,6 +57,6 @@ _MODULEINIT_
 
         ZException.exit_abort();
         }
-    _RETURN_;
+    return ;
 }// zxmlNameSpace
 #endif // ZXMLNAMESPACE_CPP

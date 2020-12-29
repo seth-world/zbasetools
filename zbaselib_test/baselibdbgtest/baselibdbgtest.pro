@@ -1,15 +1,43 @@
-#QT -= gui
-QT += core xml network printsupport
-CONFIG += c++17 console
-
-TARGET = zbasedbgtest
+#-------------------------------------------------
+#
+# Project created by QtCreator 2019-02-26T19:25:46
+#
+#-------------------------------------------------
+#   DEVELOPMENTBASE (/home/gerard/Development)
+#       |
+#       |
+#     TOOLSET_ROOT (zbasetools)
+#       |
+#       |
+#       +---------------------------------------+-----------------------+-------------------+-------------------+
+#       |                                       |                       |                   |                   |
+#   TOOLSET_INCLUDE (include)                TOOLSET_LIB (bin)      TOOLSET_BASE(zbase)   TOOLSET_NET(znet)  TOOLSET_CONTENT(zcontent)
+#   all library include files                libraries                  sources            sources              sources
+#       |                                       |                       |                   |                   |
+#       +--TOOLSET_INC_BASE (zbase)             +--TOOLSET_LIB_RELEASE  +--zbaselib         +--zconsole         +--zcontentlib
+#       |                                       |   (release)           |                   |                   |
+#       +--TOOLSET_INC_NET  (znet)              |                       +-- ztestzbaselib   ...                 +--ztest_zindexedfile
+#       |                                       +--TOOLSET_LIB_DEBUGS   |                                       |
+#       +--TOOLSET_INC_CONTENT (zcontent)           (debug)             ...                                     +--ztest_zrandomfile
+#                                                                                                               |
+#
 
 PYTHON = python3.7
 
+QT += core xml network printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
                                                                                                               ...
 TEMPLATE = qt console
+CONFIG += console
+CONFIG += c++17 app_bundle
+
+TARGET = zbasedbgtest
+
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+                                                                                                              ...
+
 
 
 # mandatory : define home directory, where Development directory can be found
@@ -25,7 +53,7 @@ HOME = /home/gerard
 DEVELOPMENT_BASE = $${HOME}/Development
 TOOLSET_ROOT = $${DEVELOPMENT_BASE}/zbasetools
 
-MODULE = zflow # name of the root include directory
+MODULE = zbasedbgtest # name of the root include directory
 INSTALL_ACTION = CLEANCOPY
 PYTHON_PROC = $${TOOLSET_ROOT}/common/postlinkcopy.py
 
@@ -59,15 +87,7 @@ INCLUDEPATH +=    $$OPENSSL_INCLUDEPATH \
 
 
 QMAKE_CXXFLAGS+= -Wall -std=c++17  -pthread
-#QMAKE_CXXFLAGS+= -std=c++14  -pthread -I/home/gerard/Development/zbasesystem  -I/home/gerard/Development/zbasesystem/ztoolset
 
-#QMAKE_LFLAGS +=  -std=c++14 -lpthread
-#QMAKE_LFLAGS +=  -std=c++14 -lpthread -lcrypto
-#QMAKE_LFLAGS +=  -std=c++14 -lpthread -lcrypto -L"/home/gerard/Development/zbasesystem/libzbs_debug" -lzbasesystem
-#QMAKE_CXXFLAGS+= -std=c++14 -Wall -pthread
-
-#if not using ldap-lssl
-#QMAKE_LFLAGS +=  -std=c++14 -lpthread
 #if using ldap
 QMAKE_LFLAGS+= -lldap
 #if using lssl

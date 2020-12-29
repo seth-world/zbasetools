@@ -166,7 +166,7 @@ charFixedString<_Sz>::fromUtf32(const utf32_t* pInString,
                                 const ssize_t pInByteSize,
                                 ZBool* plittleEndian)
 {
-_MODULEINIT_
+
     char* wString=nullptr;
 
     UST_Status_type wSt=utf32StrToCharStr(&wString,_Base::getCharset(), pInString,pInByteSize,WarningSignal, plittleEndian);
@@ -177,7 +177,7 @@ _MODULEINIT_
                  wSt,
                  decode_UST(wSt));
         _free(wString);
-        _RETURN_ nullptr;
+        return  nullptr;
     }
  /*   if (Context.Substit)
     {
@@ -194,7 +194,7 @@ _MODULEINIT_
     _free(wString);
     while (wi--)
             *wPtr++=0;
-    _RETURN_ this;
+    return  this;
 } // fromUtf32
 
 #endif // CHARFIXEDSTRING_H

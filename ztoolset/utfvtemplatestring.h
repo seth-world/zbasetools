@@ -100,10 +100,12 @@ class utfVaryingString : public utfStringDescriptor
 protected:
     utfVaryingString& _copyFrom(const utfVaryingString& pIn)
     {
-        CryptMethod=pIn.CryptMethod;
-        allocateBytes( pIn.ByteSize);
-        memmove(Data,pIn.Data,ByteSize);
-        return(*this);
+      utfStringDescriptor::_copyFrom(pIn);
+//      CryptMethod=pIn.CryptMethod;
+      allocateBytes( pIn.ByteSize);
+      memmove(Data,pIn.Data,ByteSize);
+      CheckData();
+      return(*this);
     }
 
 public:
@@ -120,9 +122,22 @@ public:
 
     _Utf*           getContentPtr(void) {return Data;}
     void clear (void) {freeData(); CryptMethod=ZCM_Uncrypted;}
-    void reset (void) {memset(Data,0,ByteSize);CryptMethod=ZCM_Uncrypted;}
+    void reset (void)
+    {
+      if (Data)
+      {
+        memset(Data,0,ByteSize);
+        CryptMethod=ZCM_Uncrypted;
+      }
+      CheckData();
+    }
 
-    void setEmpty(void) {memset(Data,0,ByteSize);CryptMethod=ZCM_Uncrypted;}
+    void setEmpty(void)
+    {
+      if (Data)
+        memset(Data,0,ByteSize);CryptMethod=ZCM_Uncrypted;
+      CheckData();
+    }
 
     friend class ZDBiterator ;
     //
@@ -137,6 +152,7 @@ public:
         CryptMethod=ZCM_Uncrypted;
         allocateBytes (pSize);
         memmove(Data,pData,pSize);
+        CheckData();
         return(*this);
     }
     utfVaryingString&
@@ -145,7 +161,16 @@ public:
         CryptMethod=ZCM_Uncrypted;
         allocateBytes (pSize);
         memmove(Data,pData,pSize);
+        CheckData();
         return(*this);
+    }
+    inline void CheckData()
+    {
+      if (Check!=0xFFFFFFFF)
+      {
+        fprintf(stderr,"utfVaryingString::CheckData-F-OUTBOUND memory error.\n");
+        abort();
+      }
     }
     utfVaryingString&
     setData(const utfVaryingString& pBuffer)
@@ -219,7 +244,7 @@ public:
                 if (UnitCount<(pOffset+pCount))
                         {
                         size_t wExt = 1+(pOffset+pCount)-UnitCount ;
-                        extendCharsBZero(wExt);
+                        extendUnitsBZero(wExt);
                         }
                 _Utf* wPtr= Data+pOffset;
 
@@ -229,79 +254,264 @@ public:
                 }
     /** @brief changeData replaces data content at pOffset with given utfVaryingString content. Extents storage if necessary*/
    utfVaryingString& changeData(utfVaryingString<_Utf>& pData,size_t pOffset)
-                {
-                if (UnitCount<(pOffset+pData.UnitCount))
-                        {
-                        size_t wExt = 1 + (pOffset+pData.UnitCount)-UnitCount ;
-                        extendCharsBZero(wExt);
-                        }
-                _Utf* wPtr= Data+pOffset;
-                _Utf* wSrcPtr=pData.Data;
-
-                for (size_t wi =0;wi < pData.UnitCount;wi++)
-                                        *wPtr++=wSrcPtr++;
-                return(*this);
-                }
-
-     /** @brief replace() replaces all occurrences of string pToBeReplaced by string pReplace */
-
-      utfVaryingString& replace(utfVaryingString<_Utf>& pToBeReplaced, utfVaryingString<_Utf>& pReplace)
           {
-          ssize_t wSizeToBeReplaced=pToBeReplaced.strlen();
-          ssize_t wSizeReplace=pReplace.strlen();
-          ssize_t wDelta=wSizeReplace-wSizeToBeReplaced;
-          size_t wOffset=0;
-          _Utf* wPtr;
-          _Utf* wPtrRep=pReplace.Data;
-          wPtr=utfStrstr<_Utf>(wPtr,pToBeReplaced.Data);
-          while (wPtr!=nullptr)
+          if (UnitCount<(pOffset+pData.UnitCount))
+                  {
+                  size_t wExt = 1 + (pOffset+pData.UnitCount)-UnitCount ;
+                  extendUnitsBZero(wExt);
+                  }
+          _Utf* wPtr= Data+pOffset;
+          _Utf* wSrcPtr=pData.Data;
+
+          for (size_t wi =0;wi < pData.UnitCount;wi++)
+                                  *wPtr++=wSrcPtr++;
+          return(*this);
+          }
+
+   /* @brief duplicate() duplicates string content in a memory zone. This memory zone must be freed later on. */
+  _Utf* duplicate()
+  {
+    if (isEmpty())
+      return nullptr;
+
+    _Utf* wDupPtr=(_Utf*)malloc(ByteSize);
+    if (wDupPtr==nullptr)
+    {
+      fprintf (stdout,"utfVaryingString::duplicate-S-MEMALLOC cannot allocate %ld bytes.\n",ByteSize);
+      return nullptr;
+    }
+
+    memset(wDupPtr,0,ByteSize);
+
+    _Utf* wInPtr=wDupPtr;
+    _Utf* wToReplace;
+
+    _Utf* wCurrentPtr = Data;
+
+    _Utf* wDataBoundary = Data ;
+    wDataBoundary += UnitCount;
+
+    /* effective string duplication to current memory zone */
+
+    while (*wCurrentPtr && (wCurrentPtr < wDataBoundary))  /* either string is zero terminated or use data boundary */
+      *wInPtr++=*wCurrentPtr++;
+
+    return wDupPtr;
+  }//duplicate
+
+/** @brief replace() replaces all occurrences of string pToBeReplaced by string pReplace */
+
+  utfVaryingString& replace(const _Utf* pToBeReplaced, const _Utf* pToReplace)
+    {
+      if (pToBeReplaced==nullptr)
+          return *this;
+      if (*pToBeReplaced == 0)  // empty string : nothing to be replaced
+        return *this;
+      ssize_t wSizeToBeReplaced=0;  /* compute size to be replaced in units */
+      const _Utf* wPtr=pToBeReplaced;
+      while (*wPtr++)
+        wSizeToBeReplaced++;
+
+      ssize_t wSizeToReplace=0; /* compute size to replace in units */
+      wPtr=pToReplace;
+      while (*wPtr++)
+        wSizeToReplace++;
+
+      ssize_t wDelta = wSizeToReplace - wSizeToBeReplaced;
+
+      size_t wMatchNb=0;
+      _Utf* wMatchPtr;
+      _Utf* wCurrentPtr;
+      const _Utf* wReplace=pToReplace;
+
+      wMatchPtr=utfStrstr<_Utf>(Data,pToBeReplaced);
+      if (wMatchPtr==nullptr)  /* to be replaced is not found */
+        {
+        fprintf(stdout,"utfVaryingString::replace   O replacement made. String <%s> not found.\n",pToReplace);
+        return *this;
+        }
+
+      fprintf(stdout,"utfVaryingString::replace to replace size is <%ld> to be replaced size is <%ld>  delta is <%ld> \n",
+            wSizeToReplace,wSizeToBeReplaced,wDelta);
+
+      if (wDelta == 0) /* tobereplaced same size than toreplace */
+      {
+        while (wMatchPtr!=nullptr)
+        {
+          wMatchNb ++;
+          wCurrentPtr = wMatchPtr;
+          wReplace=pToReplace;
+          while (*wReplace)
+            *wCurrentPtr++=*wReplace++;
+          wMatchPtr = wCurrentPtr;
+        wMatchPtr=utfStrstr<_Utf>(wMatchPtr,pToBeReplaced);
+        }
+      fprintf(stdout,"utfVaryingString::replace  %ld replacements made.\n",wMatchNb);
+      return *this;
+      }
+
+
+      if (wDelta < 0) /* tobereplaced is larger than toreplace : must truncate allocation */
+      {
+      size_t wFormerUnitCount = UnitCount;
+
+      ssize_t wSizeToReduce=0;
+
+      _Utf* wReadPtr=duplicate();
+      if (wReadPtr==nullptr)
+          return *this;
+
+      _Utf* wTargetPtr=Data;
+
+      wMatchNb = 0;
+
+
+      wCurrentPtr=wReadPtr;
+      wMatchPtr=utfStrstr<_Utf>(wReadPtr,pToBeReplaced);
+
+      while (wMatchPtr!=nullptr)
+      {
+        wMatchNb ++;
+        wSizeToReduce += wDelta; // decrease Size to reduce
+
+        /* copy duplicated string until first match */
+
+        while (wCurrentPtr < wMatchPtr)
+          *wTargetPtr++=*wCurrentPtr++;
+
+        /* copy replacement string to target */
+        _Utf* wToReplace=(_Utf*)pToReplace;
+
+        while (*wToReplace)
+          *wTargetPtr++=*wToReplace++;
+
+        wCurrentPtr += wSizeToBeReplaced;
+        /* find next match */
+        wMatchPtr=utfStrstr<_Utf>(wCurrentPtr,pToBeReplaced);
+      } // while (wMatchPtr!=nullptr)
+
+      /* no more match : end up in copying the rest of source string until end of string mark */
+      wMatchPtr = wReadPtr;
+      wMatchPtr += wFormerUnitCount;
+
+      while (*wCurrentPtr && ( wCurrentPtr < wMatchPtr))
+        *wTargetPtr++=*wCurrentPtr++;
+
+      *wCurrentPtr = 0; /* put an end of string mark */
+
+      /* free allocated string */
+
+      free (wReadPtr);
+
+      fprintf (stdout,"utfVaryingString::replace %ld replaced.\n",
+          wMatchNb);
+
+
+      if (wDelta < 0)
+      truncate(UnitCount+wSizeToReduce);
+
+      return *this;
+      }//if (wDelta < 0)
+
+/*  size tobereplaced less than size toreplace (Delta > 0) : must increase allocation
+ *  -------------------------------------------
+ */
+
+       /* duplicate string content in a readonly memory zone */
+
+      _Utf* wReadPtr=duplicate();
+      if (wReadPtr==nullptr)
+        return *this;
+
+      /* count number of matches */
+
+      wCurrentPtr = wMatchPtr;
+
+      size_t wSizeToExtend = 0;
+      wMatchNb = 0;
+      while (wCurrentPtr!=nullptr)
             {
-            wOffset=(wPtr-Data) / sizeof(_Utf);
-            if (wDelta < 0) /* tobereplaced greater than replace */
-              {
-              _Utf* wPtrSrc = wPtr + wSizeToBeReplaced ;
-              _Utf* wPtrDest = wPtr + wSizeReplace ;
-              size_t wMoveSize=UnitCount - wOffset - wSizeToBeReplaced;
-              while (wMoveSize-- > 0)
-                *wPtrDest++ = *wPtrSrc++;
+            wCurrentPtr += wSizeToBeReplaced;
+            wSizeToExtend += wDelta ;
+            wMatchNb ++;
+            wCurrentPtr=utfStrstr<_Utf>(wCurrentPtr,pToBeReplaced);
+            }
+      fprintf (stdout,"utfVaryingString::replace %ld matched. Extending string with <%d> units.\n",
+                wMatchNb,
+                wSizeToExtend);
 
-              truncate(UnitCount+wDelta);
-              }//if (wDelta < 0)
-            if (wDelta > 0) /* tobereplaced less than replace */
-              {
-              _Utf* wPtrSrc=Data+UnitCount - 1;
-              allocateUnits( wDelta ); /* make room */
-              _Utf* wPtrDest = Data + UnitCount - 1;
-              size_t wMoveSize=UnitCount - wOffset - wSizeToBeReplaced;
-              while (wMoveSize-- > 0)
-                *wPtrDest-- = *wPtrSrc--;
-              }//if (wDelta > 0
-              /* effective replacement */
-              while (wSizeReplace-- > 0)
-              {
-                *wPtr++=*wPtrRep++;
-              }
-              wPtrRep = pReplace.Data;
-              wPtr=utfStrstr<_Utf>(wPtr,pToBeReplaced.Data);
-            }//while (wPtr!=nullptr)
+      size_t wFormerUnitCount = UnitCount;
 
-            return(*this);
-          }//replace
+      /* allocate full size to string */
+      allocateUnitsBZero(UnitCount+wSizeToExtend);
+
+      _Utf* wTargetPtr=Data;
+
+      wMatchNb = 0;
+
+
+      wCurrentPtr=wReadPtr;
+
+      wMatchPtr=utfStrstr<_Utf>(wCurrentPtr,pToBeReplaced);
+
+      while (wMatchPtr!=nullptr)
+        {
+          wMatchNb++;
+          /* copy duplicated string until first match */
+
+          while (wCurrentPtr < wMatchPtr)
+            *wTargetPtr++=*wCurrentPtr++;
+
+          /* copy replacement string to target */
+          _Utf* wToReplace=(_Utf*)pToReplace;
+
+          while (*wToReplace)
+            *wTargetPtr++=*wToReplace++;
+
+          /* skip <to be replaced> in source string */
+
+          wCurrentPtr += wSizeToBeReplaced;
+
+          /* find next match */
+          wMatchPtr=utfStrstr<_Utf>(wCurrentPtr,pToBeReplaced);
+        } // while (wMatchPtr!=nullptr)
+
+     /* no more match : end up in copying the rest of source string until end of string mark */
+     wMatchPtr = wReadPtr;
+     wMatchPtr += wFormerUnitCount;
+
+     while (*wCurrentPtr && ( wCurrentPtr < wMatchPtr))
+        *wTargetPtr++=*wCurrentPtr++;
+
+     *wCurrentPtr = 0; /* put an end of string mark */
+
+     /* free allocated string */
+
+     free (wReadPtr);
+
+     fprintf (stdout,"utfVaryingString::replace %ld replaced.\n",
+          wMatchNb);
+
+     /* done */
+     return *this;
+
+    }//replace
+
 
    utfVaryingString& replace(utfVaryingString<_Utf>&& pToBeReplaced,utfVaryingString<_Utf>&& pReplace)
-          {  return replace ((utfVaryingString<_Utf>&)pToBeReplaced,(utfVaryingString<_Utf>&)pReplace);}
+          {  return replace (pToBeReplaced.Data,pReplace.Data);}
 
     /** @brief removeData suppresses data content at pOffset on pCount character units.
      * Adjusts storage size.
      * Abort if pOffset+pLength greater than actual data size with ENOMEM.*/
     utfVaryingString& removeData (size_t pOffset,size_t pCount)
             {
-        _MODULEINIT_
+
             if (UnitCount<(pOffset+pCount))
                     {
                     errno =ENOMEM;
                     fprintf(stderr,"utfVaryingString operation not allowed : exceeding storage boundary.\n%s\n",strerror(ENOMEM));
-                    _ABORT_;
+                    abort();
                     }
 
         _Utf* wPtr = Data+pOffset, *wPtrSrc= Data+pOffset+pCount;
@@ -309,11 +519,11 @@ public:
         while (wCount--)
                 *wPtr++=wPtrSrc++;
             allocateUnits (UnitCount-pCount);
-            _RETURN_ *this;
+            return  *this;
             }
 
     bool isNull(void) const {return (Data==nullptr);}
-    bool isEmpty(void) const  {return(ByteSize==0);}
+    bool isEmpty(void) const  {return (Data==nullptr) || (ByteSize==0);}
 
     void freeData(void);
 
@@ -381,21 +591,33 @@ public:
         if (!wCount)
                 return *this;
 
-        _Utf* wPtr=extendCharCond(wCount);
+        _Utf* wPtr;
+        if (Data[UnitCount-1]==0)  /* Before add : string is terminated by end of string mark */
+        {
+          wPtr=extendUnits(wCount); /* extend the exact number of incoming units */
+          wPtr--;                 /* point to end of string mark */
+        }
+        else      /* Before add : string is NOT terminated by end of string mark : there will be an added unit at the end for end of string mark */
+          wPtr=extendUnits(wCount+1); /* point to first added unit */
+
+//        _Utf* wPtr=extendUnitsCond(wCount);
+
+
+
         while(*wSrc && wCount--)
                 {
                 *wPtr=(_Utf)*wSrc;
                 wPtr++;
                 wSrc++;
                 }
-        *wPtr=(_Utf)'\0';
+        *wPtr=(_Utf)'\0';/* put last end of string mark */
         return *this;
     }// add
 
 //    utfVaryingString<_Utf> &add( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
 
-    ZStatus sprintf(const std::conditional_t<std::is_same<_Utf,char>::value, utf8_t, _Utf> *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
-    ZStatus addsprintf(const std::conditional_t<std::is_same<_Utf,char>::value, utf8_t, _Utf>* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
+    ZStatus sprintf(const std::conditional<std::is_same<_Utf,char>::value, utf8_t, _Utf> *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
+    ZStatus addsprintf(const std::conditional<std::is_same<_Utf,char>::value, utf8_t, _Utf>* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
 
     ZStatus sprintf(const char *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
     ZStatus addsprintf(const char* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
@@ -480,13 +702,40 @@ public:
     static ZStatus getUniversalFromURF(ZTypeBase pType,unsigned char* pURFDataPtr,ZDataBuffer& pUniversal);
 
 
+
+    template<class _Tp>
+    _Tp moveTo() const
+    {
+      _Tp wOut;
+
+      if (sizeof(_Tp) != ByteSize)
+      {
+        fprintf(stderr,
+            "utfVaryingString::moveTo-F-INVTYP Invalid data size <%ld> for type size <%ld>\n",
+            ByteSize,
+            sizeof(_Tp));
+        abort();
+      }
+      memmove(&wOut, Data, sizeof(_Tp));
+      if (Check!=0xFFFFFFFF)
+      {
+        fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+        abort();
+      }
+
+      return wOut;
+    }
+    template<class _Tp>
+    _Tp* moveToPtr() { return static_cast<_Tp*>(Data); }
+
+
 /**
  * @brief moveOut <_Tp> loads the raw content of the utfVaryingString to a template defined data structure pOutData (Compound) given as _Tp
  * @param pOutData
  * @return
  */
 template <typename _Tp>
-_Tp& moveOut(typename std::enable_if_t<!(std::is_pointer<_Tp>::value||std::is_array<_Tp>::value),_Tp> &pOutData,ssize_t pOffset=0)
+_Tp& moveOut(typename std::enable_if<!(std::is_pointer<_Tp>::value||std::is_array<_Tp>::value),_Tp> &pOutData,ssize_t pOffset=0)
 {
     ssize_t wSize;
     if (sizeof(_Tp) >= ByteSize )
@@ -495,10 +744,15 @@ _Tp& moveOut(typename std::enable_if_t<!(std::is_pointer<_Tp>::value||std::is_ar
                 wSize=sizeof(_Tp);
 
     memmove(&pOutData,Data+pOffset,wSize);
+    if (Check!=0xFFFFFFFF)
+    {
+      fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+      abort();
+    }
     return pOutData;
 }
 template <typename _Tp>
-_Tp& moveOut(typename std::enable_if_t<std::is_array<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
+_Tp& moveOut(typename std::enable_if<std::is_array<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
 {
     ssize_t wSize;
     if (sizeof(_Tp) >= ByteSize )
@@ -507,10 +761,15 @@ _Tp& moveOut(typename std::enable_if_t<std::is_array<_Tp>::value,_Tp> &pOutData,
                 wSize=sizeof(_Tp);
 
     memmove(pOutData,Data+pOffset,wSize);
+    if (Check!=0xFFFFFFFF)
+    {
+      fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+      abort();
+    }
     return pOutData;
 }
 template <typename _Tp>
-_Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
+_Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
 {
     ssize_t wSize;
     if (sizeof(_Tp) >= ByteSize )
@@ -519,6 +778,11 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
                 wSize=sizeof(_Tp);
 
     memmove(pOutData,Data+pOffset,wSize);
+    if (Check!=0xFFFFFFFF)
+    {
+      fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+      abort();
+    }
     return pOutData;
 }
 
@@ -533,12 +797,28 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
         ssize_t wSize=sizeof(_Tp) ;
         allocateBytes(sizeof(_Tp));
         memmove(Data,&pInData,wSize);
+        if (Check!=0xFFFFFFFF)
+        {
+          fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+          abort();
+        }
         return *this;
     }
 
 
 
-    utfVaryingString& clearData(void) {if (Data==nullptr) return(*this); memset(Data,0,ByteSize); return (*this); }
+    utfVaryingString& clearData(void)
+    {
+      if (Data==nullptr)
+        return(*this);
+      memset(Data,0,ByteSize);
+      if (Check!=0xFFFFFFFF)
+        {
+        fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+        abort();
+        }
+      return (*this);
+    }
 
     utfVaryingString& addTermination(void) {allocateUnits (UnitCount+1); Data[UnitCount-1]=0; return *this;}
     utfVaryingString& addConditionalTermination(void)
@@ -578,11 +858,11 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
     _Utf* allocateUnitsBZero(ssize_t pCharCount);
 
 
-    _Utf* extendCharCond(const size_t pCount);
+    _Utf* extendUnitsCond(const size_t pCount);
     _Utf* extendBytes (ssize_t pByteSize);
-    _Utf* extendChars (ssize_t pCharCount);
+    _Utf* extendUnits (ssize_t pCharCount);
     _Utf* extendBytesBZero(ssize_t pSize);
-    _Utf* extendCharsBZero(ssize_t pCharCount);
+    _Utf* extendUnitsBZero(ssize_t pCharCount);
 
 
 
@@ -702,7 +982,7 @@ _Tp& moveOut(typename std::enable_if_t<std::is_pointer<_Tp>::value,_Tp> &pOutDat
 
  //   friend int rulerSetup (utfVaryingString<_Utf> &pRulerHexa, utfVaryingString<_Utf> &pRulerAscii,int pColumn);
 
-    void Dump(const int pColumn=16,FILE* pOutput=stderr);
+    void Dump(const int pColumn=16, ssize_t pLimit=-1,FILE* pOutput=stderr);
 
 //=============== Context and conversion==============================================
     utfStrCtx   getContext(void) {return Context;}
@@ -778,7 +1058,6 @@ utfVaryingString<_Utf>::utfVaryingString(void)
     return;
 }
 
-
 template <class _Utf>
 utfVaryingString<_Utf>::utfVaryingString(const utfVaryingString& pIn)
 
@@ -798,6 +1077,7 @@ utfVaryingString<_Utf>::utfVaryingString(const utfVaryingString&& pIn)
     _copyFrom(pIn);
     return;
 }
+
 template <class _Utf>
 utfVaryingString<_Utf>::utfVaryingString (_Utf *pData,ssize_t pCount)
 {
@@ -815,6 +1095,7 @@ utfVaryingString<_Utf>::utfVaryingString (size_t pCount)
  void
  utfVaryingString<_Utf>::utfInit(void)
  {
+    Check=0xFFFFFFFF;
     if (Data!=nullptr)
             free(Data);
     Data=nullptr;
@@ -845,14 +1126,14 @@ template <class _Utf>
 utfVaryingString<_Utf>&
 utfVaryingString<_Utf>::truncate(ssize_t pCount)
 {
-_MODULEINIT_
+
     if ((pCount>__INVALID_SIZE__)||(pCount<0))
     {
         fprintf(stderr,
                 "%s-F-INVALIDSIZE  Fatal error trying to truncate varying utf string to invalid character count %ld \n",
                 _GET_FUNCTION_NAME_,
                 pCount);
-        _ABORT_;
+        abort();
     }
 
     _Utf* wData = (_Utf*)realloc(Data,pCount * sizeof(_Utf));
@@ -869,13 +1150,13 @@ _MODULEINIT_
                 pCount,
                 pCount * sizeof(_Utf),
                 ByteSize);
-        _ABORT_;
+        abort();
         }
     ByteSize = pCount * sizeof(_Utf);
     UnitCount = pCount;
     Data = wData;
     wData[pCount-1]=(_Utf)'\0';
-    _RETURN_ *this;
+    return  *this;
 }// truncate
 
 template <class _Utf>
@@ -963,7 +1244,7 @@ template <class _Utf>
  *                in this case, setMaxSprintfBufferCount(<amount>) has to be used prior invoking this method to increase allocated space.
  *                NB: Allocated space is by default __DEFAULT_SPRINTF_BUFFERCOUNT__
  */
-ZStatus utfVaryingString<_Utf>::sprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,...)  /** set current string to formatted content. Extends characters allocation to make string fit */
+ZStatus utfVaryingString<_Utf>::sprintf(const typename std::conditional<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,...)  /** set current string to formatted content. Extends characters allocation to make string fit */
 {
     if (!pFormat)
             {
@@ -985,6 +1266,11 @@ ZStatus utfVaryingString<_Utf>::sprintf(const typename std::conditional_t<std::i
 //    size_t wCount = utfStrlen<_Utf>(Data)+wStringCount+1;
 
     _Utf* *wAddPtr=wMS,*wPtr=allocateUnits(wStringCount+1);
+//    _Utf* *wAddPtr=wMS,*wPtr=allocateUnits(wStringCount);
+
+    if (wPtr==nullptr)
+      return ZS_MEMERROR;
+
     while (wStringCount--)
                 {
                 *wPtr=*wAddPtr;
@@ -1023,7 +1309,7 @@ template <class _Utf>
  *
  */
 ZStatus
-utfVaryingString<_Utf>::addsprintf(const typename std::conditional_t<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,...)  /** adds formatted content to current string. Extends characters allocation to make string fit */
+utfVaryingString<_Utf>::addsprintf(const typename std::conditional<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,...)  /** adds formatted content to current string. Extends characters allocation to make string fit */
 {
 
     if (!pFormat)
@@ -1045,7 +1331,7 @@ utfVaryingString<_Utf>::addsprintf(const typename std::conditional_t<std::is_sam
 
  //   utfAddConditionalTermination<_Utf>(wMS,wStringCount);
 
-    _Utf* wPtr=extendCharCond(wStringCount);
+    _Utf* wPtr=extendUnitsCond(wStringCount);
 //    extendChars(wStringCount+1);
 //    _Utf* wPtr= Data+utfStrlen<_Utf>(Data);
     _Utf* wAddPtr=(_Utf*)&wMS[0];
@@ -1111,7 +1397,10 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
 //    _Utf wMS[cst_MaxSprintfBufferCount];
     _Utf* wMS=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
     if (wMS==nullptr)
+        {
+        free(wFormat);
         return ZS_MEMERROR;
+        }
 //    ssize_t wStringCount=(ssize_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,wFormat,ap);
     size_t wStringCount=utfVsnprintf(Charset,wMS,MaxSprintfBufferCount,wFormat,ap);
     va_end(ap);
@@ -1120,6 +1409,7 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
 
     _Utf* wAddPtr=&wMS[0];
     wPtr=allocateUnits(wStringCount+1);
+//    wPtr=allocateUnits(wStringCount);
     while (wStringCount--)
                 {
                 *wPtr=*wAddPtr;
@@ -1139,7 +1429,8 @@ template <class _Utf>
 
 /**
  * @brief utfVaryingString<_Utf>::addsprintf  concatenates a _Utf formatted string (pFormat) to existing string, defined by its _Utf format and its varying arguments list.
- * Allocates characters to make it fit into string.
+ *  Allocates character units to make it fit into string.
+ *  String could be ended by endofstring mark or not : Adds in any cases an end of string mark after operation.
  *
  * To avoid collision with addsprintf overload for utftemplateString<_Sz,char>, pFormat is conditionned to be set to utf8_t when char is second template class and set to char in other cases.
  * This allows for utf string to have a format string that is a const char*, while it is the default when using char as second template class.
@@ -1150,6 +1441,7 @@ template <class _Utf>
  * @param[in]  pFormat a formatting string corresponding to printf syntax :
  *          either a const _Utf* string when template class has _Utf equal to utf8_t, utf16_t or utf32_t
  *          or a const utf8_t* string when template class has _Utf equal to char (to avoid invalid overload).
+ *
  * @param[in] varying arguments as used with printf syntax
  * @return ZStatus value with following possible values
  *
@@ -1186,16 +1478,27 @@ utfVaryingString<_Utf>::addsprintf(const char* pFormat,...)  /** adds formatted 
 
     _Utf* wMS=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
     if (wMS==nullptr)
+        {
+        free(wFormat);
         return ZS_MEMERROR;
-
+        }
 //    size_t wStringCount=(size_t)utfVsnprintf<_Utf>(wMS,cst_MaxSprintfBufferSize,wFormat,ap);
     size_t wStringCount=utfVsnprintf(Charset,wMS,cst_MaxSprintfBufferCount,wFormat,ap);
     va_end(ap);
 
  //   utfAddConditionalTermination<_Utf>(wMS,wStringCount);
+//    wPtr=extendUnitsCond(wStringCount);
 
-    wPtr=extendCharCond(wStringCount);
-//    extendChars(wStringCount+1);
+    if (Data[UnitCount-1]==0)  /* Before add : string is terminated by end of string mark */
+    {
+      wPtr=extendUnits(wStringCount); /* extend the exact number of incoming units */
+      wPtr--;                 /* point to end of string mark */
+    }
+    else      /* Before add : string is NOT terminated by end of string mark : there will be an added unit at the end for end of string mark */
+      wPtr=extendUnits(wStringCount+1); /* point to first added unit */
+
+
+
 //    _Utf* wPtr= Data+utfStrlen<_Utf>(Data);
     _Utf* wAddPtr=(_Utf*)&wMS[0];
 
@@ -1206,7 +1509,9 @@ utfVaryingString<_Utf>::addsprintf(const char* pFormat,...)  /** adds formatted 
                 wAddPtr++;
                 }
 
-     *wPtr=(_Utf)'\0';
+     *wPtr=(_Utf)'\0';  /* put last end of string mark */
+     free(wFormat);
+     free(wMS);
     if (errno==ENOMEM)
         return ZS_MEMOVFLW; /* buffer overflow */
     return ZS_SUCCESS;
@@ -1222,11 +1527,24 @@ template <class _Utf>
  * @return an _Utf pointer to first available character unit (set to '\0')
  */
 inline _Utf*
-utfVaryingString<_Utf>::extendCharCond(const size_t pCount)
+utfVaryingString<_Utf>::extendUnitsCond(const size_t pCount)
 {
-size_t wCurrentCount=strlen();
-    if ((wCurrentCount+pCount+1) > getUnitCount())
-            extendCharsBZero((wCurrentCount+pCount+1)- getUnitCount());
+  size_t wCurrentCount=0;
+  _Utf* wPtr=Data;
+
+  while (*wPtr && (wCurrentCount < UnitCount))
+    {
+    wPtr++;
+    wCurrentCount++;
+    }
+  if (wCurrentCount == UnitCount )  /*  if string is NOT terminated by end of string mark  */
+    {
+    return extendUnitsBZero(wCurrentCount+1); /* string is NOT terminated by end of string mark : there will be an added unit at the end for end of string mark */
+                     /* return points to end of string mark */
+    }
+
+    if ((wCurrentCount+pCount) > UnitCount)
+            extendUnitsBZero((wCurrentCount+pCount+1)- UnitCount);
     return (Data+wCurrentCount);
 }
 template <class _Utf>
@@ -1246,7 +1564,7 @@ utfVaryingString<_Utf>::add(const _Utf *wSrc)
     if (!wCount)
             return *this;
 
-    _Utf* wPtr=extendCharCond(wCount);
+    _Utf* wPtr=extendUnitsCond(wCount);
     while(*wSrc && wCount--)
             {
             *wPtr=*wSrc;
@@ -1265,12 +1583,17 @@ utfVaryingString<_Utf>::_add(const utfVaryingString<_Utf>& wSrc)
             return *this;
 
 
-    size_t wCount=wSrc.getUnitCount();
-    if (!wCount)
+    size_t wCount=0;
+    if (wSrc.isEmpty())
             return *this;
 
     _Utf* wSrcPtr=wSrc.Data;
-    _Utf* wPtr=extendCharCond(wCount);
+    while (*wSrcPtr++ && (wCount < wSrc.UnitCount))
+      wCount++;
+
+    wSrcPtr=wSrc.Data;
+
+    _Utf* wPtr=extendUnitsCond(wCount);
     while(*wSrcPtr && wCount--)
             {
             *wPtr=*wSrcPtr;
@@ -1297,7 +1620,7 @@ utfVaryingString<_Utf>::nadd( const _Utf *wSrc, size_t pCount)
 {
     size_t wCount=utfStrlen<_Utf>(wSrc);
     size_t wAddCount=wCount < pCount ? wCount:pCount;
-    _Utf* wPtr=extendCharCond(wCount);
+    _Utf* wPtr=extendUnitsCond(wCount);
     while(*wSrc && wAddCount--)
                     {
                     *wPtr=*wSrc;
@@ -1318,7 +1641,7 @@ utfVaryingString<_Utf>&
 utfVaryingString<_Utf>::addUtfUnit(const _Utf pChar)
 {
 
-    _Utf* wPtr=extendCharCond(2);
+    _Utf* wPtr=extendUnitsCond(2);
     *wPtr++=pChar;
     *wPtr=(_Utf)'\0';
     return *this;
@@ -1356,7 +1679,7 @@ utfVaryingString<_Utf>&
 utfVaryingString<_Utf>::addCString_Straight(const char* pInString)
 {
     clearData();
-    _Utf* wPtr=extendCharCond(::strlen(pInString)+1);
+    _Utf* wPtr=extendUnitsCond(::strlen(pInString)+1);
     while (*pInString)
                 *wPtr++=(_Utf)pInString++;
     *wPtr=(_Utf)'\0';
@@ -1386,7 +1709,7 @@ utfVaryingString<_Utf>&
 utfVaryingString<_Utf>::addUtf_Straight(const _Utf* pInString)
 {
     clearData();
-    _Utf* wPtr=extendCharCond(utfStrlen<_Utf>(pInString)+1);
+    _Utf* wPtr=extendUnitsCond(utfStrlen<_Utf>(pInString)+1);
     while (*pInString)
                 *wPtr++=pInString++;
     *wPtr=(_Utf)'\0';
@@ -1473,14 +1796,14 @@ template <class _Utf>
 _Utf*
 utfVaryingString<_Utf>::allocateBytes(ssize_t pSize)
 {
-_MODULEINIT_
+
     if ((pSize>__INVALID_SIZE__)||(pSize<0))
     {
         fprintf(stderr,
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld \n",
                 _GET_FUNCTION_NAME_,
                 pSize);
-        _ABORT_ ;
+        abort() ;
 
     }
     if (Data==nullptr)
@@ -1501,7 +1824,7 @@ _MODULEINIT_
                 decode_ZStatus( ZS_MEMERROR),
                 decode_Severity( Severity_Fatal),
                 pSize);
-        _ABORT_;
+        abort();
     }
     ByteSize=pSize;
     UnitCount = ByteSize/ sizeof(_Utf);
@@ -1513,14 +1836,14 @@ template <class _Utf>
 _Utf*
 utfVaryingString<_Utf>::allocateUnits(ssize_t pCharCount)
 {
-_MODULEINIT_
+
     if ((pCharCount>__INVALID_SIZE__)||(pCharCount<0))
     {
         fprintf(stderr,
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid character units %ld \n",
                 _GET_FUNCTION_NAME_,
                 pCharCount);
-        _ABORT_ ;
+        abort() ;
 
     }
  size_t wByteSize= (pCharCount) * sizeof(_Utf);
@@ -1542,7 +1865,7 @@ _MODULEINIT_
                 decode_ZStatus( ZS_MEMERROR),
                 decode_Severity( Severity_Fatal),
                 wByteSize);
-        _ABORT_
+        abort();
     }
     ByteSize=wByteSize;
     UnitCount = pCharCount;
@@ -1589,14 +1912,14 @@ template <class _Utf>
 _Utf*
 utfVaryingString<_Utf>::extendBytes(ssize_t pByteSize)
 {
-_MODULEINIT_
+
     if ((pByteSize>__INVALID_SIZE__)||(pByteSize<0))
     {
         fprintf(stderr,
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld \n",
                 _GET_FUNCTION_NAME_,
                 pByteSize);
-        _ABORT_;
+        abort();
     }
     ssize_t wByteSize=pByteSize;
     ssize_t wCharCount = wByteSize/sizeof(_Utf);
@@ -1619,11 +1942,11 @@ _MODULEINIT_
                     decode_Severity( Severity_Fatal),
                     pByteSize,
                     ByteSize);
-            _ABORT_;
+            abort();
         }
         DataByte= (uint8_t*)Data;
 //        CharCount = ByteSize/sizeof(_Utf);
-        _RETURN_ Data;
+        return  Data;
     }// Data==nullptr
 
     Data =(_Utf*)realloc(Data,ByteSize+wByteSize);
@@ -1640,28 +1963,28 @@ _MODULEINIT_
                 decode_Severity( Severity_Fatal),
                 pByteSize,
                 ByteSize);
-        _ABORT_;
+        abort();
         }
 
     _Utf* wExtentPtr=(_Utf*)(&Data [UnitCount]);
     ByteSize+=wByteSize;
     UnitCount=ByteSize/sizeof(_Utf);
     DataByte= (uint8_t*)Data;
-    _RETURN_ wExtentPtr;  // returns the first byte of extended memory
+    return  wExtentPtr;  // returns the first byte of extended memory
 }// extendBytes
 
 template <class _Utf>
 _Utf*
-utfVaryingString<_Utf>::extendChars(ssize_t pCharCount)
+utfVaryingString<_Utf>::extendUnits(ssize_t pCharCount)
 {
-_MODULEINIT_
+
     if ((pCharCount>__INVALID_SIZE__)||(pCharCount<0))
     {
         fprintf(stderr,
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid count of characters %ld \n",
                 _GET_FUNCTION_NAME_,
                 pCharCount);
-        _ABORT_;
+        abort();
     }
     size_t wByteSize= pCharCount*sizeof(_Utf);
     ssize_t wCharCount = wByteSize/sizeof(_Utf);
@@ -1682,12 +2005,12 @@ _MODULEINIT_
                     decode_Severity( Severity_Fatal),
                     pCharCount,
                     ByteSize);
-            _ABORT_;
+            abort();
         }
         ByteSize = wByteSize;
         UnitCount= wCharCount;
         DataByte= (uint8_t*)Data;
-        _RETURN_ Data;
+        return  Data;
     }// Data==nullptr
 
     Data =(_Utf*)realloc(Data,ByteSize+wByteSize);
@@ -1704,14 +2027,14 @@ _MODULEINIT_
                 decode_Severity( Severity_Fatal),
                 wByteSize,
                 ByteSize);
-        _ABORT_;
+        abort();
         }
 
     _Utf* wExtentPtr=(_Utf*)(&Data [UnitCount]);
     ByteSize+=wByteSize;
     UnitCount+=wCharCount;
     DataByte= (uint8_t*)Data;
-    _RETURN_ wExtentPtr;  // returns the first byte of extended memory
+    return  wExtentPtr;  // returns the first byte of extended memory
 }// extendChars
 /**
  * @brief utfVaryingString::extendBytesBZero extends allocated space with pSize bytes and set the new allocated space to binary 0
@@ -1738,12 +2061,12 @@ utfVaryingString<_Utf>::extendBytesBZero(ssize_t pSize)
  */
 template <class _Utf>
 _Utf*
-utfVaryingString<_Utf>::extendCharsBZero(ssize_t pCharCount)
+utfVaryingString<_Utf>::extendUnitsBZero(ssize_t pCharCount)
 {
     if (!(pCharCount>0))
         return Data;
 
-    _Utf* wData=extendChars(pCharCount);
+    _Utf* wData=extendUnits(pCharCount);
     memset(wData,0,pCharCount*sizeof(_Utf));
     return wData;
 }//extendCharsBZero
@@ -1785,7 +2108,7 @@ utfVaryingString<_Utf>::setChar(const _Utf pChar,size_t pStart,ssize_t pCount)
             wCount=UnitCount-wStart;
 
     if ((wStart+wCount) >= UnitCount)
-                extendCharsBZero(1+(wStart+pCount)-UnitCount); // make room if necessary : set to binary zero extended portion
+                extendUnitsBZero(1+(wStart+pCount)-UnitCount); // make room if necessary : set to binary zero extended portion
 
     _Utf* wPtr= Data+wStart;
     while (wCount--)
@@ -1896,7 +2219,7 @@ template <class _Utf>
 ZStatus
 utfVaryingString<_Utf>::getUniversalFromURF(ZTypeBase pType,unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
 {
-_MODULEINIT_
+
  URF_Varying_Size_type wEffectiveUSize ;
  ZTypeBase wType;
  unsigned char* wURFDataPtr = pURFDataPtr;
@@ -1912,7 +2235,7 @@ _MODULEINIT_
                   wType,
                   decode_ZType(wType),
                   decode_ZType(pType));
-         _RETURN_ ZS_INVTYPE;
+         return  ZS_INVTYPE;
          }
 
     memmove (&wEffectiveUSize,wURFDataPtr,sizeof(URF_Varying_Size_type));        // first is URF byte size (excluding URF header size)
@@ -1922,7 +2245,7 @@ _MODULEINIT_
     pUniversal.allocateBZero((wEffectiveUSize)); // string must have characters count allocated
 
     memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
-    _RETURN_ ZS_SUCCESS;
+    return  ZS_SUCCESS;
 }//getUniversalFromURF
 
 
@@ -2389,7 +2712,79 @@ ssize_t utfVaryingString<_Utf>::locate(const utfVaryingString<_Utf> &pString) co
         return -1;
     return wRet;
 }
+template <class _Utf>
+void utfVaryingString<_Utf>::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
+{
+  ZDataBuffer wUtfZDB;
+  wUtfZDB.setData((const char*)Data,ByteSize);
+  wUtfZDB.Dump(pColumn,pLimit,pOutput);
+}
+/*
+template <class _Utf>
+void utfVaryingString<_Utf>::Dump_1(const int pColumn, ssize_t pLimit, FILE* pOutput)
+{
+  ZDataBuffer wRulerAscii;
+  ZDataBuffer wRulerHexa;
 
+  int wColumn=rulerSetup (wRulerHexa, wRulerAscii,pColumn);
+
+
+  ZDataBuffer wLineChar;
+  ZDataBuffer wLineHexa;
+
+  if (!ByteSize)
+  {
+    fprintf(pOutput,"<empty>\n");
+    return;
+  }
+  if (!Data)
+  {
+    fprintf(pOutput,"<null>\n");
+    return;
+  }
+  size_t wLimit;
+  if ((pLimit > 0) && ((size_t)pLimit > ByteSize))
+    wLimit = (size_t)pLimit;
+  else
+    wLimit = ByteSize;
+
+  fprintf (pOutput,
+      "Offset  %s  %s\n",
+      wRulerHexa.DataChar,
+      wRulerAscii.DataChar);
+
+  size_t wOffset=0;
+  int wL=0;
+  while ((wOffset+(size_t)pColumn) < wLimit)
+    {
+    dumpHexa(wOffset,pColumn,wLineHexa,wLineChar);
+    fprintf(pOutput,"%6d |%s |%s|\n",wL,wLineHexa.DataChar,wLineChar.DataChar);
+    wL+=pColumn;
+    wOffset+=pColumn;
+    }
+
+  if (wLimit < ByteSize)
+  {
+    fprintf (pOutput," <%ld> bytes more not dumped.\n",ByteSize-pLimit);
+    return;
+  }
+  if (wOffset < wLimit)
+  {
+    char wFormat [50];
+
+    sprintf (wFormat,"#6d |#-%ds |#-%ds|\n",pColumn*3,pColumn);
+    wFormat[0]='%';
+    for (int wi=0;wFormat [wi]!='\0';wi++)
+      if (wFormat[wi]=='#')
+        wFormat[wi]='%';
+
+    dumpHexa(wOffset,(wLimit-wOffset),wLineHexa,wLineChar);
+
+    fprintf(pOutput,wFormat,wL,wLineHexa.DataChar,wLineChar.DataChar);
+  }
+  return;
+}//Dump
+*/
 
 
 

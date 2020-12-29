@@ -963,7 +963,7 @@ template <size_t _Sz1>
 ZDataBuffer *
 templateWString<_Sz1>::_exportURF(ZDataBuffer* pUniversal)
 {
-_MODULEINIT_
+
 wchar_t* wPtr ;
 ZTypeBase wType=ZType_FixedWString;
 
@@ -1005,7 +1005,7 @@ size_t wOffset=0;
             wPtr[wi]=reverseByteOrder_Conditional<wchar_t>(content[wi]);
             }
 
-    _RETURN_ pUniversal;
+    return  pUniversal;
 }//_exportURF
 
 template <size_t _Sz>

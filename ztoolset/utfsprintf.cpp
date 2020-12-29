@@ -178,54 +178,6 @@ utfFormatStringChunk(OutEncoding_type pOutOET,
                         size_t pInUnit,
                         zicuConverter** pConverter)
 {
-_MODULEINIT_
-
-#ifdef __COMMENT__
-
-    if (*pConverter==nullptr) // if global converter has not be initialized, initialize it
-        {
-        *pConverter=new zicuConverter;
-        char* pOutCSName;
-        switch (pOutOET)
-        {
-        case OET_Char:
-            pOutCSName=getDefaultEncodingName();
-            break;
-        case OET_UTF8:
-            pOutCSName="UTF8";
-            break;
-        case OET_UTF16:
-            pOutCSName="UTF16BE";
-            if (is_little_endian())
-                    pOutCSName= "UTF16LE";
-            break;
-        case OET_UTF32:
-            pOutCSName="UTF32BE";
-            if (is_little_endian())
-                    pOutCSName= "UTF32LE";
-            break;
-        default:
-            break;
-        }
-        (*pConverter)->setup(pOutCSName,true);
-//        atexit(&zcleanGConverter);
-        }
-
-zicuConverter* wConverter=*pConverter;
-
-// check string size
-
-    _Utf2* wStringValue=pStringValue;
-
-    for (wStrln = 0; wStringValue[wStrln]&&(wStrln< __STRING_MAX_LENGTH__); ++wStrln);     /* strlen */
-    if (wStrln==__STRING_MAX_LENGTH__)
-        {
-        fprintf (stderr,"%s> Fatal error: endofmark has not been found in string\n",
-                 _GET_FUNCTION_NAME_);
-        _ABORT_
-        }
-#endif //__COMMENT__
-
 
     utf32_t wCodePoint;
     size_t wInCount, wOutCount, wInLength=0, wOutLength=0;
@@ -247,52 +199,52 @@ zicuConverter* wConverter=*pConverter;
                 if (pBuffer)    /* only if pBuffer is not null : if buffer is null only count char units */
                         {
                         if (*pCurrlen >= pMaxlen)
-                                        {_RETURN_ UST_TRUNCATED;}
+                                        {return UST_TRUNCATED;}
                         wUtf8Buffer[*pCurrlen]=wUtf8InString[wIdx]; // char is supposed to have same format as utf8_t : but may be not same encoding (not Unicode)
                         }
                 (*pCurrlen)++;
                 wIdx++;
             }
-            _RETURN_ UST_SUCCESS;
+            return UST_SUCCESS;
         case OET_UTF8:
             while (wIdx < pInUnit)
             {
                 if (pBuffer) /* only if pBuffer is not null */
                         {
                         if (*pCurrlen >= pMaxlen)
-                                        {_RETURN_ UST_TRUNCATED;}
+                                        {return UST_TRUNCATED;}
                         wUtf8Buffer[*pCurrlen]=wUtf8InString[wIdx];
                         }
                 (*pCurrlen)++;
                 wIdx++;
             }
-            _RETURN_ UST_SUCCESS;
+            return UST_SUCCESS;
         case OET_UTF16:
             while (wIdx < pInUnit)
             {
                 if (pBuffer) /* only if pBuffer is not null */
                         {
                         if (*pCurrlen >= pMaxlen)
-                                        {_RETURN_ UST_TRUNCATED;}
+                                        {return UST_TRUNCATED;}
                         wUtf16Buffer[*pCurrlen]=wUtf16InString[wIdx];
                         }
                 (*pCurrlen)++;
                 wIdx++;
             }
-            _RETURN_ UST_SUCCESS;
+            return UST_SUCCESS;
         case OET_UTF32:
             while (wIdx < pInUnit)
             {
                 if (pBuffer)
                         {
                         if (*pCurrlen >= pMaxlen)
-                                        {_RETURN_ UST_TRUNCATED;}
+                                        {return UST_TRUNCATED;}
                         wUtf32Buffer[*pCurrlen]=wUtf32InString[wIdx];
                         }
                 (*pCurrlen)++;
                 wIdx++;
             }
-            _RETURN_ UST_SUCCESS;
+            return UST_SUCCESS;
         default:
             break;
         }//switch (pInOET)
@@ -306,10 +258,8 @@ zicuConverter* wConverter=*pConverter;
     switch (pInOET)
     {
     case OET_Char:   /* input type char is not treated in this routine except if the same as output type */
-        _ASSERT_(true,"invalid source string encoding OET_Char",1);
-        /*
         fprintf(stderr,"%s> fatal error : invalid source string encoding OET_Char\n",_GET_FUNCTION_NAME_);
-        _ABORT_;*/
+        abort();
     case OET_UTF8:
         utf8Decode(wUtf8InString,&wCodePoint,&wInCount,&pInUnit);
         wUtf8InString +=   wInCount;
@@ -333,7 +283,7 @@ zicuConverter* wConverter=*pConverter;
     {
     case OET_Char:   // char is not treated in this routine
         fprintf(stderr,"%s> fatal error : invalid destination string encoding OET_Char\n",_GET_FUNCTION_NAME_);
-        _ABORT_;
+        abort();
     case OET_UTF8:
         utf8Encode(wUtf8Char,&wOutCount,wCodePoint,nullptr);
 
@@ -343,7 +293,7 @@ zicuConverter* wConverter=*pConverter;
             break ;
             }
         if ((((*pCurrlen) + wOutCount)) >= pMaxlen )
-                                _RETURN_ UST_TRUNCATED;
+                                return UST_TRUNCATED;
         wIdx=0;
         while (wIdx < wOutCount)
             {
@@ -363,7 +313,7 @@ zicuConverter* wConverter=*pConverter;
             break ;
             }
         if ((((*pCurrlen) + wOutCount)) >= pMaxlen )
-                                _RETURN_ UST_TRUNCATED;
+                                return UST_TRUNCATED;
         wUtf16Buffer[*pCurrlen]=wUtf16Char[0];
         (*pCurrlen)++;
         if (wUtf16Char[1])
@@ -381,7 +331,7 @@ zicuConverter* wConverter=*pConverter;
             break ;
             }
         if ((((*pCurrlen) + 1 )) >= pMaxlen )
-                                _RETURN_ UST_TRUNCATED;
+                                return UST_TRUNCATED;
 
         utf32Encode(&wCodePoint,wCodePoint,nullptr);
         wUtf32Buffer[*pCurrlen]=wCodePoint;
@@ -395,7 +345,7 @@ zicuConverter* wConverter=*pConverter;
     }//while ((wInLength< pInUnit)&&(*pCurrlen<pMaxlen))
 
 
-    _RETURN_ UST_SUCCESS;
+    return UST_SUCCESS;
 }// utfFormatUtfStringChunk
 
 
@@ -444,7 +394,7 @@ inline
 size_t
 utfVsnprintf(ZCharset_type pCharset,void *pBuffer, size_t pMaxlen, const utfFmt *pFormat, va_list args)
 {
-_MODULEINIT_
+
     errno=0;
     char*   wBufferChar=nullptr;    /* Buffer is char */
     utf8_t* wBufferUtf8=nullptr;    /* Buffer is utf8 */
@@ -468,7 +418,7 @@ _MODULEINIT_
                 return wCurrlen;
         wLen = ( wCurrlen < pMaxlen )?wCurrlen:pMaxlen;
         utfStrncpy<utf8_t>(wBufferUtf8,cst_Null<utf8_t>,wLen);
-        _RETURN_ wCurrlen;
+        return wCurrlen;
         }
         case ZCHARSET_UTF16:
         {
@@ -478,7 +428,7 @@ _MODULEINIT_
                 return wCurrlen;
         wLen = ( wCurrlen < pMaxlen )?wCurrlen:pMaxlen;
         utfStrncpy<utf16_t>(wBufferUtf16,cst_Null<utf16_t>,wLen);
-        _RETURN_ wCurrlen;
+        return wCurrlen;
         }
         case ZCHARSET_UTF32:
         {
@@ -488,7 +438,7 @@ _MODULEINIT_
                 return wCurrlen;
         wLen = ( wCurrlen < pMaxlen )?wCurrlen:pMaxlen;
         utfStrncpy<utf32_t>(wBufferUtf32,cst_Null<utf32_t>,wLen);
-        _RETURN_ wCurrlen;
+        return wCurrlen;
         }
         default:
         {
@@ -498,7 +448,7 @@ _MODULEINIT_
                 return wCurrlen;
         wLen = ( wCurrlen < pMaxlen )?wCurrlen:pMaxlen;
         utfStrncpy<char>(wBufferChar,cst_Null<char>,wLen);
-        _RETURN_ wCurrlen;
+        return wCurrlen;
         }
         }// switch
         }//  if (!pFormat)
@@ -561,10 +511,10 @@ _MODULEINIT_
                                     wBufferUtf16,wOutCount );
 
         _free(wBufferUtf16);
-        _RETURN_ wOutCount;
+        return wOutCount;
     }//switch (pCharset)
 
-    _RETURN_ utfSubDoprintfvoid(wOutEncoding,pBuffer,
+    return utfSubDoprintfvoid(wOutEncoding,pBuffer,
                               pMaxlen, pFormat, args,&wConverter);
 }//utfVsnprintf
 
@@ -922,7 +872,7 @@ utfFormatUtf8Field(OutEncoding_type pOutOET,
                    int              pFieldMaximum,
                    zicuConverter** pConverter)
 {
-_MODULEINIT_
+
 
     const utf8_t* wUtf8String=pInString; /* Argument value for an utf8_t field */
 
@@ -945,7 +895,7 @@ _MODULEINIT_
     if (pInString == 0)
         {
         signalNull(pOutOET,pBuffer,pCurrlen,pMaxlen); /* string content is set to <null> */
-        _RETURN_ UST_NULLPTR;
+        return UST_NULLPTR;
         }//if (pInString == 0)
 
     if (!(pFMTFlags & FMTF_Precision))
@@ -1076,7 +1026,7 @@ _MODULEINIT_
         }// if (wPadLen<0)
 /* end right padding */
 
-   _RETURN_ UST_SUCCESS;
+   return UST_SUCCESS;
 }//utfFormatUtf8Field
 
 UST_Status_type
@@ -1091,7 +1041,7 @@ utfFormatUtf16Field(OutEncoding_type pOutOET,
                     int              pFieldMaximum,
                     zicuConverter** pConverter)
 {
-_MODULEINIT_
+
 
     utf16_t*         wUtf16String=pInString; /* Argument value for an utf16_t field */
 
@@ -1116,7 +1066,7 @@ _MODULEINIT_
     if (pInString == 0)
         {
         signalNull(pOutOET,pBuffer,pCurrlen,pMaxlen);
-        _RETURN_ UST_NULLPTR;
+        return UST_NULLPTR;
         }//if (pInString == 0)
 
     if (!(pFMTFlags & FMTF_Precision))
@@ -1194,7 +1144,7 @@ _MODULEINIT_
         if (pBuffer) /* pBuffer is not null : take care of size */
             {
             if (wUtf8Count+(*pCurrlen)>= (pMaxlen-1) )
-                                {_RETURN_ UST_TRUNCATED;}
+                                {return UST_TRUNCATED;}
             }
         for (size_t wi=0;wi<wUtf8Count;wi++)
                 {
@@ -1240,7 +1190,7 @@ _MODULEINIT_
         }// if (wPadLen<0)
  /* end right padding */
 
-   _RETURN_ UST_SUCCESS;
+   return UST_SUCCESS;
 }//utfFormatUtf16Field
 
 #include <ztoolset/zdatabuffer.h>
@@ -1257,7 +1207,7 @@ utfFormatUtf32Field(OutEncoding_type pOutOET,
                     int              pFieldMaximum,
                     zicuConverter** pConverter)
 {
-_MODULEINIT_
+
 
     utf32_t* wUtf32String=pInString; /* Argument value for an utf16_t field */
 
@@ -1283,7 +1233,7 @@ _MODULEINIT_
     if (pInString == nullptr)
         {
         signalNull(pOutOET,pBuffer,pCurrlen,pMaxlen);
-        _RETURN_ UST_NULLPTR;
+        return UST_NULLPTR;
         }//if (pInString == 0)
 
     if (!(pFMTFlags & FMTF_Precision))
@@ -1351,7 +1301,7 @@ _MODULEINIT_
         if (pBuffer) /* pBuffer is not null : take care of size */
             {
             if (wUtf8Count+(*pCurrlen)>= (pMaxlen-1) )
-                                {_RETURN_ UST_TRUNCATED;}
+                                {return UST_TRUNCATED;}
             }
         for (size_t wi=0;wi<wUtf8Count;wi++)
                 {
@@ -1403,7 +1353,7 @@ _MODULEINIT_
         }// if (wPadLen<0)
  /* end right padding */
 
-   _RETURN_ UST_SUCCESS;
+   return UST_SUCCESS;
 }//utfFormatUtf32Field
 
 
@@ -1501,7 +1451,7 @@ utfSubDoprintfvoid(OutEncoding_type pOutOET, /* Output buffer utf type : only Un
                    zicuConverter**  pConverter,
                    uspf_check       pCheckFormat)
 {
-_MODULEINIT_
+
 
     LONG_DOUBLE         wFDValue;       /* Argument value for a double or long double (if exists) */
 
@@ -1584,7 +1534,7 @@ _MODULEINIT_
                                  wFmtStringLen,
                                  pConverter);
         if (wSt < UST_SEVERE)
-                    {_RETURN_ wSt;}
+                    {return wSt;}
         if (pCheckFormat)
             {
             utfFmt wCheckFormatSgt[50];
@@ -2461,7 +2411,7 @@ size_t wIF=0,wFM=pFormat+4-wCheckFormatStart;
 //==================
 
     if (!pBuffer)   /* if out string is null return length */
-            { _RETURN_ wCurrlen;}
+            { return wCurrlen;}
 
     if (wCurrlen >= (pMaxlen - 1))
                 wCurrlen= pMaxlen - 1 ;
@@ -2489,7 +2439,7 @@ size_t wIF=0,wFM=pFormat+4-wCheckFormatStart;
             fprintf(stdout,"%s> Output size <%ld> character units\n",
                     _GET_FUNCTION_NAME_,
                     wCurrlen);
-_RETURN_ wCurrlen;
+return wCurrlen;
 } //utfSubDoprintfvoid
 
 

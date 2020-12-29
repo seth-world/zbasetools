@@ -100,8 +100,6 @@ utf8VString::fromUtf32(const utf32_t* pString)
 */
 
 
-
-
 /** @endcond */ //Development
 
 

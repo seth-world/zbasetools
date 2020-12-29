@@ -117,7 +117,7 @@ zicuConverter::toEncoding (char** pOutCharStr,size_t* pOutCount,
                            _Utf* putfString,ssize_t pInCount,
                            const char* pExtEncoding)
 {
-_MODULEINIT_
+
 ZStatus wSt=ZS_SUCCESS;
 UST_Status_type wUSTSt;
 
@@ -149,13 +149,13 @@ UST_Status_type wUSTSt;
     wUSTSt=open_toEncoding(wExtEncoding);
 
     if (wUSTSt<UST_SEVERE)
-           { _RETURN_ ZS_ICUERROR;}
+           { return ZS_ICUERROR;}
 
     // step 1- convert to utf16 pivot string
 
     UChar* wUPivot= (UChar*)calloc(wCount,sizeof(char16_t));
     if(!wUPivot)
-            { _RETURN_ ZS_MEMERROR; }
+            { return ZS_MEMERROR; }
     UChar* wUActual=wUPivot, *wULimit=&wUPivot[wCount-1];
     const _Utf* wInPtr=putfString,*wInLimit=&putfString[wInByteSize-1];
     int32_t* wInOffsets= (int32_t*)calloc(wCount,sizeof(int32_t));
@@ -176,7 +176,7 @@ UST_Status_type wUSTSt;
     if (zis_Error(wSt))
                     {
                     _free(wUPivot);
-                    _RETURN_ wSt;
+                    return wSt;
                     }
 
     // step2 convert from utf16 pivot to destination charset
@@ -186,7 +186,7 @@ UST_Status_type wUSTSt;
             {
             _free(wInOffsets);
             _free(wUPivot);
-            _RETURN_ ZS_MEMERROR;
+            return ZS_MEMERROR;
             }
     *pOutCount = wCount*sizeof(char);
 
@@ -217,7 +217,7 @@ UST_Status_type wUSTSt;
     _free(wOutOffsets);
     _free(wUPivot);
 
-    _RETURN_ wSt;
+    return wSt;
 }//toEncoding
 
 
@@ -229,7 +229,7 @@ zicuConverter::fromEncoding(_Utf** putfString,size_t* pOutCount,
                               const char* pInString,size_t pInSize,
                               const char* pExtEncoding)
 {
-_MODULEINIT_
+
 ZStatus wSt=ZS_SUCCESS;
 
     if (!putfString)
@@ -260,13 +260,13 @@ ZStatus wSt=ZS_SUCCESS;
     wSt=open_fromEncoding(wExtEncoding);
 
     if (zis_Error(wSt))
-           { _RETURN_ wSt;}
+           { return wSt;}
 
     // step 1- convert from external charset to utf16 pivot string
 
     UChar* wUPivot= (UChar*)calloc(wCount,sizeof(char16_t));
     if(!wUPivot)
-            { _RETURN_ ZS_MEMERROR; }
+            { return ZS_MEMERROR; }
     UChar* wUActual=wUPivot, *wULimit=&wUPivot[wCount-1];
     const char* wInPtr=pInString,*wInLimit=&pInString[wCount-1];
     int32_t* wInOffsets= (int32_t*)calloc(wCount,sizeof(int32_t));
@@ -287,7 +287,7 @@ ZStatus wSt=ZS_SUCCESS;
     if (zis_Error(wSt))
                     {
                     _free(wUPivot);
-                    _RETURN_ wSt;
+                    return wSt;
                     }
 
     // step2 convert from unicode (utf16 pivot string) to destination _Utf
@@ -297,7 +297,7 @@ ZStatus wSt=ZS_SUCCESS;
             {
             _free(wInOffsets);
             _free(wUPivot);
-            _RETURN_ ZS_MEMERROR;
+            return ZS_MEMERROR;
             }
     *pOutCount = wCount ;
 
@@ -327,7 +327,7 @@ ZStatus wSt=ZS_SUCCESS;
     _free(wOutOffsets);
     _free(wUPivot);
 
-    _RETURN_ wSt;
+    return wSt;
 }//fromEncoding
 
 

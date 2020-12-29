@@ -773,7 +773,7 @@ ZExceptionMin::formatFullUserMessage (void)
 void
 ZExceptionMin::exit_abort(void)
         {
-        _MODULEINIT_
+        
         printUserMessage(stderr);
         ZExceptionStack::clear();
 //        exit(EXIT_FAILURE);
