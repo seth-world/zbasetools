@@ -268,7 +268,7 @@ public:
           return(*this);
           }
 
-   /* @brief duplicate() duplicates string content in a memory zone. This memory zone must be freed later on. */
+   /** @brief duplicate() duplicates string content in a memory zone. This memory zone must be freed later on. */
   _Utf* duplicate()
   {
     if (isEmpty())
@@ -298,6 +298,23 @@ public:
 
     return wDupPtr;
   }//duplicate
+
+  /** @brief findEnquoted() extracts substring enquoted by pQuote1 at left and pQuote2 at right
+ *  returns an allocated string with substring content duly terminated with '\0'.
+ *  returned substring needs to be freed by callee.
+ */
+  utfVaryingString findEnquoted(_Utf pQuote1,_Utf pQuote2,size_t pOffset=0)
+  {
+    if (pOffset > UnitCount-2)
+      return utfVaryingString();
+
+    _Utf* wStr=utfFindEnquoted<_Utf>(Data+pOffset,pQuote1,pQuote2);
+    utfVaryingString wReturn;
+    wReturn.strset(wStr);
+    free(wStr);
+    return wReturn;
+  }
+
 
 /** @brief replace() replaces all occurrences of string pToBeReplaced by string pReplace */
 

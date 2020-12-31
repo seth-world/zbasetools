@@ -267,7 +267,7 @@ uriString::addMimeFileExtension (utfdescString pMimeName)
 //
 utfdescString DSBuffer;
 
-utfdescString uriString::getFileExtension()
+utfdescString uriString::getFileExtension() const
 {
     utfdescString pExt=content;
     utf8_t *wPtr = strchr((utf8_t)'.');
@@ -283,7 +283,7 @@ utfdescString uriString::getFileExtension()
  * @return a descString with the file's directory path
  */
 utfdescString
-uriString::getDirectoryPath ()
+uriString::getDirectoryPath () const
 {
     utfdescString pExt=content;
     utf8_t *wPtr = pExt.strrchr((utf8_t)Delimiter);
@@ -303,15 +303,15 @@ uriString::getDirectoryPath ()
  * @return a descString with the file's directory path
  */
 utfdescString
-uriString::getLastDirectoryName()
+uriString::getLastDirectoryName() const
 {
     utfdescString pExt;
 
-    utf8_t* wPtr1=content+(UnitCount-1);
+    const utf8_t* wPtr1=content+(UnitCount-1);
     while((wPtr1>content)&&(*wPtr1!=(utf8_t)Delimiter))
             wPtr1--;
 
-    utf8_t *wPtr2=--wPtr1;
+    const utf8_t *wPtr2=--wPtr1;
 
     while((wPtr2>content)&&(*wPtr2!=(utf8_t)Delimiter))
             wPtr2--;
@@ -333,10 +333,10 @@ uriString::getLastDirectoryName()
  */
 
 utfdescString
-uriString::getBasename ()
+uriString::getBasename ()const
 {
 utfdescString pExt;
-    utf8_t *wPtr = strrchr((utf8_t)Delimiter);
+    utf8_t *wPtr =  strrchr((utf8_t)Delimiter);
     if (wPtr==nullptr)
                 pExt.fromUtf( content ) ;
          else
@@ -359,7 +359,7 @@ utfdescString pExt;
  * @return a descString with the file's root base name
  */
 utfdescString
-uriString::getRootBasename ()
+uriString::getRootBasename () const
 {
 
     utfdescString pExt=getBasename();
@@ -450,7 +450,7 @@ uriString::setExtension (const char* pExtension)
  * @return true if exists, false if not
  */
 bool
-uriString::exists(void)
+uriString::exists(void) const
 {
 struct stat wStatBuffer ;
     int wSt= stat(toCChar(),&wStatBuffer);
@@ -619,7 +619,7 @@ return ZS_SUCCESS;
 * @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.@see ZBSError
  */
 ZStatus
-uriString::getStatR(uriStat &pZStat)
+uriString::getStatR(uriStat &pZStat)const
 {
 struct stat wStatBuffer ;
 passwd *wUserInfo;
@@ -655,18 +655,11 @@ passwd *wUserInfo;
  * @return
  */
 long long
-uriString::getFileSize(void)
+uriString::getFileSize(void) const
 {
  uriStat wStat;
  if (getStatR(wStat)!=ZS_SUCCESS)
                  {
-                if (ZVerbose)
-                        {
-                         fprintf(stderr,"%s-E-ERRSTAT error on getStatR file %s \n",
-                                 _GET_FUNCTION_NAME_,
-                                 content);
-                         ZException.printLastUserMessage(stderr);
-                         }
                  return (-1);
                  }
     return(wStat.Size);
@@ -693,7 +686,7 @@ and returns a QBuffer with a Data pointer to memory content and Size of the buff
 
 
 ZStatus
-uriString::loadContent (ZDataBuffer& pDBS)
+uriString::loadContent (ZDataBuffer& pDBS) const
 {
 ZStatus wSt;
 uriStat wStat;
@@ -703,7 +696,7 @@ uriStat wStat;
                                   ZS_NOTFOUND,
                                   Severity_Error,
                                   "-E-FILENOTFOUND Requested file %s does not exist \n",
-                                  toString());
+                                  toCChar());
 /*    #if __DEBUG_LEVEL__ > 1
             ZException.printUserMessage();
     #endif
@@ -718,7 +711,7 @@ uriStat wStat;
                 }
 
 
-    FILE *wFile =fopen(toCString_Strait(),"rb");
+    FILE *wFile =fopen(toCChar(),"rb");
 
     if (wFile==nullptr)
             {

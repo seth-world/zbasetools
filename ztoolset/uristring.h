@@ -160,11 +160,11 @@ public:
 
     static uriString getHomeDir(void) ;
 
-    utfdescString getFileExtension() ;
-    utfdescString getDirectoryPath() ;
-    utfdescString getLastDirectoryName();
-    utfdescString getBasename() ;
-    utfdescString getRootBasename();
+    utfdescString getFileExtension() const;
+    utfdescString getDirectoryPath() const;
+    utfdescString getLastDirectoryName() const;
+    utfdescString getBasename() const ;
+    utfdescString getRootBasename() const;
 
     uriString &setDirectoryPath(uriString &pDirectoryPath);
 
@@ -196,13 +196,13 @@ public:
 // -----Control & file operations-------
 //
 
-    ZStatus getStatR(uriStat &pZStat);
+    ZStatus getStatR(uriStat &pZStat) const;
 
-    long long getFileSize(void) ;
+    long long getFileSize(void) const  ;
 
     checkSum getChecksum(void);
 
-    ZStatus loadContent(ZDataBuffer &pDBS) ;
+    ZStatus loadContent(ZDataBuffer &pDBS) const;
     ZStatus loadUtf8(utf8VaryingString &pUtf8) ;
     ZStatus loadUtf16(utf16VaryingString &pUtf16) ;
     ZStatus loadUtf32(utf32VaryingString &pUtf32) ;
@@ -224,7 +224,7 @@ public:
     ZStatus writeContent (utf8VaryingString &pStr) ;
 //    ZStatus writeText (varyingCString &pDBS) ;
 
-    bool    exists(void)  ;
+    bool    exists(void) const  ;
     /**
  * @brief uriString::suppress  suppresses the file pointed to by uriString content.
  *

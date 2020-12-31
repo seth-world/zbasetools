@@ -1164,7 +1164,33 @@ utfStrrchr(_Utf* wStr,_Utf wChar)
      return wD;
  }
 
+ /** @brief utfFindEnquoted() extracts substring from pInstring enquoted by pQuote1 at left and pQuote2 at right
+ *  returns an allocated string with substring content duly terminated with '\0'.
+ *  returned substring needs to be freed by callee.
+ */
+ template <class _Utf>
+ _Utf* utfFindEnquoted(const _Utf* pInString,_Utf pQuote1,_Utf pQuote2)
+ {
+   _Utf* wPtr = utfStrchr<_Utf>(pInString,pQuote1);
+   wPtr++;
+   if (wPtr==nullptr)
+     return nullptr;
+   _Utf* wPtr2 = utfStrchr<_Utf>(wPtr,pQuote2);
+   if (wPtr2==nullptr)
+     return nullptr;
+   size_t wSize=(wPtr2-wPtr)+1;
+   _Utf* wStr=(_Utf* )malloc(wSize*sizeof(_Utf));
+   _Utf* wPtr3=wStr;
 
+   while (*wPtr && (wPtr < wPtr2))
+   {
+     *wPtr3=*wPtr;
+     wPtr++;
+     wPtr3++;
+   }
+   *wPtr3=0;
+   return wStr;
+ }//findEnquoted
 
 
 template <class _Utf>

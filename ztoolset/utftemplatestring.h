@@ -380,32 +380,32 @@ public:
 //    utftemplateString<_Sz,_Utf>& fromCString(const char*pInString);  /** sets current string's content to C String.*/
     utftemplateString<_Sz,_Utf>& addCString(const char*pInString);  /** adds C String to current string content.*/
 
-    _Utf * strchr(const _Utf wChar) {return utfStrchr<_Utf>(content,wChar);}
-    _Utf * strrchr(const _Utf wChar){return utfStrrchr<_Utf>(content,wChar);}
-    _Utf * strstr(const _Utf *pSubstring) const {return utfStrstr<_Utf>(content,pSubstring);}
+    _Utf * strchr(const _Utf wChar) const {return (_Utf*)utfStrchr<_Utf>(content,wChar);}
+    _Utf * strrchr(const _Utf wChar) const {return (_Utf*)utfStrrchr<_Utf>(content,wChar);}
+    _Utf * strstr(const _Utf *pSubstring) const {return (_Utf*)utfStrstr<_Utf>(content,pSubstring);}
     /** @brief strstr() finds first _Utf substring within current and returns a pointer to it - nullptr if not found */
-    _Utf * strstr(const _Utf *pSubstring,const size_t pOffset) const {return utfStrstr<_Utf>(content+pOffset,pSubstring);}
+    _Utf * strstr(const _Utf *pSubstring,const size_t pOffset) const {return (_Utf*)utfStrstr<_Utf>(content+pOffset,pSubstring);}
     /** @brief strcasestr() finds first _Utf substring pSubstring CASE REGARDLESS within current since beginning and returns a pointer to it */
-    _Utf* strcasestr(const _Utf *pSubstring) const {return utfStrcasestr<_Utf>(content,pSubstring);}
+    _Utf* strcasestr(const _Utf *pSubstring) const {return (_Utf*)utfStrcasestr<_Utf>(content,pSubstring);}
     /** @brief strcasestr() finds first _Utf substring pSubstring CASE REGARDLESS within current at unit count pOffset and returns a pointer to it */
-    _Utf* strcasestr(const _Utf *pSubstring, size_t pOffset) const {return utfStrcasestr<_Utf>(content+pOffset,pSubstring);}
-    _Utf * strrstr(const _Utf *pSubstring) {return utfStrstr<_Utf>((const _Utf*)content,pSubstring);} /**< finds last _Utf substring within current and returns a pointer to it */
-    _Utf* strrcasestr(const _Utf *pSubstring){return utfStrcasestr<_Utf>((const _Utf*)content,pSubstring);}/**< finds last _Utf substring CASE REGARDLESS within current and returns a pointer to it */
+    _Utf* strcasestr(const _Utf *pSubstring, size_t pOffset) const {return (_Utf*)utfStrcasestr<_Utf>(content+pOffset,pSubstring);}
+    _Utf * strrstr(const _Utf *pSubstring)const {return (_Utf*)utfStrstr<_Utf>((const _Utf*)content,pSubstring);} /**< finds last _Utf substring within current and returns a pointer to it */
+    _Utf* strrcasestr(const _Utf *pSubstring)const {return (_Utf*)utfStrcasestr<_Utf>((const _Utf*)content,pSubstring);}/**< finds last _Utf substring CASE REGARDLESS within current and returns a pointer to it */
     _Utf* fill(const _Utf pChar,const size_t pStart=0,const ssize_t pCount=-1) ; /**< fills the content from pStart on pCount with chararcter pChar  */
 
     /**
      * @brief capacity allias for getUnitCount : returns the available capacity in _Utf character units (not in bytes)
      */
-    size_t capacity(void) {return _Base::UnitCount;}
+    size_t capacity(void) const {return _Base::UnitCount;}
     /**
      * @brief size returns the actual string length in _Utf units. Warning: this is not the character count (see charCount())
      */
-    ssize_t  size(void) {return (utfStrlen<_Utf>(content)); }
+    ssize_t  size(void) const {return (utfStrlen<_Utf>(content)); }
 //    size_t getCharCapacity(void) {return _Sz;}
     /**
      * @brief charCount computes the unicode canonical character count of the contained utf string (up until _Utf '\0' found
      */
-    ssize_t charCount(void);
+    ssize_t charCount(void) const;
 
     ZStatus setCharSet(const ZCharset_type pCharset); /** RFFU  */
 
@@ -705,7 +705,7 @@ template <size_t _Sz,class _Utf>
  * @return number of canonical character or -1 if an error occurred (invalid utf encoding)
  */
 ssize_t
-utftemplateString<_Sz,_Utf>::charCount(void)
+utftemplateString<_Sz,_Utf>::charCount(void) const
 {
 utfStrCtx wContext;
 ssize_t wCount;
