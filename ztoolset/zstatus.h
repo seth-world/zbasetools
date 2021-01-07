@@ -170,26 +170,29 @@ enum ZStatus: ZStatusBase
                 ZS_SOCKADDRESS        = -0x00800011,        //< Invalid INet address to convert
                 ZS_SOCKCONNECT        = -0x00800012,        //< Client socket cannot connect to
                 ZS_SOCKERROR          = -0x00800020,        //< socket generic error : refer to errno content (ZException::Error,ZException::Complement)
+                ZS_CONNECTTIMEOUT     = -0x00800013,        //zmail_encrypt_conn_timeout
+                ZS_SOCKISCLOSED       = -0x00800021,        // zmail_socketisclosed
 
                 ZS_LDAPFAIL           = -0x00800100,        //< Failed with LDAP (system or network error)
 
 
-                ZS_SMTP_ERROR         = -0x00802000,    // smtp error - error message follows
+                ZS_SMTP_ERROR         = -0x00802000,    // generic smtp error - error message follows
+
+                ZS_SMTP_IVMAIL        = -0x00802001,    // invalid mail address or mailbox unavailable
 
 
-
+                ZS_IMAP_ERROR         = -0x00801800,   // generic imap error
 
                 ZS_IMAP_TRANSMIT      = -0x00801801,   // zmail_smtp_transmit_error
-                ZS_IMAP_BADPARAM      = -0x00801802, //zmail_badparams
+                ZS_IMAP_BADPARAM      = -0x00801802,  //zmail_badparams
                 ZS_IMAP_INVPARAM      = -0x00801804, // zmail_invalidparams
 
                 ZS_IMAPNEXT           =  0x00801801,   // not an error : imap server will send a next message
                 ZS_IMAPWAITNEXT       =  0x00801802,   // not an error : imap server is waiting for a complement
 
-                ZS_IMAPREJECTED       = -0x00801808,   // not an error : imap server is waiting for a complement
+                ZS_IMAPREJECTED       = -0x00801808,   // imap server rejected client command
 
-                ZS_CONNECTTIMEOUT     = -0x00801820,  //zmail_encrypt_conn_timeout
-                ZS_SOCKISCLOSED       = -0x00801840,  // zmail_socketisclosed
+
 
                 ZS_SOCKBROKENPIPE     = -0x00810001,        //< Received broken pipe signal : communication has been cancelled by pair while trying to write bytes.
 

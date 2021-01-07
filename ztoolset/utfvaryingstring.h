@@ -75,6 +75,10 @@ typedef utf8_t                  _UtfBase;
     utf8VaryingString* fromEncoding(const uint8_t* pInString,ZCharset_type pEncoding);
     utf16VaryingString* getCollationKey(void);
 
+    ZArray<utf8VaryingString> strtok(const utf8_t* pSeparator);
+
+
+
     ZDataBuffer*    getEncrypted(uint8_t* pKey,uint8_t* pVector);
     UST_Status_type getByChunk(const utf8_t *pInString,
                                 const size_t pChunkSize);

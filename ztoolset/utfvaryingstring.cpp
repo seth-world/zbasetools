@@ -3208,6 +3208,36 @@ utf32VaryingString::getBigEndianWBOM()
  return pBigEndian;
 }
 
+
+
+
+ZArray<utf8VaryingString> utf8VaryingString::strtok(const utf8_t* pSeparator)
+{
+  ZArray<utf8VaryingString> wReturn;
+  utf8VaryingString wToken;
+  if (isEmpty())
+    return wReturn;
+
+  utf8_t* wPtrOrig=duplicate();
+  utf8_t* wPtr;
+  utf8_t* wPtr1=nullptr;
+
+  wPtr=wPtrOrig;
+  while (wPtr)
+  {
+    wPtr1=utfFirstinSet<utf8_t>(wPtr,pSeparator);
+    if (!wPtr1)
+      break ;
+    *wPtr1=0;
+    wToken = wPtr;
+    wReturn.push(wToken);
+    wPtr=utfFirstNotinSet<utf8_t>(wPtr1,pSeparator);
+  }
+
+  free (wPtrOrig);
+  return wReturn;
+}//strtok
+
  //===============Varying strings========================================
 #include <ztoolset/zwstrings.h>
 #include <wchar.h>

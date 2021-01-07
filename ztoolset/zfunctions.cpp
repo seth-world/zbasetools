@@ -465,6 +465,8 @@ const char * decode_ZStatus (ZStatus ZS)
             case ZS_SOCKBROKENPIPE :
               return("ZS_SOCKBROKENPIPE");
 
+            case ZS_IMAP_ERROR :
+              return("ZS_IMAP_ERROR");
             case ZS_IMAP_TRANSMIT :
               return("ZS_IMAP_TRANSMIT");
             case ZS_IMAP_BADPARAM :
@@ -481,6 +483,9 @@ const char * decode_ZStatus (ZStatus ZS)
               return("ZS_IMAPREJECTED");
             case ZS_SMTP_ERROR :      // smtp error - error message follows
               return("ZS_SMTP_ERROR");
+            case ZS_SMTP_IVMAIL :      // smtp error - error message follows
+              return("ZS_SMTP_IVMAIL");
+
 
             case ZS_CONNECTTIMEOUT :
               return("ZS_CONNECTTIMEOUT");

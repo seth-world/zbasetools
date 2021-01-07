@@ -315,6 +315,37 @@ public:
     return wReturn;
   }
 
+  bool isNumeric()
+  {
+    return utfIsdigit<_Utf>(Data[0]);
+  }
+
+  ZArray<utfVaryingString> strtok(const _Utf* pSeparator)
+  {
+    ZArray<utfVaryingString> wReturn;
+    utfVaryingString wToken;
+    if (isEmpty())
+      return wReturn;
+
+    _Utf* wPtrOrig=duplicate();
+    _Utf* wPtr;
+    _Utf* wPtr1=nullptr;
+
+    wPtr=wPtrOrig;
+    while (wPtr)
+      {
+      wPtr1=utfFirstinSet<_Utf>(wPtr,pSeparator);
+      if (!wPtr1)
+        break ;
+      *wPtr1=0;
+      wToken = wPtr;
+      wReturn.push(wToken);
+      wPtr=utfFirstNotinSet<_Utf>(wPtr1,pSeparator);
+      }
+
+    free (wPtrOrig);
+    return wReturn;
+  }//strtok
 
 /** @brief replace() replaces all occurrences of string pToBeReplaced by string pReplace */
 

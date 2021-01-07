@@ -296,6 +296,7 @@ HEADERS += zconfig.h \
     ../ztoolset/charman.h \
     ../ztoolset/userid.h \
     ../ztoolset/zaierrors.h \
+    ../ztoolset/zhtmlreport.h \
     ../ztoolset/zstatus.h \
     ../zxml/zxmlprimitives.h \
  \ #   $$TOOLSET_BASE/ztoolset/zstrings.h \  #renamed as zstrings_old.h
@@ -319,6 +320,7 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/ztime.cpp \
 #    $$TOOLSET_BASE/ztoolset/zstrings.cpp \  #renamed as zstrings_old.cpp
     ../ztoolset/zaierrors.cpp \
+    ../ztoolset/zhtmlreport.cpp \
     ../zxml/zxmlprimitives.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
