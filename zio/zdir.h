@@ -74,8 +74,8 @@ struct DirMap
         Modified.clear();
     }
 
-    DirMap &operator=(const DirMap &pIn) { _copyFrom(pIn); }
-    DirMap &operator=(const DirMap &&pIn) { _copyFrom(pIn); }
+    DirMap &operator=(const DirMap &pIn) { _copyFrom(pIn); return *this;}
+    DirMap &operator=(const DirMap &&pIn) { _copyFrom(pIn); return *this;}
 
     uriString           Name;
     size_t              Size;
@@ -93,8 +93,8 @@ public:
 
     ZDir (void) {}
     ZDir (const utf8_t *pDirName) ;
-    ZDir(const ZDir &pIn) { _copyFrom(pIn); }
-    ZDir(const ZDir &&pIn) { _copyFrom(pIn); }
+    ZDir(const ZDir &pIn):uriString(pIn) { _copyFrom(pIn); }
+    ZDir(const ZDir &&pIn):uriString(pIn) { _copyFrom(pIn); }
 
     ZDir(const uriString &pIn) { setPath(pIn); }
 #ifdef QT_CORE_LIB

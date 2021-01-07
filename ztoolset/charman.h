@@ -6,6 +6,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+typedef uint8_t utf8_t;
+
 class CharMan{
 public:
     CharMan() {memset(content,0,sizeof(content));}
@@ -53,6 +55,14 @@ public:
 
     void strcat(const char *pIn) { ::strncat(content, pIn, sizeof(content)); }
 
+    void trunc(const utf8_t*pPtr,int pSize)
+    {
+      ::strncpy(content,(char*)pPtr,pSize>(sizeof(content)-1)?sizeof(content)-1:pSize);
+    }
+    void trunc(const char*pPtr,int pSize)
+    {
+      ::strncpy(content,pPtr,pSize>(sizeof(content)-1)?sizeof(content)-1:pSize);
+    }
     int Maxlen() {return sizeof(content);}
 
     char* toChar() {return content;}

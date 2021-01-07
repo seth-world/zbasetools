@@ -120,14 +120,17 @@ typedef utf8_t                  _UtfBase;
 
 /**
  * @brief utfVaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
- *
- *  Encode the exact content length of utfVaryingString given by Size, including termination character ('\0').
- *
- * @return  a reference to utfVaryingString with encoded data
+ *  Encode the exact content length of utfVaryingString EXCLUDING termination character ('\0').
+ * a termination character is added to resulting B64 encoded string.
+ * @return  a new utfVaryingString with encoded data. Source string remains unchanged.
  */
 
-    utf8VaryingString& encodeB64(void);
-    utf8VaryingString& decodeB64(void);
+    utf8VaryingString encodeB64(void) const;
+/**
+ * @brief utfVaryingString::decodeB64 decodes utfVaryingString content using Base 64 encoding facilities (OpenSSL).
+ * @return a new utfVaryingString with decoded data. Source string remains unchanged.
+ */
+    utf8VaryingString decodeB64(void) const;
 
     /** @brief encryptAES256() Encrypts to a crypted ZDataBuffer current string content to AES256 according given Key and Vector */
     ZStatus encryptAES256 ( ZDataBuffer& pEncryptedZDB,
@@ -156,7 +159,8 @@ typedef utf8_t                  _UtfBase;
     utf8VaryingString& operator + (const utf8VaryingString& pIn) {  add(pIn); return *this;}
     utf8VaryingString& operator + (const utf8VaryingString&& pIn) {  add(pIn); return *this;}
 
-    bool operator == (const char* pIn) { return compareV<char>(pIn)==0; }
+    bool operator == (const char* pIn) const { return compareV<char>(pIn)==0; }
+
     bool operator != (const char* pIn) { return compareV<char>(pIn); }
 
 #ifdef QT_CORE_LIB

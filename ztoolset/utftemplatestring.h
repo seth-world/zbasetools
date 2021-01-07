@@ -3,6 +3,9 @@
 
 #include <zconfig.h>
 
+/** gets utf format name from char unit size (instantiated in ufvtemplatestring.cpp) */
+const char* getUnitFormat(uint8_t pSize);
+
 /** @file utfemplatestring.h  In this file is defined a template FIXED string container that is used as base for various sizes of strings.
  *  some further derived structs might have additional functions (like uriString, for manipulating files and directories)
  *
@@ -143,8 +146,8 @@ public:
     utftemplateString(const utfStringDescriptor* pStringDesc):utfStringDescriptor(pStringDesc)
     {
     }
-    utftemplateString(const utftemplateString& pIn) {_copyFrom(pIn);}
-    utftemplateString(const utftemplateString&& pIn) {_copyFrom(pIn);}
+    utftemplateString(const utftemplateString& pIn):utfStringDescriptor(pIn) {_copyFrom(pIn);}
+    utftemplateString(const utftemplateString&& pIn):utfStringDescriptor(pIn)  {_copyFrom(pIn);}
 
     utftemplateString& operator = (const utftemplateString& pIn) {return _copyFrom(pIn); }
     utftemplateString& operator = (const utftemplateString&& pIn) {return _copyFrom(pIn); }
@@ -412,8 +415,32 @@ public:
     ZDataBuffer *_exportURF(ZDataBuffer *pURFData);
     utftemplateString<_Sz,_Utf>& _importURF(unsigned char* pURFDataPtr);
 
-    ZDataBuffer *_exportUVF(ZDataBuffer *pURFData);
+    /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
+     *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
+     *  led by
+     *   - uint8_t : char unit size
+     *   - UVF_Size_type : number of character units of the string.
+     * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
+     */
+    ZDataBuffer _exportUVF();
+    /** @brief _importUVF Import string from Varying Universal Format (dedicated format for strings)
+     *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
+     *  led by
+     *   - uint8_t : char unit size
+     *   - UVF_Size_type : number of character units of the string.
+     * Important : imported string format (utf-xx) must be the same as current string
+     * @param pUniversalPtr pointer to Varying Universal formatted data header
+     * @return total size IN BYTES of  bytes used from pUniversalPtr buffer (Overall used size including header)
+     */
     size_t _importUVF(unsigned char* pUniversalPtr);
+
+    /** @brief _getexportUVFSize() compute the requested export size in bytes for current string, including header */
+    UVF_Size_type _getexportUVFSize();
+
+    /** @brief _getimportUVFSize() returns total size in byte of data, including header, the import will use from input buffer.*/
+    UVF_Size_type _getimportUVFSize(unsigned char* pUniversalPtr);
+
+
 
     /**
      * @brief utftemplateString::getUniversalFromURF Static method that extract an Universal value from memory zone pointed by pURFDataPtr
@@ -1448,7 +1475,7 @@ ZStatus _getutfStringURFData(unsigned char* pURFDataPtr,ZTypeBase& pZType,uint16
 
 template <size_t _Sz,class _Utf>
 /**
- * @brief utftemplateString<_Sz,_Utf>::_exportVUniversal  Exports a fixed string to a Universal Varying Format
+ * @brief _exportUVF  Exports a fixed string to a Universal Varying Format
  *  Universal Varying  Format stores fixed string data into a varying length string container excluding '\0' character terminator
  *  leaded by an uint16_t mentionning the number of character units of the string that follows.
  * 
@@ -1456,24 +1483,54 @@ template <size_t _Sz,class _Utf>
  * @return 
  */
 
-ZDataBuffer*
-utftemplateString<_Sz,_Utf>::_exportUVF(ZDataBuffer*pUniversal)
+ZDataBuffer utftemplateString<_Sz, _Utf>::_exportUVF()
 {
-    size_t byteLen = utfStrlen<_Utf>(content)*sizeof(_Utf);
-    UVF_Size_type wUByteSize_Exp,wUByteSize=(UVF_Size_type)byteLen;
+    ZDataBuffer wUVF;
 
-//uint32_t wUSizeReversed=_reverseByteOrder_T<uint32_t>(wUniversalSize+1);
+/* Count effective char units excluding (_Utf)'\0' mark */
+    UVF_Size_type wUnitCount = utfStrlen<_Utf>(content);
 
-    pUniversal->allocateBZero((ssize_t)wUByteSize+sizeof(UVF_Size_type));
-                                                        // URF Header is
+    size_t wByteLen = wUnitCount*sizeof(_Utf);
 
-    wUByteSize_Exp=reverseByteOrder_Conditional<UVF_Size_type>(wUByteSize);       // effective number of characters of the string in reverse order if LE
-    memmove(pUniversal->Data,&wUByteSize_Exp,sizeof(wUByteSize_Exp));
+    unsigned char* wPtrTarg=(unsigned char*)content;
 
-    memmove(pUniversal->Data+sizeof(wUByteSize),content,(size_t)wUByteSize);  // nb: '\0' is excluded
-    pUniversal->Dump();
-    return pUniversal;
-}// _exportUniversal
+    /* set export data with char unit size */
+    *wPtrTarg = (uint8_t)sizeof (_Utf);
+    wPtrTarg++;
+
+    /* prepare and set unit count to export data */
+    UVF_Size_type wUnitCount_Export=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
+    memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
+    wPtrTarg += sizeof(UVF_Size_type);
+
+    /* export char units : each char unit must be reversed if necessary (big /little endian) */
+
+    _Utf* wPtrOut=(_Utf*)(wPtrTarg);
+    _Utf* wPtrIn=content;
+
+    if (sizeof (_Utf)==1)
+      while (*wPtrIn)
+        *wPtrOut++=*wPtrIn++;
+    else
+      while (*wPtrIn)
+        *wPtrOut++=reverseByteOrder_Conditional<UVF_Size_type>(*wPtrIn++);
+
+    return wUVF;
+}// _exportUVF
+
+template <size_t _Sz,class _Utf>
+/**
+ * @brief _getexportUVFSize() compute the requested export size IN BYTES for current string
+ */
+UVF_Size_type
+utftemplateString<_Sz,_Utf>::_getexportUVFSize()
+{
+  /* Count char units excluding (_Utf)'\0' mark starting from end */
+  UVF_Size_type wUnitCount = utfStrlen<_Utf>(content);
+  UVF_Size_type wByteLen=wUnitCount*sizeof(_Utf) +sizeof(UVF_Size_type)+ 1;
+  return wByteLen;
+
+}//_getimportUVFSize
 
 template <size_t _Sz,class _Utf>
 /**
@@ -1482,32 +1539,79 @@ template <size_t _Sz,class _Utf>
  *  leaded by a uint16_t mentionning the number of characters of the string that follows.
  * 
  * @param pUniversalPtr pointer to Varying Universal formatted data header
- * @return total size of consumed bytes in pUniversalPtr buffer (Overall size of string in VUF)
+ * @return total size of consumed bytes in pUniversalPtr buffer (Overall size of string in UVF)
  */
 size_t
 utftemplateString<_Sz,_Utf>::_importUVF(unsigned char* pUniversalPtr)
 {
-UVF_Size_type    wUByteSize;
+  unsigned char* wPtrSrc=pUniversalPtr;
+  /* get and control char unit size */
+  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+  if (wUnitSize!=sizeof(_Utf))
+  {
+    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
+        getUnitFormat(wUnitSize),
+        getUnitFormat(sizeof(_Utf)));
+    return 0;
+  }
 
-    memmove(&wUByteSize, pUniversalPtr,sizeof(wUByteSize));
-    wUByteSize=reverseByteOrder_Conditional<UVF_Size_type>(wUByteSize);
+  wPtrSrc++;
+  /* get char units to load excluding (_Utf)'\0' mark */
+  UVF_Size_type    wUnitCount;
 
-    if (wUByteSize>_Sz)  // use of _Sz in place of _capacity must NOT be changed
-                {
-                fprintf(stderr,
-                        "%s>> Warning: <%s> Capacity of utftemplateString overflow: requested %d while capacity is %ld . String truncated.\n",
-                        _GET_FUNCTION_NAME_,
-                        decode_ZStatus(ZS_FIELDCAPAOVFLW),
-                        wUByteSize,
-                        _Sz);
-                wUByteSize=_Sz-1;
-                }
-    memset(content,0,sizeof(content));
-    if (wUByteSize>0)
-        memmove(content,pUniversalPtr+sizeof(wUByteSize),wUByteSize);
+  memmove(&wUnitCount, wPtrSrc ,sizeof(UVF_Size_type));
+  wUnitCount=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
+  wPtrSrc += sizeof(UVF_Size_type);
 
-    return (sizeof(wUByteSize)+wUByteSize);
-}// _importUniversal
+  /* check capacity */
+  if (wUnitCount >= _Sz)
+  {
+    fprintf(stderr,"_importUVF-W-CAPOVFL Fixed string capacity overflow : importing <%d> char unit while capacity is <%d>. Truncating imported string.",
+        wUnitCount,
+        _Sz);
+    wUnitCount= _Sz-1;
+  }
+
+  /* allocate size of string in char units */
+//  allocateUnits(wUnitCount+1); // remember that '\0' is not exported
+
+  /* import string per char unit */
+
+  _Utf* wPtrOut=content ;
+  _Utf* wPtrIn=(_Utf*)(wPtrSrc);
+  _Utf* wPtrEnd = &wPtrIn[wUnitCount];
+  if (wUnitSize==1)
+    while (wPtrIn < wPtrEnd)
+      *wPtrOut++=*wPtrIn++;
+  else
+    while (wPtrIn < wPtrEnd)
+      *wPtrOut++=reverseByteOrder_Conditional<UVF_Size_type>(*wPtrIn++);
+//  addConditionalTermination();
+  *wPtrEnd = 0;
+  return (wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1;
+}// _importUVF
+
+template <size_t _Sz,class _Utf>
+/**
+ * @brief _getexportUVFSize() compute the requested export size IN BYTES for current string
+ */
+UVF_Size_type
+utftemplateString<_Sz,_Utf>::_getimportUVFSize(unsigned char* pUniversalPtr)
+{
+  unsigned char* wPtrSrc=pUniversalPtr;
+  /* get and control char unit size */
+  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+  wPtrSrc++;
+
+  UVF_Size_type    wUnitCount;
+
+  memmove(&wUnitCount, wPtrSrc,sizeof(UVF_Size_type));
+  wUnitCount=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
+  wUnitCount *= wUnitSize ;
+  wUnitCount += sizeof(UVF_Size_type) + 1 ;
+  return wUnitCount;
+
+}//_getimportUVFSize
 
 template <size_t _Sz,class _Utf>
 

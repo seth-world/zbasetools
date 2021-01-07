@@ -676,6 +676,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
 
     void Dump_old(const int pColumn=16,FILE* pOutput=stderr);
     void Dump(const int pColumn=16,ssize_t pLimit=-1,FILE* pOutput=stderr);
+    void Dump(const char*pFilePath,const int pColumn=16,ssize_t pLimit=-1);
 
 }; // ZDataBuffer
 

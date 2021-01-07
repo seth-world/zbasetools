@@ -4,12 +4,21 @@ const char* HtmlHeader="<!DOCTYPE html>\n"
                          "<html lang=\"en\">\n"
                          "<head> \n";
 
-const char* HtmlStyle=
+const char* HtmlStyleTable=
     "<style>\n"
     "table { border-collapse:collapse; }\n"
-    "table thead th { border-top: 1px solid #000;border-bottom: 1px solid #000;background-color:%s;text-align:left; }\n"
-    ".Gridtransparent { background-color:transparent;width:2.2313in; font-family:%s;}\n"
-    ".Gridgrey { background-color:LightYellow;width:2.2313in; font-family:%s;}\n"
+//    "table thead th { border-top: 1px solid #000;border-bottom: 1px solid #000;background-color:%s;text-align:left; width:2.2313in;}\n"
+    "table thead th { border-top: 1px solid #000;border-bottom: 1px solid #000;background-color:%s;text-align:left; width:%s;}\n"
+//    "table tr { text-align:left; width:2.2313in;}\n"
+    "table tr { text-align:left; width:%s;}\n";
+
+//    "th style=\"text-align:center; width:2.2313in; \" "
+//    "td style=\"text-align:right; width:2.2313in; \" "
+const char* HtmlStyleGrid=
+    ".Gridtransparent { background-color:transparent; font-family:%s;}\n"
+    ".Gridtransparentlast { background-color:transparent;border-bottom: 1px solid #000; font-family:%s;}\n"
+    ".Gridgrey { background-color:LightYellow; font-family:%s;}\n"
+    ".Gridgreylast { background-color:LightYellow;border-bottom: 1px solid #000; font-family:%s;}\n"
     "</style>\n";
 
 const char* HtmlEndHeader=
@@ -45,6 +54,18 @@ const char* tablerow = "<tr>\n%s\n</tr>";
 ZHtmlCell::ZHtmlCell(const char*pContent,const char*pStyle)
 {
   Content=pContent;
+  if (pStyle)
+    Style=pStyle;
+}
+ZHtmlCell::ZHtmlCell(long pContent,const char*pStyle)
+{
+  Content.sprintf("%ld",pContent);
+  if (pStyle)
+    Style=pStyle;
+}
+ZHtmlCell::ZHtmlCell(int pContent,const char*pStyle)
+{
+  Content.sprintf("%d",pContent);
   if (pStyle)
     Style=pStyle;
 }
@@ -90,8 +111,12 @@ ZHtmlTableRow::ZHtmlTableRow(ZHtmlTableRow& pIn)
 
 void ZHtmlTableRow::addCell(const char* pText,const char*pStyle)
 {
-  Cells.push(new ZHtmlCell(pText,pStyle));
 
+  Cells.push(new ZHtmlCell(setupHtmlString(pText).toCChar(),pStyle));
+}
+void ZHtmlTableRow::addCell(long pNum,const char*pStyle)
+{
+  Cells.push(new ZHtmlCell(pNum,pStyle));
 }
 void ZHtmlTableRow::addCellAt(int pColumn,const ZHtmlCell& pCell)
 {
@@ -104,6 +129,14 @@ void ZHtmlTableRow::addCellAt(int pColumn,const ZHtmlCell& pCell)
 void ZHtmlTableRow::addCellAt(int pColumn,const char* pText,const char*pStyle)
 {
   addCellAt(pColumn,ZHtmlCell(pText,pStyle));
+}
+void ZHtmlTableRow::addCellAt(int pColumn,long pNum,const char*pStyle)
+{
+  addCellAt(pColumn,ZHtmlCell(pNum,pStyle));
+}
+void ZHtmlTableRow::addCellAt(int pColumn,int pNum,const char*pStyle)
+{
+  addCellAt(pColumn,ZHtmlCell(pNum,pStyle));
 }
 
 void ZHtmlTableRow::clear()
@@ -139,15 +172,26 @@ utf8String ZHtmlTableHeaderRow::get(int pColumnCount)
 }// ZHtmlTableHeaderRow::get()
 
 
-utf8String ZHtmlTableCommonRow::get(int pColumnCount,bool pGrey)
+utf8String ZHtmlTableCommonRow::get(int pColumnCount,bool pGrey,bool pLast)
 {
   //    if (Cells.count()==0)
   //      return utf8String("");
   utf8String wReturn;
   if (pGrey)
-    wReturn = "<tr class=\"Gridgrey\">";
+    {
+    if (pLast)
+      wReturn = "<tr class=\"Gridgreylast\">";
+      else
+      wReturn = "<tr class=\"Gridgrey\">";
+    }
   else
-    wReturn = "<tr class=\"Gridtransparent\">";
+    {
+      if (pLast)
+        wReturn = "<tr class=\"Gridtransparentlast\">";
+      else
+        wReturn = "<tr class=\"Gridtransparent\">";
+    }
+
   long wi=0;
   for (;(wi < pColumnCount)&&(wi<Cells.count());wi++)
   {
@@ -222,22 +266,15 @@ utf8String ZHtmlTable::get()
   bool wGrey=false;
   for (long wi=0;wi < Rows.count();wi++)
     {
-    wReturn += Rows[wi]->get(ColumnCount,wGrey);
+    wReturn += Rows[wi]->get(ColumnCount,wGrey,(wi==Rows.count()-1));
     if (AlternateRows)
               wGrey = !wGrey;
     }
 
+
   wReturn += "</table>\n";
   return wReturn;
 }//ZHtmlTable::get()
-
-
-
-
-
-
-
-
 
 
 ZHtmlReport::~ZHtmlReport()
@@ -254,23 +291,46 @@ ZHtmlReport::~ZHtmlReport()
     delete Font;
 }
 
-void ZHtmlReport::addTitle(const utf8String& pTitle)
+void ZHtmlReport::setTitle(const utf8String& pTitle)
 {
   if (Title)
     delete Title;
-  Title=new utf8String(pTitle);
+  Title=new utf8String;
+  Title->add(setupHtmlString(pTitle));
 }
+
+void ZHtmlReport::setIntroduction(const utf8String& pIntro)
+{
+  if (Introduction)
+    delete Introduction;
+  Introduction=new utf8String;
+  Introduction->add(setupHtmlString(pIntro));
+}
+void ZHtmlReport::setSignature(const utf8String& pSignature)
+{
+  if (Signature)
+    delete Signature;
+  Signature=new utf8String;
+  Signature->add(setupHtmlString(pSignature));
+}
+
 void ZHtmlReport::addParagraphBefore(const utf8String& pParagraph)
 {
-  if (ParBefore)
-    delete ParBefore;
-  ParBefore=new utf8String(pParagraph);
+/*  if (ParBefore)
+    delete ParBefore;*/
+  if (!ParBefore)
+      ParBefore=new utf8String;
+  ParBefore->addsprintf("<p>%s</p>",setupHtmlString(pParagraph).toCChar());
 }
 void ZHtmlReport::addParagraphAfter(const utf8String& pParagraph)
 {
-  if (ParAfter)
+/*  if (ParAfter)
     delete ParAfter;
-  ParAfter=new utf8String(pParagraph);
+  ParAfter=new utf8String(pParagraph);*/
+  if (!ParAfter)
+    ParAfter=new utf8String;
+
+  ParAfter->addsprintf("<p>%s</p>",setupHtmlString(pParagraph).toCChar());
 }
 
 void ZHtmlReport::addTable(int pColumns)
@@ -291,15 +351,23 @@ utf8String ZHtmlReport::get()
 
   utf8String wHeaderBackColor="lightskyblue";
   utf8String wFont="verdana";
+  if (Font)
+    wFont=*Font;
   if (Table)
     {
     if (Table->HeaderBackColor)
       wHeaderBackColor=*Table->HeaderBackColor;
-    }
-  if (Font)
-    wFont=*Font;
 
-  wReturn.addsprintf(HtmlStyle,wHeaderBackColor.toCChar(),wFont.toCChar(),wFont.toCChar());
+    wReturn.addsprintf(HtmlStyleTable,
+        wHeaderBackColor.toCChar(),
+        Table->getCellWidth().toCChar(),
+        Table->getCellWidth().toCChar());
+    wReturn.addsprintf(HtmlStyleGrid,
+        wFont.toCChar(),
+        wFont.toCChar(),
+        wFont.toCChar(),
+        wFont.toCChar());
+    }
 
   if (Title)
     {
@@ -313,9 +381,18 @@ utf8String ZHtmlReport::get()
   else
     wReturn += "<!--Message body-->\n<body>\n";
 
+  if (Introduction)
+  {
+    wReturn.addsprintf("<p>%s</p>\n",setupHtmlString(*Introduction).toCChar());
+//    wReturn.addsprintf("<p>%s</p>\n",Introduction->toCChar());
+ //   wReturn += *Introduction;
+  }
+
   if (ParBefore)
   {
+//    wReturn.addsprintf("<p>%s</p>\n",ParBefore->toCChar());
     wReturn.addsprintf("<p>%s</p>\n",setupHtmlString(*ParBefore).toCChar());
+//    wReturn += *ParBefore;
   }
 
   if (Table)
@@ -324,9 +401,16 @@ utf8String ZHtmlReport::get()
   }
   if (ParAfter)
   {
+//    wReturn.addsprintf("<p>%s</p>\n",ParAfter->toCChar());
     wReturn.addsprintf("<p>%s</p>\n",setupHtmlString(*ParAfter).toCChar());
+//    wReturn += *ParAfter;
   }
-
+  if (Signature)
+  {
+//    wReturn.addsprintf("<p>%s</p>\n",Signature->toCChar());
+    wReturn.addsprintf("<p>%s</p>\n",setupHtmlString(*Signature).toCChar());
+//    wReturn += *Signature;
+  }
   wReturn +=   HtmlTrailer;
 
   return wReturn;
@@ -444,8 +528,9 @@ FmtHtmlMail()
 
 }
 
-utf8String setupHtmlString(utf8String& wContent)
+utf8String setupHtmlString(const utf8String& pContent)
 {
+  utf8String wContent=pContent;
   wContent.replace("\"","&quot");
   wContent.replace("'","&apos");
 //  wContent.replace("<","&lt;");

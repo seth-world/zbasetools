@@ -7,7 +7,10 @@
 
 #include <ztoolset/zlocale.h>
 
-void GCleanCurrencyCode(void)
+
+ZLocale _zlocale;
+
+void ZLocale::GCleanCurrencyCode(void)
 {
     _free(GCurrencyCode8);
     _free(GCurrencyCode16);
@@ -15,9 +18,9 @@ void GCleanCurrencyCode(void)
 }
 
 UST_Status_type
-GGetLocaleCodes(const char*pLocale)
+ZLocale::GGetLocaleCodes(const char*pLocale)
 {
-    atexit(&GCleanCurrencyCode);
+//    atexit(&GCleanCurrencyCode);
     setlocale(LC_ALL, pLocale);
     setlocale(LC_NUMERIC, pLocale);
     setlocale(LC_MONETARY, pLocale);
@@ -25,10 +28,12 @@ GGetLocaleCodes(const char*pLocale)
 
      GLocaleInfo = localeconv();
 
-     GDecimalPoint = (const utf8_t*)GLocaleInfo->mon_decimal_point;
-     if (!GDecimalPoint || (GDecimalPoint[0]==0))
+     GDecimalPoint = (const utf8_t*)GLocaleInfo->decimal_point;
+/*     if (!GDecimalPoint || (GDecimalPoint[0]==0))
                         GDecimalPoint = (const utf8_t*)GLocaleInfo->decimal_point;
-
+*/
+     _ASSERT_(GDecimalPoint==nullptr,"%s-Cannot get decimal point from locale : decimal point is nullptr.",_GET_FUNCTION_NAME_)
+     fprintf(stdout,"decimal point is set to <%s>.\n",(const char*)GDecimalPoint);
      GThousandSep = (const utf8_t*)GLocaleInfo->mon_thousands_sep;
      GGrouping =(int) *GLocaleInfo->mon_grouping;
      GDecimalNb = (int) GLocaleInfo->int_frac_digits;
@@ -39,9 +44,8 @@ GGetLocaleCodes(const char*pLocale)
 }
 
 UST_Status_type
- GChangeLocaleCurrencyCode(const utf8_t *pCurrency)
+ZLocale::GChangeLocaleCurrencyCode(const utf8_t *pCurrency)
 {
-
 UST_Status_type wSt;
     if (!pCurrency)
            {
@@ -88,7 +92,7 @@ UST_Status_type wSt;
     *wUtf32Ptr=(utf32_t)'\0';
     *wUtf16Ptr=(utf16_t)'\0';
     if (ZVerbose)
-            fprintf (stdout,"%s> Currency symbol set to &s.\n",
+            fprintf (stdout,"%s> Currency symbol set to %s.\n",
                      _GET_FUNCTION_NAME_,
                      (const char*)GCurrencyCode8);
     return UST_SUCCESS;
@@ -96,13 +100,13 @@ UST_Status_type wSt;
 
 
 void
-GChangelocaleDecimalPoint(const utf8_t* pChar)
+ZLocale::GChangelocaleDecimalPoint(const utf8_t* pChar)
 {
     GDecimalPoint=pChar;
     return;
 }
 void
-GChangelocaleGroupSep(const utf8_t* pChar)
+ZLocale::GChangelocaleGroupSep(const utf8_t* pChar)
 {
     GThousandSep=pChar;
     return;
@@ -110,7 +114,7 @@ GChangelocaleGroupSep(const utf8_t* pChar)
 
 
 int
-getLocaleGroupNumber(void)
+ZLocale::getLocaleGroupNumber(void)
 {
 if (!GLocaleInfo)
      GGetLocaleCodes();
@@ -119,7 +123,7 @@ return GGrouping;
 }
 
 int
-getLocaleMonetaryDecimal(void)
+ZLocale::getLocaleMonetaryDecimal(void)
 {
 if (!GLocaleInfo)
      GGetLocaleCodes();
@@ -131,7 +135,7 @@ return GDecimalNb;
  * @return
  */
 ZBool
-getLocaleCurrencyPosition(void)
+ZLocale::getLocaleCurrencyPosition(void)
 {
 if (!GLocaleInfo)
      GGetLocaleCodes();
@@ -143,7 +147,7 @@ return GLocaleInfo->p_cs_precedes;
  * @return
  */
 ZBool
-getLocaleSignPosition(void)
+ZLocale::getLocaleSignPosition(void)
 {
 if (!GLocaleInfo)
      GGetLocaleCodes();

@@ -23,7 +23,9 @@
 #ifdef QT_CORE_LIB
    #include <QString>
 //   #include <QtGui>
+#ifdef QT_GUI_LIB
    #include <QMessageBox>
+#endif
 #endif
 
 #include <unicode/utypes.h>  // for UErrorCode etc...
@@ -186,11 +188,12 @@ public:
 
 
     QString formatUserMessage (void);
-
+#ifdef QT_GUI_LIB
     int messageBox(utfdescString &pTitle, utfexceptionString &pUserMessage);
     int documentMessageBox(utfdescString &pTitle, utfexceptionString &pUserMessage);
     int messageBox(const char* pTitle,const char * pUserMessage);
     int documentMessageBox(const char* pTitle,const char * pUserMessage);
+#endif // QT_GUI_LIB
 
 #endif
 
@@ -345,12 +348,14 @@ public:
 #endif
     void printUserMessage (FILE *pOutput=stderr, bool pDelete=true);
 
+    utf8VaryingString lastUtf8()   ;
+
 #ifdef QT_CORE_LIB
     void setComplementQS (QString pQS) {last().setComplementQS(pQS);}
 
     QString formatUserMessage (void){return last().formatUserMessage();}
-    utf8VaryingString lastUtf8()   ;
 
+#ifdef QT_GUI_LIB
     int messageBox(utfdescString &pTitle, utfexceptionString &pUserMessage)
     {
         return last().messageBox(pTitle,pUserMessage);
@@ -358,7 +363,7 @@ public:
     int documentMessageBox(utfdescString &pTitle, utfexceptionString &pUserMessage){ return last().documentMessageBox(pTitle,pUserMessage);}
     int messageBox(const char* pTitle,const char * pUserMessage){return last().documentMessageBox(pTitle,pUserMessage);}
     int documentMessageBox(char* pTitle,char * pUserMessage){return last().documentMessageBox(pTitle,pUserMessage);}
-
+#endif//QT_GUI_LIB
 #endif// QT_CORE_LIB
 /**
  *  Defines/redefines the Severity level to which an action must be taken : either throw ZException or invoke exit_abort

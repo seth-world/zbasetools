@@ -958,6 +958,8 @@ return;
 }
 
 
+#ifdef QT_GUI_LIB
+
 int ZExceptionBase::messageBox(const char* pTitle,const char * pUserMessage)
 {
     utfdescString wT;
@@ -968,9 +970,11 @@ int ZExceptionBase::messageBox(const char* pTitle,const char * pUserMessage)
     return messageBox(wT,wM);
 }
 #include <ztoolset/zsystemuser.h>
+
 int
 ZExceptionBase::messageBox(utfdescString &pTitle,utfexceptionString &pUserMessage)
 {
+
 QString wM;
     QMessageBox::Icon wIcon;
     switch (Severity)
@@ -1064,6 +1068,8 @@ QString wM;
                 }
 
     return(wMsg.buttonRole(wMsg.clickedButton()));
+
+
 }//messageBox
 
 int ZExceptionBase::documentMessageBox(const char* pTitle,const char * pUserMessage)
@@ -1169,7 +1175,7 @@ QString wM;
 
     return(wMsg.buttonRole(wMsg.clickedButton()));
 }//documentmessageBox
-
+#endif//#ifdef QT_GUI_LIB
 
 #endif // #ifdef QT_CORE_LIB
 

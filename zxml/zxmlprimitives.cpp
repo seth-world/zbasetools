@@ -65,7 +65,16 @@ std::string fmtXMLchar(const char*pVarName,const char* pVarContent, const int pL
             wIndent,' ',pVarName,pVarContent,pVarName);
     return std::string(wBuffer);
 }
-
+std::string fmtXMLcomment(const char* pContent, const int pLevel)
+{
+  int wIndent=pLevel*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+  sprintf (wBuffer,
+      "%*c<!-- %s -->\n",
+      wIndent,' ',pContent);
+  return std::string(wBuffer);
+}
 std::string fmtXMLstring(const char*pVarName,utf8String& pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;

@@ -26,11 +26,11 @@
  * @param pLen
  */
 void
-checkSum::compute(unsigned char *pInBuffer,size_t pLen)
+checkSum::compute(const unsigned char *pInBuffer,size_t pLen)
 {
 
     clear();
-    SHA256((unsigned char *)pInBuffer,pLen,content);
+    SHA256((const unsigned char *)pInBuffer,pLen,content);
     return;
 }
 /*checkSum &
@@ -185,7 +185,6 @@ checkSum::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal
 checkSum &
 checkSum::fromQByteArray (const QByteArray &pQBA)
 {
-
     if (pQBA.size()!=cst_checksum)
                 {
                 fprintf(stderr,
@@ -198,26 +197,6 @@ checkSum::fromQByteArray (const QByteArray &pQBA)
     memmove(content,pQBA.data(),pQBA.size());
     return *this;
 }//fromQByteArray
-/*
-checkSum &
-checkSum::fromQDataBuffer (const ZDataBuffer &pQDB)
-{
-    if (pQDB.Size!=cst_checksum)
-                    {
-                    ZException.setMessage(_GET_FUNCTION_NAME_,
-                                          ZS_INVOP,
-                                          Severity_Fatal,
-                                          "-F-INVCHECKSUMINPUT Invalid checksum input size %d in place of %d required (SHA256)\n",
-                                          pQDB.Size,
-                                          cst_checksum);
-                    ZException.exit_abort();
-                    }
-    memmove(content,pQDB.Data,pQDB.Size);
-    return *this;
-}
-*/
-
-
 #endif // QT_CORELIB
 
 

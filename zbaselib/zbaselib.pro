@@ -4,8 +4,11 @@
 #
 #-------------------------------------------------
 
-QT += core gui xml
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+#QT += core gui xml
+#greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+QT -= core
+QT -= gui
 
 TEMPLATE = lib
 CONFIG += c++17 shared dll
@@ -223,8 +226,6 @@ INCLUDEPATH +=  /usr/include/libxml2
 #                /usr/lib/x86_64-linux-gnu/glibmm-2.4/include
 
 
-
-
 HEADERS += zconfig.h \
     $$TOOLSET_BASE/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/zarray.h \
@@ -232,10 +233,11 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/zerror.h \
     $$TOOLSET_BASE/zio/zdir.h \
     $$TOOLSET_BASE/zthread/zthread.h \
+    $$TOOLSET_BASE/zthread/zarglist.h \
     $$TOOLSET_BASE/ztoolset/zexceptionmin.h \
     $$TOOLSET_BASE/ztoolset/zbasedatatypes.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_doc.h \
-    $$TOOLSET_BASE/zxml/qxmlutilities.h \
+#    $$TOOLSET_BASE/zxml/qxmlutilities.h \
     $$TOOLSET_BASE/ztoolset/zdatabuffer.h \
     $$TOOLSET_BASE/ztoolset/zdate.h \
     $$TOOLSET_BASE/ztoolset/uristring.h \
@@ -291,19 +293,12 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/zbitset.h \
     $$TOOLSET_BASE/ztoolset/templatewstring.h \
     $$TOOLSET_BASE/ztoolset/zfunctions.h \
- #   $$TOOLSET_BASE/ztoolset/templatestring.h \
-#    $$TOOLSET_BASE/ztoolset/zwstrings.h \
-    ../ztoolset/charman.h \
-    ../ztoolset/userid.h \
-    ../ztoolset/zaierrors.h \
-    ../ztoolset/zhtmlreport.h \
-    ../ztoolset/zstatus.h \
-    ../zxml/zxmlprimitives.h \
- \ #   $$TOOLSET_BASE/ztoolset/zstrings.h \  #renamed as zstrings_old.h
-    $$TOOLSET_BASE/zthread/zarglist.h
-
-
-
+    $$TOOLSET_BASE/ztoolset/charman.h \
+    $$TOOLSET_BASE/ztoolset/userid.h \
+    $$TOOLSET_BASE/ztoolset/zaierrors.h \
+    $$TOOLSET_BASE/ztoolset/zhtmlreport.h \
+    $$TOOLSET_BASE/ztoolset/zstatus.h \
+    $$TOOLSET_BASE/zxml/zxmlprimitives.h
 
 
 
@@ -312,16 +307,16 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/zio/zdir.cpp \
     $$TOOLSET_BASE/ztoolset/zbasedatatypes.cpp \
     $$TOOLSET_BASE/ztoolset/zexceptionmin.cpp \
-    $$TOOLSET_BASE/zxml/qxmlutilities.cpp \
+#    $$TOOLSET_BASE/zxml/qxmlutilities.cpp \
     $$TOOLSET_BASE/zthread/zthread.cpp \
     $$TOOLSET_BASE/ztoolset/zdatabuffer.cpp \
     $$TOOLSET_BASE/ztoolset/zdate.cpp \
     $$TOOLSET_BASE/ztoolset/uristring.cpp \
     $$TOOLSET_BASE/ztoolset/ztime.cpp \
 #    $$TOOLSET_BASE/ztoolset/zstrings.cpp \  #renamed as zstrings_old.cpp
-    ../ztoolset/zaierrors.cpp \
-    ../ztoolset/zhtmlreport.cpp \
-    ../zxml/zxmlprimitives.cpp \
+    $$TOOLSET_BASE/ztoolset/zaierrors.cpp \
+    $$TOOLSET_BASE/ztoolset/zhtmlreport.cpp \
+    $$TOOLSET_BASE/zxml/zxmlprimitives.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
     $$TOOLSET_BASE/zthread/zmutex.cpp \

@@ -61,6 +61,9 @@ std::string fmtXMLendnode(const char *pNodeName, const int pLevel);
 
 std::string fmtXMLchar(const char *pVarName, const char *pVarContent, const int pLevel);
 
+std::string fmtXMLcomment(const char *pContent, const int pLevel);
+
+
 std::string fmtXMLstring(const char *pVarName, utf8String &pVarContent, const int pLevel);
 std::string fmtXMLdouble(const char *pVarName, const double pVarContent, const int pLevel);
 std::string fmtXMLfloat(const char *pVarName, const float pVarContent, const int pLevel);

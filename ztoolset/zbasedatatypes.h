@@ -2,7 +2,7 @@
 #define ZBASEDATATYPES_H
 #include <iostream>
 
-#include <QDate>
+//#include <QDate>
 #include <openssl/evp.h>
 
 #include <ztoolset/zerror.h>

@@ -102,6 +102,20 @@ utf8VString::fromUtf32(const utf32_t* pString)
 
 /** @endcond */ //Development
 
-
+const char*
+getUnitFormat(uint8_t pSize)
+{
+  switch(pSize)
+  {
+  case 1:
+    return "UTF-8";
+  case 2:
+    return "UTF-16";
+  case 4:
+    return "UTF-32";
+  default:
+    return "Invalid char unit size";
+  }
+}
 
 #endif // UTFVTEMPLATESTRING_CPP

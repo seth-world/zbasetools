@@ -1028,6 +1028,18 @@ void ZDataBuffer::Dump_old(const int pColumn,FILE* pOutput)
 */
 
 }//Dump_old
+void ZDataBuffer::Dump(const char*pFilePath, const int pColumn, ssize_t pLimit)
+{
+  FILE* wDF=fopen(pFilePath,"w");
+  if (!wDF)
+  {
+    fprintf(stderr,"ZDataBuffer::Dump-E-IVPATH Cannot open file <%s> for writting.\n",pFilePath);
+    return;
+  }
+  Dump(pColumn,pLimit,wDF);
+  fclose(wDF);
+}
+
 void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
 {
     ZDataBuffer wRulerAscii;

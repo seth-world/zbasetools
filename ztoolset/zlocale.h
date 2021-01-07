@@ -6,24 +6,8 @@
 #include <ztoolset/zlimit.h>  /* for utf8_t etc. */
 
 #include <ztoolset/utfstrctx.h> // for UST_Status values
-
 #include <ztoolset/zsymbols.h> // for preprocessor symbol codes
 
-static uint8_t _DecimalPointContent[4];     /* 4 bytes storage for decimal point value */
-static uint8_t _ThousandSepContent[4];      /* 4 bytes storage for thousand separator value */
-static uint8_t _CurrencySymbolContent[10];  /* 10 bytes storage for thousand separator value */
-
-static const utf8_t*GCurrencyCode=nullptr;
-static const utf8_t*GDecimalPoint=nullptr;
-
-static const utf8_t*GThousandSep=nullptr;
-
-static      int     GGrouping=0;
-static      int     GDecimalNb=0;
-
-static utf8_t*GCurrencyCode8=nullptr;
-static utf16_t*GCurrencyCode16=nullptr;
-static utf32_t*GCurrencyCode32=nullptr;
 
 /**
  * @defgroup LOCALE_PARAMS Locale parameters
@@ -47,8 +31,13 @@ static utf32_t*GCurrencyCode32=nullptr;
  *
  */
 
-void GCleanCurrencyCode(void);
-/**
+class ZLocale
+{
+public:
+  ZLocale()=default;
+  ~ZLocale()  {GCleanCurrencyCode();}
+  void GCleanCurrencyCode(void);
+  /**
  * @brief GGetLocaleCodes sets or resets locale dependent data.<br>
  *  To have a valid list of locale definitions to use as argument pLocale,
  * you may type at console level <locale -a>  <br>
@@ -57,6 +46,95 @@ void GCleanCurrencyCode(void);
  *
  * @param pLocale a valid locale name as a const char* string
  */
+  UST_Status_type GGetLocaleCodes(const char*pLocale="");
+  UST_Status_type GChangeLocaleCurrencyCode(const utf8_t *pCurrency);
+  void GChangelocaleDecimalPoint(const utf8_t* pChar);
+  void GChangelocaleGroupSep(const utf8_t* pChar);
+  int getLocaleGroupNumber(void);
+  int getLocaleMonetaryDecimal(void);
+  ZBool getLocaleCurrencyPosition(void);
+  ZBool getLocaleSignPosition(void);
+
+
+
+  template <class _Utf>
+  _Utf
+  getLocaleDecimalPoint(void)
+  {
+    if (!GLocaleInfo)
+      GGetLocaleCodes();
+
+    if (GDecimalPoint==nullptr)
+      return (_Utf)'.';
+    return (_Utf)*GDecimalPoint;
+  }
+
+  template <class _Utf>
+  _Utf*
+  getLocaleCurrencyCode(void)
+  {
+    if (!GLocaleInfo)
+      GGetLocaleCodes();
+
+    switch (sizeof(_Utf))
+    {
+    case sizeof(utf8_t):
+      return (_Utf*)GCurrencyCode8;
+    case sizeof(utf16_t):
+      return (_Utf*)GCurrencyCode16;
+    case sizeof(utf32_t):
+      return (_Utf*)GCurrencyCode32;
+    default:
+      break;
+    }
+  }//getLocalCurrencyCode
+
+  template <class _Utf>
+  _Utf
+  getLocaleGroupSeparator(void)
+  {
+    if (!GLocaleInfo)
+      GLocaleInfo = localeconv();
+    if (!GLocaleInfo->mon_thousands_sep)
+    {
+      if (!*GLocaleInfo->mon_thousands_sep)
+        return (_Utf)__SPACE__;
+      else
+        return (_Utf)*GLocaleInfo->thousands_sep;
+    }
+    if (!(_Utf)*GLocaleInfo->mon_thousands_sep)
+      return (_Utf)__SPACE__;
+    return (_Utf)*GLocaleInfo->mon_thousands_sep;
+  }
+
+
+
+uint8_t _DecimalPointContent[4];     /* 4 bytes storage for decimal point value */
+uint8_t _ThousandSepContent[4];      /* 4 bytes storage for thousand separator value */
+uint8_t _CurrencySymbolContent[10];  /* 10 bytes storage for thousand separator value */
+
+const utf8_t*GCurrencyCode=nullptr;
+const utf8_t*GDecimalPoint=nullptr;
+
+const utf8_t*GThousandSep=nullptr;
+
+int     GGrouping=0;
+int     GDecimalNb=0;
+
+utf8_t*GCurrencyCode8=nullptr;
+utf16_t*GCurrencyCode16=nullptr;
+utf32_t*GCurrencyCode32=nullptr;
+lconv *GLocaleInfo = nullptr;
+};//ZLocale
+
+#ifndef ZLOCALE_CPP
+extern ZLocale _zlocale;
+#endif
+
+
+/*
+void GCleanCurrencyCode(void);
+
 UST_Status_type GGetLocaleCodes(const char *pLocale="");
 
 
@@ -66,60 +144,12 @@ void GChangelocaleDecimalPoint(const utf8_t* pChar);
 void GChangelocaleGroupSep(const utf8_t *pChar);
 
 
-static lconv *GLocaleInfo = nullptr;
 
-template <class _Utf>
-_Utf
-getLocaleDecimalPoint(void)
-{
-if (!GLocaleInfo)
-        GGetLocaleCodes();
-
-return (_Utf)*GDecimalPoint;
-}
-
-template <class _Utf>
-_Utf*
-getLocaleCurrencyCode(void)
-{
-    if (!GLocaleInfo)
-            GGetLocaleCodes();
-
-    switch (sizeof(_Utf))
-    {
-    case sizeof(utf8_t):
-        return (_Utf*)GCurrencyCode8;
-    case sizeof(utf16_t):
-        return (_Utf*)GCurrencyCode16;
-    case sizeof(utf32_t):
-        return (_Utf*)GCurrencyCode32;
-    default:
-        break;
-    }
-}//getLocalCurrencyCode
-
-template <class _Utf>
-_Utf
-getLocaleGroupSeparator(void)
-{
-if (!GLocaleInfo)
-     GLocaleInfo = localeconv();
-    if (!GLocaleInfo->mon_thousands_sep)
-            {
-        if (!*GLocaleInfo->mon_thousands_sep)
-                return (_Utf)__SPACE__;
-            else
-                return (_Utf)*GLocaleInfo->thousands_sep;
-            }
-    if (!(_Utf)*GLocaleInfo->mon_thousands_sep)
-                            return (_Utf)__SPACE__;
-return (_Utf)*GLocaleInfo->mon_thousands_sep;
-}
 
 int getLocaleGroupNumber(void);
 int getLocaleMonetaryDecimal(void);
 ZBool getLocaleCurrencyPosition(void);
 ZBool getLocaleSignPosition(void);
-
+*/
 
 #endif // ZLOCALE_H

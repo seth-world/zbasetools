@@ -1944,7 +1944,7 @@ utfFormatFPF(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         }//if (FMTF_NonSignif)
 
     if ((pFmtFlags & FMTF_Hash)||(pFieldPrecision>0)) /* if FMTF_Hash is set or precision > 0, there is a decimal point */
-                            wDecimalPoint= getLocaleDecimalPoint<_Utf> ();
+      wDecimalPoint= _zlocale.getLocaleDecimalPoint<_Utf> ();
 
     if (wSignvalue &&!(pFmtFlags & FMTF_SignFolw)&&!(pFmtFlags & FMTF_SignPrec)) /* if neither option for sign positionning */
                                                         pFmtFlags |= FMTF_SignPrec; /* sign preceeds : this is the default */
@@ -2164,7 +2164,7 @@ utfFormatFPE(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         wExponent = 0 ;
         wLDFSignificant = 0.0 ;
         if (pFieldPrecision>0)
-                wDecimalPoint = getLocaleDecimalPoint<_Utf>();
+                wDecimalPoint = _zlocale.getLocaleDecimalPoint<_Utf>();
         }
     else
         {
@@ -2334,7 +2334,7 @@ utfFormatFPE(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 /* here we have to decide wether to print decimal point */
 
     if ((pFieldPrecision>0)||(pFmtFlags & FMTF_Hash))
-                wDecimalPoint= getLocaleDecimalPoint<_Utf> ();  /* get local decimal sign only if there is a precision >0 or Hash flag set*/
+                wDecimalPoint= _zlocale.getLocaleDecimalPoint<_Utf> ();  /* get local decimal sign only if there is a precision >0 or Hash flag set*/
 
     if ((wFDigitsNb<2)&&(wLDFSignificant!=0.0))
                                     wDecimalPoint=0;
@@ -2663,7 +2663,7 @@ utfFormatFPG(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 
 
     if ((pFmtFlags & FMTF_Hash)||(wFractNb > 0)) /* if FMTF_Hash is set or fractional digit number > 0, there is a decimal point */
-                            wDecimalPoint= getLocaleDecimalPoint<_Utf> ();
+                            wDecimalPoint= _zlocale.getLocaleDecimalPoint<_Utf> ();
 
     if (wSignvalue &&!(pFmtFlags & FMTF_SignFolw)&&!(pFmtFlags & FMTF_SignPrec)) /* if neither option for sign positionning */
                                                         pFmtFlags |= FMTF_SignPrec; /* sign preceeds : this is the default */
@@ -2895,13 +2895,13 @@ utfFormatFPA(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
             if (wPrecision < 1)
                     wPrecision = 0;
                 else
-                    wDecimalPoint = getLocaleDecimalPoint<_Utf>();
+                    wDecimalPoint = _zlocale.getLocaleDecimalPoint<_Utf>();
             }
             else
             wPrecision = 0;
         if (!wPrecision&&(pFmtFlags&FMTF_Hash))
                     {
-                    wDecimalPoint = getLocaleDecimalPoint<_Utf>();
+                    wDecimalPoint = _zlocale.getLocaleDecimalPoint<_Utf>();
                     wPrecision=1;
                     }
         /* pad len = field minimum size - decimal point - size of exponent - sign size - size of '0X' */
@@ -2982,7 +2982,7 @@ utfFormatFPA(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 /* ------------up to here value is not 0.0 ---------------------*/
 
     if ((pFmtFlags & FMTF_Hash)||(wPrecision > 0))
-                            wDecimalPoint= getLocaleDecimalPoint<_Utf> (); /* get local decimal sign. */
+                            wDecimalPoint= _zlocale.getLocaleDecimalPoint<_Utf> (); /* get local decimal sign. */
 
     if (pFvalue < 0.0)
             {
@@ -3309,9 +3309,9 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
      * is 6, and sprintf on AIX defaults to 6
      */
     if (!(pFmtFlags & FMTF_Precision)) /* no precision given */
-                    pFieldPrecision = getLocaleMonetaryDecimal();    /* Default amount precision is defined by locale */
+                    pFieldPrecision = _zlocale.getLocaleMonetaryDecimal();    /* Default amount precision is defined by locale */
     if (pFieldPrecision < 0)
-                    pFieldPrecision = getLocaleMonetaryDecimal(); /* or precision flag is set but number is negative ??? */
+                    pFieldPrecision = _zlocale.getLocaleMonetaryDecimal(); /* or precision flag is set but number is negative ??? */
 
     wUfvalue = abs_val(pFvalue);
 
@@ -3368,11 +3368,11 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         }//if (FMTF_NonSignif)
 
     if ((pFmtFlags & FMTF_Hash)||(pFieldPrecision>0)) /* if FMTF_Hash is set or precision > 0, there is a decimal point */
-                            wDecimalPoint= getLocaleDecimalPoint<_Utf> ();
+                            wDecimalPoint= _zlocale.getLocaleDecimalPoint<_Utf> ();
 
     if (wSignvalue && !(pFmtFlags & FMTF_SignFolw)&&!(pFmtFlags & FMTF_SignPrec)) /* if neither option for sign positionning */
             {
-            if (getLocaleSignPosition())                /* see locale */
+            if (_zlocale.getLocaleSignPosition())                /* see locale */
                         pFmtFlags |= FMTF_SignPrec;
                     else
                         pFmtFlags |= FMTF_SignFolw;
@@ -3380,7 +3380,7 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 
     if (pFmtFlags & FMTF_Currency)
         {
-        wCurrency=getLocaleCurrencyCode<_Utf>();
+        wCurrency=_zlocale.getLocaleCurrencyCode<_Utf>();
         wCurrencySize=utfStrlen<_Utf>(wCurrency); /* must be replaced with appropriate utfCount routine : canonical character and not char unit count */
         }
 
@@ -3413,7 +3413,7 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 
     if (pFmtFlags & FMTF_Currency )
             {
-            _Utf* wCur=getLocaleCurrencyCode<_Utf>();
+            _Utf* wCur=_zlocale.getLocaleCurrencyCode<_Utf>();
             int wLCur=utfStrlen<_Utf>(wCur);
             wLCur--;
             while (wLCur>=0)
@@ -3428,7 +3428,7 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
     int wDigitIdx=0;
 
     if (pFieldPrecision)
-            wDecimalPoint = getLocaleDecimalPoint<_Utf>();
+            wDecimalPoint = _zlocale.getLocaleDecimalPoint<_Utf>();
 
     wThousandSep=0;
 
@@ -3438,8 +3438,8 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         {
             if (pFmtFlags & FMTF_Group)
                     {
-                    wThousandSep=getLocaleGroupSeparator<_Utf>();
-                    wLocalGroupNumber= getLocaleGroupNumber();
+                    wThousandSep=_zlocale.getLocaleGroupSeparator<_Utf>();
+                    wLocalGroupNumber= _zlocale.getLocaleGroupNumber();
                     }
         }//if (!pFieldPrecision)
 
@@ -3453,8 +3453,8 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
                         wDecimalPoint=0;
                         if (pFmtFlags & FMTF_Group)
                                 {
-                                wThousandSep=getLocaleGroupSeparator<_Utf>();
-                                wLocalGroupNumber= getLocaleGroupNumber();
+                                wThousandSep=_zlocale.getLocaleGroupSeparator<_Utf>();
+                                wLocalGroupNumber= _zlocale.getLocaleGroupNumber();
                                 wGC=0;
                                 }
                         }
@@ -3587,9 +3587,9 @@ utfFormatFPK_1(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
      * is 6, and sprintf on AIX defaults to 6
      */
     if (!(pFmtFlags & FMTF_Precision)) /* no precision given */
-                    pFieldPrecision = getLocaleMonetaryDecimal();    /* Default amount precision is defined by locale */
+                    pFieldPrecision = _zlocale.getLocaleMonetaryDecimal();    /* Default amount precision is defined by locale */
     if (pFieldPrecision < 0)
-                    pFieldPrecision = getLocaleMonetaryDecimal(); /* or precision flag is set but number is negative ??? */
+                    pFieldPrecision = _zlocale.getLocaleMonetaryDecimal(); /* or precision flag is set but number is negative ??? */
 
     wUfvalue = abs_val(pFvalue);
 
@@ -3649,11 +3649,11 @@ utfFormatFPK_1(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 
 
     if ((pFmtFlags & FMTF_Hash)||(pFieldPrecision>0)) /* if FMTF_Hash is set or precision > 0, there is a decimal point */
-                            wDecimalPoint= getLocaleDecimalPoint<_Utf> ();
+                            wDecimalPoint= _zlocale.getLocaleDecimalPoint<_Utf> ();
 
     if (wSignvalue && !(pFmtFlags & FMTF_SignFolw)&&!(pFmtFlags & FMTF_SignPrec)) /* if neither option for sign positionning */
             {
-            if (getLocaleSignPosition())                /* see locale */
+            if (_zlocale.getLocaleSignPosition())                /* see locale */
                         pFmtFlags |= FMTF_SignPrec;
                     else
                         pFmtFlags |= FMTF_SignFolw;
@@ -3661,7 +3661,7 @@ utfFormatFPK_1(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
 
     if (pFmtFlags & FMTF_Currency)
         {
-        wCurrency=getLocaleCurrencyCode<_Utf>();
+        wCurrency=_zlocale.getLocaleCurrencyCode<_Utf>();
         wCurrencySize=utfStrlen<_Utf>(wCurrency); /* must be replaced with appropriate utfCount routine : canonical character and not char unit count */
         }
 
@@ -3693,8 +3693,8 @@ utfFormatFPK_1(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
     int wFirstSepPosition=0;
     if (pFmtFlags & FMTF_Group)
         {
-        wGroupSeparator=getLocaleGroupSeparator<_Utf>();
-        wLocalGroupNumber=getLocaleGroupNumber();
+        wGroupSeparator=_zlocale.getLocaleGroupSeparator<_Utf>();
+        wLocalGroupNumber=_zlocale.getLocaleGroupNumber();
         wGroups =((wDigitsNb-pFieldPrecision) /wLocalGroupNumber) ;// get number of separators to use
         wFirstSepPosition=(wDigitsNb-pFieldPrecision) % wLocalGroupNumber;
         if (!((wDigitsNb-pFieldPrecision) % wLocalGroupNumber))

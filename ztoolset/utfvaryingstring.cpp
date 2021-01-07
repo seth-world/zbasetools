@@ -40,16 +40,16 @@ size_t UVScalcDecodeLengthB64(const uint8_t *b64input, size_t pSize) { //Calcula
 
 /**
  * @brief utf8VaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
- *
  *  Encode the exact content length of utfVaryingString EXCLUDING termination character ('\0').
  *  termination character is added AFTER encoding to string content.
  *
- * @return  a reference to utfVaryingString with encoded data
+ * @return  a new utfVaryingString with encoded data. Source string remains unchanged.
  */
 
-utf8VaryingString&
-utf8VaryingString::encodeB64( void )
+utf8VaryingString
+utf8VaryingString::encodeB64( void ) const
 {
+  utf8VaryingString wReturn;
     BIO *bio, *b64;
     BUF_MEM *bptr;
     const unsigned char*  wPtr;
@@ -81,14 +81,14 @@ utf8VaryingString::encodeB64( void )
     //    BIO_get_mem_ptr(b64, &bptr);
     //    setData(bptr->data,bptr->length);
     wLen=BIO_get_mem_data(b64, &wPtr);
-    setData(wPtr,wLen);
+    wReturn.setData(wPtr,wLen);
     BIO_free_all(b64);
-    CryptMethod = ZCM_Base64;
-    if (Data[wLen-1]=='\n')   // BIO_FLAGS_BASE64_NO_NL seems not to work correctly a newline is systematically added at the end
-      Data[wLen-1]='\0';
+    wReturn.CryptMethod = ZCM_Base64;
+    if (wReturn.Data[wLen-1]=='\n')   // BIO_FLAGS_BASE64_NO_NL seems not to work correctly a newline is systematically added at the end
+      wReturn.Data[wLen-1]='\0';
     else
-      addTermination();
-    return *this;
+      wReturn.addTermination();
+    return wReturn;
 } //-----------------encodeB64-------------------
 
 
@@ -99,9 +99,10 @@ utf8VaryingString::encodeB64( void )
  * @return a reference to utfVaryingString with decoded data
  */
 
-utf8VaryingString&
-utf8VaryingString::decodeB64(void)
+utf8VaryingString
+utf8VaryingString::decodeB64(void) const
 {
+  utf8VaryingString wReturn;
     //----------------------------------------------
     BIO *bio,*b64 ;
 
@@ -115,19 +116,19 @@ utf8VaryingString::decodeB64(void)
     bio = BIO_push(b64, bio);
 
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Do not use newlines to flush buffer
-    ByteSize = BIO_read(bio, buffer, ByteSize);
+    wReturn.ByteSize = BIO_read(bio, buffer, ByteSize);
     //     assert(Size == (decodeLen-1)); //length should equal decodeLen, else something went horribly wrong
     BIO_free_all(bio);
     //     allocate (Size+1);
     //     memmove (Data,buffer,Size);
     //     Data[Size]='\0';
-    setData(buffer,ByteSize);
+    wReturn.setData(buffer,ByteSize);
     //    addTermination();
 
     free(buffer);
-    CryptMethod = ZCM_Uncrypted;
-    addConditionalTermination();
-    //    return(*this);
+    wReturn.CryptMethod = ZCM_Uncrypted;
+    wReturn.addConditionalTermination();
+    return(wReturn);
 } // ------------decodeB64---------------------
 
 

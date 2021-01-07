@@ -2400,12 +2400,23 @@ size_t wIF=0,wFM=pFormat+4-wCheckFormatStart;
     wFormatBuf[wIF]='\0';
 
     fprintf (stderr,
-             "%s>>  --------while processing format specifier rank <%d> <%s>, character \/%c\/ has not been understood------- \n"
+             "%s-W  --------while processing format specifier rank <%d> <%s>, character \/%c\/ has not been understood------- \n"
              " Warning: format specifier is skipped. Check your vars. A mismatch vars/format specifier will occur.\n",
              _GET_FUNCTION_NAME_,
              wFormatSpecifier,
              wFormatBuf,
              (char)*pFormat);
+
+    wSt=utfFormatStringChunk(pOutOET,
+        pBuffer,
+        &wCurrlen,
+        pMaxlen,
+        OET_UTF8,
+        (void *)wFmtStart,
+        1,
+        pConverter);
+    if (wSt < UST_SEVERE)
+    {return wSt;}
 //==================
     } // Main loop
 //==================

@@ -166,6 +166,11 @@ public:
     utfdescString getBasename() const ;
     utfdescString getRootBasename() const;
 
+    /** @brief getUrl() gets an url from local file path definition */
+    utf8String getUrl() const;
+    /** @brief getLocal () gets an uriString certified to be a local file name */
+    uriString getLocal () const;
+
     uriString &setDirectoryPath(uriString &pDirectoryPath);
 
     static utfdescString getUniqueName (const char* pRootName);
@@ -213,6 +218,7 @@ public:
     ZStatus loadContentZTerm(ZDataBuffer &pDBS) ; /* same as loadContent but forces Zero termination */
 
     ZStatus writeContent (ZDataBuffer &pDBS) ;
+    ZStatus appendContent (ZDataBuffer &pDBS) ;
 
     ZStatus writeAES256(ZDataBuffer &pDBS,const ZCryptKeyAES256& pKey,const ZCryptVectorAES256& pVector) ;
     /**
@@ -222,6 +228,7 @@ public:
      * @return  a ZStatus
      */
     ZStatus writeContent (utf8VaryingString &pStr) ;
+    ZStatus appendContent (utf8VaryingString &pStr) ;
 //    ZStatus writeText (varyingCString &pDBS) ;
 
     bool    exists(void) const  ;

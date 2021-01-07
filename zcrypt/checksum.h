@@ -29,7 +29,7 @@ public:
     char StrHexa[cst_checksumHexa+3];
 
     checkSum(void) {clear();}
-    checkSum(unsigned char *pInBuffer,size_t pLen) {compute(pInBuffer,pLen);}
+    checkSum(const unsigned char *pInBuffer,size_t pLen) {compute(pInBuffer,pLen);}
 //    checkSum(ZDataBuffer &pZDBData) {compute(pZDBData); return;}
 
     checkSum& setContent(unsigned char *pInBuffer,size_t pLen) {memmove (content,pInBuffer,pLen); return *this;}
@@ -42,8 +42,8 @@ public:
     bool isEmpty(void) {return (isClear()); }
     checkSum &clear(void) {memset(content,0,cst_checksum);return(*this);}
 
-    void compute(unsigned char *pInBuffer,size_t pLen);
-    void compute(char *pInBuffer,size_t pLen) {compute ((unsigned char *)pInBuffer,pLen); return;}
+    void compute(const unsigned char *pInBuffer,size_t pLen);
+    void compute(const char *pInBuffer,size_t pLen) {compute ((const unsigned char *)pInBuffer,pLen); return;}
 //    checkSum& compute (ZDataBuffer &pDataBuffer);
 //    template <class _Utf>
 //    checkSum& compute (utfVaryingString<_Utf> &pDataBuffer);
@@ -54,9 +54,6 @@ public:
 
 #ifdef QT_CORE_LIB
     checkSum & fromQByteArray (const QByteArray &pQBA) ;
-    checkSum & fromQDataBuffer (const ZDataBuffer &pQDB);
-//    QByteArray toQByteArray(void) {return(QByteArray((char*)content,size()));}
-
     checkSum &operator = (const QByteArray &pQBA) {return(fromQByteArray(pQBA));}
 #endif
     /** @brief fromHexa() converts a checkSum pInput expressed as a string containing hexadecimal printable values and set it as binary content

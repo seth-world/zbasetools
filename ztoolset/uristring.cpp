@@ -370,6 +370,35 @@ uriString::getRootBasename () const
             }
     return pExt;
 }//getRootBasename
+#include <limits.h>
+#include <stdlib.h>
+utf8String
+uriString::getUrl () const
+{
+  if (::strncmp((const char*)content,"file://",7)==0)
+    return utf8String(content);
+
+  utf8String wReturn;
+  char* wCRet=nullptr;
+  wCRet=realpath((const char*)content,nullptr);
+  wReturn = "file://";
+  wReturn += wCRet;
+  free((void*)wCRet);
+  return wReturn;
+}//getUrl
+
+uriString
+uriString::getLocal () const
+{
+  if (::strncmp((const char*)content,"file://",7)!=0)
+    return *this;
+
+  uriString wReturn;
+  utf8_t* wPtr =(utf8_t*) (content+7);
+  wReturn = wPtr;
+  return wReturn;
+}//getLocal
+
 
 /**
  * @brief uriString::setDirectoryPath Replaces the current directory path (if any) with the directory path mentionned in given uriString (pDirectoryPath)
@@ -979,6 +1008,42 @@ uriString::writeContent (ZDataBuffer& pDBS)
     fclose(wFile);
     return(ZS_SUCCESS);
 }//writeContent
+ZStatus
+uriString::appendContent (ZDataBuffer& pDBS)
+{
+
+  FILE *wFile =fopen(toCChar(),"ab");
+
+  if (wFile==nullptr)
+  {
+    ZException.getErrno(errno);
+    ZException.setMessage(_GET_FUNCTION_NAME_,
+        ZS_ERROPEN,
+        Severity_Error,
+        "-E-ERROPEN error on fopen file for writing  <%s> \n",
+        content);
+    if (ZVerbose)
+      ZException.printLastUserMessage(stderr);
+    return ZS_ERROPEN;
+  }
+
+  fwrite(pDBS.Data,pDBS.Size,1,wFile);
+
+
+  if (ferror(wFile))
+  {
+    ZException.getFileError(wFile,
+        _GET_FUNCTION_NAME_,
+        ZS_FILEERROR,
+        Severity_Error,
+        "E-ERROPEN error writing to file  <%s> ",
+        content);
+    fclose(wFile);
+    return (ZS_FILEERROR);
+  }
+  fclose(wFile);
+  return(ZS_SUCCESS);
+}//writeContent
 
 ZStatus
 uriString::writeContent (utf8VaryingString &pStr)
@@ -1020,7 +1085,46 @@ uriString::writeContent (utf8VaryingString &pStr)
     fclose(wFile);
     return(ZS_SUCCESS);
 }//writeContent
+ZStatus
+uriString::appendContent (utf8VaryingString &pStr)
+{
 
+  FILE *wFile =fopen(toCChar(),"a");
+
+  if (wFile==nullptr)
+  {
+    ZException.getErrno(errno);
+    ZException.setMessage(_GET_FUNCTION_NAME_,
+        ZS_ERROPEN,
+        Severity_Error,
+        "-E-ERROPEN error on fopen file for writing  <%s> \n",
+        content);
+    if (ZVerbose)
+      ZException.printLastUserMessage(stderr);
+    return ZS_ERROPEN;
+  }
+
+
+  //    fwrite(pStr.Data,pStr.strlen()+1,1,wFile);
+  fwrite(pStr.Data,pStr.strlen(),1,wFile);
+
+
+  if (ferror(wFile))
+  {
+    ZException.getFileError(wFile,
+        _GET_FUNCTION_NAME_,
+        ZS_FILEERROR,
+        Severity_Error,
+        "E-ERRWRITE error writing to file  <%s> ",
+        toCChar());
+    if (ZVerbose)
+      ZException.printLastUserMessage(stderr);
+    fclose(wFile);
+    return (ZS_FILEERROR);
+  }
+  fclose(wFile);
+  return(ZS_SUCCESS);
+}//appendContent
 ZStatus uriString::writeAES256(ZDataBuffer &pDBS,
                                const ZCryptKeyAES256 &pKey,
                                const ZCryptVectorAES256 &pVector)
