@@ -939,7 +939,7 @@ ZExceptionBase::formatUtf8 (void)
     return wRet;
 }
 
-
+#ifdef __COMMENT__
 #ifdef QT_CORE_LIB
 QString ZExceptionBase::formatUserMessage (void)
 {   QString wRet;
@@ -1178,7 +1178,7 @@ QString wM;
 #endif//#ifdef QT_GUI_LIB
 
 #endif // #ifdef QT_CORE_LIB
-
+#endif// __COMMENT__
 
 #ifdef __COMMENTED_USE_SSL__
 #include <openssl/ssl.h>

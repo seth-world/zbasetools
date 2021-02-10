@@ -6,6 +6,11 @@
 #include <ztoolset/zexceptionmin.h>
 #include <zthread/zthreadexithandler.h>
 
+ZThreadEventQueue::ZThreadEventQueue()
+{
+
+}
+
 #define __ZTHREADVERBOSE__  ZVerbose & ZVB_Thread
 
 using namespace zbs;

@@ -172,6 +172,15 @@ public:
         memmove(Data,pData,pSize);
         return(*this);
     }
+
+/*    ZDataBuffer&
+    setData(const void *&&pData,size_t pSize)
+    {
+      allocate (pSize);
+      memmove(Data,pData,pSize);
+      return(*this);
+    }
+*/
     ZDataBuffer&
     setData(const unsigned char* &&pData,size_t pSize)
     {
@@ -179,7 +188,6 @@ public:
         memmove(Data,pData,pSize);
         return(*this);
     }
-
 
     ZDataBuffer&
     setData(const ZDataBuffer& pBuffer)
@@ -191,7 +199,7 @@ public:
         return(*this);
     }
     ZDataBuffer&
-    setInt(int pIn)
+    setIntAsChar(int pIn)
     {
       char wBuf[20];
       sprintf(wBuf,"%d",pIn);
@@ -200,6 +208,24 @@ public:
           wLen++;
 
       setData(wBuf,wLen);
+      return *this;
+    }
+    ZDataBuffer&
+    setInt(int pIn)
+    {
+      setData(&pIn,sizeof(int));
+      return *this;
+    }
+    ZDataBuffer&
+    setLong(long pIn)
+    {
+      setData(&pIn,sizeof(long));
+      return *this;
+    }
+    ZDataBuffer&
+    setZStatus(ZStatus pIn)
+    {
+      setData(&pIn,sizeof(ZStatus));
       return *this;
     }
     ZDataBuffer&

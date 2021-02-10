@@ -81,18 +81,75 @@ unsigned long       Milliseconds;   // duration to sleep for in milliseconds
 } ;
 struct ZTHEventExecute
 {
-ZThreadSignal_type  Signal;                     // must be   ZTSGN_Execute
-ZTH_Functor Function;                          // Function to execute
+ZThreadSignal_type  Signal;     // must be   ZTSGN_Execute
+ZTH_Functor         Function;   // Function to execute
 //ZTH_Arglist*  Arglist;                           // argument list for the function to be executed
-zbs::ZArgList*  Arglist;                           // argument list for the function to be executed
+zbs::ZArgList*&     Arglist;    // argument list for the function to be executed
 } ;
-
+/**
+ * @brief The ZTHEvent union Component of thread event queue : allow to manage threads behavior.
+ */
 union ZTHEvent {
+public:
+  ZTHEvent& _copyFrom(const ZTHEvent& pIn)
+  {
+    memset(this,0,sizeof(ZTHEvent));
+    if (pIn.Signal==ZTSGN_Sleep)
+      {
+      Sleep.Signal=ZTSGN_Sleep;
+      Sleep.Milliseconds = pIn.Sleep.Milliseconds;
+      return *this;
+      }
+    if (pIn.Signal==ZTSGN_Execute)
+      {
+      Execute.Signal = ZTSGN_Execute;
+      Execute.Function = pIn.Execute.Function;
+      Execute.Arglist = pIn.Execute.Arglist;
+      return *this;
+      }
+    /* simple signal */
+    Signal=pIn.Signal;
+    return *this;
+  }
+  ZTHEvent() {memset(this,0,sizeof(ZTHEvent));}
+  ZTHEvent(const ZThreadSignal_type pSignal) {memset(this,0,sizeof(ZTHEvent)); Signal=pSignal;}
+  ZTHEvent(const ZTHEvent& pIn) {_copyFrom(pIn);}
+  ZTHEvent(const ZTHEvent&& pIn) {_copyFrom(pIn);}
+
+  ZTHEvent& operator = (const ZTHEvent& pIn) {return _copyFrom(pIn);}
+  ZTHEvent& operator = (const ZTHEvent&& pIn) {return _copyFrom(pIn);}
 ZThreadSignal_type  Signal;
 struct ZTHEventSleep    Sleep;
 struct ZTHEventExecute  Execute;
 };
 
+class ZThreadEventQueue : public zbs::ZQueue<ZTHEvent>
+{
+public:
+  ZThreadEventQueue();
+  void addSignal(const ZThreadSignal_type pSignal)
+  {
+    ZTHEvent wEvent;
+    wEvent.Signal = pSignal;
+    push(wEvent);
+  }
+  void addSleep(const long pMillisec)
+  {
+    ZTHEvent wEvent;
+    wEvent.Sleep.Signal = ZTSGN_Sleep;
+    wEvent.Sleep.Milliseconds = pMillisec;
+    push(wEvent);
+  }
+  void addExec(const ZTH_Functor pFunction,zbs::ZArgList*& pArgs)
+  {
+    ZTHEvent wEvent;
+    wEvent.Execute.Signal = ZTSGN_Execute;
+    wEvent.Execute.Function = pFunction;
+    wEvent.Execute.Arglist = pArgs;
+    push(wEvent);
+  }
+
+};
 
 
 class ZThreadExitHandler;
@@ -479,7 +536,8 @@ public:
 
     ZMutexCondition* getMutexCondition(void) {return &_MtxCond;}
 
-    ZQueue<ZTHEvent>    EventQueue;  //event queue
+    ZThreadEventQueue EventQueue;
+//    ZQueue<ZTHEvent>    EventQueue;  //event queue
 
     ZStatus processEventQueue(void) ;
     /** @brief setIdentity user may describe freely the thread  max 149 char */

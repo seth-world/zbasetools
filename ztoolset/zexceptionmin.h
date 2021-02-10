@@ -19,7 +19,7 @@
 #ifdef __USE_ZTHREAD__
     #include <zthread/zthread.h>
 #endif
-
+#ifdef __COMMENT__
 #ifdef QT_CORE_LIB
    #include <QString>
 //   #include <QtGui>
@@ -27,7 +27,7 @@
    #include <QMessageBox>
 #endif
 #endif
-
+#endif // __COMMENT__
 #include <unicode/utypes.h>  // for UErrorCode etc...
 
 
@@ -182,6 +182,7 @@ public:
 
     utf8VaryingString formatUtf8 (void);
 
+#ifdef __COMMENT__
 #ifdef QT_CORE_LIB
     void setComplementQS (QString pQS);
 
@@ -196,6 +197,7 @@ public:
 #endif // QT_GUI_LIB
 
 #endif
+#endif// __COMMENT__
 
 
 }; // ZExceptionBase
@@ -349,7 +351,7 @@ public:
     void printUserMessage (FILE *pOutput=stderr, bool pDelete=true);
 
     utf8VaryingString lastUtf8()   ;
-
+#ifdef __COMMENT__
 #ifdef QT_CORE_LIB
     void setComplementQS (QString pQS) {last().setComplementQS(pQS);}
 
@@ -365,6 +367,7 @@ public:
     int documentMessageBox(char* pTitle,char * pUserMessage){return last().documentMessageBox(pTitle,pUserMessage);}
 #endif//QT_GUI_LIB
 #endif// QT_CORE_LIB
+#endif//__COMMENT__
 /**
  *  Defines/redefines the Severity level to which an action must be taken : either throw ZException or invoke exit_abort
  *

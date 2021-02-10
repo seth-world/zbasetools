@@ -387,6 +387,32 @@ public:
     return wCount;
   }//countWords
 
+  /**
+ * @brief utftemplateString<_Sz,_Utf>::eliminateChar scans current string content and wipes (eliminates) the given char.
+ * After having called this procedure, the given char does no more exist within the string,
+ * so that string length is reduced in proportion of number of char eliminated.
+ * @param[in] pChar character to eliminate
+ * @return a reference to the current utftemplateString
+ */
+  utfVaryingString &
+  eliminateChar (_Utf pChar)
+  {
+    _Utf* wPtr = Data ;
+    int wCount=0;
+    while (*wPtr!=(_Utf)'\0')
+    {
+      if (*wPtr==pChar)
+        {
+        utfStrcpy<_Utf>(wPtr,&wPtr[1]);
+        wCount++;
+        }
+      else
+        wPtr++;
+    }//while
+    if (wCount > 0)
+        truncate(UnitCount - wCount);
+    return *this;
+  }//eliminateChar
 
 /** @brief replace() replaces all occurrences of string pToBeReplaced by string pReplace */
 
