@@ -1198,4 +1198,248 @@ ZStatus wSt;
 }//writeText
 */
 
+
+#ifdef __COMMENT__
+
+/**
+ * @brief _exportURF export current varying utf string into an URF format.
+ *  Container used is a ZDataBuffer that may be provided by calling procedure.
+ *  Universal Record Format is ALWAYS big endian regardless what platform is used.
+ *
+ *  URF format for an utf Varying string.
+ *
+ *  URF header depends on the type of object given by the first header information : ZTypeBase (ZType_type)
+ *  for an utfVaryingString, header is as follows
+ *
+ *  URF data is converted to Universal format.
+ *  Universal format is big endian with special encoding for atomic data that allows to sort on the whole data in a coherent, simple maner.
+ *
+ *header :
+ *   - ZTypeBase : ZType_utf8VaryingString, ZType_utf16VaryingString,... Gives the Character Unit size with ZType_AtomicMask
+ *   - uint64_t number of character units effectively contained within the string.
+ *
+ *
+ *  see <ZType_Type vs Header sizes> in file <zindexedfiles/znaturalfromurf.cpp>
+ *data :
+ *  a suite of _Utf character unit sequense up to number of characters units.
+ *  _Utf character units are converted to big endian if necessary.
+ *
+ * limits :
+ *
+ *  Maximum size is in bytes :      	18446744073709551615 (2^64-1)
+ *
+ * @param pURF  a ZDataBuffer that will contain URF data in return.
+ * @return
+ */
+ZDataBuffer
+uriString::_exportURF()
+{
+  ZDataBuffer wReturn;
+  unsigned char* wURF_Ptr;
+  URF_Varying_Size_type wByteSize=(URF_Varying_Size_type)ByteSize;
+
+  size_t wUnitCount=strlen();
+
+  wURF_Ptr=wReturn.allocateBZero(wUnitCount+sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type));
+
+  wURF_Ptr=setURFBufferValue<ZTypeBase>(wURF_Ptr,ZType);
+  wURF_Ptr=setURFBufferValue<URF_Varying_Size_type>(wURF_Ptr,wByteSize);
+
+  utfSetReverse<utf8_t>(wURF_Ptr,content,wUnitCount);
+
+  return wReturn;
+}//_exportURF
+
+
+
+/**
+ * @brief utfVaryingString<_Utf>::_importURF imports URF data from pURF and feeds current utfVaryingString object.
+ * @param pUniversal a pointer to URF header data
+ * @return  ZStatus ZS_SUCCESS if everything went well - ZS_INVTYPE is URF data has not the appropriate ZType_type.
+ */
+
+size_t
+uriString::_importURF(unsigned char* pURF)
+{
+  ZTypeBase               wType=ZType_Nothing;
+  URF_Varying_Size_type   wUniversalSize=0;
+  utf8_t*                 wOutPtr=nullptr;
+  size_t                  wUnits=0;
+  pURF=getURFBufferValue<ZTypeBase>(&wType,pURF);
+
+  /* ZType control */
+  if (wType!= getZType())
+  {
+    return ZS_INVTYPE;
+  }
+
+  pURF=getURFBufferValue<URF_Varying_Size_type>(&wUniversalSize,pURF);
+
+  wOutPtr=content;
+
+  wUnits=wUniversalSize/sizeof(utf8_t);
+
+  utfSetReverse<utf8_t>(wOutPtr,pURF,(const size_t)wUnits);
+
+  content[wUnits]='\0';
+
+  return ZS_SUCCESS;
+}// _importURF
+
+
+
+/**
+ * @brief _exportVUniversal  Exports a string to a Universal Varying Format
+ *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
+ *  led by
+ *   - uint8_t : char unit size
+ *   - UVF_Size_type : number of character units of the string.
+ * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
+ */
+ZDataBuffer
+uriString::_exportUVF()
+{
+  ZDataBuffer wUVF;
+
+  /* Count effective char units excluding (_Utf)'\0' mark starting from end */
+  UVF_Size_type wUnitCount = 0;
+  while ((content[wUnitCount]!=0)&&(wUnitCount < cst_urilen))
+    wUnitCount++;
+
+  size_t wByteLen=wUnitCount*sizeof(utf8_t); // get number of bytes out of this
+
+  /* allocate storate for export */
+  unsigned char* wPtrTarg=wUVF.allocate((ssize_t)wByteLen+sizeof(UVF_Size_type)+1);
+
+  /* set export data with char unit size */
+  *wPtrTarg = (uint8_t)sizeof (utf8_t);
+  wPtrTarg++;
+
+  /* prepare and set unit count to export data */
+  UVF_Size_type wUnitCount_Export=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
+  memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
+  wPtrTarg += sizeof(UVF_Size_type);
+
+  /* export char units : each char unit must be reversed if necessary (big /little endian) */
+
+  utf8_t* wPtrOut=(utf8_t*)(wPtrTarg);
+  utf8_t* wPtrIn=content;
+
+  if (sizeof (utf8_t)==1)
+    while (*wPtrIn)
+      *wPtrOut++=*wPtrIn++;
+  else
+    while (*wPtrIn)
+      *wPtrOut++=reverseByteOrder_Conditional<utf8_t>(*wPtrIn++);
+
+  return wUVF;
+}// _exportUVF
+
+
+
+/** gets utf format name from char unit size */
+const char* getUnitFormat(uint8_t pSize);
+
+
+
+/**
+ * @brief _importUVF Import string from Varying Universal Format
+ *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
+ *  led by a uint16_t mentionning the number of characters of the string that follows.
+ * Important : imported string format (utf-xx) must be the same as current string
+ * @param pUniversalPtr pointer to Varying Universal formatted data header
+ * @return total size IN BYTES of consumed bytes in pUniversalPtr buffer (Overall size of string in UVF)
+ */
+size_t
+uriString::_importUVF(unsigned char* &pUniversalPtr)
+{
+  errno=0;
+  unsigned char* wPtrSrc=pUniversalPtr;
+  /* get and control char unit size */
+  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+  if (wUnitSize!=sizeof(utf8_t))
+  {
+    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
+        getUnitFormat(wUnitSize),
+        getUnitFormat(sizeof(utf8_t)));
+    return 0;
+  }
+
+  wPtrSrc++;
+  /* get char units to load excluding (_Utf)'\0' mark */
+  UVF_Size_type    wUnitCount;
+  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
+  if (wUnitCount > cst_urilen)
+    {
+    fprintf(stderr,"uriString::_importUVF-W-TRUNC Overflow : imported string length <%d> truncated to <%d>.\n",
+        wUnitCount, cst_urilen);
+    errno=ENOMEM;
+    }
+  /* import string per char unit */
+
+  uint8_t* wPtrOut=content ;
+  uint8_t* wPtrIn=(uint8_t*)(wPtrSrc);
+  uint8_t* wPtrEnd = &wPtrIn[wUnitCount];
+//  if (wUnitSize==1)
+    while (wPtrIn < wPtrEnd)
+      *wPtrOut++=*wPtrIn++;
+/*  else
+    while (wPtrIn < wPtrEnd)
+      *wPtrOut++=reverseByteOrder_Conditional<uint8_t>(*wPtrIn++);*/
+  //  addConditionalTermination();
+  *wPtrEnd = 0;
+  pUniversalPtr += (wUnitCount*sizeof(uint8_t))+sizeof(UVF_Size_type)+1;
+  return (wUnitCount*sizeof(uint8_t))+sizeof(UVF_Size_type)+1;
+}// _importUVF
+/**
+ * @brief _getimportUVFSize() returns total size in byte of data to import, including header.
+ */
+
+UVF_Size_type
+uriString::_getimportUVFSize(unsigned char* pUniversalPtr)
+{
+  unsigned char* wPtrSrc=pUniversalPtr;
+  /* get and control char unit size */
+  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+  if (wUnitSize!=sizeof(uint8_t))
+  {
+    fprintf(stderr,"uriString::_getimportUVFSize-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
+        getUnitFormat(wUnitSize),
+        getUnitFormat(sizeof(uint8_t)));
+    return 0;
+  }
+  wPtrSrc++;
+
+  UVF_Size_type    wUnitCount;
+  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
+  if (wUnitCount > cst_urilen)
+  {
+    fprintf(stderr,"uriString::_getimportUVFSize-W-TRUNC Overflow : imported string length <%d> truncated to <%d>.\n",
+        wUnitCount, cst_urilen);
+    errno=ENOMEM;
+  }
+  wUnitCount *= wUnitSize ;
+  wUnitCount += sizeof(UVF_Size_type) + 1 ;
+  return wUnitCount;
+}//_getimportUVFSize
+
+/**
+ * @brief _getexportUVFSize() compute the requested export size IN BYTES for current string
+ */
+UVF_Size_type
+uriString::_getexportUVFSize()
+{
+  /* Count char units excluding (_Utf)'\0' mark starting from end */
+  size_t wUnitCount = 0;
+  while ((content[wUnitCount]!=0)&&(wUnitCount < cst_urilen))
+    wUnitCount++;
+
+  UVF_Size_type wByteLen=wUnitCount +sizeof(UVF_Size_type)+ 1;
+  return wByteLen;
+
+}//_getimportUVFSize
+
+#endif // __COMMENT__
+
+
 #endif // URISTRING_CPP

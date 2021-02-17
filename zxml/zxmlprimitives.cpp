@@ -10,6 +10,27 @@ void setXmlIdent(int pIndent)
 }
 
 
+
+zxmlNode*
+XMLsearchForChildTag(zxmlNode* pTopNode, const char* pTag)
+{
+  zxmlNode* wNode;
+  zxmlNode* wNode1=nullptr;
+  if (pTopNode->getName()==pTag)
+    return pTopNode;
+  ZStatus wSt=pTopNode->getFirstChild(wNode);
+  while ((wSt==ZS_SUCCESS)&&(wNode->getName()!=pTag))
+  {
+    if (XMLsearchForChildTag(wNode,pTag)!=nullptr)
+      return wNode;
+    wSt=wNode->getNextNode(wNode1);
+    XMLderegister(wNode);
+    wNode=wNode1;
+  }
+  return nullptr;
+}//XMLsearchForChildTag
+
+
 std::string fmtXMLnode(const char*pNodeName, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;

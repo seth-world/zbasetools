@@ -254,7 +254,35 @@ public:
     ZStatus subDir(ZArray<uriString>* pList=nullptr);
 
  //----------------END URISTRING Section-------------------
+#ifdef __COMMENT__
+    ZDataBuffer _exportURF();
+    size_t _importURF(unsigned char* pURF);
 
+    /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
+     *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
+     *  led by
+     *   - uint8_t : char unit size
+     *   - UVF_Size_type : number of character units of the string.
+     * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
+     */
+    ZDataBuffer _exportUVF();
+    /** @brief _importUVF Import string from Varying Universal Format (dedicated format for strings)
+     *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
+     *  led by
+     *   - uint8_t : char unit size
+     *   - UVF_Size_type : number of character units of the string.
+     * Important : imported string format (utf-xx) must be the same as current string
+     * @param[in,out] pUniversalPtr pointer to Varying Universal formatted data header.
+     *                this pointer is updated to point on the first byte after imported data.
+     * @return total size IN BYTES of  bytes used from pUniversalPtr buffer (Overall used size including header)
+     */
+    size_t _importUVF(unsigned char *&pUniversalPtr);
+
+    /** @brief _getexportUVFSize() compute the requested export size in bytes for current string, including header */
+    UVF_Size_type _getexportUVFSize();
+
+    UVF_Size_type _getimportUVFSize(unsigned char* pUniversalPtr);
+#endif // __COMMENT__
 };// uriString---------------------------------------------
 
 uriString operator + (const uriString pIn1,const uriString pIn2);

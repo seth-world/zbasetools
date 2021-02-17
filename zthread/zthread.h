@@ -468,6 +468,17 @@ public:
      * @brief startLoop  starts a thread loop with function pFunction.
      * Arguments are those collected from main() function.
      * Arguments are copied to internal argument stack.
+     *
+     *  ZArgList
+     * ----------
+     *  pFunction will receive a pointer to zbs::ZArgList object that will contain :
+     * rank   content
+     *  0     pFunction address
+     *  1     pointer to currrent ZThread object
+     *  2...  Arguments passed to routine
+     *        in the order mentionned when startLoop, startLoopArg or startLoopVariadic has been called
+     *
+     *
      * @param pFunction function to start the thread with.
      * @param argc
      * @param argv
@@ -503,8 +514,10 @@ public:
      *  - all other variable data types must be passed using a pointer on them
      *  - no rvalue allowed
      *
-     *  Last argument MUST be a nullptr.
-     *  There could not be "omitted" arguments using nullptr value.
+     *  IMPORTANT: Last argument MUST be nullptr.
+     *  -----------------------------------------
+     *
+     *  -> There could not be "omitted" arguments using nullptr value.
      *
      * @param pFunction user Function to launch within the created thread. It must be a ZTH_Functor :
      *  - a pointer to a function

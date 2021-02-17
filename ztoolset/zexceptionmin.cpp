@@ -63,10 +63,10 @@ ZExceptionBase::~ZExceptionBase()
  */
 void
 ZExceptionBase::getErrno (const int pErrno,
-                     const char *pModule,
-                     const ZStatus pStatus,
-                     const Severity_type pSeverity,
-                     const char* pFormat,
+                          const char *pModule,
+                          const ZStatus pStatus,
+                          const Severity_type pSeverity,
+                          const char* pFormat,
                           va_list arglist)
 {
 /*#if __USE_ZTHREAD__
@@ -80,9 +80,9 @@ ZExceptionBase::getErrno (const int pErrno,
      Status = pStatus;
      Severity=pSeverity;
 //     Complement=strerror_r(Error,Complement.content,cst_exceptionlen);  // strerror_r is no more supported by windows
-     Complement.fromUtf((const utf8_t*)strerror(Error));
+     Complement=strerror(Error);
 
-     Message.vsprintf_char(pFormat, arglist);
+     Message.vsnprintf(cst_messagelen,pFormat, arglist);
 
 /*#if __USE_ZTHREAD__
      _Mtx.unlock();
@@ -126,7 +126,7 @@ ZExceptionBase::getIcuError(const char *pModule,
 
      Complement.sprintf(" ICU Error code <%d> <%s>",(int)pIcuErr,u_errorName(pIcuErr));
 
-     Message.vsprintf_char(pFormat, arglist);
+     Message.vsnprintf(cst_messagelen, pFormat, arglist);
 
 /*#if __USE_ZTHREAD__
      _Mtx.unlock();
@@ -352,7 +352,7 @@ ZExceptionBase::_setMessage (const char *pModule,ZStatus pStatus,Severity_type p
     setContext(pModule,pStatus,pSeverity);
 //va_list args;
 //    va_start (args, pFormat);
-      Message.vsprintf_char(pFormat, arglist);
+      Message.vsnprintf(cst_messagelen,pFormat, arglist);
 //    va_end(args);
 
 return;
@@ -488,13 +488,13 @@ ZExceptionMin::addToLast(const char *pFormat,...)
 
 va_list args;
 va_start (args, pFormat);
-utf8FixedString<cst_messagelen+1> wBuf;
+utf8VaryingString wBuf;
 
 //    memset(wBuf,0,sizeof(wBuf));
 //    vsprintf (wBuf ,pFormat, args);
-    wBuf.vsprintf_char(pFormat, args);
+    wBuf.vsnprintf(cst_messagelen, pFormat, args);
     va_end(args);
-    ZExceptionStack::last()->Message.add(wBuf.content);
+    ZExceptionStack::last()->Message.add(wBuf);
 //    strncat(_Base::Message.content,wBuf,wSize);
 #if __USE_ZTHREAD__
     _Mtx.unlock();
@@ -513,7 +513,7 @@ void ZExceptionBase::setComplement (const char *pFormat,...)
 
     va_list arglist;
     va_start (arglist, pFormat);
-    Complement.vsprintf_char (pFormat, arglist);
+    Complement.vsnprintf(cst_messagelen,pFormat, arglist);
     va_end(arglist);
 
 return;
@@ -524,7 +524,7 @@ void ZExceptionBase::setComplement (const char *pFormat,va_list arglist)
 
 //va_list args;
 //va_start (args, pFormat);
-        Complement.vsprintf_char (pFormat, arglist);
+        Complement.vsnprintf(cst_messagelen,pFormat, arglist);
 //        va_end(args);
 return;
 }
@@ -728,18 +728,17 @@ ZExceptionMin::printLastUserMessage (FILE *pOutput)
 #endif
 }//ZExceptionMin::printLastUserMessage
 
-utfexceptionString
+utf8String
 ZExceptionBase::formatFullUserMessage (void)
-{   utfexceptionString wRet;
+{   utf8String wRet;
     wRet.sprintf("------ZException content-----\n");
-    wRet+=Message.conditionalNL();
     wRet.addsprintf(
                  "Module..............%s\n"
                  "System error code...%d\n"
                  "POSIX error code....%s\n"
                  "Status..............%s\n"
                  "Severity............%s\n",
-                 Module.toString(),
+                 Module.toCChar(),
                  Error,
                  decode_POSIXerrno(Error),
                  decode_ZStatus(Status),
@@ -748,18 +747,17 @@ ZExceptionBase::formatFullUserMessage (void)
         wRet += "No additional information.\n";
     else {
         wRet += "Additional information follows:\n";
-        wRet += Complement.conditionalNL();
+        wRet += Complement;
     }
     return wRet;
 }
 
-utfexceptionString
-ZExceptionMin::formatFullUserMessage (void)
+utf8String ZExceptionMin::formatFullUserMessage(void)
 {
 #if __USE_ZTHREAD__
     _Mtx.lock();
 #endif
-     utfexceptionString wStr=ZExceptionStack::last()->formatFullUserMessage();
+     utf8String wStr=ZExceptionStack::last()->formatFullUserMessage();
 #if __USE_ZTHREAD__
     _Mtx.unlock();
 #endif
@@ -816,8 +814,7 @@ ZExceptionBase *wExceptionBase = new ZExceptionBase;
 #endif // __USE_ZTHREAD__
 
 
-utfexceptionString&
-ZExceptionMin::getLastMessage(void)
+utf8String ZExceptionMin::getLastMessage(void)
 {
 
     if (ZExceptionStack::isEmpty())
@@ -828,13 +825,13 @@ ZExceptionMin::getLastMessage(void)
     return ZExceptionStack::last()->Message;
 }
 
-utfexceptionString&
+utf8String
 ZExceptionMin::getLastComplement(void)
 {
     if (ZExceptionStack::isEmpty())
         {
-        fprintf (stderr,"%s-F-EmptyStack Fatal error: stack is empty while using messageBox\n",_GET_FUNCTION_NAME_);
-        abort();
+        fprintf (stderr,"%s-F-EmptyStack Fatal error: stack is empty while trying to get last exception complement\n",_GET_FUNCTION_NAME_);
+        return utf8String("");
         }
     return ZExceptionStack::last()->Complement;
 }
@@ -928,13 +925,10 @@ utf8VaryingString
 ZExceptionBase::formatUtf8 (void)
 {
     utf8String wRet;
-    Message.conditionalNL();
-
     wRet=Message.toCChar();
     if (!Complement.isEmpty())
         {
-        Complement.conditionalNL();
-        wRet += Complement.toCChar();
+        wRet += Complement;
         }
     return wRet;
 }

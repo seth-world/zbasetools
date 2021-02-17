@@ -80,11 +80,35 @@ public:
 //========================Document parsing======================================
 
     void DocDump (FILE* pOutput,int pFormat=1) {xmlDocFormatDump(pOutput,_xmlInternalDoc,pFormat); return;}
+
+    /**
+     * @brief logicalDump lists current's xml document content in a structured way
+     * @param pOutput
+     * @param pSpaceIndent
+     * @return
+     */
     ZStatus logicalDump(FILE*pOutput,int pSpaceIndent=4);
 
     void setURI (const char* pFileName) {URIDocFile=(const utf8_t*)pFileName;}
 
+    /** Nota bene :
+     * encoding parameter is defined by a string "utf8","utf16",...
+     *  if omitted (nullptr) then utf8 default encoding is used.
+     * parsing option is defined by xmlParserOption from libxml2.
+     *  by default, when no parsing option (0), then XML_PARSE_NOBLANKS is used (remove blank nodes).
+     */
+
+    /**
+     * @brief loadAndParseXMLDoc loads xml document pURL and parses it according its encoding pEncoding
+     * and options pOptions . for parsing options see xmlParserOption
+     * @return  a ZStatus. ZException is set appropriately in case of error.
+     */
     ZStatus loadAndParseXMLDoc(const char* pURL,const char* pEncoding,int pOptions);
+    /**
+     * @brief ParseXMLDocFromMemory Parses an xml document loaded within an utf8 string according its encoding pEncoding
+     * and options pOptions . for parsing options see xmlParserOption
+     * @return  a ZStatus. ZException is set appropriately in case of error.
+     */
     ZStatus ParseXMLDocFromMemory(const char* pMemory,int pSize,const char* pEncoding,int pOptions);
 
     ZStatus parseXMLFile (const char*pFilename);

@@ -323,6 +323,7 @@ public:
  */
 
     long push(_Tp &pElement) ;
+    long _pushNoLock(_Tp &pElement);
 //    long push(const _Tp& pElement);
     long push(  _Tp&& pElement);
 
@@ -1578,6 +1579,20 @@ long ZArray<_Tp>::push( _Tp &pElement)
         _Mutex.unlock();
 #endif
     return(wR) ;
+} // push
+
+template <typename _Tp>
+long ZArray<_Tp>::_pushNoLock( _Tp &pElement)
+{
+  addCheck(1) ;
+  if (ZCurrentNb<0)
+    ZCurrentNb=0;
+  //    Data.Tab[ZCurrentNb]=pElement;
+  assign(pElement,ZCurrentNb);
+  //    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
+  size_t wR =ZCurrentNb;
+  ZCurrentNb ++ ;
+  return(wR) ;
 } // push
 //template <typename _Tp>
 /**

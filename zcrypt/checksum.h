@@ -24,26 +24,32 @@ class ZDataBuffer;
 class checkSum
 {
 public:
-    unsigned char content[cst_checksum];
+  unsigned char content[cst_checksum];
+  char StrHexa[cst_checksumHexa+3];
 
-    char StrHexa[cst_checksumHexa+3];
+  checkSum(void) {clear();}
+  checkSum& _copyFrom(const checkSum& pIn);
 
-    checkSum(void) {clear();}
-    checkSum(const unsigned char *pInBuffer,size_t pLen) {compute(pInBuffer,pLen);}
-//    checkSum(ZDataBuffer &pZDBData) {compute(pZDBData); return;}
+  checkSum(const checkSum& pIn) {_copyFrom(pIn);}
+  checkSum(const checkSum&& pIn) {_copyFrom(pIn);}
 
-    checkSum& setContent(unsigned char *pInBuffer,size_t pLen) {memmove (content,pInBuffer,pLen); return *this;}
+  checkSum& operator = (const checkSum& pIn) {return _copyFrom(pIn);}
 
-    size_t size(void) {return(cst_checksum);}
+  checkSum(const unsigned char *pInBuffer,size_t pLen) {compute(pInBuffer,pLen);}
 
-    bool isClear(void) { char wCompare[cst_checksum];
+
+  checkSum& setContent(unsigned char *pInBuffer,size_t pLen) {memmove (content,pInBuffer,pLen); return *this;}
+
+  size_t size(void) {return(cst_checksum);}
+
+  bool isClear(void) { char wCompare[cst_checksum];
                          memset(wCompare,0,sizeof(wCompare));
                         return (memcmp(content,wCompare,cst_checksum)); }
-    bool isEmpty(void) {return (isClear()); }
-    checkSum &clear(void) {memset(content,0,cst_checksum);return(*this);}
+  bool isEmpty(void) {return (isClear()); }
+  checkSum &clear(void) {memset(content,0,cst_checksum);return(*this);}
 
-    void compute(const unsigned char *pInBuffer,size_t pLen);
-    void compute(const char *pInBuffer,size_t pLen) {compute ((const unsigned char *)pInBuffer,pLen); return;}
+  void compute(const unsigned char *pInBuffer,size_t pLen);
+  void compute(const char *pInBuffer,size_t pLen) {compute ((const unsigned char *)pInBuffer,pLen); return;}
 //    checkSum& compute (ZDataBuffer &pDataBuffer);
 //    template <class _Utf>
 //    checkSum& compute (utfVaryingString<_Utf> &pDataBuffer);

@@ -108,6 +108,12 @@ int wi;
 
 bool checkSum::operator == (const char* pInput) {return(::strncmp(toHexa(),pInput,cst_checksumHexa+2));}
 
+checkSum& checkSum::_copyFrom(const checkSum &pIn)
+{
+  for (size_t wi=0;wi<sizeof(content);wi++)
+    content[wi]=pIn.content[wi];
+}
+
 #include <ztoolset/ztypetype.h>
 
 /**
@@ -180,7 +186,7 @@ checkSum::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal
 }//getUniversalFromURF
 
 
-
+#ifdef __COMMENT__
 #ifdef QT_CORE_LIB
 checkSum &
 checkSum::fromQByteArray (const QByteArray &pQBA)
@@ -198,7 +204,7 @@ checkSum::fromQByteArray (const QByteArray &pQBA)
     return *this;
 }//fromQByteArray
 #endif // QT_CORELIB
-
+#endif // __COMMENT__
 
 
 #endif // CHECKSUM_CPP

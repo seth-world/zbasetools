@@ -38,9 +38,9 @@ public:
     zxmlNode(const zxmlNode&)=delete;
     zxmlNode& operator=(const zxmlNode&) = delete;  // no copy
 
-    utffieldNameString getName(void) const;
+    utf8String getName(void) const;
     int getLine(void) const;
-    utfdescString getNodePath(void) const;
+    utf8String getNodePath(void) const;
 
     ZStatus getFirstChild(zxmlNode* &pFirstNode) const;
     ZStatus getNextNode(zxmlNode* &pNode);
@@ -129,12 +129,12 @@ public:
     ZStatus getPreviousElementSibling(zxmlElement* &pElement);
     ZStatus getLastChildElement(zxmlElement* &pElement);
 
-    ZStatus getAttributeValue(const utf8_t* pAttrName, utfdescString &pValue);
+    ZStatus getAttributeValue(const utf8_t* pAttrName, utf8String &pValue);
 /*    ZStatus getFirstAttribute(zxmlAttribute* &pAttribute);
 */
-    ZStatus getFirstText(zxmlNode* &pTextNode, utf8VaryingString &pText);
-    ZStatus getFirstComment(zxmlNode* &pCommentNode, utf8VaryingString &pComment);
-    ZStatus getFirstCData(zxmlNode* &pCDataNode, utf8VaryingString &pCData);
+    ZStatus getFirstText(zxmlNode* &pTextNode, utf8String &pText);
+    ZStatus getFirstComment(zxmlNode* &pCommentNode, utf8String &pComment);
+    ZStatus getFirstCData(zxmlNode* &pCDataNode, utf8String &pCData);
 
     // for next CData node see zxmlNode::getNextCData(zxmlNodeZDataBuffer& pCData);
 

@@ -819,19 +819,19 @@ template<class _Utf>
  * @brief utfStrnset copies wSrc content for at maximum pSrcMaxCount units to pDest containing at maximum pMaxUnit.
  *  Destination string is padded with 0 up to pMaxUnit.
  * @param pDest     Destination utf string
- * @param wSrc      Source utf string
+ * @param wSrc      Source utf string.
  * @param pMaxUnit  Maximum number of character units available in pDest
  * @param pSrcMaxCount  Maximum number of character units to copy from wSrc.
  * @return
  */
 
-_Utf* utfStrnset ( _Utf *pDest, const _Utf *wSrc,size_t pMaxUnit,size_t pSrcMaxCount)
+_Utf* utfStrnset ( _Utf *pDest, const _Utf *pSrc,size_t pMaxUnit,size_t pSrcMaxCount)
 {
-    if (!wSrc)
+    if (!pSrc)
             return pDest;
     _Utf*wPtr=pDest;
-    while (*wSrc && pSrcMaxCount-- && pMaxUnit--)
-                            *wPtr++=*wSrc++;
+    while (*pSrc && pSrcMaxCount-- && pMaxUnit--)
+                            *wPtr++=*pSrc++;
     while (pMaxUnit--)
             *wPtr++=(_Utf)'\0';
 
@@ -858,8 +858,13 @@ void utfNSetReverse(_Utf*pStringOut,const _Utf*pDataIn,const size_t pInCount,con
             return;
     if (!pDataIn)
             return;
-    while ((wi<pOutMax-2)&&(wi++<pInCount)) // checked
-            *pStringOut++=reverseByteOrder_Conditional<_Utf>(*pDataIn++) ;
+
+    if (sizeof(_Utf)==1)
+      while ((wi<pOutMax-2)&&(wi++<pInCount)) // checked
+        *pStringOut++=*pDataIn++ ;
+    else
+      while ((wi<pOutMax-2)&&(wi++<pInCount)) // checked
+        *pStringOut++=reverseByteOrder_Conditional<_Utf>(*pDataIn++) ;
 
     while (wi++<pOutMax)  // complement to binary zero
             *pStringOut++ = 0;
@@ -884,10 +889,23 @@ void utfSetReverse(_Utf*pStringOut,const _Utf*pDataIn,const size_t pInCount)
             return;
     if (!pDataIn)
             return;
-    while (wi++<pInCount) // checked
-            *pStringOut++=reverseByteOrder_Conditional<_Utf>(*pDataIn++) ;
+    if (sizeof(_Utf)==1)
+      while (wi++<pInCount) // checked
+        *pStringOut++=*pDataIn++ ;
+    else
+      while (wi++<pInCount) // checked
+              *pStringOut++=reverseByteOrder_Conditional<_Utf>(*pDataIn++) ;
     return;
 }
+
+void  _exportCharArrayUVF(const char*pDataIn,ZDataBuffer & wReturn);
+size_t _getexportCharArrayUVFSize(const char*pDataIn);
+/** @brief _importCharArrayUVF imports pUniversalPtr an array of char in UVF from into pDataOut with size max pMaxSize
+ *  pUniversalPtr is updated to point to first byte next to imported data
+ */
+size_t _importCharArrayUVF(char* pDataOut, size_t pMaxSize, unsigned char *&pUniversalPtr);
+/** @brief _getimportCharArrayUVFSize computes required size for importing UVF format pUniversalPtr */
+size_t _getimportCharArrayUVFSize(unsigned char*& pUniversalPtr);
 
 template <class _Utf>
 /* Compare S1 and S2, returning less than, equal to or
@@ -2103,6 +2121,6 @@ char* wC;
 
 }
 
-
+const char* etUnitFormat(uint8_t pSize);
 
 #endif // UTFUTILS_H

@@ -373,7 +373,7 @@ zxmlDoc::createRootElementfromTree(zxmlElement* &pNode) // no xml error on that 
                                   Severity_Error,
                                   "Cannot associate tree node as root element : "
                                   "root element <%s>exist already. Replace root node instead.",
-                                  RootElement->getName().toString());
+                                  RootElement->getName().toCChar());
             return  ZS_INVOP;
             }
     if (!xmlDocSetRootElement(_xmlInternalDoc, pNode->_xmlInternalNode))
@@ -435,7 +435,7 @@ zxmlDoc::replaceRootElementfromTree(zxmlElement* &pNode) // no xml error on that
         if (ZVerbose)
                 fprintf(stdout,"%s>>Root element <%s> has been deleted to be replaced\n",
                         _GET_FUNCTION_NAME_,
-                        RootElement->getName().toString());
+                        RootElement->getName().toCChar());
         zxmlremoveNode(RootElement);
         RootElement=nullptr;
         }
@@ -443,7 +443,7 @@ zxmlDoc::replaceRootElementfromTree(zxmlElement* &pNode) // no xml error on that
     if (ZVerbose)
             fprintf(stdout,"%s>>Root element has been set to <%s>\n",
                     _GET_FUNCTION_NAME_,
-                    RootElement->getName().toString());
+                    RootElement->getName().toCChar());
     return  ZS_SUCCESS;
 }//setRootElementfromTree
 /**
@@ -510,7 +510,7 @@ zxmlDoc::newDocumentNameSpace(zxmlNameSpace* pNameSpace,const char* pURL,const c
                          ZS_XMLERROR,
                          Severity_Fatal,
                          "Cannot create global XML namespace for DOM document named <%s> url <%s> prefix <%s>",
-                         getName().toString(),
+                         getName().toCChar(),
                          pURL,
                          pPrefix);
 
@@ -929,7 +929,7 @@ xmlNodePtr wNodePtr=nullptr;
                               ZS_XMLERROR,
                               Severity_Error,
                               "Cannot get CData content for node <%s>",
-                              getName().toString());
+                              getName().toCChar());
         return  ZS_XMLERROR;
         }
 
@@ -1103,7 +1103,7 @@ zxmlDoc::logicalDump(FILE*pOutput,int pSpaceIndent)
             return  ZS_INVOP;
             }
     fprintf(pOutput," Document <%s> <%s> version <%s> \n",
-          RootElement->getName().toString(),
+          RootElement->getName().toCChar(),
           (const char*)_xmlInternalDoc->name,
           getDocVersion().toString());
 

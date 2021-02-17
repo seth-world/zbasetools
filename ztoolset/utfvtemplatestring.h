@@ -772,8 +772,11 @@ public:
     }// addV
 //    utfVaryingString<_Utf> &add( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
 
-    ZStatus sprintf(const std::conditional<std::is_same<_Utf,char>::value, utf8_t, _Utf> *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
+    ZStatus sprintf( const std::conditional<std::is_same<_Utf,char>::value, utf8_t, _Utf> *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
     ZStatus addsprintf(const std::conditional<std::is_same<_Utf,char>::value, utf8_t, _Utf>* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
+
+    int vsnprintf(size_t pMaxSize,const typename std::conditional<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,va_list args);
+    int vsnprintf(size_t pMaxSize,const char* pFormat,va_list args);
 
     ZStatus sprintf(const char *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
     ZStatus addsprintf(const char* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
@@ -826,9 +829,9 @@ public:
 
 
 
-     bool operator == (utfVaryingString& pIn) { return compare(pIn.Data)==0; }
+     bool operator == (const utfVaryingString& pIn) { return compare(pIn.Data)==0; }
      bool operator == (const _Utf* pIn) { return compare(pIn)==0; }
-     bool operator != (utfVaryingString& pIn) { return compare(pIn.Data); }
+     bool operator != (const utfVaryingString& pIn) { return compare(pIn.Data); }
      bool operator != (const _Utf* pIn) { return compare(pIn); }
 
 
@@ -853,8 +856,8 @@ public:
          return utfStrtoul<_Utf>(Data,nullptr,pBase);
      }
 
-    ZDataBuffer* _exportURF(ZDataBuffer *pURF);
-    ZStatus _importURF(unsigned char *pURF);
+    ZDataBuffer* _exportURF(ZDataBuffer *pURF) const;
+    size_t _importURF(unsigned char *&pURF);
 
      /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
      *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
@@ -863,17 +866,18 @@ public:
      *   - UVF_Size_type : number of character units of the string.
      * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
      */
-    ZDataBuffer _exportUVF();
+    ZDataBuffer _exportUVF() const;
      /** @brief _importUVF Import string from Varying Universal Format (dedicated format for strings)
      *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
      *  led by
      *   - uint8_t : char unit size
      *   - UVF_Size_type : number of character units of the string.
      * Important : imported string format (utf-xx) must be the same as current string
-     * @param pUniversalPtr pointer to Varying Universal formatted data header
+     * @param[in,out] pUniversalPtr pointer to Varying Universal formatted data header.
+     *                this pointer is updated to point to first byte after imported data.
      * @return total size IN BYTES of  bytes used from pUniversalPtr buffer (Overall used size including header)
      */
-    size_t _importUVF(unsigned char* pUniversalPtr);
+    size_t _importUVF(unsigned char *&pUniversalPtr);
 
     /** @brief _getexportUVFSize() compute the requested export size in bytes for current string, including header */
     UVF_Size_type _getexportUVFSize();
@@ -1443,8 +1447,10 @@ ZStatus utfVaryingString<_Utf>::sprintf(const typename std::conditional<std::is_
 
     _Utf* wMS=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
     if (wMS==nullptr)
-        return ZS_MEMERROR;
+      {
 
+      return ZS_MEMERROR;
+      }
 
     ssize_t wStringCount=(ssize_t)utfVsnprintf(Charset,wMS,MaxSprintfBufferCount,pFormat,ap);
     va_end(ap);
@@ -1470,6 +1476,105 @@ ZStatus utfVaryingString<_Utf>::sprintf(const typename std::conditional<std::is_
     return ZS_SUCCESS;
 }//sprintf
 
+template <class _Utf>
+int utfVaryingString<_Utf>::vsnprintf(size_t pMaxSize,const char* pFormat,va_list args)
+{
+  ZStatus wSt=ZS_SUCCESS;
+  if (!pFormat)
+  {
+    fprintf(stderr,"%s>> format string is nullpptr\n",_GET_FUNCTION_NAME_);
+    return -1;
+  }
+
+  size_t wFormatSize=::strlen(pFormat);
+  if (wFormatSize >MaxSprintfBufferCount)
+  {
+    errno=ENOMEM;
+    wSt=ZS_MEMOVFLW;
+    wFormatSize=MaxSprintfBufferCount;
+  }
+  _Utf* wFormat=(_Utf*)malloc((wFormatSize+1)*sizeof(_Utf));
+  if (wFormat==nullptr)
+    {
+    errno=ENOMEM;
+    return ZS_MEMERROR;
+    }
+
+  _Utf* wPtr=wFormat;
+  const char* wPtr1=pFormat;
+  size_t wi=0;
+  while (*wPtr1 && ( wi++ < wFormatSize) )
+      *wPtr++=(_Utf)*wPtr1++;
+  *wPtr=(_Utf)'\0';
+
+
+  _Utf* wMS=(_Utf*)malloc((pMaxSize+1)*sizeof(_Utf));
+  if (wMS==nullptr)
+    {
+    free(wFormat);
+    fprintf(stderr,"%s>> cannot allocate memory for byte size <%d>\n",_GET_FUNCTION_NAME_,MaxSprintfBufferCount);
+    return -1;
+    }
+
+  size_t wEffectiveSize=utfVsnprintf(Charset,wMS,pMaxSize,wFormat,args);
+  size_t wSVSize=wEffectiveSize;
+
+  _Utf* wAddPtr=wMS;
+  wPtr=allocateUnits(wEffectiveSize+1);
+
+  if (wPtr==nullptr)
+    {
+    errno=ENOMEM;
+    return -1;
+    }
+  while (wEffectiveSize--)
+  {
+    *wPtr=*wAddPtr;
+    wPtr++;
+    wAddPtr++;
+  }
+  *wPtr=(_Utf)'\0';
+  free (wMS);
+  free (wFormat);
+  return wSVSize;
+}//vsnprintf format is char*
+
+template <class _Utf>
+int utfVaryingString<_Utf>::vsnprintf(size_t pMaxSize,const typename std::conditional<std::is_same<_Utf,char>::value,utf8_t,_Utf>* pFormat,va_list args)
+{
+  if (!pFormat)
+  {
+    fprintf(stderr,"%s>> format string is nullpptr\n",_GET_FUNCTION_NAME_);
+    return -1;
+  }
+
+  _Utf* wMS=(_Utf*)malloc((pMaxSize+1)*sizeof(_Utf));
+  if (wMS==nullptr)
+  {
+    fprintf(stderr,"%s>> cannot allocate memory for byte size <%d>\n",_GET_FUNCTION_NAME_,MaxSprintfBufferCount);
+    return -1;
+  }
+
+  size_t wEffectiveSize=utfVsnprintf(Charset,wMS,pMaxSize,pFormat,args);
+  size_t wSVSize=wEffectiveSize;
+
+  _Utf* *wAddPtr=wMS,*wPtr=allocateUnits(wEffectiveSize+1);
+
+  if (wPtr==nullptr)
+  {
+    errno=ENOMEM;
+    return -1;
+  }
+  while (wEffectiveSize--)
+  {
+    *wPtr=*wAddPtr;
+    wPtr++;
+    wAddPtr++;
+  }
+  *wPtr=(_Utf)'\0';
+  free (wMS);
+  return wSVSize;
+}//vsnprintf format is _Utf*
 template <class _Utf>
 /**
  * @brief utfVaryingString<_Utf>::addsprintf  concatenates a _Utf formatted string (pFormat) to existing string, defined by its _Utf format and its varying arguments list.
@@ -1562,6 +1667,7 @@ template <class _Utf>
 ZStatus
 utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string to formatted content. Extends characters allocation to make string fit */
 {
+  ZStatus wSt=ZS_SUCCESS;
     if (!pFormat)
             {
             fprintf(stderr,"%s>> format string is nullpptr\n",_GET_FUNCTION_NAME_);
@@ -1569,15 +1675,26 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
             }
     va_list ap;
     va_start(ap, pFormat);
-//    _Utf wFormat[cst_MaxSprintfBufferCount];
-    _Utf* wFormat=(_Utf*)malloc(MaxSprintfBufferCount*sizeof(_Utf));
+
+    size_t wFormatSize=::strlen(pFormat);
+    if (wFormatSize >MaxSprintfBufferCount)
+      {
+      errno=ENOMEM;
+      wSt=ZS_MEMOVFLW;
+      wFormatSize=MaxSprintfBufferCount;
+      }
+    _Utf* wFormat=(_Utf*)malloc((wFormatSize+1)*sizeof(_Utf));
     if (wFormat==nullptr)
-        return ZS_MEMERROR;
+      {
+      errno=ENOMEM;
+      return ZS_MEMERROR;
+      }
+
     _Utf* wPtr=wFormat;
     const char* wPtr1=pFormat;
     size_t wi=0;
-    while (*wPtr1 && wi++< (cst_MaxSprintfBufferCount-1))
-                                    *wPtr++=(_Utf)*wPtr1++;
+    while (*wPtr1 && ( wi++ < wFormatSize) )
+          *wPtr++=(_Utf)*wPtr1++;
     *wPtr=(_Utf)'\0';
 
 //    _Utf wMS[cst_MaxSprintfBufferCount];
@@ -1608,7 +1725,7 @@ utfVaryingString<_Utf>::sprintf(const char* pFormat,...)  /** set current string
     if (errno==ENOMEM)
         return ZS_MEMOVFLW; /* buffer overflow */
 
-    return ZS_SUCCESS;
+    return wSt;
 }//sprintf
 
 template <class _Utf>
@@ -2355,7 +2472,7 @@ template <class _Utf>
  * @return
  */
 ZDataBuffer*
-utfVaryingString<_Utf>::_exportURF(ZDataBuffer *pURF)
+utfVaryingString<_Utf>::_exportURF(ZDataBuffer *pURF) const
 {
 unsigned char* wURF_Ptr;
     URF_Varying_Size_type wByteSize=(URF_Varying_Size_type)ByteSize;
@@ -2381,38 +2498,48 @@ unsigned char* wURF_Ptr;
  */
 
 template <class _Utf>
-ZStatus utfVaryingString<_Utf>::_importURF(unsigned char* pURF)
+size_t utfVaryingString<_Utf>::_importURF(unsigned char* &pURF)
 {
 ZTypeBase               wType=ZType_Nothing;
 URF_Varying_Size_type   wUniversalSize=0;
-_Utf*                   wOutPtr=nullptr;
+_Utf*                   wPtrOut=nullptr;
 size_t                  wUnits=0;
-    pURF=getURFBufferValue<ZTypeBase>(&wType,pURF);
+size_t                  wTotalSize=0;
+
+  errno=0;
+//    pURF=getURFBufferValue<ZTypeBase>(&wType,pURF);
+
+    wTotalSize += _importAtomic<ZTypeBase>(wType,pURF);
 
 /* ZType control */
-    if (wType!= getZType())
-                {
-                return ZS_INVTYPE;
-                }
+  if (wType!= getZType())
+      {
+      fprintf (stderr,"utfVaryingString::_importURF-E-IVTYP Invalid URF type <%s> while expecting <%s>.\n",
+                          decode_ZType(wType),
+                          decode_ZType(getZType()));
+      errno=EPERM;
+      return 0;
+      }
 
-    pURF=getURFBufferValue<URF_Varying_Size_type>(&wUniversalSize,pURF);
+  wTotalSize += _importAtomic<URF_Varying_Size_type>(wUniversalSize,pURF);
+//    pURF=getURFBufferValue<URF_Varying_Size_type>(&wUniversalSize,pURF);
 
-    wOutPtr=allocateBytesBZero(getByteSize()+sizeof(URF_Varying_Size_type)+sizeof(ZTypeBase));
 
-    wUnits=wUniversalSize/sizeof(_Utf);
+  wPtrOut=allocateBytes(wUniversalSize+sizeof(_Utf));
+  _Utf* wPtrIn=(_Utf*)pURF;
+  wUnits=wUniversalSize/sizeof(_Utf);
+  int wi=0;
+  if (sizeof(_Utf)==1)
+    while (wi++ < wUnits)
+      *wPtrOut++=*wPtrIn++;
+  else
+    while (wi++ < wUnits)
+      *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
 
-    utfSetReverse<_Utf>(wOutPtr,
-                        (const _Utf*)pURF,
-                        (const size_t)wUnits);
+  *wPtrOut++=0;
+  wTotalSize += wUniversalSize;
 
-//    extendBytesBZero(wUniversalSize);
-//    _Utf* wInChar=(_Utf*)wOffset;
-//    for (size_t wi=0;wi < wUniversalSize;wi++,wInChar++)
-//                 Data[wi]=reverseByteOrder_Conditional<_Utf>(*wInChar);
-
-    addConditionalTermination();
-
-    return ZS_SUCCESS;
+  return wTotalSize;
 }// _importURF
 
 
@@ -2426,7 +2553,7 @@ template <class _Utf>
  * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
  */
 ZDataBuffer
-utfVaryingString<_Utf>::_exportUVF()
+utfVaryingString<_Utf>::_exportUVF() const
 {
   ZDataBuffer wUVF;
 
@@ -2459,7 +2586,7 @@ utfVaryingString<_Utf>::_exportUVF()
       *wPtrOut++=*wPtrIn++;
     else
     while (*wPtrIn)
-      *wPtrOut++=reverseByteOrder_Conditional<UVF_Size_type>(*wPtrIn++);
+      *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
 
   return wUVF;
 }// _exportUVF
@@ -2496,7 +2623,7 @@ template <class _Utf>
  * @return total size IN BYTES of consumed bytes in pUniversalPtr buffer (Overall size of string in UVF)
  */
 size_t
-utfVaryingString<_Utf>::_importUVF(unsigned char* pUniversalPtr)
+utfVaryingString<_Utf>::_importUVF(unsigned char* &pUniversalPtr)
 {
   unsigned char* wPtrSrc=pUniversalPtr;
   /* get and control char unit size */
@@ -2530,9 +2657,10 @@ utfVaryingString<_Utf>::_importUVF(unsigned char* pUniversalPtr)
       *wPtrOut++=*wPtrIn++;
   else
     while (wPtrIn < wPtrEnd)
-      *wPtrOut++=reverseByteOrder_Conditional<UVF_Size_type>(*wPtrIn++);
+      *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
 //  addConditionalTermination();
   *wPtrEnd = 0;
+  pUniversalPtr +=(wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1;
   return (wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1;
 }// _importUVF
 /**

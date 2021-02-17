@@ -34,13 +34,14 @@ class ZSystemUser
 public:
     ZSystemUser();
     ~ZSystemUser();
-    ZSystemUser(ZSystemUser &pIn) { _copyFrom(pIn); }
-    ZSystemUser(ZSystemUser &&pIn) { _copyFrom(pIn); }
+    ZSystemUser(const ZSystemUser &pIn) { _copyFrom(pIn); }
+    ZSystemUser(const ZSystemUser &&pIn) { _copyFrom(pIn); }
 
-    ZSystemUser &operator=(ZSystemUser &pIn) { return _copyFrom(pIn); }
-    ZSystemUser &operator=(ZSystemUser &&pIn) { return _copyFrom(pIn); }
+    ZSystemUser &operator=(const ZSystemUser &pIn) { return _copyFrom(pIn); }
+    ZSystemUser &operator=(const ZSystemUser &&pIn) { return _copyFrom(pIn); }
 
-    ZSystemUser &_copyFrom(ZSystemUser &pIn);
+    ZSystemUser &_copyFrom(const ZSystemUser &pIn);
+
 
     void clear();
 
@@ -50,17 +51,17 @@ public:
     ZStatus setToName(const char* pName);
     ZStatus setToUserId (ZSystemUserId pUserId);
 
-    utfidentityString   getSystemName() const;
-    ZDir                getHomeDir() const;
+    utf8String    getSystemName() const;
+    ZDir          getHomeDir() const;
 
-    static ZDir         getCurrentDir();
+    static ZDir   getCurrentDir();
 
-    bool                isRoot() const ;
-    utfcodeString       UserIdToString()  {return SystemUserId.toString();}
-    utfcodeString       GroupIdToString() {return SystemGroupId.toString();}
+    bool          isRoot() const ;
+    utfcodeString UserIdToString()  {return SystemUserId.toString();}
+    utfcodeString GroupIdToString() {return SystemGroupId.toString();}
 
-    ZSystemUserId       getUserId() const {return SystemUserId;}
-    ZSystemUserId       getGroupId() const {return SystemGroupId;}
+    ZSystemUserId getUserId() const {return SystemUserId;}
+    ZSystemUserId getGroupId() const {return SystemGroupId;}
 
 
     static ZSystemUser getUser(const ZSystemUserId &pUid);
@@ -77,7 +78,7 @@ protected:
     ZSystemUserId SystemUserId;
     ZSystemUserId SystemGroupId;
     bool Init=false;
-    utfidentityString SystemUserName;
+    utf8String SystemUserName;
     ZDir  Home;
 
 #ifdef __GNUG__

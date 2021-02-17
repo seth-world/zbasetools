@@ -229,13 +229,13 @@ zxmlNode::getFirstChildText(zxmlNode* &pNode)
     return ZS_SUCCESS;
 }// getFirstChildText
 
-utfdescString zxmlNode::getNodePath(void) const
+utf8String zxmlNode::getNodePath(void) const
 {
-    utfdescString wPath;
+    utf8String wPath;
     xmlChar* wBuf=xmlGetNodePath(_xmlInternalNode);
-    wPath=(const utf8_t*)wBuf;
+    wPath=wBuf;
     xmlFree(wBuf);
-    return (wPath);
+    return wPath;
 }
 
 
@@ -428,13 +428,13 @@ zxmlNode::isCData(void) const
 
 }
 
-utffieldNameString zxmlNode::getName(void) const
+utf8String zxmlNode::getName(void) const
 {
 
     if (_xmlInternalNode==nullptr)
-                            return utffieldNameString((const utf8_t*)"InvalidNode");
+                            return utf8String();
 
-    return utffieldNameString((const utf8_t*)_xmlInternalNode->name);
+    return utf8String((const utf8_t*)_xmlInternalNode->name);
 }
 int
 zxmlNode::getLine(void) const
@@ -455,7 +455,7 @@ zxmlNode::getCData(ZDataBuffer& pCData) const
                               ZS_INVOP,
                               Severity_Error,
                               "Node <%s> is either invalid or is not a CData node ",
-                              getName().toString());
+                              getName().toCChar());
         return  ZS_INVOP;
         }
     xmlBufferPtr wxmlBuf=nullptr;
@@ -466,7 +466,7 @@ zxmlNode::getCData(ZDataBuffer& pCData) const
                               ZS_XMLERROR,
                               Severity_Error,
                               "Cannot get CData content for node <%s>",
-                              getName().toString());
+                              getName().toCChar());
         return  ZS_XMLERROR;
         }
     pCData.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
@@ -553,7 +553,7 @@ zxmlNode::getText(ZDataBuffer& pText) const
                               ZS_INVOP,
                               Severity_Error,
                               "Node <%s> is either invalid or is not a Text node ",
-                              getName().toString());
+                              getName().toCChar());
         return  ZS_INVOP;
         }
     xmlBufferPtr wxmlBuf=nullptr;
@@ -564,7 +564,7 @@ zxmlNode::getText(ZDataBuffer& pText) const
                               ZS_XMLERROR,
                               Severity_Error,
                               "Cannot get content for node <%s>",
-                              getName().toString());
+                              getName().toCChar());
         return  ZS_XMLERROR;
         }
     pText.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
@@ -587,7 +587,7 @@ zxmlNode::getText(utf8VaryingString& pText) const
                               ZS_INVOP,
                               Severity_Error,
                               "Node <%s> is either invalid or is not a Text node ",
-                              getName().toString());
+                              getName().toCChar());
         return  ZS_INVOP;
         }*/
     xmlBufferPtr wxmlBuf=nullptr;
@@ -598,7 +598,7 @@ zxmlNode::getText(utf8VaryingString& pText) const
                               ZS_XMLERROR,
                               Severity_Error,
                               "Cannot get content for node <%s>",
-                              getName().toString());
+                              getName().toCChar());
         return  ZS_XMLERROR;
         }
     pText.setData((unsigned char*)xmlBufferContent(wxmlBuf),(size_t)xmlBufferLength(wxmlBuf));
@@ -717,7 +717,7 @@ zxmlElement::newAttribute(zxmlAttribute* &pAttribute, const char* pName, const c
         setXMLZException(_GET_FUNCTION_NAME_,
                          ZS_XMLERROR,
                          Severity_Error,
-                         "cannot add create attribute name <%s> to current element <%s>",pName,getName().toString());
+                         "cannot add create attribute name <%s> to current element <%s>",pName,getName().toCChar());
         return  ZS_XMLERROR;
         }
 //    pAttribute=new zxmlAttribute(wAttr);
@@ -747,7 +747,7 @@ zxmlElement::setAttribute(zxmlAttribute* pAttribute,const char*pName,const char*
         setXMLZException(_GET_FUNCTION_NAME_,
                          ZS_XMLERROR,
                          Severity_Error,
-                         "cannot add set attribute name <%s> to current element <%s>",pName,getName().toString());
+                         "cannot add set attribute name <%s> to current element <%s>",pName,getName().toCChar());
         return  ZS_XMLERROR;
         }
 
@@ -866,7 +866,7 @@ zxmlElement::getPreviousElementSibling(zxmlElement *&pElement)
  *                   ZS_NOTFOUND in no attribute of this name has been found
  */
 ZStatus
-zxmlElement::getAttributeValue(const utf8_t *pAttrName, utfdescString &pValue)
+zxmlElement::getAttributeValue(const utf8_t *pAttrName, utf8String &pValue)
 {
     pValue.clear();
     if (_xmlInternalNode==nullptr)
@@ -889,7 +889,7 @@ xmlChar* wValue;
  *                   ZException complement is set with xml internal error if any available.
  */
 ZStatus
-zxmlElement::getFirstCData(zxmlNode* &pCDataNode,utf8VaryingString& pCData)
+zxmlElement::getFirstCData(zxmlNode* &pCDataNode,utf8String& pCData)
     {
     ZStatus wSt=getFirstChildCData(pCDataNode);
     if (wSt!=ZS_SUCCESS)
@@ -909,7 +909,7 @@ zxmlElement::getFirstCData(zxmlNode* &pCDataNode,utf8VaryingString& pCData)
  *                   ZException complement is set with xml internal error if any available.
  */
 ZStatus
-zxmlElement::getFirstText(zxmlNode* &pTextNode,utf8VaryingString& pText)
+zxmlElement::getFirstText(zxmlNode* &pTextNode,utf8String& pText)
     {
     ZStatus wSt=getFirstChildText(pTextNode);
     if (wSt!=ZS_SUCCESS)
@@ -928,7 +928,7 @@ zxmlElement::getFirstText(zxmlNode* &pTextNode,utf8VaryingString& pText)
  *                   ZException complement is set with xml internal error if any available.
  */
 ZStatus
-zxmlElement::getFirstComment(zxmlNode* &pTextNode,utf8VaryingString& pText)
+zxmlElement::getFirstComment(zxmlNode* &pTextNode,utf8String& pText)
     {
     ZStatus wSt=getFirstChildComment(pTextNode);
     if (wSt!=ZS_SUCCESS)
@@ -1166,7 +1166,7 @@ zxmlElement::newCDataElement(zxmlElement* &pElement, const char *pName, ZDataBuf
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_XMLERROR,
                               Severity_Error,
-                              "Cannot add CData section node to Element named <%s>",(const char*)pElement->getName().toString());
+                              "Cannot add CData section node to Element named <%s>",(const char*)pElement->getName().toCChar());
 
 
         return ZS_XMLERROR;
@@ -1178,8 +1178,8 @@ zxmlElement::newCDataElement(zxmlElement* &pElement, const char *pName, ZDataBuf
                               ZS_XMLERROR,
                               Severity_Error,
                               "Cannot add element CData section <%s> to Element named <%s>",
-                              (const char*)pElement->getName().toString(),
-                              getName().toString());
+                              (const char*)pElement->getName().toCChar(),
+                              getName().toCChar());
         zxmlremoveNode((zxmlNode*)pElement);
         return ZS_XMLERROR;
         }
@@ -1222,7 +1222,7 @@ zxmlElement::newNameSpace(zxmlNameSpace* &pNameSpace, const char *pURL, const ch
                          ZS_XMLERROR,
                          Severity_Error,
                          "Cannot create local XML namespace for DOM element named <%s> url <%s> prefix <%s>",
-                         getName().toString(),
+                         getName().toCChar(),
                          pURL,
                          pPrefix);
 
@@ -1247,7 +1247,7 @@ zxmlElement::dumpCurrent(FILE*pOutput,int pLevel,int pSpaceIndent)
 ZStatus wSt;
 char wSpace[500];
 
-zxmlNode*wNode,*wNode2;
+zxmlNode*wNode,*wNode2=nullptr;
 zxmlAttribute* wAttribute;
 
 utf8VaryingString wNodeContent;
@@ -1258,7 +1258,7 @@ utf8VaryingString wNodeText;
 
     fprintf (pOutput,"%s>Element name <%s> line <%d> child elements <%ld> ",
              wSpace,
-             getName().toString(),
+             getName().toCChar(),
              getLine(),
              getChildElementCount()
              );
@@ -1271,7 +1271,7 @@ utf8VaryingString wNodeText;
              hasCData()?"Has CData section(s) ":"");
 
     fprintf (pOutput," Path: <%s>\n",
-             getNodePath().toString());
+             getNodePath().toCChar());
 
     if (hasText())
         {
@@ -1281,7 +1281,7 @@ utf8VaryingString wNodeText;
             fprintf(pOutput,
                     "%s Text <%s>\n",
                     wSpace,
-                    wNodeText.toCString_Strait());
+                    wNodeText.toCChar());
             wSt=wNode->getNextText(wNode2,wNodeText);
             wNode=wNode2;
             }
@@ -1311,7 +1311,7 @@ utf8VaryingString wNodeText;
             {
                     fprintf(pOutput,"%s Attribute <%s> : <%s>\n",
                             wSpace,
-                            wAttribute->getName().toString(),
+                            wAttribute->getName().toCChar(),
                             wAttribute->getValue().toString());
             wSt=wAttribute->getNextAttributeSibling(wAttribute);
             }

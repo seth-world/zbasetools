@@ -29,13 +29,12 @@
 #endif
 #endif // __COMMENT__
 #include <unicode/utypes.h>  // for UErrorCode etc...
-
+#include <ztoolset/zutfstrings.h>
 
 /** @addtogroup ZBSErrorGroup
  *
  * @{ */
 
-class utfdescString;
 
 class ZExceptionBase_Data //: public std::exception
 {
@@ -64,10 +63,10 @@ public:
 
     int             Error       = 0 ;           /**< system error code corresponding to errno. This field is positionned when and only when a system error or a file error occurred. */
     ZStatus         Status      = ZS_NOTHING;   /**< ZStatus describing zbs error*/
-    utfexceptionString               Message ;     /**< Application text message. This message is created using a varying list of argument as printf uses.*/
-    utfexceptionString               Complement;   /**<  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
-    Severity_type           Severity= Severity_Nothing; /**< a Severity_type that mentions the kind of error and its impact on application flow.*/
-    utfexceptionString      Module ;                    /**< a string chain mentionning the origin of the error : either method, function routine etc...*/
+    utf8String      Message ;     /**< Application text message. This message is created using a varying list of argument as printf uses.*/
+    utf8String      Complement;   /**<  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
+    Severity_type   Severity= Severity_Nothing; /**< a Severity_type that mentions the kind of error and its impact on application flow.*/
+    utf8String      Module ;                    /**< a string chain mentionning the origin of the error : either method, function routine etc...*/
 
 
     virtual void clear(void)
@@ -101,7 +100,7 @@ public:
 
 //    void clear(void) {memset(this,0,sizeof(ZExceptionBase_Data));}
 
-    virtual char* what() noexcept { return (char*)formatFullUserMessage().content;}
+    virtual char* what() noexcept { return (char*)formatFullUserMessage().toCChar();}
 
 
     void setContext (const char *pModule,ZStatus pStatus,Severity_type pSeverity);
@@ -174,13 +173,13 @@ public:
 
 //    void printExceptionContent(FILE *pOutput=stderr);
 
-    utfexceptionString formatFullUserMessage (void);
+    utf8String formatFullUserMessage (void);
 
 //    void setFromZNetException(const char *pModule, const ZNetException* pZException);
 
 //    ZExceptionBase &operator = (const ZExceptionBase &pZException) {memmove (this,&pZException,sizeof(ZExceptionBase)); return(*this);}
 
-    utf8VaryingString formatUtf8 (void);
+    utf8String formatUtf8 (void);
 
 #ifdef __COMMENT__
 #ifdef QT_CORE_LIB
@@ -292,7 +291,7 @@ public:
             }
 
     void removeLast(void);
-    utfexceptionString formatFullUserMessage (void);
+    utf8String formatFullUserMessage (void);
 
     ZStatus getLastStatus(void);
     Severity_type getLastSeverity(void);
@@ -301,8 +300,8 @@ public:
     void setLastStatus(ZStatus pSt);
     void setLastSeverity(Severity_type pSeverity);
 
-    utfexceptionString& getLastMessage(void) ;
-    utfexceptionString& getLastComplement(void) ;
+    utf8String getLastMessage(void) ;
+    utf8String getLastComplement(void) ;
 
 //    zbs::ZArray<ZExceptionBase*>  ZStack;
 //     ZExceptionStack ZStack;

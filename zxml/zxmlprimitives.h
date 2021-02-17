@@ -12,6 +12,15 @@ extern int cst_XMLIndent;
 
 
 /**
+ * @brief XMLsearchForChildTag recursively scans xml tree (children and sibling nodes) starting at node pTopNode
+ *  for a specific node with name equal to pTag
+ *  and returns the first node found within xml sub-tree that has name equal to tag or returns nullptr if not found.
+ * @param pTopNode top level node to start search from : NB: this node is not deregistrered by the routine.
+ * Returned node must be deregistrated.
+ */
+zxmlNode* XMLsearchForChildTag(zxmlNode* pTopNode, const char* pTag);
+
+/**
  * @brief fmtXMLnode starts a single xml node with name pNodeName and indentation level pLevel (NB: must be ended with fmtXMLendnode)
  * @param pNodeName
  * @param pLevel generates an indentation defined by (pLevel * cst_XMLIndent) leading spaces

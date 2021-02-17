@@ -173,14 +173,6 @@ public:
         return(*this);
     }
 
-/*    ZDataBuffer&
-    setData(const void *&&pData,size_t pSize)
-    {
-      allocate (pSize);
-      memmove(Data,pData,pSize);
-      return(*this);
-    }
-*/
     ZDataBuffer&
     setData(const unsigned char* &&pData,size_t pSize)
     {
@@ -198,6 +190,7 @@ public:
 
         return(*this);
     }
+
     ZDataBuffer&
     setIntAsChar(int pIn)
     {
@@ -241,6 +234,8 @@ public:
         *wPtr++=pIn[wL++];
       return *this;
     }
+    ZDataBuffer&
+    setCheckSum(const checkSum& pChecksum);
 
     template <class _Utf>
     ZDataBuffer&
@@ -724,5 +719,28 @@ public:
 };//ZBlob
 
 
+template <class _Tp>
+size_t _importAtomic(_Tp& pValue,unsigned char * &pUniversalPtr)
+{
+  _Tp wValue;
+  memmove(&wValue,pUniversalPtr,sizeof(_Tp));
+  pValue=reverseByteOrder_Conditional<_Tp>(wValue);
+
+  pUniversalPtr += sizeof(_Tp);
+
+  return sizeof(_Tp);
+}
+
+
+template <class _Tp>
+size_t _exportAtomic(_Tp pValue,ZDataBuffer& pZDB)
+{
+  int wInt = reverseByteOrder_Conditional<_Tp>(pValue);
+  pZDB.appendData(&wInt,sizeof(_Tp));
+  return sizeof(_Tp);
+}
+
+ZStatus _importZStatus(unsigned char*pPtrIn);
+ZDataBuffer& _exportZStatus(ZStatus wSt,ZDataBuffer& pZDB);
 
 #endif // ZDATABUFFER_H

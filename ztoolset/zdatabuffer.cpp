@@ -13,6 +13,8 @@
 #include <zcrypt/checksum.h>
 #include <zcrypt/md5.h>
 
+#include <ztoolset/zutfstrings.h>
+
 ZDataBuffer::ZDataBuffer(void): Data(nullptr), Size(0) ,CryptMethod(ZCM_Uncrypted)
 {return;}
 
@@ -889,6 +891,13 @@ ZDataBuffer::isLess (const void *pCompare,long pSize)
 
 
 
+ZDataBuffer&
+ZDataBuffer::setCheckSum(const checkSum& pChecksum)
+{
+  setData(pChecksum.content,sizeof(pChecksum.content));
+  return *this;
+}
+
 /**
  * @brief ZDataBuffer::dumpHexa dumps a segment of data and returns both ascii and hexadecimal values.
  *
@@ -1312,8 +1321,20 @@ ZBlob::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
 }//getUniversalFromURF
 
 
+ZStatus _importZStatus(unsigned char*pPtrIn)
+{
+  ZStatusBase wSt1;
+  _importAtomic<ZStatusBase>(wSt1,pPtrIn);
+  return (ZStatus)wSt1;
+}
 
-
+ZDataBuffer& _exportZStatus(ZStatus pValue,ZDataBuffer& pZDB)
+{
+  ZStatusBase wSt1=pValue;
+  wSt1 = reverseByteOrder_Conditional<ZStatusBase>(wSt1);
+  pZDB.appendData(&wSt1,sizeof(ZStatusBase));
+  return pZDB;
+}
 
 /** @endcond */ //Development
 

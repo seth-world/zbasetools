@@ -139,7 +139,7 @@ char wBuffer[500];
     Init=true;
     return ZS_SUCCESS;
 }
-utfidentityString
+utf8String
 ZSystemUser::getSystemName() const
 {
     if (!isInit())
@@ -616,10 +616,11 @@ BOOL wRet= LookupAccountSid(
 
 #endif
 
-ZSystemUser &ZSystemUser::_copyFrom(ZSystemUser &pIn)
+ZSystemUser &ZSystemUser::_copyFrom(const ZSystemUser &pIn)
 {
     SystemUserId = pIn.SystemUserId;
     SystemGroupId = pIn.SystemGroupId;
+    SystemUserName = pIn.SystemUserName;
 
     Home = pIn.Home;
     return *this;

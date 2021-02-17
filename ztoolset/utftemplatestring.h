@@ -412,8 +412,9 @@ public:
 
     ZStatus setCharSet(const ZCharset_type pCharset); /** RFFU  */
 
-    ZDataBuffer *_exportURF(ZDataBuffer *pURFData);
-    utftemplateString<_Sz,_Utf>& _importURF(unsigned char* pURFDataPtr);
+    ZDataBuffer _exportURF() const ;
+    ZDataBuffer *_exportURF(ZDataBuffer *pURFData) const ;
+    size_t _importURF(unsigned char* &pURFDataPtr);
 
     /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
      *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
@@ -422,17 +423,20 @@ public:
      *   - UVF_Size_type : number of character units of the string.
      * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
      */
-    ZDataBuffer _exportUVF();
+    ZDataBuffer _exportUVF() const;
     /** @brief _importUVF Import string from Varying Universal Format (dedicated format for strings)
      *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
      *  led by
      *   - uint8_t : char unit size
      *   - UVF_Size_type : number of character units of the string.
      * Important : imported string format (utf-xx) must be the same as current string
-     * @param pUniversalPtr pointer to Varying Universal formatted data header
+     *
+     *
+     * @param[in,out] pUniversalPtr pointer to Varying Universal formatted data header.
+     *        This pointer is updated to point on first byte after imported data.
      * @return total size IN BYTES of  bytes used from pUniversalPtr buffer (Overall used size including header)
      */
-    size_t _importUVF(unsigned char* pUniversalPtr);
+    size_t _importUVF(unsigned char* & pUniversalPtr);
 
     /** @brief _getexportUVFSize() compute the requested export size in bytes for current string, including header */
     UVF_Size_type _getexportUVFSize();
@@ -1355,10 +1359,10 @@ template <size_t _Sz,class _Utf>
  *
  *header :
  *   - ZTypeBase : ZType_utf8FixedString, ZType_utf16FixedString,... Gives the Character Unit size with ZType_AtomicMask
- *   - URF_Canon_Size_type (canonical capacity) number of character units available for the container.
+ *   - URF_Canon_Size_type (canonical capacity) number of character units available for the fixed size container.
  *                  Example : cst_desclen+1 (canonical length of descString)
  *
- *   - URF_Fixed_Size_type effective URF string byte length, URF header included termination char unit '\0' EXCLUDED
+ *   - URF_Fixed_Size_type effective URF string byte length, included URF header AND termination char unit '\0' EXCLUDED
  *
  *  see <ZType_Type vs Header sizes> in file <zindexedfiles/znaturalfromurf.cpp>
  *data :
@@ -1376,15 +1380,22 @@ template <size_t _Sz,class _Utf>
  *
  * @return
  */
-
-ZDataBuffer*
-utftemplateString<_Sz,_Utf>::_exportURF(ZDataBuffer*pURFData)
+ZDataBuffer
+utftemplateString<_Sz,_Utf>::_exportURF() const
 {
+  ZDataBuffer wURFData;
+  _exportURF(&wURFData);
+  return wURFData;
+}
 
+template <size_t _Sz,class _Utf>
+ZDataBuffer*
+utftemplateString<_Sz,_Utf>::_exportURF(ZDataBuffer*pURFData) const
+{
+URF_Capacity_type wCanonical=(URF_Capacity_type)getUnitCount(); /* fixed size in unit count */
 
-URF_Capacity_type wCanonical=(URF_Capacity_type)getUnitCount();
-
-size_t wUniversalSize=getByteSize();
+size_t wEffectiveUnitCount= utfStrlen<_Utf>(content);   /* effective string size in unit count '\0' excluded */
+URF_Fixed_Size_type wUniversalSize=URF_Fixed_Size_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
 
     if (wUniversalSize>=UINT16_MAX)
         {
@@ -1392,31 +1403,39 @@ size_t wUniversalSize=getByteSize();
                  _GET_FUNCTION_NAME_,
                  wUniversalSize,
                  UINT16_MAX);
-        _ABORT_ ;
+        _ABORT_
         }
-URF_Fixed_Size_type wUSizeReversed= (URF_Fixed_Size_type)wUniversalSize;
 
-size_t wURFByteSize=(size_t)(wUniversalSize+sizeof(URF_Fixed_Size_type)+sizeof(URF_Capacity_type)+sizeof(ZTypeBase));
+size_t wTotalByteSize=(size_t)(wUniversalSize+
+                      sizeof(URF_Fixed_Size_type)+
+                      sizeof(URF_Capacity_type)+
+                      sizeof(ZTypeBase));
 size_t wOffset=0;
-//uint32_t wUSizeReversed=_reverseByteOrder_T<uint32_t>(wUniversalSize+1);
 
-    pURFData->allocateBZero((ssize_t)wURFByteSize);
-                                                        // URF Header is
-    ZTypeBase wType=reverseByteOrder_Conditional<ZTypeBase>(ZType);        // ZTypeBase in reverseOrder if LE (if little endian)
-    memmove(pURFData->Data,&wType,sizeof(wType));
-    wOffset=sizeof(wType);
+  pURFData->clear();
+  unsigned char* wPtrOut=pURFData->allocate((ssize_t)wTotalByteSize);
+  const _Utf* wPtrIn=content;
 
-    wCanonical=reverseByteOrder_Conditional<URF_Capacity_type>(wCanonical);             // Capacity (canonical length) in reverse order if LE
-    memmove(pURFData->Data+wOffset,&wCanonical,sizeof(URF_Capacity_type));
-    wOffset+=sizeof(URF_Capacity_type);
+  ZTypeBase wType=reverseByteOrder_Conditional<ZTypeBase>(ZType);        // ZTypeBase in reverseOrder if LE (if little endian)
+  memmove(wPtrOut,&wType,sizeof(wType));
+  wPtrOut+=sizeof(wType);
 
-    wUSizeReversed=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wUSizeReversed);       // URF effective byte size including header size in reverse order if LE
-    memmove(pURFData->Data+wOffset,&wUSizeReversed,sizeof(URF_Fixed_Size_type));
-    wOffset+=sizeof(URF_Fixed_Size_type);
+  wCanonical=reverseByteOrder_Conditional<URF_Capacity_type>(wCanonical);             // Capacity (canonical length) in reverse order if LE
+  memmove(wPtrOut,&wCanonical,sizeof(URF_Capacity_type));
+  wPtrOut+=sizeof(URF_Capacity_type);
 
-    memmove(pURFData->Data+wOffset,content,(size_t)wUniversalSize);  // nb: '\0' is put by difference of 1 char in the end
+  URF_Fixed_Size_type wUSizeReversed=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wUniversalSize);        // ZTypeBase in reverseOrder if LE (if little endian)
+  memmove(wPtrOut,&wUSizeReversed,sizeof(URF_Fixed_Size_type));
+  wPtrOut+=sizeof(URF_Fixed_Size_type);
 
-    return  pURFData;
+  if (sizeof(_Utf)==1)
+      while (*wPtrIn)
+        *wPtrOut++=*wPtrIn++;
+    else
+      while (*wPtrIn)
+        *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
+
+  return  pURFData;
 }// _exportURF
 
 template <size_t _Sz,class _Utf>
@@ -1425,48 +1444,60 @@ template <size_t _Sz,class _Utf>
  * @param pUniversal pointer to URF data header
  * @return
  */
-utftemplateString<_Sz,_Utf> &
-utftemplateString<_Sz,_Utf>::_importURF(unsigned char* pURFDataPtr)
+size_t
+utftemplateString<_Sz,_Utf>::_importURF(unsigned char *& pURFDataPtr)
 {
-ZTypeBase   wType;
-uint16_t    wCanonical;
-uint16_t    wUniversalSize;
+ZTypeBase           wType;
+URF_Capacity_type   wCanonical;
+URF_Fixed_Size_type wUniversalSize;
+size_t              wEffectiveUnitCount;
+
 //size_t      wURFByteSize;
 size_t      wOffset=0;
-
-    memmove(&wType,pURFDataPtr,sizeof(ZTypeBase));
-    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
-    if (!(wType&ZType_String))
+  errno=0;
+  wOffset+=_importAtomic<ZTypeBase>(wType,pURFDataPtr);   // updates pURFDataPtr
+  if (!(wType&ZType_String))
         {
         fprintf (stderr,"%s>> Invalid class type. Found %x <%s> while expecting a ZType_String\n",
         _GET_FUNCTION_NAME_,
                  wType,
                  decode_ZType(wType));
-        _ABORT_;
+        errno=EPERM;
+        return 0;
         }
-    wOffset+= sizeof(ZTypeBase);
 
-    memmove(&wCanonical, pURFDataPtr+wOffset,sizeof(wCanonical));
-    wCanonical=reverseByteOrder_Conditional<URF_Capacity_type>(wCanonical);
-    wOffset+= sizeof(URF_Capacity_type);
+  wOffset += _importAtomic<URF_Capacity_type>(wCanonical,pURFDataPtr);   // updates pURFDataPtr
+  wOffset += _importAtomic<URF_Fixed_Size_type>(wUniversalSize,pURFDataPtr);   // updates pURFDataPtr
 
-    memmove(&wUniversalSize, pURFDataPtr+wOffset,sizeof(wUniversalSize));
-    wUniversalSize=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wUniversalSize);
-    wOffset+= sizeof(URF_Fixed_Size_type);
-
-
-    if (wUniversalSize > UnitCount)
+  wEffectiveUnitCount=wUniversalSize/sizeof(_Utf);
+  if (wEffectiveUnitCount > (UnitCount-1))
                 {
                 fprintf(stderr,
                         "%s>> Error <%s> Capacity of utftemplateString overflow: requested %d while capacity is %ld . String truncated.\n",
                         _GET_FUNCTION_NAME_,
                         decode_ZStatus(ZS_FIELDCAPAOVFLW),
-                        wUniversalSize,
+                        wEffectiveUnitCount,
                         UnitCount);
-                wUniversalSize=UnitCount-1 ;
+                wEffectiveUnitCount=UnitCount-1 ;
+                wUniversalSize=wEffectiveUnitCount*sizeof(_Utf);
+                errno=ENOMEM;
                 }
-    utfStrnset<_Utf>(content,_Sz,pURFDataPtr+wOffset,wUniversalSize);
-    return  *this;
+  int wi=0;
+  _Utf* wPtrOut=content;
+  _Utf* wPtrIn=(_Utf*)pURFDataPtr;
+  if (sizeof(_Utf)==1)
+      {
+      while (wi++<wEffectiveUnitCount)
+          *wPtrOut++=*wPtrIn++ ;
+      }
+    else
+      {
+      while (wi++<wEffectiveUnitCount) // checked
+          *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++) ;
+      }
+    pURFDataPtr += wi * sizeof(_Utf);
+    wOffset += wi * sizeof(_Utf);
+    return  wOffset;
 }// _importURF
 
 /**  Routine to get URF data header information for an utfxxFixedString or utfxxVaryingString. */
@@ -1483,7 +1514,7 @@ template <size_t _Sz,class _Utf>
  * @return 
  */
 
-ZDataBuffer utftemplateString<_Sz, _Utf>::_exportUVF()
+ZDataBuffer utftemplateString<_Sz, _Utf>::_exportUVF() const
 {
     ZDataBuffer wUVF;
 
@@ -1506,7 +1537,7 @@ ZDataBuffer utftemplateString<_Sz, _Utf>::_exportUVF()
     /* export char units : each char unit must be reversed if necessary (big /little endian) */
 
     _Utf* wPtrOut=(_Utf*)(wPtrTarg);
-    _Utf* wPtrIn=content;
+    const _Utf* wPtrIn=content;
 
     if (sizeof (_Utf)==1)
       while (*wPtrIn)
@@ -1542,7 +1573,7 @@ template <size_t _Sz,class _Utf>
  * @return total size of consumed bytes in pUniversalPtr buffer (Overall size of string in UVF)
  */
 size_t
-utftemplateString<_Sz,_Utf>::_importUVF(unsigned char* pUniversalPtr)
+utftemplateString<_Sz,_Utf>::_importUVF(unsigned char*& pUniversalPtr)
 {
   unsigned char* wPtrSrc=pUniversalPtr;
   /* get and control char unit size */
