@@ -9,7 +9,39 @@
 #include <ztoolset/zexceptionmin.h>
 #include <zxml/zxmlerror.h>
 //#include <libxml/parserInternals.h>.h>
+#include <zxml/zxml.h>
 //================Nodes==========================
+
+
+ZNodeCollection::~ZNodeCollection()
+{
+  while (count())
+  {
+    XMLderegister(popR());
+  }
+}
+
+ZElementCollection::~ZElementCollection()
+{
+  while (count())
+  {
+    XMLderegister(popR());
+  }
+}
+ZElementCollection& ZElementCollection::_copyFrom(ZElementCollection& pIn)
+{
+  reset();
+  for (long wi=0;wi < pIn.count(); wi++)
+    push(pIn[wi]);
+  return *this;
+}
+ZElementCollection& ZElementCollection::_copyFrom(ZNodeCollection& pIn)
+{
+  reset();
+  for (long wi=0;wi < pIn.count(); wi++)
+    push((zxmlElement*)pIn[wi]);
+  return *this;
+}
 
 unsigned long
 zxmlNode::getChildElementCount()
@@ -380,9 +412,8 @@ zxmlNode::getFirstAttribute(zxmlAttribute* &pAttribute)
 
 
 
-
 ZStatus
-zxmlNode::getChildByName(zxmlNode* &pNode, const char*pName)
+zxmlNode::getChildByName(zxmlNode* &pNode, const utf8VaryingString &pName)
 {
     xmlNodePtr wChild=_xmlInternalNode->children;
     pNode=nullptr;
@@ -390,7 +421,7 @@ zxmlNode::getChildByName(zxmlNode* &pNode, const char*pName)
         {
         if (wChild->name)
         {
-        if (xmlStrcmp (wChild->name,(xmlChar*)pName)==0)
+        if (xmlStrcmp (wChild->name,(xmlChar*)pName.toCChar())==0)
                 {
  //               pNode=new zxmlNode(wChild);
                 pNode=zxmlcreateNode(wChild);
@@ -401,6 +432,28 @@ zxmlNode::getChildByName(zxmlNode* &pNode, const char*pName)
         }
     return ZS_NOTFOUND;
 }// getChildByName
+
+/**
+ * @brief zxmlNode::getAllChildren find all children nodes with name pName
+ */
+ZNodeCollection zxmlNode::getAllChildren(const utf8VaryingString &pName)
+{
+  ZNodeCollection wCollection;
+  xmlNodePtr wChild=_xmlInternalNode->children;
+
+  while (wChild!=nullptr)
+  {
+    if (wChild->name)
+    {
+      if (xmlStrcmp (wChild->name,(xmlChar*)pName.toCChar())==0)
+      {
+        wCollection.push(zxmlcreateNode(wChild));
+      }
+    }
+    wChild=wChild->next;
+  }
+  return wCollection;
+}//getAllChildren
 
 
 bool
@@ -775,14 +828,14 @@ zxmlElement::setNameSpace(zxmlNameSpace* pNameSpace)
  * @param[in] pName  Name of the element to create
  * @param[in] pNameSpace  optional namespace to stick the node on
  */
-zxmlElement::zxmlElement(const char*pName,zxmlNameSpace*pNameSpace)
+zxmlElement::zxmlElement(const utf8VaryingString &pName,zxmlNameSpace*pNameSpace)
 {
 
 
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
             wNs=pNameSpace->_xmlInternalNameSpace;
-   _xmlInternalNode=xmlNewNode(wNs, (xmlChar *) pName);
+   _xmlInternalNode=xmlNewNode(wNs, (xmlChar *) pName.toCChar());
    if (!_xmlInternalNode)
     {
     setXMLZException(_GET_FUNCTION_NAME_,
@@ -803,7 +856,7 @@ zxmlElement::getFirstChildElement(zxmlElement* &pElement)
     pElement=nullptr;
     xmlNodePtr wChildElement=nullptr;
     wChildElement=xmlFirstElementChild(_xmlInternalNode);
-    if ((wChildElement==nullptr))
+    if (wChildElement==nullptr)
                         return (ZS_EMPTY);
 
     pElement=(zxmlElement*)zxmlcreateNode(wChildElement);
@@ -819,7 +872,7 @@ zxmlElement::getLastChildElement(zxmlElement *&pElement)
     xmlNodePtr wChild=nullptr;
     wChild=xmlLastElementChild((xmlNodePtr)_xmlInternalNode);
 
-    if ((wChild==nullptr))
+    if (wChild==nullptr)
                         return (ZS_EMPTY);
 
     pElement=(zxmlElement*)zxmlcreateNode(wChild);
@@ -835,7 +888,7 @@ zxmlElement::getNextElementSibling(zxmlElement *&pNextElement)
     xmlNodePtr wChild=nullptr;
     pNextElement=nullptr;
     wChild=xmlNextElementSibling(_xmlInternalNode);
-    if ((wChild==nullptr))
+    if (wChild==nullptr)
                         return (ZS_EOF);
 
 //    pNextElement=new zxmlElement((xmlElementPtr)wChild);

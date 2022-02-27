@@ -2,13 +2,17 @@
 #define ZARRAY_H
 
 #include <zconfig.h>
-
-#include <ztoolset/zmem.h>  // for _free()
+#include <ztoolset/zlimit.h>
+#include <ztoolset/zmem.h>  // for zfree()
 
 #include <ztoolset/zerror_min.h>
+
+
 #ifdef __USE_ZTHREAD__
     #include <zthread/zmutex.h>
 #endif
+
+
 
 //extern ZVerbose_Base ZVerbose;
 
@@ -25,9 +29,12 @@
 //#include <ztoolset/ztoolset_common.h>
 #include <initializer_list>
 
-
+//#include <ztoolset/zdatabuffer.h>
 
 namespace zbs {
+
+
+
 /**
  * @brief The ZAExport struct
  *
@@ -37,34 +44,66 @@ namespace zbs {
   0                   |----------AllocatedSize-----------------|
   XXXXXXXXXXXXXXXXXXXX..........................................
 
-  <--- ZAExport -----><-------- ZArray flat data -------------->
-  .Fullsize
-  .AllocatedSize
-  .AllocatedElements
-  .ExtentQuota
-  .InitialAllocation
-  .NbElements
-  .DataOffset
+<--- ZAExport -----><-------- ZArray flat data -------------->
+            .Fullsize
+            .AllocatedSize
+            .AllocatedElements
+            .ExtentQuota
+            .InitialAllocation
+            .NbElements
+            .DataOffset
 
-@endverbatim
+        @endverbatim
 
 
 
- */
+            */
 #pragma pack(push)
-#pragma pack(0)
-    struct ZAExport {
-        size_t FullSize;        //!< full size in byte of the export (ZAExport + ZArray data space )
-        size_t AllocatedSize;   //!< ZArray Allocated Size
-        size_t CurrentSize;     //!< ZArray CurrentSize : current number of elements * size of one element
-        size_t DataSize;        //!< Size of ZArray data to import
-        size_t AllocatedElements; //!< ZArray Number of allocated elements
-        size_t ExtentQuota;     //!< ZArray ExtentQuota value
-        size_t InitialAllocation;
-        ssize_t NbElements;     //!< ZArray NbElements value
-        size_t DataOffset;      //!< Offset to ZArray Data relative to begining of export data (starting 0)
-    };
+#pragma pack(1)
+template <class _Tp>
+class ZArray;
+
+
+class ZAExport
+{
+public:
+  ZAExport()=default;
+
+  uint32_t  StartSign=cst_ZMSTART;
+  uint16_t  EndianCheck=cst_EndianCheck_Normal;
+  size_t    FullSize=0;        //!< full size in byte of the export (ZAExport + size of exported data -see DataSize )
+  size_t    AllocatedSize=0;   //!< ZArray Allocated Size
+  size_t    CurrentSize=0;     //!< ZArray CurrentSize : current number of elements * size of one element
+  size_t    DataSize=0;        //!< Size of ZArray exported data or data to import : equals to sizeof(_TpOut)*NbElements
+  size_t    AllocatedElements=0; //!< ZArray Number of allocated elements
+  size_t    ExtentQuota=0;     //!< ZArray ExtentQuota value
+  size_t    InitialAllocation=0;
+  ssize_t   NbElements=0;      //!< ZArray NbElements value
+
+  void setFromPtr(const unsigned char* &pPtrIn);
+
+  ZAExport& _copyFrom(const ZAExport& pIn);
+
+  ZAExport(const ZAExport& pIn) {_copyFrom(pIn);}
+
+  ZAExport& operator = (const ZAExport& pIn) {return _copyFrom(pIn);}
+
+  template <class _Tp>
+  void setZArray(ZArray<_Tp>* pArray);
+
+
+  void _convert ();
+
+  void serialize();
+  void deserialize();
+
+  bool isReversed()     {if (EndianCheck==cst_EndianCheck_Reversed) return true; return false;}
+  bool isNotReversed()  {if (EndianCheck==cst_EndianCheck_Normal) return true; return false;}
+
+};
 #pragma pack(pop)
+
+
 
 
 /** @addtogroup NOTUSABLEWITHINDEX This function/method is not usable with ZArrays
@@ -86,7 +125,7 @@ namespace zbs {
  *
  * 2.       name.Tab[index]
  *
- * 3.       name.Data.Tab[index]
+ * 3.       name.Data[index]
  *
  *
  * @warning  brackets operators are overloaded for this occasion. It might cause unpredictable result if not used in compliance with the overloading conditions.
@@ -99,7 +138,7 @@ namespace zbs {
  * Using pointer to ZArray :
  *      You can access data within ZArray pointers using previous 2. and 3. as described below :
  *      - name->Tab[index]
- *      - name->Data.Tab[index]
+ *      - name->Data[index]
  *
  * @section ZArrayParameters ZArrays parameters
  * ZArray parameters at creation time impacts on how ZArray will allocate memory.
@@ -122,15 +161,6 @@ namespace zbs {
  *
  *
  */
-template<class _Tp> class ZArray;
-
-
-template <class _TpIn , class _TpOut>
-unsigned char*
-_ZAexportAllocated(ZArray<_TpIn>* pZArray,
-                 unsigned char* &pBuffer,
-                 size_t &pBufferSize,
-                 _TpOut (*_exportConvert)(_TpIn&,_TpOut*));
 
 typedef long ZArrayIndex_type;
 
@@ -142,12 +172,13 @@ class ZArray
  */
 
 public :
-  union ZUData { char *zptr_char;
+/*  union ZUData { char *zptr_char;
     void *zptr_void;
     _Tp *Tab ;
   } Data ;
-
-  _Tp * Tab=nullptr  ;
+*/
+  _Tp * Tab=nullptr ;
+//  _Tp * Tab=nullptr  ;
 
   ssize_t ZCurrentNb=0 ;        // current number of elements : 0 if ZArray is empty lastIdx() returns -1
   const size_t ZElementSize=sizeof(_Tp); // for Qt debug interface purpose
@@ -159,8 +190,9 @@ protected:
   size_t ZInitialAllocation=0;  // keep initial allocation for reset purpose : ZClear will get back to this memory allocation
   _Tp ZReturn ;               // memory zone for returning element (WARNING: not to be used with multi-thread)
 
+//  bool _hasChanged=false;
 private :
-  void *ZPtr =nullptr;
+//  void *ZPtr =nullptr;
   long ZIdx=0 ;                 // Last index accessed
 
 #ifdef __USE_ZTHREAD__  //   in any case (__ZTHREAD_AUTOMATIC__ or not) we have to define a ZMutex
@@ -187,7 +219,7 @@ public:
        _copyFrom(pIn);
        return;
    }
-   ZArray(ZArray&& pIn)
+   ZArray( ZArray&& pIn)
    {
      //       _mInit(); /* init with default allocation values */
      _copyFrom(pIn);
@@ -205,14 +237,11 @@ public:
       _copyFrom(pIn);
       return *this;
    }
-/*
-   void _free(void* pPtr) // local to ZArray
-   {
-       if (pPtr!=nullptr)
-               free(pPtr);
-       pPtr=nullptr;
-       return;
-   }
+
+/*   void resetChanged() {_hasChanged=false;}
+   void setChanged () {_hasChanged=true;}
+
+   bool hasChanged()  {return _hasChanged;}
 */
    bool exists(long pIdx){if ((pIdx<0)||(pIdx>lastIdx())) return false; return true;}
 
@@ -286,10 +315,10 @@ public:
   _Tp & operator [] (const long pIndex)
             {
             if (pIndex<ZCurrentNb)
-                    return (Data.Tab[pIndex]);
+                    return (Tab[pIndex]);
             fprintf(stderr,"ZArray-E-IVIDXVAL invalid index value out of array boundary.\n");
             }// we must be able to access to this operator function from the inherited class
-  const _Tp & operator []  (const long pIndex) const { return (Data.Tab[pIndex]);}   // we must be able to access to this operator function from the inherited class
+  const _Tp & operator []  (const long pIndex) const { return (Tab[pIndex]);}   // we must be able to access to this operator function from the inherited class
 
   /**
     * @brief operator << pops the ZArray and returns a reference to the result within the field of type _Tp mentionned as left argument
@@ -338,7 +367,7 @@ public:
 */
     long move (size_t pDest, size_t pOrig,size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
 private:
-    long _move (size_t pDest, size_t pOrig,size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
+    long _move (size_t pDest, size_t pOrig, ssize_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
 public:
 
     long swap (size_t pDest, size_t pOrig,  size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
@@ -355,7 +384,7 @@ public:
     /** ! @brief last returns the ZArray content of the last element of the ZArray. If ZArray is empty, it issues a fatal error and terminates.
      */
     _Tp &last(void) { if (size()>0)
-                            return(Data.Tab[ZCurrentNb-1]);
+                            return(Tab[ZCurrentNb-1]);
                        fprintf(stderr,"ZArray::last-F-OUTOFBOUND empty ZArray, Out of boundaries\n");
                        abort() ;
                     }
@@ -366,18 +395,21 @@ public:
 
 //========================End methods to be protected=============
 
-    long pop(void);
-    long _pop(void);
-    long pop_front(void);
+    long pop(void);     /* erase last  */
+    long _pop_nolock(void);
+    long pop_front(void);   /* erase first  */
+    long _pop_front_nolock(void);
 
-    _Tp& popR(void);
-    _Tp& popR_front(void);
-    _Tp& popRP_NL(_Tp* pReturn);
+    _Tp& popR(void);            /* pop with return : erase last and return erased */
+    _Tp& _popR_nolock(void);
+    _Tp& popR_front(void);      /* pop front with return : erase first and return erased  */
+    _Tp& _popR_front_nolock(void);
 
+    _Tp & popRP(_Tp* pReturn);    /* pop with return thread safe */
+    _Tp& _popRP_nolock(_Tp* pReturn);
 
-
-    _Tp & popRP(_Tp* pReturn);
-    _Tp & popRP_front(_Tp* pReturn);
+    _Tp & popRP_front(_Tp* pReturn);  /* pop front with return thread safe */
+    _Tp & _popRP_front_nolock(_Tp* pReturn);
 
 
 
@@ -386,8 +418,39 @@ public:
     bool isEmpty(void) {return (ZCurrentNb==0);}
 
     _Tp & assign (_Tp &pValue, const long pIdx);
+    /* for class  objects */
+#ifdef __COMMENT__
+    _Tp & assign (typename std::enable_if<(std::is_class<_Tp>::value),_Tp> &pValue, const long pIdx)
+        {
+        if ((size_t)pIdx >= ZAllocation)
+        {
+          fprintf (stderr,"ZArray::assign-F-OVERFLW Index <%ld> bypasses allocation <%ld>\n",pIdx,ZAllocation);
+          abort();
+        }
+        memset(&Tab[pIdx],0,sizeof(_Tp)); /* cannot invoke constructor but can set memory surface to zero */
+        Tab[pIdx] = pValue;               /* copy constructor and operator = must be defined if class */
+      //  _hasChanged=true;
+        return Tab[pIdx];
+        }
+
+    /* for other objects than class */
+    _Tp & assign (typename std::enable_if<!(std::is_class<_Tp>::value),_Tp> &pValue, const long pIdx)
+        {
+          if ((size_t)pIdx >= ZAllocation)
+          {
+            fprintf (stderr,"ZArray::assign-F-OVERFLW Index <%ld> bypasses allocation <%ld>\n",pIdx,ZAllocation);
+            abort();
+          }
+          memset(&Tab[pIdx],0,sizeof(_Tp)); /* cannot invoke constructor but can set memory surface to zero */
+          Tab[pIdx] = pValue;               /* copy constructor and operator = must be defined if class */
+        //  _hasChanged=true;
+          return Tab[pIdx];
+        }
+
+#endif // __COMMENT__
+
     _Tp & assignReturn ( const long pIdx);
-    void clearValue (const long pIdx);
+//    void clearValue (const long pIdx);
 
     _Tp & reverse (long pIdx);
 
@@ -398,116 +461,10 @@ public:
     ZArray<_Tp>* clone(void);
 
  //   void copy(ZArray<_Tp> &pZCopied)  {copy(static_cast<const ZArray<_Tp>> (pZCopied));}
-    void _copyFrom(ZArray<_Tp> &pIn)  ;
+    ZArray<_Tp> & _copyFrom(ZArray<_Tp> &pIn)  ;
 
 
-//  ------------------------ Export Import utilities---------------------------
 
-/**
-  @brief ZArray export import utilities
-
-
-  Beginning           +-------> DataOffset
-                      |
-  0                   |----------AllocatedSize-----------------|
-  XXXXXXXXXXXXXXXXXXXX..........................................
-
-  <--- ZAExport -----><-------- ZArray flat data -------------->
-  .Fullsize
-  .AllocatedSize
-  .AllocatedElements
-  .ExtentQuota
-  .NbElements
-  .DataOffset
-
-*/
-
-/**
- * @brief _getExportAllocatedSize returns the total size that will be required for an _exportAllocated operation of the current ZArray
- * @return
- */
-    ssize_t _getExportAllocatedSize(void) {return (getAllocatedSize()+sizeof(ZAExport)+1);}
-
-/**
- * @brief _getExportCurrentSize returns the total size that will be required for an _exportAllocated operation of the current ZArray
- * @return
- */
-    ssize_t _getExportCurrentSize(void) {return (getCurrentSize()+sizeof(ZAExport)+1);}
-
-
-ZAExport getZAExport(void)
-{
-    ZAExport wZAE;
-    wZAE.AllocatedSize = getAllocatedSize();   // get the total allocated size
-    wZAE.CurrentSize = getCurrentSize();     // get the current size corresponding to currently stored elements
-
-    wZAE.DataSize = wZAE.AllocatedSize;     // taking the AllocatedSize
-
-    wZAE.FullSize = wZAE.DataSize+sizeof(ZAExport)+1;
-
-    wZAE.AllocatedElements = getAllocation();
-    wZAE.InitialAllocation = getInitalAllocation();
-    wZAE.ExtentQuota = getQuota();
-    wZAE.NbElements = ZCurrentNb;
-    wZAE.DataOffset = sizeof(wZAE);
-    return wZAE;
-}
-/**
- * @brief getZAExport_U exports a ZAExport structure with Intermediate format (reversedByteOrder whether necessary)
- * @return
- */
-ZAExport getZAExport_U(void)
-{
-    ZAExport wZAE=getZAExport();
-
-    wZAE.AllocatedSize = reverseByteOrder_Conditional<size_t>(wZAE.AllocatedSize);   // get the total allocated size
-    wZAE.CurrentSize = reverseByteOrder_Conditional<size_t>(wZAE.CurrentSize);     // get the current size corresponding to currently stored elements
-
-    wZAE.DataSize = reverseByteOrder_Conditional<size_t>(wZAE.DataSize);     // taking the AllocatedSize
-
-    wZAE.FullSize = reverseByteOrder_Conditional<size_t>(wZAE.FullSize);
-    wZAE.AllocatedElements = reverseByteOrder_Conditional<size_t>(wZAE.AllocatedElements);
-    wZAE.ExtentQuota = reverseByteOrder_Conditional<size_t>(wZAE.ExtentQuota);
-    wZAE.InitialAllocation = reverseByteOrder_Conditional<size_t>(wZAE.InitialAllocation);
-    wZAE.NbElements = reverseByteOrder_Conditional<ssize_t> (wZAE.NbElements);
-    wZAE.DataOffset = reverseByteOrder_Conditional<size_t> (wZAE.DataOffset);
-    return wZAE;
-}
-ZAExport& convertZAExport_I(ZAExport& pZAE)
-{
-    pZAE.AllocatedSize = reverseByteOrder_Conditional<size_t>(pZAE.AllocatedSize);   // get the total allocated size
-    pZAE.CurrentSize = reverseByteOrder_Conditional<size_t>(pZAE.CurrentSize);     // get the current size corresponding to currently stored elements
-
-    pZAE.DataSize = reverseByteOrder_Conditional<size_t>(pZAE.DataSize);     // taking the AllocatedSize
-
-    pZAE.FullSize = reverseByteOrder_Conditional<size_t>(pZAE.FullSize);
-    pZAE.AllocatedElements = reverseByteOrder_Conditional<size_t>(pZAE.AllocatedElements);
-    pZAE.ExtentQuota = reverseByteOrder_Conditional<size_t>(pZAE.ExtentQuota);
-    pZAE.InitialAllocation = reverseByteOrder_Conditional<size_t>(pZAE.InitialAllocation);
-    pZAE.NbElements = reverseByteOrder_Conditional<ssize_t> (pZAE.NbElements);
-    pZAE.DataOffset = reverseByteOrder_Conditional<size_t> (pZAE.DataOffset);
-    return pZAE;
-}
-ZAExport ZAEimport(unsigned char* pBuffer)
-{
-    ZAExport wZAE;
-    ZAExport* pZAE=(ZAExport*)pBuffer;
-    wZAE.AllocatedSize = reverseByteOrder_Conditional<size_t>(pZAE->AllocatedSize);   // get the total allocated size
-    wZAE.CurrentSize = reverseByteOrder_Conditional<size_t>(pZAE->CurrentSize);     // get the current size corresponding to currently stored elements
-
-    wZAE.DataSize = reverseByteOrder_Conditional<size_t>(pZAE->DataSize);     // taking the AllocatedSize
-
-    wZAE.FullSize = reverseByteOrder_Conditional<size_t>(pZAE->FullSize);
-    wZAE.AllocatedElements = reverseByteOrder_Conditional<size_t>(pZAE->AllocatedElements);
-    wZAE.ExtentQuota = reverseByteOrder_Conditional<size_t>(pZAE->ExtentQuota);
-    wZAE.InitialAllocation = reverseByteOrder_Conditional<size_t>(pZAE->InitialAllocation);
-    wZAE.NbElements = reverseByteOrder_Conditional<ssize_t> (pZAE->NbElements);
-    wZAE.DataOffset = reverseByteOrder_Conditional<size_t> (pZAE->DataOffset);
-
-    return wZAE;
-}
-
-    size_t sizeAllocated(void) ;
     /** @brief size  size of current ZArray : number of element in the current ZArray (and NOT bytes size) see getAllocatedSize*/
     long size(void) const ;
     /** @brief count  size of current ZArray : number of element in the current ZArray (and NOT bytes size) see getAllocatedSize*/
@@ -517,13 +474,13 @@ ZAExport ZAEimport(unsigned char* pBuffer)
     /** @brief usedSize  returns the size in bytes of one _Tp element (size of one row of the array). Alias for getCurrentSize()*/
     long usedSize(void) ;
 
-    size_t getAllocation (void) {return (ZAllocation);} /*!< returns the number of elements currently being allocated (and not those used) */
-    size_t getQuota(void) {return (ZReallocQuota);} /*!< returns the reallocation quota for the ZArray : Number of elements that will be allocated each time ZArray needs additional space */
-    size_t getInitalAllocation() {return ZInitialAllocation;}
+    size_t getAllocation (void) const {return (ZAllocation);} /*!< returns the number of elements currently being allocated (and not those used) */
+    size_t getQuota(void) const {return (ZReallocQuota);} /*!< returns the reallocation quota for the ZArray : Number of elements that will be allocated each time ZArray needs additional space */
+    size_t getInitalAllocation() const {return ZInitialAllocation;}
     /** @brief getAllocatedSize returns the size in bytes of the memory currently allocated to the ZArray instance */
-    size_t getAllocatedSize(void){return(ZAllocatedSize);}
+    size_t getAllocatedSize(void) const {return(ZAllocatedSize);}
     /** @brief  getCurrentSize returns the size in bytes taken by current number of elements */
-    ssize_t getCurrentSize(void) { return (sizeof(_Tp)*ZCurrentNb);}
+    ssize_t getCurrentSize(void) const { return (sizeof(_Tp)*ZCurrentNb);}
 
     void setAllocationValues(size_t pAllocation,size_t pReallocQuota) {setAllocation(pAllocation); setQuota(pReallocQuota);}
     inline void setQuota (size_t pQuota) {ZReallocQuota=pQuota;} /** !< sets the new reallocation quota for the ZArray in number of elements */
@@ -532,7 +489,7 @@ ZAExport ZAEimport(unsigned char* pBuffer)
     long allocateCurrentElements (const ssize_t pAlloc);
 
     /** @brief getDataPtr returns the current pointer to data content. Warning : this pointer is not stable and is to be changed whenever reallocation occurs */
-    inline void* getDataPtr() {return Data.zptr_void;}
+    inline void* getDataPtr() const {return (void*)Tab;}
 
 //------------- search routines---------------------------
 
@@ -562,6 +519,30 @@ ZAExport ZAEimport(unsigned char* pBuffer)
 //-------------- end search routines--------------------------
 
 
+    //  ------------------------ Export Import utilities---------------------------
+
+/**
+  @brief ZArray export import utilities
+
+
+  Beginning           +-------> DataOffset
+    |
+    0                   |----------AllocatedSize-----------------|
+    XXXXXXXXXXXXXXXXXXXX..........................................
+
+        <--- ZAExport -----><-------- ZArray flat data -------------->
+                  .Fullsize
+                  .AllocatedSize
+                  .AllocatedElements
+                  .ExtentQuota
+                  .NbElements
+                  .DataOffset
+
+*/
+
+  ZAExport getZAExport(void) const;
+
+
 //---------Mutex methods---------------
 public:
 #ifdef __USE_ZTHREAD__
@@ -569,16 +550,21 @@ public:
     void unlock(void)   {_Mutex.unlock();}
 #endif  //__USE_ZTHREAD__
 
-private :
+protected :
     void addCheck(long pAdd);
-    void allocate(long pAlloc) ;
+    void allocate(long pAlloc);
     void _sizeAllocate(size_t pSizeAlloc);
-    void _setContent (void *pContent,size_t pSize) {memmove(Data,pContent,pSize); return;}
+    void _setContent (void *pContent,size_t pSize) {memmove(Tab,pContent,pSize); return;}
 
 
     unsigned int Check=0xFFFFFFFF;
 
 }; // class ZArray
+
+
+/* --------------- Begin developed methods ------------------*/
+
+
 
 /**
  * operator << overload that cannot be put as friend within class due to template limitations
@@ -613,6 +599,7 @@ void ZArray<_Tp>::addValues(size_t pCount,_Tp pInitValue)
             push(pInitValue);
     return;
 }
+
 #ifdef __COMMENT__
 template <typename _Tp>
 ZArray<_Tp>::ZArray(size_t pInitialAlloc, size_t pReallocQuota)
@@ -644,10 +631,13 @@ template <typename _Tp>
 void ZArray<_Tp>::_mInit(size_t pInitialAlloc,
                          size_t pReallocQuota)
 {
-    _free(ZPtr);
 
-    ZPtr=nullptr ;
-    Data.zptr_void = nullptr;
+    zfree(Tab);
+
+//    _hasChanged=false;
+
+//    ZPtr=nullptr ;
+//    Data.zptr_void = nullptr;
     Tab = nullptr;
     ZAllocation = 0;
 
@@ -672,10 +662,9 @@ template <typename _Tp> ZArray<_Tp>::~ZArray()
 //   _Mutex.lock();  // cannot do that : mutex object already deleted
 //    delete _Mtx;
 //#endif
-    if (ZPtr!=NULL)
+    if (Tab!=NULL)
             {
-            free (ZPtr);
-            ZPtr=NULL;
+            zfree (Tab);
             }
 
 // #ifdef __USE_ZTHREAD__  //   in any case (__ZTHREAD_AUTOMATIC__ or not) we have to define a ZMutex
@@ -711,13 +700,10 @@ ZArray<_Tp>::clone(void)
  * @return
  */
 template <typename _Tp>
-void
+ZArray<_Tp>&
 ZArray<_Tp>::_copyFrom (ZArray<_Tp> &pIn)
 {
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-//        pCopied.lock(
-//    const ZArray<_Tp>* wC=&pIn;
-//    const_cast<ZArray<_Tp>*>(wC)->lock();
     pIn.lock();
 #endif
 
@@ -731,34 +717,50 @@ ZArray<_Tp>::_copyFrom (ZArray<_Tp> &pIn)
                       assign (pIn.Tab[wi],wi);
 //    memmove (Tab,pCopied.Tab,(pCopied.ZCurrentNb*sizeof(_Tp)));
 
+//  //  _hasChanged=true;
+
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
 //        pCopied.unlock();
 //        const_cast<ZArray<_Tp>*>(wC)->unlock();
     pIn.unlock();
 #endif
-
+    return *this;
 }
 /**
- *  --------Allocation / clear of single element-----------
+ *  --------Allocation of a new element onto the stack from pValue-----------
  */
+
 template<class _Tp>
-inline _Tp & ZArray<_Tp>::assign (_Tp &pValue, const long pIdx)
+_Tp & ZArray<_Tp>::assign (_Tp &pValue, const long pIdx)
 {
-  Tab[pIdx]=pValue;
+  if ((size_t)pIdx >= ZAllocation)
+    {
+    fprintf (stderr,"ZArray::assign-F-OVERFLW Index <%ld> bypasses allocation <%ld>\n",pIdx,ZAllocation);
+    abort();
+    }
+  memset(&Tab[pIdx],0,sizeof(_Tp)); /* cannot invoke constructor but can set memory surface to zero */
+  Tab[pIdx] = pValue;               /* copy constructor and operator = must be defined if class */
+////  _hasChanged=true;
   return Tab[pIdx];
 }
+
+
 template<class _Tp>
 inline _Tp & ZArray<_Tp>::assignReturn (const long pIdx)
 {
   ZReturn= Tab[pIdx];
   return ZReturn;
 }
+/*
 template<class _Tp>
 inline void ZArray<_Tp>::clearValue (const long pIdx)
 {
   memset(&Tab[pIdx],0,sizeof(_Tp));
+////  _hasChanged=true;
   return ;
 }
+*/
+
 template <typename _Tp>
 /**
  * @brief ZArray::reverse returns the ZArray data in reverse rank order (0 corresponds to the last ZArray index, etc.)
@@ -774,7 +776,7 @@ inline _Tp & ZArray<_Tp>::reverse (long pIdx)
                         std::cerr.flush();
                         }
 #endif
-    return (Data.Tab[ZCurrentNb-pIdx-1]);
+    return (Tab[ZCurrentNb-pIdx-1]);
 }
 /** @brief move  moves the pNumber elements of the dynamic array from pOrig index to pDest index.
  *          pOrig content remains unchanged except if there is an overlap between destination and origin
@@ -800,49 +802,47 @@ long wRet=0;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-        wRet=_move(pDest,pOrig,pNumber);
+//  //  _hasChanged=true;
+    wRet=_move(pDest,pOrig,pNumber);
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+    _Mutex.unlock();
 #endif
     return wRet ;
 }// move
 
 template <typename _Tp>
-long ZArray<_Tp>::_move (size_t pDest, size_t pOrig, size_t pNumber)
+long ZArray<_Tp>::_move (size_t pDest, size_t pOrig, ssize_t pNumber)
 {
     if (pDest==pOrig)
             {
             ZIdx = pDest;
-            return (0);
+            return (pDest);
             }
- //   if ((pOrig<0)||(pDest<0))
- //                               {
- //                               return -1 ;  // pOrig or pDest are out of boundaries
- //                               }
-    if (ZCurrentNb==0)
+    if (pNumber<0)
             {
-            if (pOrig>ZCurrentNb)
-                    {
-                    return -1; // pOrig is out of boundaries
-                    }
+              ZIdx = pDest;
+              return (-1);
             }
-            else
+    if (pNumber==0)
             {
-            if (pOrig+pNumber > ZCurrentNb)
-                        {
-                        return -1 ; // source is out of boundaries
-                        }
-            } // else
+              ZIdx = pDest;
+              return (pDest);
+            }
 
-    if ((pDest+pNumber)>ZCurrentNb)
+    if (pOrig >= ZCurrentNb)
+      return -1; // pOrig is out of boundaries
+
+    if (pOrig+pNumber >= ZCurrentNb)
+      return -1 ; // source is out of boundaries
+
+
+//  //  _hasChanged=true;
+    if ((pDest+pNumber) >= ZCurrentNb)
                 {
-                long wA=(pDest+pNumber)-ZCurrentNb ;
+                long wA=(pDest+pNumber+1) - ZCurrentNb ;
                 addCheck(wA);                       // make room for moving elements if necessary
-//                ZCurrentNb=ZCurrentNb + wA ;        // new current number of ZArray elements
                 }
 
-
-//    memmove(&Data.Tab[pDest],&Data.Tab[pOrig],(size_t)(pNumber*(sizeof(_Tp))));
 
     for (long wi=0;wi < pNumber;wi++)
       {
@@ -897,21 +897,22 @@ long ZArray<_Tp>::swap (size_t pDest, size_t pOrig,size_t pNumber)
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-        if ((pDest+pNumber)>ZCurrentNb)
+//  //  _hasChanged=true;
+    if ((pDest+pNumber)>ZCurrentNb)
                 {
                 addCheck((pDest+pNumber)-ZCurrentNb);
-                memset (&Data.Tab[ZCurrentNb],0,(size_t)(pNumber-(ZAllocation-ZCurrentNb)));
+                memset (&Tab[ZCurrentNb],0,(size_t)(pNumber-(ZAllocation-ZCurrentNb)));
                 }
 
     _Tp *wPt=(_Tp*) malloc (pNumber*(sizeof(_Tp)));
-    memmove(wPt,&Data.Tab[pOrig],(size_t)(pNumber*(sizeof(_Tp))));
-    memmove(&Data.Tab[pOrig],&Data.Tab[pDest],(size_t)(pNumber*(sizeof(_Tp))));
-    memmove(&Data.Tab[pDest],wPt,(size_t)(pNumber*(sizeof(_Tp))));
-    free(wPt);
+    memmove(wPt,&Tab[pOrig],(size_t)(pNumber*(sizeof(_Tp))));
+    memmove(&Tab[pOrig],&Tab[pDest],(size_t)(pNumber*(sizeof(_Tp))));
+    memmove(&Tab[pDest],wPt,(size_t)(pNumber*(sizeof(_Tp))));
+    zfree(wPt);
 
     ZIdx = pDest ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+    _Mutex.unlock();
 #endif
     return pDest ;
 }// swap
@@ -933,6 +934,7 @@ long ZArray<_Tp>::insert(_Tp &pElement, size_t pIdx)
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
+//  //  _hasChanged=true;
     addCheck(1);
     if (ZCurrentNb>0)
             {
@@ -940,13 +942,13 @@ long ZArray<_Tp>::insert(_Tp &pElement, size_t pIdx)
             }
 
     ZCurrentNb=ZCurrentNb + 1;
-//    memmove(&Data.Tab[pIdx],&pElement,(sizeof(_Tp)));
+//    memmove(&Data[pIdx],&pElement,(sizeof(_Tp)));
 
     assign(pElement,pIdx);
 
     ZIdx=pIdx;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+    _Mutex.unlock();
 #endif
     return (pIdx);
 }// insert
@@ -961,30 +963,26 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::insert(_Tp *pElement, size_t pIdx,size_t pNumber)
 {
-    if (pIdx>ZCurrentNb)
-                {
-                return (-1);
-                }
+  if (pIdx >= ZCurrentNb)
+      return (-1);
+
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
+  _Mutex.lock();
 #endif
-    ZIdx = pIdx ;
-    addCheck(pNumber);
-    if (ZCurrentNb>0)
-            {
-//            ZCurrentNb=ZCurrentNb + pNumber;  // done in 'move'
-            move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
-            }
-//            else
-            ZCurrentNb=ZCurrentNb + pNumber;  // done in 'move'
-//    memmove(&Data.Tab[pIdx],pElement,(sizeof(_Tp)*pNumber));
-    for (long wi=0;wi<pNumber;wi++)
+////  _hasChanged=true;
+  ZIdx = pIdx ;
+  addCheck(pNumber);
+  if (ZCurrentNb > 0)
+  move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
+
+  ZCurrentNb = ZCurrentNb + pNumber;
+  for (long wi=0;wi<pNumber;wi++)
             assign(pElement[wi],pIdx + wi);
-    ZIdx=pIdx;
+  ZIdx=pIdx;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+  _Mutex.unlock();
 #endif
-    return (pIdx);
+  return (pIdx);
 }// insert
 template <typename _Tp>
 /**
@@ -996,21 +994,16 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::_insertNoLock(_Tp *pElement, size_t pIdx,size_t pNumber)
 {
-    if (pIdx>ZCurrentNb)
-                {
-                return (-1);
-                }
+  if (pIdx>ZCurrentNb)
+    return (-1);
+////  _hasChanged=true;
+  ZIdx = pIdx ;
+  addCheck(pNumber);
+  if (ZCurrentNb > 0)
+    move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
 
-    ZIdx = pIdx ;
-    addCheck(pNumber);
-    if (ZCurrentNb>0)
-            {
-//            ZCurrentNb=ZCurrentNb + pNumber;  // done in 'move'
-            move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
-            }
-//            else
-            ZCurrentNb=ZCurrentNb + pNumber;  // done in 'move'
-//    memmove(&Data.Tab[pIdx],pElement,(sizeof(_Tp)*pNumber));
+  ZCurrentNb = ZCurrentNb + pNumber;
+//    memmove(&Data[pIdx],pElement,(sizeof(_Tp)*pNumber));
     for (long wi=0;wi<pNumber;wi++)
       assign(pElement[wi],pIdx + wi);
     ZIdx=pIdx;
@@ -1027,21 +1020,26 @@ template <typename _Tp>
 long ZArray<_Tp>::erase(size_t pIdx,size_t pNumber)
 {
 
-    if ((long)(pIdx+pNumber)>ZCurrentNb)
-                {
-                return (-1);
-                }
+  if (pIdx==lastIdx())
+    return pop();
+  if ((long)(pIdx+pNumber)>ZCurrentNb)
+    return -1;
+
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
+//  //  _hasChanged=true;
     ZIdx = pIdx ;
-    _move(pIdx,pIdx+pNumber,(ZCurrentNb-pIdx-pNumber));
+//    _move(pIdx,pIdx+pNumber,(ZCurrentNb-pIdx-pNumber));
 
-_Tp* wPtr = &last()-(sizeof(_Tp)*(pNumber-1));
-//    memset(wPtr,0,sizeof(_Tp));// set available space to zero in the End of ZArray (recuperated space)
-    long wi=lastIdx()-pNumber-1;
-    while (wi<ZAllocation)
-      clearValue(wi++);
+_Tp* wPtrDest = &Tab[pIdx];
+_Tp* wPtrOrig = &Tab[pIdx + pNumber];
+
+size_t wNbMove = ZCurrentNb - pIdx - pNumber ;
+  memmove(wPtrDest,wPtrOrig,wNbMove*sizeof(_Tp)); // restructure space to delete
+
+_Tp* wPtr = &Tab[ZCurrentNb - pNumber ];
+    memset(wPtr,0,sizeof(_Tp)*pNumber);// set available space to zero in the End of ZArray (recuperated space)
 
     ZCurrentNb = ZCurrentNb -pNumber ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1053,15 +1051,20 @@ _Tp* wPtr = &last()-(sizeof(_Tp)*(pNumber-1));
 template <typename _Tp>
 long ZArray<_Tp>::_eraseNoLock(size_t pIdx,size_t pNumber)
 {
-    if ((long)(pIdx+pNumber)>ZCurrentNb)
-                {
-                return (-1);
-                }
-    ZIdx = pIdx ;
-    _move(pIdx,pIdx+pNumber,(ZCurrentNb-pIdx-pNumber));
+  if (pIdx==lastIdx())
+    return pop();
+  if ((long)(pIdx+pNumber)>ZCurrentNb)
+    return -1;
 
-_Tp* wPtr = &last()-(sizeof(_Tp)*(pNumber-1));
-    memset(wPtr,0,sizeof(_Tp));  // set available space to zero in the End of ZArray (recuperated space)
+    ZIdx = pIdx ;
+    _Tp* wPtrDest = &Tab[pIdx];
+    _Tp* wPtrOrig = &Tab[pIdx + pNumber];
+
+    size_t wNbMove = ZCurrentNb - pIdx - pNumber ;
+    memmove(wPtrDest,wPtrOrig,wNbMove*sizeof(_Tp)); // restructure space to delete
+
+    _Tp* wPtr = &Tab[ZCurrentNb - pNumber ];
+    memset(wPtr,0,sizeof(_Tp)*pNumber);// set available space to zero in the End of ZArray (recuperated space)
 
     ZCurrentNb = ZCurrentNb -pNumber ;
     return (pIdx);
@@ -1090,7 +1093,7 @@ size_t ZArray<_Tp>::bzero (size_t pOrig, long pNumber,bool pLock)
         _Mutex.lock();
 #endif
 
-    memset(&Data.Tab[pOrig],0,(size_t)(wN*(sizeof(_Tp))));
+    memset(&Tab[pOrig],0,(size_t)(wN*(sizeof(_Tp))));
     ZIdx = pOrig ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
     if (pLock)
@@ -1110,11 +1113,10 @@ void ZArray<_Tp>::clear(bool pLock)
     if (pLock)
         _Mutex.lock();
 #endif
-
-    memset (ZPtr,0,ZAllocatedSize);
     ZCurrentNb=0 ;
     ZIdx = 0;
     allocate (ZInitialAllocation);
+//    memset (ZPtr,0,ZAllocatedSize);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
     if (pLock)
         _Mutex.unlock();
@@ -1185,16 +1187,6 @@ inline long ZArray<_Tp>::count(void) const
 }
 
 
-template <typename _Tp>
-/**
- * @brief ZArray<_Tp>::sizeAllocated returns the size in bytes of the memory currently allocated to the ZArray instance
- * @return
- */
-inline size_t ZArray<_Tp>::sizeAllocated(void)
-{
-    return (ZAllocatedSize);
-}
-
 /** @brief addCheck
  *  Controls impact of adding pAdd Elements on the existing current context
  *  Takes the appropriate reallocation actions :
@@ -1205,19 +1197,16 @@ inline size_t ZArray<_Tp>::sizeAllocated(void)
 template <typename _Tp>
 void ZArray<_Tp>::addCheck(long pAdd)
 {
+long wFreeSlots = ZAllocation-ZCurrentNb  ;  // size remaining to fill
+  if (wFreeSlots > pAdd)
+            return ;
 
-long wN = ZAllocation-ZCurrentNb  ;  // size remaining to fill
-    if (wN > pAdd)
-            {
-            return ;
-            }
-long wNN = (wN + (long) ZReallocQuota) - pAdd ;
-    if (wNN<=0)
-            {
-            allocate(ZAllocation+pAdd+1);
-            return ;
-            }
-    allocate (ZAllocation+ZReallocQuota) ;
+long wReallocValue = ZReallocQuota;
+
+  while ((wFreeSlots + wReallocValue) <= pAdd)
+    wReallocValue += ZReallocQuota;
+
+    allocate (ZAllocation+wReallocValue) ;
 
     return ;
 } // ZSizeCheck
@@ -1249,20 +1238,13 @@ void ZArray<_Tp>::allocate(long pAlloc)
     ZAllocatedSize = sizeof(_Tp)*pAlloc;
     ZAllocation = pAlloc;
 
-    Data.zptr_void =realloc(ZPtr,(ZAllocatedSize+sizeof(_HighValue)+1));
-    if (Data.zptr_void==nullptr)
-                {
-                fprintf(stderr,"ZArray::allocate-F-MEMERR *** Fatal error : cannot reallocate memory of size %ld\n",
-                        ZAllocatedSize+sizeof(_HighValue)+1);
-                free (ZPtr); // free former memory block we wanted to extend
-                ZPtr=nullptr;
-                abort();
-                }
-    ZPtr= Data.zptr_void ;
+    _Tp * wPtr;
+    char* wPtrChar;
 
-    Data.zptr_char[ZAllocatedSize] = _HighValue ;
+    Tab =zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
 
-    Tab = (_Tp *)Data.zptr_void ;
+    wPtrChar = (char*) Tab;
+    wPtrChar[ZAllocatedSize] = _HighValue ;
 
 }// ZAllocate
 
@@ -1278,18 +1260,12 @@ void ZArray<_Tp>::_sizeAllocate(size_t pSizeAlloc)
     ZAllocatedSize = pSizeAlloc;
     ZAllocation = pSizeAlloc/sizeof(_Tp);
 
-    Data.zptr_void =realloc(ZPtr,(ZAllocatedSize+sizeof(_HighValue)+1));
-    if (Data.zptr_void==nullptr)
-                {
-                fprintf(stderr,"ZArray::_sizeAllocate-F-MEMERR *** Fatal error : cannot reallocate memory of size %ld\n",
-                        ZAllocatedSize+sizeof(_HighValue)+1);
-                abort();
-                }
+    Tab=zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
 
-    ZPtr= Data.zptr_void ;
-    Data.zptr_char[ZAllocatedSize] = _HighValue ;
+    char* wPtrChar= (char*)Tab;
+    wPtrChar[ZAllocatedSize] = _HighValue ;
 
-    Tab = (_Tp *)Data.zptr_void ;
+    Tab = Tab ;
 
 }// ZAllocate
 
@@ -1299,11 +1275,12 @@ long ZArray<_Tp>::bsearch (const void *pKey, size_t pSize, size_t pOffset)
 long widx = 0;
 long wistart = -1;
 const char *wKey = (const char *)pKey;
+const char* wDataPtr=(const char*)Tab;
 long wHighIdx = (long)size()*(long)sizeof(_Tp);
 
     for (long wi=pOffset; wi <wHighIdx ;wi++)
             {
-            if (wKey[widx]==Data.zptr_char[wi])
+            if (wKey[widx]==wDataPtr[wi])
                     {
                     if (wistart==-1)
                                 wistart=wi;
@@ -1328,13 +1305,14 @@ long ZArray<_Tp>::bsearchCaseRegardless (const void *pKey, size_t pSize, size_t 
 long widx = 0;
 long wistart = -1;
 const char *wKey = (const char *)pKey;
+const char *wDataPtr = (const char *)Tab;
 long wHighIdx = (long)size()*(long)sizeof(_Tp);
 char ToCompareFromKey ;
 char ToCompareFromArray;
 
     for (long wi=pOffset; wi <wHighIdx ;wi++)
             {
-            ToCompareFromArray = Data.zptr_char[wi];
+            ToCompareFromArray = wDataPtr[wi];
             ToCompareFromKey = wKey[widx];
             if ((ToCompareFromKey >=cst_lowercase_begin)&&(ToCompareFromKey <= cst_lowercase_end))
                                                                 ToCompareFromKey -= cst_upperization ;
@@ -1465,7 +1443,7 @@ long ZArray<_Tp>::allocateCurrentElements (const ssize_t pAlloc)
 #endif
     setAllocation(pAlloc,false);  // setAllocation has its own Mx lock
     long wI = (ZCurrentNb<0)?0:ZCurrentNb;
-    memset(&Data.Tab[wI],0,pAlloc*sizeof(_Tp));
+    memset(&Tab[wI],0,pAlloc*sizeof(_Tp));
     ZCurrentNb=pAlloc;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
@@ -1545,9 +1523,15 @@ long ZArray<_Tp>::newBlankElement(size_t pNumber, bool pLock, void (*pClear)(_Tp
             ZCurrentNb=0;
 
     if (pClear)  // if there is a clear function
-            pClear(Data.Tab[ZCurrentNb]);  // call it
+      {
+      long wMax=ZCurrentNb+pNumber;
+      for (long wi=ZCurrentNb; wi < wMax ; wi++)
+            pClear(Tab[wi]);  // call it
+      }
+      else
+        memset(&Tab[ZCurrentNb],0,sizeof(_Tp)*pNumber);
 //        else // else memset dangerously the whole _TP data type
-//            memset(&Data.Tab[ZCurrentNb],0,sizeof(_Tp)*pNumber); // this could destroy underneeth constants
+//            memset(&Data[ZCurrentNb],0,sizeof(_Tp)*pNumber); // this could destroy underneeth constants
     size_t wR =ZCurrentNb;
     ZCurrentNb +=pNumber ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1570,11 +1554,11 @@ long ZArray<_Tp>::push( _Tp &pElement)
     addCheck(1) ;
     if (ZCurrentNb<0)
             ZCurrentNb=0;
-//    Data.Tab[ZCurrentNb]=pElement;
-    assign(pElement,ZCurrentNb);
-//    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
-    size_t wR =ZCurrentNb;
+//    Data[ZCurrentNb]=pElement;
+  size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
+    assign(pElement,wR);
+//    memmove(&Data[ZCurrentNb],&pElement,sizeof(_Tp));
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
 #endif
@@ -1587,9 +1571,9 @@ long ZArray<_Tp>::_pushNoLock( _Tp &pElement)
   addCheck(1) ;
   if (ZCurrentNb<0)
     ZCurrentNb=0;
-  //    Data.Tab[ZCurrentNb]=pElement;
+  //    Data[ZCurrentNb]=pElement;
   assign(pElement,ZCurrentNb);
-  //    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
+  //    memmove(&Data[ZCurrentNb],&pElement,sizeof(_Tp));
   size_t wR =ZCurrentNb;
   ZCurrentNb ++ ;
   return(wR) ;
@@ -1607,7 +1591,7 @@ long ZArray<_Tp>::_pushNoLock( _Tp &pElement)
     addCheck(1) ;
     if (ZCurrentNb<0)
             ZCurrentNb=0;
-    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
+    memmove(&Data[ZCurrentNb],&pElement,sizeof(_Tp));
     size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1622,6 +1606,7 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::push(_Tp &&pElement)
 {
+////  _hasChanged=true;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
@@ -1629,9 +1614,9 @@ long ZArray<_Tp>::push(_Tp &&pElement)
     if (ZCurrentNb<0)
             ZCurrentNb=0;
 
-//    Data.Tab[ZCurrentNb]=pElement;
+//    Data[ZCurrentNb]=pElement;
     assign(pElement,ZCurrentNb);
-//    memmove(&Data.Tab[ZCurrentNb],&pElement,sizeof(_Tp));
+//    memmove(&Data[ZCurrentNb],&pElement,sizeof(_Tp));
     size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1646,6 +1631,8 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::push_front(_Tp pElement)
 {
+////  _hasChanged=true;
+
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
@@ -1653,9 +1640,9 @@ long ZArray<_Tp>::push_front(_Tp pElement)
     ZCurrentNb ++ ;
     move (1,0,(ZCurrentNb-1));
 
-    memmove(Data.Tab,&pElement,sizeof(_Tp));
+    memmove(Tab,&pElement,sizeof(_Tp));
 
-//    memmove (&ZReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    memmove (&ZReturn,   &Data[ZCurrentNb],sizeof(_Tp));
 //    ZReturn = Tab[ZCurrentNb];
     assignReturn(ZCurrentNb);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1674,8 +1661,8 @@ long ZArray<_Tp>::push_front(_Tp pElement)
  */
 template <typename _Tp>
 _Tp & ZArray<_Tp>::popR(void)
-
 {
+////  _hasChanged=true;
     if (ZCurrentNb<1)
             {
             fprintf (stderr,"popR-F-INVZCURRNB Fatal error : index of ZArray <%ld> is < 1 \n",
@@ -1687,8 +1674,8 @@ _Tp & ZArray<_Tp>::popR(void)
 #endif
     ZCurrentNb -- ;
     //    memmove (ZReturn,   &ZPtr[ZCurrentNb],sizeof(_Tp));
-//        memmove (&ZReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
-//    ZReturn = Data.Tab[ZCurrentNb];
+//        memmove (&ZReturn,   &Data[ZCurrentNb],sizeof(_Tp));
+//    ZReturn = Data[ZCurrentNb];
     assignReturn(ZCurrentNb);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
@@ -1696,6 +1683,21 @@ _Tp & ZArray<_Tp>::popR(void)
     return (ZReturn);
 } // popR
 
+template <typename _Tp>
+_Tp & ZArray<_Tp>::_popR_nolock(void)
+{
+ // _hasChanged=true;
+  if (ZCurrentNb<1)
+  {
+    fprintf (stderr,"popR-F-INVZCURRNB Fatal error : index of ZArray <%ld> is < 1 \n",
+        ZCurrentNb);
+    abort();
+  }
+
+  ZCurrentNb -- ;
+  assignReturn(ZCurrentNb);
+  return (ZReturn);
+} // popR_nolock
 
 /** @brief popRP : ThreadSafe: erases the last element and returnsthe poped element's content into pReturn (that remains available but not within the ZArray)
  * @warning Not Thread safe.
@@ -1704,7 +1706,8 @@ _Tp & ZArray<_Tp>::popR(void)
 template <typename _Tp>
 _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
 {
-    if (ZCurrentNb<1)
+////  _hasChanged=true;
+  if (ZCurrentNb<1)
             {
         fprintf(stderr,"popRP-F-NOELEMENTS Fatal error no elements within ZArray while pop method has been invoked.\n"  );
         abort();
@@ -1713,7 +1716,7 @@ _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
         _Mutex.lock();
 #endif
     ZCurrentNb -- ;
-//    memmove (pReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    memmove (pReturn,   &Data[ZCurrentNb],sizeof(_Tp));
     *pReturn = Tab[ZCurrentNb];
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
@@ -1726,19 +1729,19 @@ _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
  *  @return a reference to poped (removed) element content
  */
 template <typename _Tp>
-_Tp &ZArray<_Tp>::popRP_NL(_Tp* pReturn)
-
+_Tp &ZArray<_Tp>::_popRP_nolock(_Tp* pReturn)
 {
-    if (ZCurrentNb<1)
+  if (ZCurrentNb<1)
             {
         fprintf(stderr,"popRP-F-NOELEMENTS Fatal error no elements within ZArray while pop method has been invoked.\n"  );
         exit (EXIT_FAILURE);
             }
+////  _hasChanged=true;
     ZCurrentNb -- ;
-//    memmove (pReturn,   &Data.Tab[ZCurrentNb],sizeof(_Tp));
+//    memmove (pReturn,   &Data[ZCurrentNb],sizeof(_Tp));
     *pReturn = Tab[ZCurrentNb];
     return (*pReturn);
-} // popRP
+} // _popRP_nolock
 
 
 /** @brief pop erases the last element for the ZArray. Returns the new array size or -1 if empty.
@@ -1749,10 +1752,11 @@ _Tp &ZArray<_Tp>::popRP_NL(_Tp* pReturn)
 template <typename _Tp>
 long ZArray<_Tp>::pop(void)
 {
-    if (ZCurrentNb<1)
+  if (ZCurrentNb<1)
                 {
                 return -1;
                 }
+////  _hasChanged=true;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
@@ -1766,10 +1770,9 @@ long ZArray<_Tp>::pop(void)
     return (ZCurrentNb);
 } // pop
 
-/** @brief ZArray<_Tp>::_pop same as pop() but with no mutex lock */
+/** @brief ZArray<_Tp>::_pop_nolock same as pop() but with no mutex lock */
 template <typename _Tp>
-
-long ZArray<_Tp>::_pop(void)
+long ZArray<_Tp>::_pop_nolock(void)
 {
     if (ZCurrentNb<1)
                 {
@@ -1781,7 +1784,7 @@ long ZArray<_Tp>::_pop(void)
     ZCurrentNb -- ;
 
     return (ZCurrentNb);
-} // _pop
+} // _pop_nolock
 
 
 /** @brief pop_front Erases the first element. Returns the new array size or -1 if empty.
@@ -1795,12 +1798,14 @@ long ZArray<_Tp>::pop_front(void)
             {
             return -1;
             }
+////  _hasChanged=true;
+
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
 
     //memmove (&ZPtr[0],&ZPtr[1],size_t (ZCurrentNb*sizeof(_Tp)));
-//    memmove (&Data.Tab[0],   &Data.Tab[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
+//    memmove (&Data[0],   &Data[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
 
     for (long wi=0;wi < ZCurrentNb-1;wi++)
         assign(Tab[wi+1],wi);
@@ -1812,6 +1817,24 @@ long ZArray<_Tp>::pop_front(void)
 #endif
     return (ZCurrentNb);
 } // pop_front
+
+template <typename _Tp>
+long ZArray<_Tp>::_pop_front_nolock(void)
+{
+  if (ZCurrentNb<1)
+  {
+    return -1;
+  }
+////  _hasChanged=true;
+
+  for (long wi=0;wi < ZCurrentNb-1;wi++)
+    assign(Tab[wi+1],wi);
+
+  memset(&last(),0,sizeof(_Tp));  // set available space to zero
+  ZCurrentNb -- ;
+
+  return (ZCurrentNb);
+} // _pop_front_nolock
 
 /** @brief popR_front NOT ThreadSafe: Pop with return. Pops out the first array element and returns a pointer to the poped element's content.
  *                  returns NULL if array is empty.
@@ -1828,13 +1851,14 @@ _Tp &ZArray<_Tp>::popR_front(void)
             fprintf (stderr,"ZArray<_Tp>::popR_front-F-IVPOPFRNT  Invalid popR_front operation ; no elements within ZArray.\n");
             abort();
             }
+////  _hasChanged=true;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-//    memmove (&ZReturn,   &Data.Tab[0],sizeof(_Tp));
+//    memmove (&ZReturn,   &Data[0],sizeof(_Tp));
 //    ZReturn=Tab[0];
     assignReturn(0);
-//    memmove (&Data.Tab[0], &Data.Tab[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
+//    memmove (&Data[0], &Data[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
     for (long wi=0;wi < ZCurrentNb-1;wi++)
       assign(Tab[wi],wi+1);
     memset(&last(),0,sizeof(_Tp));  // set available space to zero
@@ -1846,11 +1870,31 @@ _Tp &ZArray<_Tp>::popR_front(void)
     return (ZReturn); // bad thing when being used with ZThreads
 } // popR_front
 
+template <typename _Tp>
+_Tp &ZArray<_Tp>::_popR_front_nolock(void)
+
+{
+  if (ZCurrentNb<1)
+  {
+    fprintf (stderr,"ZArray<_Tp>::popR_front-F-IVPOPFRNT  Invalid popR_front operation ; no elements within ZArray.\n");
+    abort();
+  }
+////  _hasChanged=true;
+  assignReturn(0);
+
+  for (long wi=0;wi < ZCurrentNb-1;wi++)
+    assign(Tab[wi],wi+1);
+  memset(&last(),0,sizeof(_Tp));  // set available space to zero
+
+  ZCurrentNb -- ;
+
+  return (ZReturn); // bad thing when being used with ZThreads
+} // _popR_front_nolock
+
 
 /** @brief popRP_front ThreadSafe: Pops out the first array element and returns a pointer to the poped element's content.
  *                  returns NULL if array is empty.
  *
- *  WARNING : Not Thread safe.
  *
  */
 template <typename _Tp>
@@ -1861,6 +1905,7 @@ _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
             fprintf(stderr,"popRP_front-F-NOELEMENTS Fatal error no elements within ZArray while popRP_front method has been invoked.\n" );
             abort();
             }
+//  _hasChanged=true;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
@@ -1868,17 +1913,35 @@ _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
     for (long wi=0;wi < ZCurrentNb-1;wi++)
       assign(Tab[wi],wi+1);
     clearValue(lastIdx());
-//    memmove (pReturn,   &Data.Tab[0],size_t (sizeof(_Tp)));
-//    memmove (&Data.Tab[0], &Data.Tab[1],size_t(sizeof(_Tp)*ZCurrentNb));
+//    memmove (pReturn,   &Data[0],size_t (sizeof(_Tp)));
+//    memmove (&Data[0], &Data[1],size_t(sizeof(_Tp)*ZCurrentNb));
 //    memset(&last(),0,sizeof(_Tp));  // set available space to zero
     ZCurrentNb -- ;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
 #endif
     return (*pReturn);
-} // popR_front
+} // popRP_front
 
-
+template <typename _Tp>
+_Tp &ZArray<_Tp>::_popRP_front_nolock(_Tp*pReturn)
+{
+  if (ZCurrentNb<1)
+  {
+    fprintf(stderr,"popRP_front-F-NOELEMENTS Fatal error no elements within ZArray while popRP_front method has been invoked.\n" );
+    abort();
+  }
+//  _hasChanged=true;
+  assignReturn(0);
+  for (long wi=0;wi < ZCurrentNb-1;wi++)
+    assign(Tab[wi],wi+1);
+  clearValue(lastIdx());
+  //    memmove (pReturn,   &Data[0],size_t (sizeof(_Tp)));
+  //    memmove (&Data[0], &Data[1],size_t(sizeof(_Tp)*ZCurrentNb));
+  //    memset(&last(),0,sizeof(_Tp));  // set available space to zero
+  ZCurrentNb -- ;
+  return (*pReturn);
+} // popRP_front
 template <typename _Tp>
 long
 ZArray<_Tp>::searchforValue (long pOffset, long pSize, const void *pValue) //! sequential search (costly) for a value
@@ -1903,12 +1966,12 @@ ZArray<_Tp>::searchforValue (long pOffset, long pSize, const void *pValue) //! s
 //=============Export Import==================================
 
 /**
- * @brief _ZAexportAllocated Exports to a flat memory zone the content of a ZArray corresponding to its Allocated space (including elements that are not yet used),
- *                          including its descriptive header ZAExport.
+ * @brief ZAexport Exports to a flat memory zone the content of a ZArray corresponding to its Allocated space (including elements that are not yet used),
+ *                 including its descriptive header ZAExport.
  *  This routine allocates the required memory size to export the data.
  * @warning The allocated memory has to be freed later on. This is the responsibility of the caller to free this memory buffer.
  *  NB: at this stage ZDataBuffer is not supposed to be defined. This is the reason why memory is allocated and needs to be freed.
- * @param|out] pBuffer     ZArray exported data including ZAExport header
+ * @param|out] pOutBuffer  ZArray exported data including ZAExport header
  * @param[out] pBufferSize The total size to exported ZArray in a flat format (including free space at the end of ZArray)
  * @param[in]  _exportConvert conversion routine (Endian) for exporting/importing one element of type _Tp
  *              first argument is a reference to a _Tp element to convert
@@ -1917,118 +1980,36 @@ ZArray<_Tp>::searchforValue (long pOffset, long pSize, const void *pValue) //! s
 */
 template <class _TpIn , class _TpOut>
 unsigned char*
-_ZAexportAllocated(ZArray<_TpIn>* pZArray,
-                   unsigned char* &pBuffer,
-                   size_t &pBufferSize,
-                   _TpOut (*_exportConvert)(_TpIn&,_TpOut*)) // Routine to convert a single element of ZArray
+ZAexport(ZArray<_TpIn>* pZArray,
+          unsigned char* &pOutBuffer,
+          size_t &pBufferSize,
+          _TpOut (*_exportConvert)(_TpIn&,_TpOut*)) // Routine to convert a single element of ZArray
                                                      // first arg  : element to convert
                                                      // second arg : buffer to receive converted element
 {
 #ifdef __USE_ZTHREAD__
     pZArray->lock();
 #endif
-    ZAExport ZAE;
-    size_t wDataSize;
-//        unsigned char* wReturn;
-    ZAE.AllocatedSize = pZArray->getAllocatedSize();   // get the total allocated size
-    ZAE.CurrentSize = pZArray->getCurrentSize();     // get the current size corresponding to currently stored elements
+    ZAExport wZAE=pZArray->getZAExport();
 
-    wDataSize=ZAE.DataSize = ZAE.AllocatedSize;     // taking the AllocatedSize
+    wZAE.DataSize =  (wZAE.NbElements * sizeof (_TpOut));
+    wZAE.FullSize = sizeof(ZAExport) + wZAE.DataSize;
 
-    ZAE.FullSize = ZAE.DataSize+sizeof(ZAExport)+1;
-    pBufferSize=ZAE.FullSize;
+    pBufferSize=wZAE.FullSize;
+    pOutBuffer = (unsigned char*)malloc(wZAE.FullSize);
+    memset (pOutBuffer,0,wZAE.FullSize);
 
-    ZAE.AllocatedElements = pZArray->getAllocation();
-    ZAE.InitialAllocation = pZArray->getInitalAllocation();
-    ZAE.ExtentQuota = pZArray->getQuota();
-    ZAE.NbElements = pZArray->ZCurrentNb;
-    pBuffer = (unsigned char*)malloc(ZAE.FullSize);
-
-    if (pBuffer==nullptr)
+    if (pOutBuffer==nullptr)
                 {
                 fprintf(stderr,
                         "ZArray::_export> ******Memory allocation error****\n");
                 abort();
                 }
-    ZAE.DataOffset = sizeof(ZAExport);
-    memset (pBuffer,0,ZAE.FullSize);
-    pZArray->convertZAExport_I(ZAE);
-    memmove(pBuffer,&ZAE,sizeof(ZAExport));
-    _TpOut* wEltPtr=(_TpOut*)(pBuffer+ZAE.DataOffset);
-    for (long wi=0;wi<pZArray->size();wi++)
-        {
-        _exportConvert(pZArray->Tab[wi],wEltPtr);
-        wEltPtr++;
-        }
 
-#ifdef __USE_ZTHREAD__
-    pZArray->unlock();
-#endif
+    wZAE.serialize();
+    memmove(pOutBuffer,&wZAE,sizeof(ZAExport));
 
-    return pBuffer;
-}//_exportAllocated
-
-/**
- * @brief ZAexportCurrent this static routine exports (serialize) to a flat memory zone
- *          the content of a ZArray corresponding to its current number of elements, including its descriptive header ZAExport.
- *
- *  This routine allocates the required memory size to export the data.
- *  NB: at this stage ZDataBuffer is not supposed to be defined. This is the reason why memory is allocated and needs to be freed by callee.
- *
- *  In case of memory allocation error, pBuffer is set to nullptr, errno is set to ENOMEM and pBufferSize is set to 0
- *
- *  ZArray data is serialized to big endian values using mandatory _exportConvert routine.
- *
- * @warning The allocated memory has to be freed later on. This is the responsibility of the caller to free this memory buffer.
- *
- * @param|out] pBuffer     ZArray exported data including ZAExport header
- * @param[out] pBufferSize The total size to exported ZArray in a flat format (strictly limitated to used space in ZArray)
- * @param[in]  _exportConvert conversion routine (Endian) for exporting/importing one element of type _Tp
- *              first argument is a reference to a _Tp element to convert
- *              second argument is a pointer to a _Tp argument converted by the routine
- * @return      a pointer to allocated memory block containing the exported (serialized) ZArray data if everything went OK
- *              nullptr in case of memory allocation error
-*/
-template <class _TpIn , class _TpOut>
-static
-unsigned char* ZAexportCurrent(ZArray<_TpIn>* pZArray,
-                                unsigned char* &pBuffer,
-                                size_t &pBufferSize,
-                                _TpOut (*_exportConvert)(_TpIn&,_TpOut*)) // Routine to convert a single element of ZArray
-                                                                  // first arg  : element to convert
-                                                                  // second arg : buffer to receive converted element
-{
-#ifdef __USE_ZTHREAD__
-    pZArray->lock();
-#endif
-    ZAExport ZAE;
-    size_t wDataOffset=0;
-//        unsigned char* wReturn;
-    ZAE.AllocatedSize = pZArray->getAllocatedSize();   // get the total allocated size
-    ZAE.CurrentSize = pZArray->getCurrentSize();     // get the current size corresponding to currently stored elements
-
-    ZAE.DataSize = ZAE.CurrentSize;     // taking the CurrentSize
-
-    ZAE.FullSize = ZAE.DataSize+sizeof(ZAExport)+1;
-    pBufferSize=ZAE.FullSize;
-
-    ZAE.AllocatedElements = pZArray->getAllocation();
-    ZAE.InitialAllocation = pZArray->getInitalAllocation();
-    ZAE.ExtentQuota = pZArray->getQuota();
-    ZAE.NbElements = pZArray->ZCurrentNb;
-    pBuffer = (unsigned char*)malloc(ZAE.FullSize);
-    if (pBuffer == nullptr) {
-        errno = ENOMEM;
-        pBufferSize = 0;
-        return nullptr;
-        }
-    memset (pBuffer,0,ZAE.FullSize);
-
-    wDataOffset=ZAE.DataOffset = sizeof(ZAExport);
-    memset (pBuffer,0,ZAE.FullSize);
-    pZArray->convertZAExport_I(ZAE);
-    memmove(pBuffer,&ZAE,sizeof(ZAExport));
-    _TpOut* wEltPtr=(_TpOut*)(pBuffer+wDataOffset);
+    _TpOut* wEltPtr=(_TpOut*)(pOutBuffer+sizeof(ZAExport));
     for (long wi=0;wi<pZArray->size();wi++)
         {
         _exportConvert(pZArray->Tab[wi],&wEltPtr[wi]);
@@ -2038,13 +2019,33 @@ unsigned char* ZAexportCurrent(ZArray<_TpIn>* pZArray,
     pZArray->unlock();
 #endif
 
-    return pBuffer;
-}//_exportCurrent
+    return pOutBuffer;
+}//_exportAllocated
 
+template <class _Tp>
+void ZAExport::setZArray(ZArray<_Tp>* pZArray)
+{
+  pZArray->clear();
+  pZArray->setAllocation(AllocatedElements,false);         // no lock
+
+  pZArray->setQuota(ExtentQuota);
+  pZArray->setInitialAllocation(InitialAllocation,false);  // no lock
+  if (NbElements>(ssize_t)AllocatedElements)
+  {
+    pZArray->setAllocation(NbElements,false);
+  }
+//  pZArray->newBlankElement(NbElements);
+}
+
+
+
+/* for export with ZDataBuffer as result see zdatabuffer.h -> template ZAexportCurrentZDB()
+
+*/
 template <class _TpIn , class _TpOut>
 /**
  * @brief ZAimport Imports a ZArray from a flat ZArray content. Sets up all ZArrays characteristics and imports data from a flat content.
- *
+ * Nota Bene : input pointer is updated after import operation to point on the first byte after imported data.
  * _TpIn is data structure with export format (not aligned : see #pragma pack() clauses)
  * _TpOut is data structure with aligned format
  *
@@ -2053,8 +2054,9 @@ template <class _TpIn , class _TpOut>
  *         This is equal to ZAExport::FullSize
  */
 
-size_t ZAimport(ZArray<_TpOut>* pZArray,
-                 unsigned char* pBuffer,
+static ZStatus ZAimport(ZArray<_TpOut>* pZArray,
+                 const unsigned char* &pPtrIn,
+                  ssize_t &pSize,
                  _TpOut (*_importConvert)(_TpOut&,_TpIn*),// Routine to convert a single element of ZArray for import
                  // first arg  : element to receive converted data to integrate into ZArray
                  // second arg : input buffer to convert element : format is not aligned struct
@@ -2066,46 +2068,67 @@ size_t ZAimport(ZArray<_TpOut>* pZArray,
     pZArray->lock();
 #endif
     pZArray->clear(false); // clear with no lock
-    ZAExport* ZAE=pZAE;
+//    pZArray->setChanged();
+    ZAExport wZAE;
+    wZAE.setFromPtr(pPtrIn); /* pPtrIn is updated */
+    wZAE.deserialize();
+
+//    ZAExport* ZAE=pZAE;
     bool wZAECreated=false;
     if (pZAE== nullptr)
             {
-            ZAE = new ZAExport;
+//            ZAE = new ZAExport;
             wZAECreated=true;
             }
-    (*ZAE) = pZArray->ZAEimport(pBuffer);
-    pZArray->setAllocation(ZAE->AllocatedElements,false);  // no lock
-    pZArray->bzero(0,-1,false);// no lock
-    pZArray->setQuota(ZAE->ExtentQuota);
-    pZArray->setInitialAllocation(ZAE->InitialAllocation,false); // no lock
-    if (ZAE->NbElements>(ssize_t)ZAE->AllocatedElements)
+//    (*ZAE) = pZArray->ZAEimport(pPtrIn);
+
+    if (wZAE.StartSign!=cst_ZMSTART)
+      {
+      fprintf(stderr,"ZArray::ZAimport-E-CORRUPT cannot find valid start sign <%X> while <%X> is required.\n",wZAE.StartSign,cst_ZMSTART);
+      pSize=-1;
+      return ZS_CORRUPTED;
+      }
+
+    pZArray->setAllocation(wZAE.AllocatedElements,false);         // no lock
+    pZArray->bzero(0,-1,false);                                   // no lock
+    pZArray->setQuota(wZAE.ExtentQuota);
+    pZArray->setInitialAllocation(wZAE.InitialAllocation,false);  // no lock
+    if (wZAE.NbElements>(ssize_t)wZAE.AllocatedElements)
         {
-        pZArray->setAllocation(ZAE->NbElements,false);
+        pZArray->setAllocation(wZAE.NbElements,false);
         }
-    pZArray->newBlankElement(ZAE->NbElements);
-//    pZArray->ZCurrentNb = ZAE.NbElements;
-    _TpIn* wEltPtr_In=(_TpIn*)(pBuffer+ZAE->DataOffset);
+    pZArray->newBlankElement(wZAE.NbElements);
+
+    _TpIn* wEltPtr_In=(_TpIn*)(pPtrIn+sizeof(ZAExport));
     _TpOut* wEltPtr_Tab= pZArray->Tab;
     _TpOut wElt;
-    for (long wi=0;wi<ZAE->NbElements;wi++)
+    for (long wi=0;wi<wZAE.NbElements;wi++)
         {
         _importConvert(wEltPtr_Tab[wi],&wEltPtr_In[wi]);
-//        memmove(&wEltPtr_Tab[wi],&wElt,sizeof(_TpOut));
         }// for
 
 
 #ifdef __USE_ZTHREAD__
     pZArray->unlock();
 #endif
-    if (!wZAECreated)
-                return ZAE->FullSize;
-    size_t wFullSize= ZAE->FullSize;
-    delete ZAE;
-    return wFullSize;
-}//_import
 
-
-
+    pSize = wZAE.FullSize;
+    pPtrIn += wZAE.DataSize; // update pointer
+    if (pZAE)
+      pZAE->_copyFrom( wZAE );
+    return ZS_SUCCESS;
+}//ZAimport
+/*   moved to zdatabuffer.h
+template <class _TpIn , class _TpOut>
+static size_t ZAimportZDB(ZArray<_TpOut>* pZArray,
+                          const ZDataBuffer &pBuffer,
+                          _TpOut (*_importConvert)(_TpOut&,_TpIn*))// Routine to convert a single element of ZArray for import
+                          // first arg  : element to receive converted data to integrate into ZArray
+                          // second arg : input buffer to convert element : format is not aligned struct
+{
+  return ZAImport(pZArray,pBuffer.Data,_importConvert,nullptr);
+}//ZAimportZDB
+*/
 
 /**
  *
@@ -2122,7 +2145,7 @@ template <class _Type>
  */
 
 long
-_searchforValue (zbs::ZArray<_Type> &pZArray,long pOffset,long pSize, void *pValue) // to be tested before becoming a standard
+_searchforValue (ZArray<_Type> &pZArray,long pOffset,long pSize, void *pValue) // to be tested before becoming a standard
 {
     unsigned char* wPtrArray;
     unsigned char* wPtrValue = static_cast<unsigned char*>(pValue);
@@ -2135,6 +2158,72 @@ _searchforValue (zbs::ZArray<_Type> &pZArray,long pOffset,long pSize, void *pVal
             }
     return (-1);
 }// _searchforValue
+
+
+
+
+template <class _Tp>
+ZAExport
+ZArray<_Tp>::getZAExport(void) const
+{
+  ZAExport wZAE;
+  wZAE.AllocatedSize = getAllocatedSize();   // get the total allocated size
+  wZAE.CurrentSize = getCurrentSize();     // get the current size corresponding to currently stored elements
+
+  wZAE.DataSize = 0 ;  // Exported data size : must be defined by ZAExport routine : requires sizeof(_TpOut)*NbElements
+
+  wZAE.FullSize = 0 ; // must be defined by export routine : is sizeof(ZAExport) + DataSize
+
+  wZAE.AllocatedElements = getAllocation();
+  wZAE.InitialAllocation = getInitalAllocation();
+  wZAE.ExtentQuota = getQuota();
+  wZAE.NbElements = ZCurrentNb;
+  return wZAE;
+}
+/**
+ * @brief getZAExport_U exports a ZAExport structure with Intermediate format (reversedByteOrder whether necessary)
+ * @return
+ */
+/*template <class _Tp>
+ZAExport
+ZArray<_Tp>::getZAExport_U(void)
+{
+  ZAExport wZAE=getZAExport();
+
+  wZAE.AllocatedSize = reverseByteOrder_Conditional<size_t>(wZAE.AllocatedSize);   // get the total allocated size
+  wZAE.CurrentSize = reverseByteOrder_Conditional<size_t>(wZAE.CurrentSize);     // get the current size corresponding to currently stored elements
+
+  wZAE.DataSize = reverseByteOrder_Conditional<size_t>(wZAE.DataSize);     // taking the AllocatedSize
+
+  wZAE.FullSize = reverseByteOrder_Conditional<size_t>(wZAE.FullSize);
+  wZAE.AllocatedElements = reverseByteOrder_Conditional<size_t>(wZAE.AllocatedElements);
+  wZAE.ExtentQuota = reverseByteOrder_Conditional<size_t>(wZAE.ExtentQuota);
+  wZAE.InitialAllocation = reverseByteOrder_Conditional<size_t>(wZAE.InitialAllocation);
+  wZAE.NbElements = reverseByteOrder_Conditional<ssize_t> (wZAE.NbElements);
+  wZAE.DataOffset = reverseByteOrder_Conditional<size_t> (wZAE.DataOffset);
+  return wZAE;
+}
+
+template <class _Tp>
+ZAExport&
+ZArray<_Tp>::convertZAExport_I(ZAExport& pZAE)
+{
+  pZAE.AllocatedSize = reverseByteOrder_Conditional<size_t>(pZAE.AllocatedSize);   // get the total allocated size
+  pZAE.CurrentSize = reverseByteOrder_Conditional<size_t>(pZAE.CurrentSize);     // get the current size corresponding to currently stored elements
+
+  pZAE.DataSize = reverseByteOrder_Conditional<size_t>(pZAE.DataSize);     // taking the AllocatedSize
+
+  pZAE.FullSize = reverseByteOrder_Conditional<size_t>(pZAE.FullSize);
+  pZAE.AllocatedElements = reverseByteOrder_Conditional<size_t>(pZAE.AllocatedElements);
+  pZAE.ExtentQuota = reverseByteOrder_Conditional<size_t>(pZAE.ExtentQuota);
+  pZAE.InitialAllocation = reverseByteOrder_Conditional<size_t>(pZAE.InitialAllocation);
+  pZAE.NbElements = reverseByteOrder_Conditional<ssize_t> (pZAE.NbElements);
+  pZAE.DataOffset = reverseByteOrder_Conditional<size_t> (pZAE.DataOffset);
+  return pZAE;
+}
+*/
+ZAExport ZAEimport(const unsigned char* pBuffer);
+
 
 
 template <typename _Tp>

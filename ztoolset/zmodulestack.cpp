@@ -16,10 +16,7 @@ void clearModuleStack()
     delete GStack;
 }
 
-// for ZOpenZRFPool methods see at beginning of <zrandomfile/zrandomfile.cpp>
 
-ZOpenZRFPool GZRFPool;
-ZOpenZRFPool* ZRFPool=&GZRFPool;
 }// namespace zbs
 
 
@@ -74,7 +71,7 @@ ZModuleStack::printStack(FILE*pOutput)
                     }
                 }
         }//if (CurStack->size() > 0)
-    _free(wFil);
+    zfree(wFil);
     return;
 }//printStack
 

@@ -8,10 +8,30 @@
 #include <openssl/sha.h>  // required for checksum MD5_DIGEST_LENGTH & SHA256_DIGEST_LENGTH
 #include <openssl/md5.h> // required for md5
 
+#include <ztoolset/zatomicconvert.h> // for reverseByteOrder_Conditional
+
+#define __INVALID_INDEX__  133000L
 
 #define __WCHAR_SIZE__ sizeof(__WCHAR_TYPE__);
 
 #define __STRING_MAX_LENGTH__  ULONG_MAX
+
+/* for exported control blocks */
+const uint16_t cst_EndianCheck_Normal=2;
+const uint16_t cst_EndianCheck_Reversed=reverseByteOrder_Conditional<uint16_t>(cst_EndianCheck_Normal);
+
+
+const uint32_t     cst_ZBLOCKSTART = 0xF5F5F5F5;  //!< Begin marker of a data structure on file it is a palyndroma
+const uint32_t     cst_ZBLOCKEND   = 0xFCFCFCFC;  //!< End marker of a data structure on file : it is a palyndroma
+
+const uint32_t     cst_ZFIELDSTART = 0xF4F4F4F4;  //!< Begin marker of a field data structure on file it is a palyndroma
+
+const uint8_t      cst_ZSTART_BYTE = 0xF5;
+
+
+const long        cst_ZRF_default_allocation=10;
+const long        cst_ZRF_default_extentquota=5;
+
 
 constexpr int cst_urilen = 2048 ;
 constexpr int cst_codelen       = 150  ;
@@ -39,7 +59,7 @@ static constexpr int cst_checksum = SHA256_DIGEST_LENGTH;// could be SHA512_DIGE
 static constexpr int cst_checksumHexa   = cst_checksum*2 ;
 
 const size_t cst_md5 = MD5_DIGEST_LENGTH;
-const size_t cst_md5Hex = cst_md5*2;
+const size_t cst_md5Hexa = cst_md5*2;
 /**
  * constants : journaling - index descriptors - journaling history
  */

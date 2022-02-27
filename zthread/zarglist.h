@@ -11,9 +11,10 @@ class ZThread;
 class ZArgList : public ZArray<void*>
 {
 public:
-    ZArgList (void) {}
-    ~ZArgList(void) {}
+  ZArgList (void);
+  ~ZArgList(void);
 
+  ZThread* getZThread() ;
 };
 
 }// zbs

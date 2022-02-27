@@ -37,7 +37,9 @@ utfSCErrQueue::push (utfSCErr_struct& pContent)
 {
     Size++;
     size_t newByteSize= sizeof(utfSCErr_struct)*Size;
-    Queue=(utfSCErr_struct*)realloc (Queue,newByteSize);
+//    Queue=(utfSCErr_struct*)realloc (Queue,newByteSize);
+    Queue=zrealloc (Queue,newByteSize);
+
 //    memmove(&Queue[Size-1],pContent,sizeof(utfSCErr_struct));
     Queue[Size-1]=pContent;
 }
@@ -49,14 +51,14 @@ utfSCErr_struct wReturn;
     wReturn = Queue[Size-1];
     Size--;
     size_t newByteSize= sizeof(utfSCErr_struct)*Size;
-    Queue=(utfSCErr_struct*)realloc (Queue,newByteSize);
+    Queue=zrealloc (Queue,newByteSize);
     return wReturn;
 }
 void
 utfSCErrQueue::clear (void)
 {
     if (Queue)
-            free(Queue);
+            zfree(Queue);
     Queue=nullptr;
     Size=0;
 }
@@ -157,7 +159,7 @@ void utfStrCtx::init(void)
     if (ErrorQueue)
          delete ErrorQueue;
 
-    _free(SavedChunk);
+    zfree(SavedChunk);
     SavedChunkSize=0;
     SavedChunkFullSize=0;
 
@@ -197,7 +199,7 @@ void utfStrCtx::reset(void)
     if (ErrorQueue)
          delete ErrorQueue;
 
-    _free(SavedChunk);
+    zfree(SavedChunk);
     SavedChunkSize=0;
     SavedChunkFullSize=0;
 }//utfStrCtx::reset
@@ -305,7 +307,7 @@ void utfStrCtx::dump(FILE* pOutput)
 {
     char* wMessage=_dump();
     fprintf(pOutput,wMessage);
-    free(wMessage);
+    zfree(wMessage);
     if (ErrorQueue)
          ErrorQueue->dump(pOutput);
     return;
@@ -440,7 +442,7 @@ ZStatus UST_to_ZStatus(UST_Status_type pUST)
         return ZS_CONVERR;
 
     case UST_TRUNCATED:
-        return ZS_STRTRUNCATED;
+        return ZS_TRUNCATED;
 
     default:
         return ZS_CONVERR;

@@ -35,41 +35,9 @@ enum ZCryptMethod_type : uint8_t
 };
 #endif // __ZCRYPTMETHOD_TYPE__
 
-/*
-//#ifndef ZCHARSET_CPP
-extern const char cst_default_delimiter_Char[] ;
-extern const utf8_t cst_default_delimiter_U8[] ;
-extern const utf16_t cst_default_delimiter_U16[] ;
-extern const utf32_t cst_default_delimiter_U32[] ;
-//#endif // ZCHARSET_CPP
-*/
+
 #include <ztoolset/zfunctions.h>
-/*
-#ifndef __DEFAULTDELIMITERSET__
 
-#define __DEFAULTDELIMITERSET__  u8" \t\n\r"
-#define __DEFAULTDELIMITERSET_U16__  u" \t\n\r"
-#define __DEFAULTDELIMITERSET_U32__  L" \t\n\r"
-
-
-
-const char* _firstNotinSet(const char*pString, const char *pSet=cst_default_delimiter_Char);
-const char* _firstinSet (const char*pString,const char *pSet=cst_default_delimiter_Char);
-const char* _lastinSet (const char*pString,const char *pSet=cst_default_delimiter_Char);
-const char* _strchrReverse(const char *pStr,const char pChar);
-
-char* _LTrim (char*pString, const char *pSet=cst_default_delimiter_Char);
-char* _RTrim (char*pString, const char *pSet=cst_default_delimiter_Char);
-char* _Trim (char*pString, const char *pSet=cst_default_delimiter_Char);
-
-char* _toUpper(char *pStr,char *pOutStr=nullptr);
-char* _expurgeSet(char *pString, const char *pSet=cst_default_delimiter_Char);
-char* _expurgeString(char *pString, const char *pSubString);
-int _strncasecmp(const char*pString1,const char*pString2,size_t pMaxLen);
-
-
-#endif
-*/
 /**
  * @brief The ZDataBuffer class    Base class for buffering and processing data.
 
@@ -113,12 +81,14 @@ class ZDataBuffer
  protected:
     ZDataBuffer& _copyFrom(const ZDataBuffer& pIn)
     {
+      clear();
        allocate (pIn.Size);
        memmove(Data,pIn.Data,pIn.Size);
        CryptMethod=pIn.CryptMethod;
        Size=pIn.Size;
        return *this;
     }
+
 public:
 
  //   ZDataBuffer& operator= (const ZDataBuffer&) = delete;       // may assign because of overloaded operator =
@@ -132,13 +102,14 @@ public:
     ZCryptMethod_type   CryptMethod=ZCM_Uncrypted;
 
     ZDataBuffer (void);
-    ZDataBuffer (void *pData,ssize_t pSize) { allocate (pSize); memmove(Data,pData,(size_t)pSize);Size=(size_t)pSize;}
+    ZDataBuffer (const void *pData,ssize_t pSize) { allocate (pSize); memmove(Data,pData,(size_t)pSize);Size=(size_t)pSize;}
     ZDataBuffer (size_t pSize) {allocate((ssize_t)pSize);}
 
     ZDataBuffer (const char* pData)
     {
       setText(pData);
     }
+
     ZDataBuffer (const ZDataBuffer& pIn) {_copyFrom(pIn);}
     ZDataBuffer (const ZDataBuffer&& pIn) {_copyFrom(pIn);}
     ZDataBuffer& operator= (const ZDataBuffer& pIn) {_copyFrom(pIn); return *this;}
@@ -149,15 +120,16 @@ public:
     ~ZDataBuffer ()
     { freeData();}
 
-    unsigned char *getData(void) {return Data;}
+    const unsigned char *getData(void) {return Data;}
 
     void clear (void) {freeData(); CryptMethod=ZCM_Uncrypted;}
+//    void setNull()    {freeData(); CryptMethod=ZCM_Uncrypted;}
     void reset (void)
     {
-        memset(Data,0,Size);
-        CryptMethod=ZCM_Uncrypted;
+      if (Data)
+          memset(Data,0,Size);
+      CryptMethod=ZCM_Uncrypted;
     }
-    friend class ZDBiterator ;
 
     //
     // \brief setData
@@ -186,13 +158,18 @@ public:
     {
         CryptMethod=pBuffer.CryptMethod;
         allocate (pBuffer.Size);
-        memmove(Data,pBuffer.Data,Size);
-
+        memmove(Data,pBuffer.Data,pBuffer.Size);
         return(*this);
     }
 
+    template <typename _Tp>
+    void setData_T(const _Tp& pIn)
+    {
+      setData(&pIn,sizeof(_Tp));
+    }
+
     ZDataBuffer&
-    setIntAsChar(int pIn)
+    setIntAsStr(int pIn)
     {
       char wBuf[20];
       sprintf(wBuf,"%d",pIn);
@@ -239,7 +216,7 @@ public:
 
     template <class _Utf>
     ZDataBuffer&
-    setUtf(const _Utf* pIn)
+    setUtfString(const _Utf* pIn)
     {
       size_t wLen=0;
       while (pIn[wLen])
@@ -251,6 +228,15 @@ public:
         *wPtr++=pIn[wL++];
       return *this;
     }
+
+    template <class _Tp>
+    ZDataBuffer&
+    setAtomic(const _Tp pIn)
+      {
+      setData(&pIn,sizeof(_Tp));
+      return *this;
+      }
+
 
     ZDataBuffer&
     appendData(const void *pData,const size_t pSize) {
@@ -266,6 +252,13 @@ public:
                                           memmove(&DataChar[wOld],pBuffer.DataChar,pBuffer.Size);
                                           return(*this);
                                            }
+
+
+     template <typename _Tp>
+     void append_T(const _Tp& pIn)
+     {
+       appendData(&pIn,sizeof(_Tp));
+     }
 
 
      ZDataBuffer&
@@ -298,10 +291,14 @@ public:
 //        memmove(&DataChar[wOld],pData,wLen);
         return(*this);
       }
-    /** @brief truncate routines : truncate and Ctruncate reduce the size of ZDataBuffer to pLen (Ctruncate adds a '\0' termination)*/
-    const ZDataBuffer& truncate(size_t pLen) {allocate(pLen); return *this;}
-    const ZDataBuffer& Ctruncate(size_t pLen) {allocate(pLen);DataChar[pLen-1]='\0'; return *this;}
-    /** @brief changeData replaces data content at pOffset with given data pointer on pLength. Extents storage if necessary. */
+/** @brief truncate routines : truncate and Ctruncate reduce the allocated memory size of ZDataBuffer to pLen (Ctruncate adds a '\0' termination)
+ *  Remark: cannot truncate a greater size than actual size (no effect to current ZDataBuffer). Use extend routine in place.
+ *  Data pointers are modified by truncate routin.
+*/
+    const ZDataBuffer& truncate(size_t pLen);
+    const ZDataBuffer& Ctruncate(size_t pLen) {truncate(pLen);DataChar[pLen-1]='\0'; return *this;}
+
+/** @brief changeData replaces data content at pOffset with given data pointer on pLength. Extents storage if necessary. */
     const ZDataBuffer& changeData(void* pData,size_t pLength,size_t pOffset)
                 {
                 if (Size<(pOffset+pLength))
@@ -337,13 +334,12 @@ public:
             return *this;
             }
 
-    bool isNull(void) {return (Data==nullptr);}
-    bool isEmpty(void) {return(Size==0);}
+    bool isNull(void) const {return (Data==nullptr);}
+    bool isEmpty(void) const  {return(Size==0)||(Data==nullptr);}
 
     void freeData(void)
         {
-        if (Data!=nullptr)
-                        free(Data);
+        zfree(Data);
         Data=nullptr;
         DataChar=nullptr;
         VoidPtr=nullptr;
@@ -403,6 +399,8 @@ _Tp& moveOut(typename std::enable_if<!(std::is_pointer<_Tp>::value||std::is_arra
     return pOutData;
 }
 */
+
+
 template <typename _Tp>
 _Tp& moveOut(typename std::enable_if<std::is_integral<_Tp>::value,_Tp> &pOutData,ssize_t pOffset=0)
 {
@@ -696,7 +694,13 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     friend int rulerSetup (ZDataBuffer &pRulerHexa, ZDataBuffer &pRulerAscii,int pColumn);
 
     void Dump_old(const int pColumn=16,FILE* pOutput=stderr);
-    void Dump(const int pColumn=16,ssize_t pLimit=-1,FILE* pOutput=stderr);
+    void Dump_old1(const char*pFilePath, const int pColumn, ssize_t pLimit);
+    void Dump_old2(const int pColumn=16,ssize_t pLimit=-1,FILE* pOutput=stderr);
+
+    void Dump(const int pWidth=16,ssize_t pLimit=-1,FILE* pOutput=stdout);
+
+    utf8VaryingString DumpS(const int pWidth=16, ssize_t pLimit=-1);
+
     void Dump(const char*pFilePath,const int pColumn=16,ssize_t pLimit=-1);
 
 }; // ZDataBuffer
@@ -713,21 +717,48 @@ public:
     ZBlob(){}
     ZBlob (const ZBlob&) = delete;                  // cannot copy
     ZDataBuffer *_exportURF(ZDataBuffer *pUniversal);
-    ZStatus _importURF(unsigned char* pUniversal);
-    static ZStatus getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal);
+    ZStatus _importURF(const unsigned char *pUniversal);
+    static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr);
 
 };//ZBlob
 
 
-template <class _Tp>
-size_t _importAtomic(_Tp& pValue,unsigned char * &pUniversalPtr)
+template <class _TpIn , class _TpOut>
+static ZDataBuffer ZAexportCurrentZDB(zbs::ZArray<_TpIn>* pZArray,
+    _TpOut (*_exportConvert)(_TpIn&,_TpOut*)) // Routine to convert a single element of ZArray
+// first arg  : element to convert
+// second arg : buffer to receive converted element
 {
-  _Tp wValue;
-  memmove(&wValue,pUniversalPtr,sizeof(_Tp));
-  pValue=reverseByteOrder_Conditional<_Tp>(wValue);
+  ZDataBuffer wZDB;
 
+  if (ZAexportCurrent(pZArray,wZDB.Data,wZDB.Size,_exportConvert) == nullptr )
+    return ZDataBuffer(nullptr,0);
+
+  return wZDB;
+
+}//ZAexportCurrentZDB
+
+
+template <class _TpIn , class _TpOut>
+static size_t ZAimportZDB(ZArray<_TpOut>* pZArray,
+    const ZDataBuffer &pBuffer,
+    _TpOut (*_importConvert)(_TpOut&,_TpIn*))// Routine to convert a single element of ZArray for import
+// first arg  : element to receive converted data to integrate into ZArray
+// second arg : input buffer to convert element : format is not aligned struct
+{
+  return ZAimport<_TpIn,_TpOut>(pZArray,pBuffer.Data,_importConvert,nullptr);
+}//ZAimportZDB
+
+
+template <class _Tp>
+size_t _importAtomic(_Tp& pValue,const unsigned char * &pUniversalPtr)
+{
+//  _Tp wValue;
+//  memmove(&wValue,pUniversalPtr,sizeof(_Tp));
+//  pValue=reverseByteOrder_Conditional<_Tp>(wValue);
+  _Tp* wPtr =(_Tp*)pUniversalPtr;
+  pValue=reverseByteOrder_Conditional<_Tp>(*wPtr);
   pUniversalPtr += sizeof(_Tp);
-
   return sizeof(_Tp);
 }
 
@@ -735,12 +766,28 @@ size_t _importAtomic(_Tp& pValue,unsigned char * &pUniversalPtr)
 template <class _Tp>
 size_t _exportAtomic(_Tp pValue,ZDataBuffer& pZDB)
 {
-  int wInt = reverseByteOrder_Conditional<_Tp>(pValue);
-  pZDB.appendData(&wInt,sizeof(_Tp));
+  _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
+  pZDB.appendData(&wOut,sizeof(_Tp));
   return sizeof(_Tp);
 }
 
-ZStatus _importZStatus(unsigned char*pPtrIn);
+template <class _Tp>
+size_t _exportAtomic(_Tp pValue,ZDataBuffer* pZDB)
+{
+  _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
+  pZDB->appendData(&wOut,sizeof(_Tp));
+  return sizeof(_Tp);
+}
+template <class _Tp>
+size_t _exportAtomicPtr(_Tp pValue,unsigned char* &pPtrOut)
+{
+  _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
+  memmove(pPtrOut,&wOut,sizeof(_Tp));
+  pPtrOut += sizeof(_Tp);
+  return sizeof(_Tp);
+}
+
+ZStatus _importZStatus(const unsigned char *pPtrIn);
 ZDataBuffer& _exportZStatus(ZStatus wSt,ZDataBuffer& pZDB);
 
 #endif // ZDATABUFFER_H

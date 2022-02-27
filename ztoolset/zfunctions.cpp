@@ -10,6 +10,7 @@
 #include <ztoolset/zerror.h>
 //#include <ztoolset/zutfstrings.h>
 //#include <ztoolset/zexceptionmin.h>
+#include <ztoolset/utfvaryingstring.h>
 
 char *dumpSequence (void *pPtr,size_t pSize,char *pBuffer)
  {
@@ -65,41 +66,7 @@ char *dumpSequenceHexa (void *pPtr,long pSize,char* pBuffer,char* pBuffer1)
     return(pBuffer);
 } // dumpSequenceHexa
 
-/* migrated to zlock.cpp
-char wBuffer [100];
-const char*
-decode_ZLockMask(zlock_type pLock)
-{
-    if (pLock==ZLock_Nolock)
-                return "ZLock_Nolock";
-    if (pLock==ZLock_All)
-                return "ZLock_All";
 
-    memset (wBuffer,0,100);
-    if (pLock&ZLock_Exclusive)
-            {
-            strcat(wBuffer,"ZLock_Exclusive ");
-            }
-    if (pLock&ZLock_Delete)
-            {
-            strcat(wBuffer,"ZLock_Delete ");
-            }
-    if (pLock&ZLock_Read)
-            {
-            strcat(wBuffer,"ZLock_Read ");
-            }
-    if (pLock&ZLock_Modify)
-            {
-            strcat(wBuffer,"ZLock_Modify ");
-            }
-    if (pLock&ZLock_Read)
-            {
-            strcat(wBuffer,"ZLock_Read ");
-            }
-
-    return wBuffer;
-} //decode_ZLockMask
-*/
 /**
  * @brief decode_ZStatus gives a constant string that explains the give code from ZStatus enum
  * @param ZS
@@ -110,9 +77,14 @@ const char * decode_ZStatus (ZStatus ZS)
     switch (ZS)
             {
         case ZS_SUCCESS :
-                {
                     return ("ZS_SUCCESS");
-                }
+        case ZS_ERROR :
+          return ("ZS_ERROR");
+        case ZS_WARNING :
+          return ("ZS_WARNING");
+        case ZS_INVALIDSTATUS :
+          return ("ZS_INVALIDSTATUS");
+
         case ZS_ENDCLIENT :
                 {
                     return ("ZS_ENDCLIENT");
@@ -126,10 +98,7 @@ const char * decode_ZStatus (ZStatus ZS)
                 {
                     return ("ZS_CANCEL");
                 }
-        case ZS_ERROR :
-                {
-                    return ("ZS_ERROR");
-                }
+
         case ZS_NOTFOUND :
                 {
                     return ("ZS_NOTFOUND");
@@ -208,6 +177,10 @@ const char * decode_ZStatus (ZStatus ZS)
         case ZS_EXCEPTION :
                 {
                     return ("ZS_EXCEPTION");
+                }
+      case ZS_INVPARAMS :
+                {
+                  return ("ZS_INVPARAMS");
                 }
 
         case ZS_FOUND :
@@ -332,6 +305,10 @@ const char * decode_ZStatus (ZStatus ZS)
     case ZS_FILETYPEWARN :
             {
                 return ("ZS_FILETYPEWARN");
+            }
+    case ZS_BADDIC :
+            {
+              return ("ZS_BADDIC");
             }
 
 
@@ -556,6 +533,10 @@ const char * decode_ZStatus (ZStatus ZS)
                 return ("ZS_NEEDMORESPACE");  //< iconv : output buffer exhausted : need more space in output
     case  ZS_INVCHARSET :
                 return ("ZS_INVCHARSET");  //< invalid charset : not recognized or not authorized for target string
+    case  ZS_TRUNCATED :
+      return ("ZS_TRUNCATED");  //< warning :Input has been truncated to fit into destination fixed capacity - not an error
+    case  ZS_NOENDMARK :
+      return ("ZS_NOENDMARK"); //< endofString mark ('\0') has not be found on string : search of this mark has been made until __STRING_MAX_LENGTH__ without success./
 
 //----------------------MIME data-----------------
 
@@ -573,6 +554,13 @@ const char * decode_ZStatus (ZStatus ZS)
                 return ("ZS_XMLERROR");
     case ZS_XMLWARNING :
                 return ("ZS_XMLWARNING");
+    case ZS_XMLEMPTY :
+      return ("ZS_XMLEMPTY");
+    case ZS_XMLMISSREQ :
+      return ("ZS_XMLMISSREQ");
+    case ZS_XMLINVROOTNAME :
+      return ("ZS_XMLINVROOTNAME");
+
     default :
                 return ("Unknownn ZStatus");
 
@@ -764,6 +752,10 @@ const char * decode_Severity (Severity_type pSeverity)
     case (Severity_Fatal) :
         {
         return ("Severity_Fatal");
+        }
+    case (Severity_Highest) :
+        {
+          return ("Severity_Highest");
         }
     default :
         {
@@ -2117,6 +2109,60 @@ _WexpurgeString(wchar_t *pString, const wchar_t *pSubString)
 }
 
 //===============end wchar_t=======================================
+
+
+
+utf8VaryingString
+getVersionStr (unsigned long pVersion)
+{
+  utf8VaryingString wStr;
+  int wVer=int(pVersion/1000000);
+  int wRel=int((pVersion - (wVer*1000000))/1000);
+  int wMin=int(pVersion -  (wVer*1000000) - (wRel*1000));
+  wStr.sprintf("%d.%d-%d",wVer,wRel,wMin);
+  return wStr;
+}
+
+
+unsigned long
+getVersionNum (const utf8VaryingString& pVersion)
+{
+  if (pVersion.isEmpty())
+    return 0UL;
+  utf8VaryingString wV= pVersion.duplicate();
+  utf8_t* wPtr_Max=wV.Data + wV.UnitCount;
+
+  errno = 0;
+  utf8_t* wPtr = wV.strchr('.');
+  if (!wPtr)
+    return 0UL;
+
+  wPtr[0]='\0';
+  unsigned long wVersion = utfStrtoul<utf8_t>(wV.Data,nullptr,10);
+  if (errno)
+    return 0UL;
+  wVersion=wVersion*1000000;
+
+  wPtr++;
+  utf8_t* wPtr1 = utfStrchr(wPtr,(utf8_t)'-');
+  if (!wPtr1)
+    return wVersion;
+
+  wPtr1[0]='\0';
+  unsigned long wRelease = utfStrtoul<utf8_t>(wPtr,nullptr,10);
+  if (errno)
+    return wVersion;
+  wVersion+=(wRelease*1000);
+
+  wPtr1++;
+  unsigned long wSubRelease = utfStrtoul<utf8_t>(wPtr1,nullptr,10);
+  if (errno)
+    return wVersion;
+  wVersion+=wSubRelease;
+  return wVersion;
+} //getVersionNum
+
+
 
 
 #endif //ZFUNCTIONS_CPP

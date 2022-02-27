@@ -11,8 +11,6 @@
 
 #include <ztoolset/exceptionstring.h>
 
-
-
 //typedef templateString<char [cst_desclen+1]> descString;
 //typedef templateString<char [cst_codelen+1]> codeString;
 
@@ -40,6 +38,7 @@ class ZExceptionBase_Data //: public std::exception
 {
 public:
     ZExceptionBase_Data()=default;
+    virtual ~ZExceptionBase_Data() {}
 
     ZExceptionBase_Data& _copyFrom(const ZExceptionBase_Data& pIn)
     {
@@ -88,14 +87,15 @@ class ZExceptionBase : public ZExceptionBase_Data
 {
     typedef ZExceptionBase_Data _Base;
 
-    void copyFrom(ZExceptionBase& pIn)
+    ZExceptionBase& copyFrom(const ZExceptionBase& pIn)
     {
         _Base::_copyFrom((ZExceptionBase_Data&)pIn);
+        return *this;
     }
 public:
     ZExceptionBase();
-    ZExceptionBase(const ZExceptionBase& pIn);
-    ZExceptionBase& operator=(const ZExceptionBase&) = delete;  // no copy
+    ZExceptionBase(const ZExceptionBase& pIn) {_copyFrom(pIn);}
+    ZExceptionBase& operator=(const ZExceptionBase& pIn) { return copyFrom(pIn); }
     virtual ~ZExceptionBase();
 
 //    void clear(void) {memset(this,0,sizeof(ZExceptionBase_Data));}
@@ -170,6 +170,49 @@ public:
     void setComplement (const char *pFormat,va_list arglist);
     void setComplementToStatus();
 
+
+
+    static ZExceptionBase create(const char *pModule, ZStatus pStatus, Severity_type pSeverity,
+        const char *pFormat,...)
+    {
+      ZExceptionBase wRet;
+      va_list arglist;
+      va_start (arglist, pFormat);
+      wRet._setMessage(pModule,pStatus,pSeverity,pFormat,arglist);
+      va_end(arglist);
+      return wRet;
+    }
+  static ZExceptionBase createErrno(const int pErrno,const char *pModule, ZStatus pStatus, Severity_type pSeverity,
+        const char *pFormat,...)
+    {
+      ZExceptionBase wRet;
+      va_list arglist;
+      va_start (arglist, pFormat);
+      wRet.getErrno(pErrno,pModule,pStatus,pSeverity,pFormat,arglist);
+      va_end(arglist);
+      return wRet;
+    }
+  static ZExceptionBase createFileError(FILE *pf,const char *pModule, ZStatus pStatus, Severity_type pSeverity,
+        const char *pFormat,...)
+    {
+      ZExceptionBase wRet;
+      va_list arglist;
+      va_start (arglist, pFormat);
+      wRet.getFileError(pf,pModule,pStatus,pSeverity,pFormat,arglist);
+      va_end(arglist);
+      return wRet;
+    }
+
+  static ZExceptionBase createAddrinfo(int pError,const char *pModule, ZStatus pStatus, Severity_type pSeverity,
+        const char *pFormat,...)
+    {
+      ZExceptionBase wRet;
+      va_list arglist;
+      va_start (arglist, pFormat);
+      wRet.getAddrinfo(pError,pModule,pStatus,pSeverity,pFormat,arglist);
+      va_end(arglist);
+      return wRet;
+    }
 
 //    void printExceptionContent(FILE *pOutput=stderr);
 
@@ -378,6 +421,10 @@ public:
  */
     void setAbortOnSeverity(Severity_type pSeverity) {AbortOnSeverity=pSeverity;}
     void setAbortDefault(void) {AbortOnSeverity=Severity_Fatal;}
+
+    void setAbortPush() { AbortOnSeverityOld=AbortOnSeverity; ThrowOnSeverityOld=ThrowOnSeverity; }
+    void setAbortPop() { AbortOnSeverity=AbortOnSeverityOld; ThrowOnSeverity=ThrowOnSeverityOld; }
+
     void setThrowOnSeverity(Severity_type pSeverity) {ThrowOnSeverity=pSeverity;}
     void setThrowDefault(void) {ThrowOnSeverity=Severity_Highest;}
 private:
@@ -387,22 +434,16 @@ private:
     uint8_t         AbortOnSeverity=Severity_Fatal;
     uint8_t         ThrowOnSeverity=Severity_Highest;
 
+    uint8_t         AbortOnSeverityOld=Severity_Fatal;
+    uint8_t         ThrowOnSeverityOld=Severity_Fatal;
+
 private:
     void clear() {/*_Base::clear();*/ ZExceptionStack::clear();    AbortOnSeverity=0xFF;}
 };// ZExceptionMin
 
 
 
-#ifdef __USE_ZRANDOMFILE__
 
-//#include <zrandomfile/zrandomfiletypes.h>
-/*
-#ifndef ZEXCEPTIONMIN_CPP
-        extern ZExceptionMin               ZException;
-        extern zbs::ZArray<ZExceptionMin>  ZExceptionStack;
-#endif
-*/
-#endif // __USE_ZRANDOMFILE__
 
 
 
@@ -411,6 +452,8 @@ private:
 
 extern ZExceptionMin               ZException;
 
+#endif
+
 //      extern thread_local ZExceptionMin               ZException;
 //    extern ZExceptionMin               ZException;
 //        extern thread_local zbs::ZArray<ZExceptionMin>  ZExceptionStack;
@@ -418,11 +461,11 @@ extern ZExceptionMin               ZException;
 /** @brief _ASSERT_ZEXCEPTION_  this macro aborts and dumps ZException if condition is met.
  * It is assumed that underlying routines will set ZException with appropriate descriptive content */
 
+
 #define _ASSERT_ZEXCEPTION_(__CONDITION__) \
         if (__CONDITION__) \
                 ZException.exit_abort();
 
-#endif
 
 
 

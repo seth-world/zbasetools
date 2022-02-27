@@ -12,7 +12,7 @@ class ZToken : public ZArray<char *>
 public:
     typedef ZArray<char *> _Base;
     ZToken() {}
-    ~ZToken() {while (size()) free (popR());}
+    ~ZToken() {while (size()) zfree (popR());}
     void push(const char *pElement) {add(pElement);}
     void add(const char*pToken)
     {

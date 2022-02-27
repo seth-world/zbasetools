@@ -103,7 +103,7 @@ charFixedString<_Sz>::fromUtf8(const utf8_t* pInString,const ssize_t pInByteSize
                  _GET_FUNCTION_NAME_,
                  wSt,
                  decode_UST(wSt));
-        _free(wString);
+        zfree(wString);
         return nullptr;
     }
 /*    if (Context.Substit)
@@ -118,7 +118,7 @@ charFixedString<_Sz>::fromUtf8(const utf8_t* pInString,const ssize_t pInByteSize
             {
             *wPtr++=*wPtr1++;
             }
-    _free(wString);
+    zfree(wString);
     while (wi--)
             *wPtr++=0;
     return this;
@@ -139,7 +139,7 @@ charFixedString<_Sz>::fromUtf16(const utf16_t* pInString,
                  _GET_FUNCTION_NAME_,
                  wSt,
                  decode_UST(wSt));
-        _free(wString);
+        zfree(wString);
         return nullptr;
     }
 /*    if (Context.Substit)
@@ -154,7 +154,7 @@ charFixedString<_Sz>::fromUtf16(const utf16_t* pInString,
             {
             *wPtr++=*wPtr1++;
             }
-    _free(wString);
+    zfree(wString);
     while (wi--)
             *wPtr++=0;
     return this;
@@ -176,7 +176,7 @@ charFixedString<_Sz>::fromUtf32(const utf32_t* pInString,
                  _GET_FUNCTION_NAME_,
                  wSt,
                  decode_UST(wSt));
-        _free(wString);
+        zfree(wString);
         return  nullptr;
     }
  /*   if (Context.Substit)
@@ -191,7 +191,7 @@ charFixedString<_Sz>::fromUtf32(const utf32_t* pInString,
             {
             *wPtr++=*wPtr1++;
             }
-    _free(wString);
+    zfree(wString);
     while (wi--)
             *wPtr++=0;
     return  this;

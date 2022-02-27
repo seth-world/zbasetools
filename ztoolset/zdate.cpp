@@ -176,7 +176,7 @@ uint32_t
 ZDate::_export(void)
 {
 #pragma pack(push)
-#pragma pack(0)
+#pragma pack(1)
     struct wuIn{
         uint16_t Year;
         uint8_t  Month;
@@ -208,7 +208,7 @@ void
 ZDate::_import(uint32_t pIDate)
 {
 #pragma pack(push)
-#pragma pack(0)
+#pragma pack(1)
     struct wuIn{
         uint16_t Year;
         uint8_t  Month;
@@ -229,7 +229,7 @@ ZDate::_import(uint32_t pIDate)
 }// _import
 
 ZStatus
-ZDate::_importURF(unsigned char* pZDB)
+ZDate::_importURF(const unsigned char* pZDB)
 {
     uint32_t wD ;
     ZTypeBase wType;
@@ -237,7 +237,7 @@ ZDate::_importURF(unsigned char* pZDB)
     wType =reverseByteOrder_Conditional<ZTypeBase>(wType);
     if (wType!=ZType_ZDate)
         {
-        fprintf(stderr,"%s-Error invalid ZType_type <%lX> <%s>\n",
+        fprintf(stderr,"%s-Error invalid ZType_type <%X> <%s>\n",
                 _GET_FUNCTION_NAME_,
                 wType,
                 decode_ZType(wType));
@@ -250,11 +250,11 @@ ZDate::_importURF(unsigned char* pZDB)
 }// _import
 
 ZStatus
-ZDate::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
+ZDate::getUniversalFromURF(const unsigned char* pURFDataPtr,ZDataBuffer& pUniversal,const unsigned char** pURFDataPtrOut)
 {
  uint64_t wEffectiveUSize ;
  ZTypeBase wType;
- unsigned char* wURFDataPtr = pURFDataPtr;
+ const unsigned char* wURFDataPtr = pURFDataPtr;
 
      memmove(&wType,wURFDataPtr,sizeof(ZTypeBase));
      wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
@@ -271,10 +271,14 @@ ZDate::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
          }
 
     memmove(pUniversal.Data,wURFDataPtr,sizeof(uint32_t));
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wURFDataPtr + sizeof(uint32_t);
+      }
     return ZS_SUCCESS;
 }//getUniversalFromURF
 ZStatus
-ZDate::getValueFromUniversal(unsigned char* pUniversalDataPtr)
+ZDate::getValueFromUniversal(const unsigned char* pUniversalDataPtr)
 {
  uint32_t wUniversal;
 
@@ -285,10 +289,10 @@ ZDate::getValueFromUniversal(unsigned char* pUniversalDataPtr)
 //--------------- ZDateFull-------------------------
 //
 uint64_t
-ZDateFull::_export(void)
+ZDateFull::_export(void) const
 {
 #pragma pack(push)
-#pragma pack(0)
+#pragma pack(1)
     struct wuIn{
         uint16_t Year;
         uint8_t  Month;
@@ -329,7 +333,7 @@ void
 ZDateFull::_import(uint64_t pIDate)
 {
 #pragma pack(push)
-#pragma pack(0)
+#pragma pack(1)
     struct wuIn{
         uint16_t Year;
         uint8_t  Month;
@@ -354,7 +358,7 @@ ZDateFull::_import(uint64_t pIDate)
     return;
 }// _import
 
-ZStatus ZDateFull::_importURF(unsigned char* pZDB)
+ZStatus ZDateFull::_importURF(const unsigned char* pZDB)
 {
     uint64_t wD ;
     ZTypeBase wType;
@@ -377,11 +381,11 @@ ZStatus ZDateFull::_importURF(unsigned char* pZDB)
 }// _import
 
 ZStatus
-ZDateFull::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
+ZDateFull::getUniversalFromURF(const unsigned char* pURFDataPtr,ZDataBuffer& pUniversal,const unsigned char** pURFDataPtrOut)
 {
  uint64_t wEffectiveUSize ;
  ZTypeBase wType;
- unsigned char* wURFDataPtr = pURFDataPtr;
+ const unsigned char* wURFDataPtr = pURFDataPtr;
 
      memmove(&wType,wURFDataPtr,sizeof(ZTypeBase));
      wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
@@ -398,11 +402,17 @@ ZDateFull::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversa
          }
 
     memmove(pUniversal.Data,wURFDataPtr,sizeof(uint64_t));
+
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wURFDataPtr + sizeof(uint64_t);
+      }
+
     return ZS_SUCCESS;
 }//getUniversalFromURF
 
 ZStatus
-ZDateFull::getValueFromUniversal(unsigned char* pUniversalDataPtr)
+ZDateFull::getValueFromUniversal(const unsigned char* pUniversalDataPtr)
 {
  uint64_t wUniversal;
 

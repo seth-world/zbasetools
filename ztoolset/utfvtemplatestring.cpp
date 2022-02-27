@@ -16,8 +16,6 @@
 
 
 
-
-
 /*
 int Base64Decode(char* b64message, unsigned char** buffer, size_t* length) { //Decodes a base64 encoded string
     BIO *bio, *b64;

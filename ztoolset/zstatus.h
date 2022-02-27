@@ -12,7 +12,9 @@ typedef int64_t ZStatusBase;
 enum ZStatus: ZStatusBase
 {
                 ZS_NOTHING          =       0,          //< NOP
-                ZS_ERROR            =   -0x01 ,     //< General error
+                ZS_ERROR            =   -0x01 ,     //< Generic error
+                ZS_WARNING          =   +0x02 ,     // Generic warning (not negative)
+                ZS_INVALIDSTATUS    = 0xFFFFFFFF,   //this status is invalid
 
                 ZS_NOTFOUND         =   -0x04,      //< Requested element has not been found
 
@@ -42,6 +44,10 @@ enum ZStatus: ZStatusBase
                                                     // Or field definition violates an existing dictionary key field during a changeFieldValue operation
                 ZS_INVVALUE         =   -0xF5,      //< Invalid value provided
                 ZS_EXCEPTION        =   -0xF6,      //< An exception has been set
+
+                ZS_INVPARAMS        =   -0xF7,      // invalid parameters
+
+                ZS_OMITTED          =   -0xF8,      // parameter present but omitted value : example bitset with ZType_bitsetFull
 //
 //                                          +---------> Collection of records
 //                                          |
@@ -114,6 +120,7 @@ enum ZStatus: ZStatusBase
                 ZS_BADICB             =   -0x002005,        //< file header Index Control Block infradata is wrong
                 ZS_BADFILETYPE        =   -0x002006,        //< given file type is not open see @ref ZFile_type and @ref ZRandomFile::_open
                 ZS_FILETYPEWARN       =   +0x002007,        //< NOT AN ERROR : Warning :given file type is not the native file type see @ref ZFile_type and @ref ZRandomFile::_open
+                ZS_BADDIC             =   -0x002008,        //< bad dictionary : dictionary is either malformed or inexistant
 
                 ZS_CRYPTERROR         =   -0x004000,        //< invalid crypted file content
 
@@ -141,21 +148,6 @@ enum ZStatus: ZStatusBase
                 ZS_LOCKPENDING        = -0x00300000,        //< Lock is pending and has not yet been activated. It will be activated as soon as resource will be freed
                 ZS_LOCKINTERR         = -0x00310000,        //< Lock internal error
                 ZS_LOCKALREADY        = -0x00320000,        //< User has already locked the resource and tries to lock again the same resource
-
-    /*
-     *     ZLock_Nothing   = 0,            //!< NOP
-    ZLock_Nolock    = 0,            //!< no lock has been requested for this resource
-    ZLock_Read      = 0x02,         //!< cannot read the resource
-    ZLock_Modify    = 0x04,         //!< cannot write/modify the resource
-    ZLock_Write     = ZLock_Modify, //!< idem for easy naming use
-    ZLock_Delete    = 0x08,         //!< cannot delete resource. Can read everything and modify -except indeed the resource identification-
-    ZLock_All       = ZLock_Read|ZLock_Write|ZLock_Delete,          //!< cannot do anything
-    ZLock_Exclusive = 0x10,         //!< for compatibility with ZRF_Exclusive
-    ZLock_ReadWrite = ZLock_Read | ZLock_Modify,  //!< self explainatory
-    ZLock_WriteDelete = ZLock_Write | ZLock_Delete,  //!< cannot write or delete record or file : only read is allowed
-    ZLock_Omitted   = 0xFF         //!< Lock is deliberately omitted as an argument
-*/
-
 
                 ZS_MODEINVALID        = -0x00400000,        //< File open mode does not allow current access attempt. Example file open mode = ZRF_ReadOnly and attempt to _insertFirstPhasePrepare()
 
@@ -217,6 +209,7 @@ enum ZStatus: ZStatusBase
                 ZS_BADUSERID          = -0x00120000,        //< user id is not recognized
                 ZS_BADPASSWORD        = -0x00140000,        //< given password does not match
                 ZS_USERPRIVILEGES     = -0x00180000,        // user do not have privileges for doing such operation
+
 /*                ZS_LOCKALL            = -0x02700000,        //< resource is locked for reading writing deleting
                 ZS_LOCKWRITEDELETE    = -0x02300000,        //< resource is locked for reading writing deleting
                 ZS_LOCKBADOWNER       = -0x02800000,        //< Owner requesting lock modification is not the owner of the lock
@@ -239,9 +232,9 @@ enum ZStatus: ZStatusBase
                 ZS_ILLEGAL            = -0x00908000,        //!< Illegal character encoding format detected
                 ZS_IVCODEPOINT        = -0x00909000,        //!< Invalid codepoint : when converting from Unicode to destination encoding an invalid unicode value has been detected
 
-                ZS_STRTRUNCATED       =  0x0090A000,        //!< warning :Input string has been truncated to fit into destination fixed string capacity - not an error
+                ZS_TRUNCATED          =  0x0090A000,        //!< warning :Input has been truncated to fit into destination fixed capacity - not an error
 
-                ZS_STRNOENDMARK       = -0x0090B000,        //!< endofString mark ('\0') has not be found on string : search of this mark has been made until __STRING_MAX_LENGTH__ without success.
+                ZS_NOENDMARK       = -0x0090B000,           //!< endofString mark ('\0') has not be found on string : search of this mark has been made until __STRING_MAX_LENGTH__ without success.
 
                 ZS_ICUERROR           = -0x00910000,        //!< ICU error. ICU Status (UErrorCode) is given apart within complement
                 ZS_ICUWARNING         =  0x00920000,        //!< ICU warning (positive value) : not an error-(UErrorCode) is given apart within complement
@@ -250,10 +243,11 @@ enum ZStatus: ZStatusBase
 //-------------------------Mime-----------------------------------
                 ZS_MIMEINV            = -0x10000000,        //< invalid MimeData
                 ZS_MEMERROR           = -0x20000000,        //< cannot allocate memory or memory error
+
                 ZS_MEMOVFLW           = -0x20000001,        // buffer or memory overflow : memory allocated size must be increased
                 ZS_XMLERROR           = -0x40000000,       //< xml formatting or parsing error
                 ZS_XMLEMPTY           = -0x40000001,       //< xml no root element found : empty xml document
-
+                ZS_XMLMISSREQ         = -0x40000002,       //< xml document misses a required field
                 ZS_XMLINVROOTNAME     = -0x40000010,        //< xml invalid root element name
 
                 ZS_XMLWARNING         = +0x40000010,        //< xml formatting or parsing warning

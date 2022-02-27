@@ -27,9 +27,9 @@ class stringKey;
 class utf8VaryingString: public utfVaryingString<utf8_t>
 {
 protected:
-    void _setToUtf8()
+    void _setToUtf8(ZType_type pType=ZType_Utf8VaryingString)
           {
-          ZType=ZType_Utf8VaryingString;
+          ZType=pType;
           Charset=ZCHARSET_UTF8;
           Check=0xFFFFFFFF;
           }
@@ -42,16 +42,20 @@ typedef utf8_t                  _UtfBase;
     using _Base::operator +=;
     using _Base::operator ==;
     using _Base::operator !=;
-    utf8VaryingString():_Base() {_setToUtf8();}
+    utf8VaryingString():_Base() {_setToUtf8(ZType_Utf8VaryingString);}
 
-    utf8VaryingString(const utf8VaryingString& pIn) {_setToUtf8(); strset(pIn.Data);}
-    utf8VaryingString(const utf8VaryingString&& pIn) {_setToUtf8(); strset(pIn.Data);}
+    utf8VaryingString(const utf8VaryingString& pIn) {_setToUtf8(ZType_Utf8VaryingString); strset(pIn.Data);}
+    utf8VaryingString(const utf8VaryingString&& pIn) {_setToUtf8(ZType_Utf8VaryingString); strset(pIn.Data);}
 
-    utf8VaryingString(const char* pIn) {_setToUtf8() ; fromChar(pIn);}
-    utf8VaryingString(const utf8_t* pIn) {_setToUtf8() ; strset(pIn);}
+    utf8VaryingString(const char* pIn) {_setToUtf8(ZType_Utf8VaryingString) ; fromChar(pIn);}
+    utf8VaryingString(const utf8_t* pIn) {_setToUtf8(ZType_Utf8VaryingString) ; strset(pIn);}
 
     utf8VaryingString(std::string& pIn) {_setToUtf8() ; fromStdString(pIn);}
     utf8VaryingString(std::string&& pIn) {_setToUtf8() ; fromStdString(pIn);}
+
+protected:
+    utf8VaryingString(ZType_type pType):_Base() {_setToUtf8(pType);}
+public:
 
     /** @brief strcount() Counts the effective number of utf8 characters : multi-character units counts for 1 - skipping BOM */
     size_t strcount(UST_Status_type &pStatus)
@@ -84,8 +88,8 @@ typedef utf8_t                  _UtfBase;
                                 const size_t pChunkSize);
     UST_Status_type fromUtf8(const utf8_t *pInString);
 
-    utf8VaryingString& fromChar(const char* pInString) {_Base::strset((const utf8_t*)pInString); return *this;}
-    utf8VaryingString& fromnChar(const char* pInString,size_t pSize){_Base::strnset((const utf8_t*)pInString,pSize); return *this;}
+    utf8VaryingString& fromChar(const char* pInString) {_Base::strset((const utf8_t*)pInString); CheckData(); return *this;}
+    utf8VaryingString& fromnChar(const char* pInString,size_t pSize){_Base::strnset((const utf8_t*)pInString,pSize); CheckData(); return *this;}
     /**
      * @brief fromUtf16 converts an utf16_t string pUtf16 into utf8 format and sets this as current string content.
      *  equivalent as strset, but with utf16 to utf8 conversion.
@@ -142,10 +146,10 @@ typedef utf8_t                  _UtfBase;
                             const ZCryptKeyAES256& pKey,
                             const ZCryptVectorAES256& pVector);
 
-    utf8VaryingString & operator = (const char* pString) { _setToUtf8(); return fromChar(pString);}
-    utf8VaryingString & operator = (const utf8VaryingString& pString) { _Base::_copyFrom(pString); return *this;}
-    utf8VaryingString & operator = (const utf8VaryingString&& pString) { _Base::_copyFrom(pString); return *this;}
-    utf8VaryingString & operator = (std::string&  pString) {_setToUtf8(); return fromStdString(pString);}
+    utf8VaryingString & operator = (const char* pString) { Check=0xFFFFFFFF; return fromChar(pString);}
+    utf8VaryingString & operator = (const utf8VaryingString& pString) { Check=0xFFFFFFFF; _Base::_copyFrom(pString); return *this;}
+    utf8VaryingString & operator = (const utf8VaryingString&& pString) { Check=0xFFFFFFFF; _Base::_copyFrom(pString); return *this;}
+    utf8VaryingString & operator = (std::string&  pString) {Check=0xFFFFFFFF; return fromStdString(pString);}
     utf8VaryingString & operator += (const char* pString)
     {
         utf8VaryingString wIn(pString);
@@ -156,8 +160,33 @@ typedef utf8_t                  _UtfBase;
 
     utf8VaryingString& operator += (const utf8VaryingString& pIn) {  add(pIn); return *this;}
     utf8VaryingString& operator += (const utf8VaryingString&& pIn) {  add(pIn); return *this;}
-    utf8VaryingString& operator + (const utf8VaryingString& pIn) {  add(pIn); return *this;}
-    utf8VaryingString& operator + (const utf8VaryingString&& pIn) {  add(pIn); return *this;}
+/*    utf8VaryingString operator + (const utf8VaryingString& pIn)
+    {
+      utf8VaryingString wD;
+      wD.strset(toUtf());
+      wD.add(pIn);
+      return wD;
+    }
+    utf8VaryingString operator + (const utf8VaryingString&& pIn)
+    {
+      utf8VaryingString wD;
+      wD.strset(toUtf());
+      wD.add(pIn);
+      return wD;
+    }
+*/
+    const utf8VaryingString operator +(const utf8VaryingString& pOne)
+    {
+      add(pOne)  ;
+      return *this;
+    }
+    const utf8VaryingString operator +(const char* pOne)
+    {
+      add(pOne)  ;
+      return *this;
+    }
+
+
 
     bool operator == (const char* pIn) const { return compareV<char>(pIn)==0; }
 
@@ -165,12 +194,11 @@ typedef utf8_t                  _UtfBase;
 
 #ifdef QT_CORE_LIB
 
-    QByteArray toQByteArray(void) { return (QByteArray (toCChar())); }
-    QString toQString(void)      {return QString(toCChar());}
+    QByteArray toQByteArray(void) const { return (QByteArray (toCChar())); }
+    QString toQString(void) const     {return QString(toCChar());}
 
     const utf8VaryingString & operator = (const QString pQString) { return fromQString(pQString);}
 
-//    const QString toQString() {return QString(toCString_Strait());}
     const utf8VaryingString & fromQString(const QString pQString)
     {
       strset((const utf8_t*)pQString.toUtf8().data());
@@ -402,6 +430,12 @@ typedef utf32_t                  _UtfBase;
     bool operator == (const char* pIn) { return compareV<char>(pIn); }
     bool operator != (const char* pIn) { return !compareV<char>(pIn); }
 };
+
+
+
+utf8VaryingString operator +(const utf8VaryingString& pOne,const utf8VaryingString& pTwo);
+utf8VaryingString operator +(const utf8VaryingString& pOne,const char* pTwo);
+utf8VaryingString operator +(const char* pOne,const utf8VaryingString& pTwo);
 
 
 #endif // UTFVARYINGSTRING_H

@@ -23,13 +23,22 @@ unsigned char* _negate(unsigned char* pValue, ssize_t pSize)
 * @brief is_little_endian  defines if system is using little Endian atomic data storage (reverse byte order)
 * @return
 */
-ZBool is_little_endian(void)
+bool is_little_endian(void)
 {
   union {
        uint32_t i;
        int8_t c[4];
-   } e = { 0x00000001 };
+        } e = { 0x00000001 };
 
    return (e.c[0]==1);
 } //is_little_endian
 
+bool is_big_endian(void)
+{
+  union {
+    uint32_t i;
+    int8_t c[4];
+  } e = { 0x00000001 };
+
+  return (e.c[0]==0);
+} //is_big_endian

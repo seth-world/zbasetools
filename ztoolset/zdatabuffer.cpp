@@ -56,7 +56,7 @@ ZDataBuffer::encryptB64( ZDataBuffer*pZDB )
         {
          pZDB->setData(wOutString,wOutSize);
         }
-   _free(wOutString);
+   zfree(wOutString);
    return wSt;
 } //-----------------encodeB64-------------------
  #ifdef __COMMENT__
@@ -112,7 +112,7 @@ ZDataBuffer::uncryptB64(ZDataBuffer *pZDB)
          {
           pZDB->setData(wPlainBuffer,wPlainSize);
          }
-    _free(wPlainBuffer);
+    zfree(wPlainBuffer);
     return wSt;
 }
 #ifdef __COMMENT__
@@ -169,7 +169,7 @@ ZDataBuffer::encryptAES256( const ZCryptKeyAES256& pKey,
     ZStatus wSt= wCrypt.encrypt(&wCryptedBuffer,&wCryptedBufferLen,Data,Size,pKey,pVector);
     if (wSt!=ZS_SUCCESS)
             {
-            _free(wCryptedBuffer); // free if not nullptr
+            zfree(wCryptedBuffer); // free if not nullptr
             return wSt;
             }
      if (!pZDB)  // if no ZDataBuffer provided : use current and replace plain text with B64
@@ -180,7 +180,7 @@ ZDataBuffer::encryptAES256( const ZCryptKeyAES256& pKey,
          {
           pZDB->setData(wCryptedBuffer,wCryptedBufferLen);
          }
-    _free(wCryptedBuffer);
+    zfree(wCryptedBuffer);
     return wSt;
 }// ZDataBuffer::encryptAES256
 /**
@@ -231,7 +231,7 @@ ZDataBuffer::uncryptAES256 (const ZCryptKeyAES256& pKey,
          {
           pZDB->setData(wPlainTextBuffer,wPlainTextBufferLen);
          }
-    _free(wPlainTextBuffer);
+    zfree(wPlainTextBuffer);
     return wSt;
 }// uncryptAES256
 /**
@@ -252,7 +252,7 @@ ZDataBuffer::uncryptAES256FromFile(const char*pFileName,ZCryptKeyAES256 pKey, ZC
     ZStatus wSt=  wCrypt.uncryptFromFile(pFileName,wPlainText,wPlainTextLen,pKey,pVector);
     if (wSt!=ZS_SUCCESS)
         {
-        _free(wPlainText);
+        zfree(wPlainText);
         return wSt;
         }
     setData(wPlainText,wPlainTextLen);
@@ -315,40 +315,34 @@ ZDataBuffer::newcheckSum(void)
 unsigned char*
 ZDataBuffer::allocate(ssize_t pSize)
 {
+  uint32_t* wP2=nullptr;
 
     if ((pSize>__INVALID_SIZE__)||((ssize_t)pSize<0))
-    {
+      {
         fprintf(stderr,
-                "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld \n",
+                "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
                 _GET_FUNCTION_NAME_,
-                pSize);
+                pSize,pSize);
         _ABORT_
-
-    }
+      }
+     /* allocate/reallocate enough size for requested byte size plus end sign cst_ZBUFFEREND */
     if (Data==nullptr)
-        Data=(unsigned char*)malloc((size_t)(pSize+1));
-    else
-    {
-        //       free(Data);
-        Data=(unsigned char*)realloc(Data,(size_t)(pSize+1));
-    }
-    if (Data==nullptr)
-    { // ZException not defined yet
-        fprintf(stderr,
-                "Module   %s\n"
-                "Status   %s\n"
-                "Severity %s\n"
-                "-F-ERRMALLOC  Cannot allocate/reallocate memory of size %ld for buffer\n",
-                _GET_FUNCTION_NAME_,
-                decode_ZStatus( ZS_MEMERROR),
-                decode_Severity( Severity_Fatal),
-                pSize);
-        _ABORT_
-    }
+        Data=zmalloc<unsigned char>((size_t)(pSize+sizeof(uint32_t)));
+      else
+        {
+        wP2=(uint32_t*)&Data[Size];
+        *wP2=0;/* clear former cst_ZBUFFEREND marker before reallocating memory */
+        Data=zrealloc(Data,(size_t)(pSize)+sizeof(uint32_t));
+         }
     Size=pSize;
     DataChar=(char *)Data;
     VoidPtr=(void*)Data;
     WDataChar=(wchar_t*)Data;
+
+    /* set the end of allocated / reallocated memory as cst_ZMEND */
+    wP2=(uint32_t*)&Data[Size];
+    *wP2=cst_ZBUFFEREND;
+
     return  Data;
 }//allocate
 
@@ -380,60 +374,50 @@ ZDataBuffer::allocateBZero(ssize_t pSize)
 unsigned char*
 ZDataBuffer::extend(ssize_t pSize)
 {
-
-    if ((pSize>__INVALID_SIZE__)||(pSize<0))
+  uint32_t* wP2=nullptr;
+  if ((pSize>__INVALID_SIZE__)||((ssize_t)pSize<0))
     {
-        fprintf(stderr,
-                "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld \n",
-                _GET_FUNCTION_NAME_,
-                pSize);
-        _ABORT_;
+      fprintf(stderr,
+          "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
+          _GET_FUNCTION_NAME_,
+          pSize,pSize);
+      _ABORT_
     }
-    if (Data==nullptr)
-    {
-        Data=(unsigned char*)malloc(pSize+1);
-        if (Data==nullptr)
-        { // ZException not defined yet
-            fprintf(stderr,
-                    "Module   %s\n"
-                    "Status   %s\n"
-                    "Severity %s\n"
-                    "-F-ERRMALLOC  Cannot extend memory of size %ld (initial size %ld) for buffer\n",
-                    _GET_FUNCTION_NAME_,
-                    decode_ZStatus( ZS_MEMERROR),
-                    decode_Severity( Severity_Fatal),
-                    pSize,
-                    Size);
-            _ABORT_;
-        }
+  if (Data==nullptr)
+      {
+        Data=zmalloc<unsigned char>(pSize+sizeof(uint32_t));
+
 
         Size=pSize;
         DataChar=(char *)Data;
         VoidPtr=(char*)Data;
         WDataChar=(wchar_t*)Data;
-        return  Data;
-    }// Data==nullptr
 
-    Data =(unsigned char*)realloc(Data,Size+pSize);
-   if (Data==nullptr)
-        { // ZException not defined yet
-        fprintf(stderr,
-                "Module   %s\n"
-                "Status   %s\n"
-                "Severity %s\n"
-                "ZDataBuffer-F-ERRMALLOC  Cannot extend memory of size %ld (initial size %ld) for buffer\n",
-                _GET_FUNCTION_NAME_,
-                decode_ZStatus( ZS_MEMERROR),
-                decode_Severity( Severity_Fatal),
-                pSize,
-                Size);
-        _ABORT_;
-        }
+        /* set the end of allocated / reallocated memory as cst_ZMEND */
+        wP2=(uint32_t*)&Data[Size];
+        *wP2=cst_ZBUFFEREND;
+
+        return  Data;
+      }// Data==nullptr
+
+
+    wP2=(uint32_t*)&Data[Size];
+    *wP2=0;/* clear former cst_ZBUFFEREND marker before reallocating memory */
+    Data =zrealloc(Data,Size+pSize+sizeof(uint32_t));
+
     unsigned char* wExtentPtr=(unsigned char*)(Data + Size);
-    Size+=pSize;
+
+
     DataChar=(char *)Data;
+    Size+=pSize;
+
     VoidPtr=(void*)Data;
     WDataChar=(wchar_t*)Data;
+
+    /* set the end of allocated / reallocated memory as cst_ZMEND */
+    wP2=(uint32_t*)&Data[Size];
+    *wP2=cst_ZBUFFEREND;
+
     return  wExtentPtr;  // returns the first byte of extended memory
 }// extend
 /**
@@ -451,6 +435,17 @@ ZDataBuffer::extendBZero(ssize_t pSize)
     memset(wData,0,pSize);
     return wData;
 }
+
+const ZDataBuffer&
+ZDataBuffer::truncate(size_t pLen)
+{
+  if (pLen >= Size)   /* cannot truncate a greater size than actual size */
+      return *this;
+
+  allocate(pLen);
+  return *this;
+ }
+
 
 /**
  * @brief ZDataBuffer::bsearch   Binary search
@@ -1037,19 +1032,9 @@ void ZDataBuffer::Dump_old(const int pColumn,FILE* pOutput)
 */
 
 }//Dump_old
-void ZDataBuffer::Dump(const char*pFilePath, const int pColumn, ssize_t pLimit)
-{
-  FILE* wDF=fopen(pFilePath,"w");
-  if (!wDF)
-  {
-    fprintf(stderr,"ZDataBuffer::Dump-E-IVPATH Cannot open file <%s> for writting.\n",pFilePath);
-    return;
-  }
-  Dump(pColumn,pLimit,wDF);
-  fclose(wDF);
-}
 
-void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
+
+void ZDataBuffer::Dump_old2(const int pColumn, ssize_t pLimit, FILE* pOutput)
 {
     ZDataBuffer wRulerAscii;
     ZDataBuffer wRulerHexa;
@@ -1066,11 +1051,12 @@ void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
         return;
         }
 
-    size_t wLimit;
-    if ( (pLimit > 0 ) && ((size_t)pLimit > Size ) )
-        wLimit = (size_t)pLimit;
+    long    wLimit;
+    long    wReminder;
+    if ( (pLimit > 0 ) && ((size_t)pLimit < Size ) )
+        wReminder = wLimit = (size_t)pLimit;
     else
-        wLimit = Size;
+        wReminder = wLimit = Size;
 
     fprintf (pOutput,
              "Offset  %s  %s\n",
@@ -1079,12 +1065,14 @@ void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
 
     size_t wOffset=0;
     int wL=0;
-    while ((wOffset+(size_t)pColumn)<wLimit)
+//    while ((wOffset+(size_t)pColumn) < wLimit)
+    while ( wReminder > (size_t)pColumn )
         {
         dumpHexa(wOffset,pColumn,wLineHexa,wLineChar);
         fprintf(pOutput,"%6d |%s |%s|\n",wL,wLineHexa.DataChar,wLineChar.DataChar);
         wL+=pColumn;
         wOffset+=(pColumn);
+        wReminder -= pColumn;
         }
 
     if (pLimit < Size)
@@ -1093,9 +1081,10 @@ void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
         return;
         }
 
-    if (wOffset < wLimit)
+        if (wReminder > 0)
         {
-        dumpHexa(wOffset,(wLimit-wOffset),wLineHexa,wLineChar);
+//        dumpHexa(wOffset,(wLimit-wOffset),wLineHexa,wLineChar);
+        dumpHexa(wOffset,wReminder,wLineHexa,wLineChar);
 
         int wUtf8Column=pColumn;
         /* count utf8 characters */
@@ -1122,6 +1111,18 @@ void ZDataBuffer::Dump(const int pColumn, ssize_t pLimit, FILE* pOutput)
         }
     return;
 }//Dump
+void
+ZDataBuffer::Dump(const int pWidth,ssize_t pLimit,FILE* pOutput)
+{
+    fprintf(pOutput,zmemDump(Data,Size,pWidth,pLimit).toCChar());
+}
+
+
+utf8VaryingString
+ZDataBuffer::DumpS(const int pWidth,ssize_t pLimit)
+{
+  return zmemDump(Data,Size,pWidth,pLimit);
+}
 
 //---------End ZDataBuffer--------------------------
 
@@ -1258,7 +1259,7 @@ ZBlob::_exportURF(ZDataBuffer*pUniversal)
  * @return
  */
 ZStatus
-ZBlob::_importURF(unsigned char* pUniversal)
+ZBlob::_importURF(const unsigned char* pUniversal)
 {
 
     ZTypeBase wType;
@@ -1289,11 +1290,11 @@ ZBlob::_importURF(unsigned char* pUniversal)
 }// _importURF
 
 ZStatus
-ZBlob::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
+ZBlob::getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const  unsigned char **pURFDataPtrOut)
 {
     uint64_t wEffectiveUSize ;
     ZTypeBase wType;
-    unsigned char* wURFDataPtr = pURFDataPtr;
+    const unsigned char* wURFDataPtr = pURFDataPtr;
 
     memmove(&wType,wURFDataPtr,sizeof(ZTypeBase));
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
@@ -1317,11 +1318,15 @@ ZBlob::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
     pUniversal.allocateBZero((wEffectiveUSize)); // fixed string must have canonical characters count allocated
 
     memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
+    if (pURFDataPtrOut)
+    {
+      *pURFDataPtrOut = wURFDataPtr + wEffectiveUSize;
+    }
     return ZS_SUCCESS;
 }//getUniversalFromURF
 
 
-ZStatus _importZStatus(unsigned char*pPtrIn)
+ZStatus _importZStatus(const unsigned char*pPtrIn)
 {
   ZStatusBase wSt1;
   _importAtomic<ZStatusBase>(wSt1,pPtrIn);

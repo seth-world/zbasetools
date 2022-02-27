@@ -439,8 +439,8 @@ template <class _Utf>
     if (pString==nullptr)
                     {return 0;}
     size_t wLen=0;
-    _Utf wC=*pString;
-    while ((wC=pString[wLen])&&(wLen < __STRING_MAX_LENGTH__))
+//    _Utf wC=*pString;
+    while ((pString[wLen])&&(wLen < __STRING_MAX_LENGTH__))
         {
         wLen++;
         }

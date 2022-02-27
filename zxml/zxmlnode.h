@@ -4,12 +4,52 @@
 #include <ztoolset/zutfstrings.h>
 #include <libxml/tree.h>
 //#include <zxml/zxmldoc.h>
+#include <ztoolset/zarray.h>
 
+class zxmlNode;
+class ZNodeCollection : public ZArray<zxmlNode*>
+{
+  ZNodeCollection& _copyFrom(ZNodeCollection& pIn)
+  {
+    reset();
+    for (long wi=0;wi < pIn.count(); wi++)
+      push(pIn[wi]);
+    return *this;
+  }
+public:
+  ZNodeCollection()=default;
+  ZNodeCollection(ZNodeCollection& pIn) {_copyFrom(pIn);}
+  ZNodeCollection(ZNodeCollection&& pIn) {_copyFrom(pIn);}
+  ~ZNodeCollection();
 
+  ZNodeCollection& operator = (ZNodeCollection& pIn) {return _copyFrom(pIn);}
+  ZNodeCollection& operator = (ZNodeCollection&& pIn) {return _copyFrom(pIn);}
+};
 
 class zxmlAttribute;
 class zxmlNameSpace;
 class zxmlElement;
+
+class ZElementCollection : public ZArray<zxmlElement*>
+{
+  ZElementCollection& _copyFrom(ZElementCollection& pIn);
+  ZElementCollection& _copyFrom(ZNodeCollection& pIn);
+
+public:
+  ZElementCollection()=default;
+  ZElementCollection(ZElementCollection& pIn) {_copyFrom(pIn);}
+  ZElementCollection(ZElementCollection&& pIn) {_copyFrom(pIn);}
+  ZElementCollection(ZNodeCollection& pIn) {_copyFrom(pIn);}
+  ZElementCollection(ZNodeCollection&& pIn) {_copyFrom(pIn);}
+  ~ZElementCollection();
+
+  ZElementCollection& operator = (ZElementCollection& pIn) {return _copyFrom(pIn);}
+  ZElementCollection& operator = (ZElementCollection&& pIn) {return _copyFrom(pIn);}
+  ZElementCollection& operator = (ZNodeCollection& pIn) {return _copyFrom(pIn);}
+  ZElementCollection& operator = (ZNodeCollection&& pIn) {return _copyFrom(pIn);}
+};
+
+
 
 class zxmlNode
 {
@@ -42,16 +82,34 @@ public:
     int getLine(void) const;
     utf8String getNodePath(void) const;
 
+    /**
+     * @brief zxmlNode::getFirstChild gets the first node as child of current element
+     * @param[out] pFirstNode a pointer to zxmlNode object for the found node (or nullptr if not found)
+     * @return ZStatus ZS_SUCCESS if a node is found, ZS_EMPTY if not
+     */
     ZStatus getFirstChild(zxmlNode* &pFirstNode) const;
+    /**
+     * @brief zxmlNode::getNextNode
+     * @param[out] pNextNode a pointer to zxmlNode object for the found node (or nullptr if not found)
+     * @return ZStatus ZS_SUCCESS if a node is found, ZS_EOF if no more nodes are available
+     */
     ZStatus getNextNode(zxmlNode* &pNode);
     ZStatus getPreviousNode(zxmlNode* &pPrevNode);
     ZStatus getLastChild(zxmlNode* &pLastNode);
 
-    ZStatus getChildByName(zxmlNode* &pNextNode,const char*pName);
+/**
+ * @brief zxmlNode::getChildByName find the first child node of current node with name pName.
+ * @param pNode returned node if found or nullptr if not found
+ * @param pName
+ * @return a ZStatus set to ZS_SUCCESS if found - ZS_NOTFOUND if no node with that name is found.
+ */
+    ZStatus getChildByName(zxmlNode* &pNode, const utf8VaryingString &pName);
 
+    /** @brief getAllChildren() find all children nodes with name pName and returns ZNodeCollection, a ZArray with node pointers */
+    ZNodeCollection getAllChildren(const utf8VaryingString &pName);
 //---------------Extract data from current node----------------------------
-    ZStatus getNodeContent(utf8VaryingString &pCData) const;            // extract content from current node whatever it is
-    ZStatus getCData(ZDataBuffer& pCData) const;                  // extracts CData content from current node
+    ZStatus getNodeContent(utf8VaryingString &pCData) const; // extract content from current node whatever it is
+    ZStatus getCData(ZDataBuffer& pCData) const;             // extracts CData content from current node
 
     ZStatus getText(ZDataBuffer& pText) const;  // extracts text from current node (comment or text from text node)
 
@@ -61,9 +119,10 @@ public:
     ZStatus getNodeRaw(utf8VaryingString &pText);
 
     ZStatus getFirstChildCData(zxmlNode* &pNode);            // CData Section is not element but node
-    ZStatus getNextCDataSibling(zxmlNode* &pNode);           // gets the sibling CData node
-
-    ZStatus getNextCData(zxmlNode* &pCDataNode,utf8VaryingString&pCData) // obtains the sibling CData node and its content
+    // gets the sibling CData node
+    ZStatus getNextCDataSibling(zxmlNode* &pNode);
+    // obtains the sibling CData node and its content
+    ZStatus getNextCData(zxmlNode* &pCDataNode,utf8VaryingString&pCData)
         {
         ZStatus wSt=getNextCDataSibling(pCDataNode);
         if (wSt!=ZS_SUCCESS)
@@ -114,12 +173,12 @@ private:
     zxmlElement(xmlElementPtr pEltPtr):zxmlNode((xmlNodePtr) pEltPtr) {}
     zxmlElement(xmlNodePtr pEltPtr):zxmlNode(pEltPtr) {}
 public:
-    zxmlElement(const char*pName, zxmlNameSpace*pNameSpace=nullptr);
+    zxmlElement(const utf8VaryingString &pName, zxmlNameSpace*pNameSpace=nullptr);
 
 
     ~zxmlElement() {}
 
-    friend zxmlElement* zxmlcreateElement(const char* pxmlNodeName);
+    friend zxmlElement* zxmlcreateElement(const utf8VaryingString &pxmlNodeName);
 
     void dumpCurrent(FILE*pOutput, int pLevel=0, int pSpaceIndent=4);  // prints current element and direct children
     void cascadeDump(FILE*pOutput, int pLevel=0, int pSpaceIndent=4);  // prints recursively tree node since current element

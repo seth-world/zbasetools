@@ -730,26 +730,29 @@ ZExceptionMin::printLastUserMessage (FILE *pOutput)
 
 utf8String
 ZExceptionBase::formatFullUserMessage (void)
-{   utf8String wRet;
-    wRet.sprintf("------ZException content-----\n");
-    wRet.addsprintf(
+{   utf8String wReturn;
+    wReturn.sprintf("_____________ZException content_____________\n");
+    wReturn.addsprintf(
+                 "%s\n"
                  "Module..............%s\n"
                  "System error code...%d\n"
                  "POSIX error code....%s\n"
                  "Status..............%s\n"
                  "Severity............%s\n",
+                 Message.toCChar(),
                  Module.toCChar(),
                  Error,
                  decode_POSIXerrno(Error),
                  decode_ZStatus(Status),
                  decode_Severity(Severity));
     if (Complement.isEmpty())
-        wRet += "No additional information.\n";
+        wReturn += "No additional information.\n";
     else {
-        wRet += "Additional information follows:\n";
-        wRet += Complement;
+        wReturn += "Additional information follows:\n";
+        wReturn += Complement;
+        wReturn += "\n";
     }
-    return wRet;
+    return wReturn;
 }
 
 utf8String ZExceptionMin::formatFullUserMessage(void)
@@ -816,7 +819,6 @@ ZExceptionBase *wExceptionBase = new ZExceptionBase;
 
 utf8String ZExceptionMin::getLastMessage(void)
 {
-
     if (ZExceptionStack::isEmpty())
         {
         fprintf (stderr,"%s-F-EmptyStack Fatal error: stack is empty while using message\n",_GET_FUNCTION_NAME_);

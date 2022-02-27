@@ -89,15 +89,16 @@ public:
  * includes descString and codeString moves.
  *
  */
-class uriString : public utf8FixedString<cst_urilen+1>
+class uriString : public utf8VaryingString
 {
 public:
 //    typedef  utftemplateString<cst_urilen+1,utf8_t> _Base;
-    typedef utf8FixedString<cst_urilen+1>           _Base;
+    typedef utf8VaryingString           _Base;
 
-    uriString(void) {clear();}
-    uriString(const uriString &pIn) : _Base(pIn) {}
-    uriString(const uriString &&pIn) : _Base(pIn) {}
+    uriString(void) : utf8VaryingString(ZType_URIString) {}
+    uriString(const uriString &pIn) : _Base(pIn) {ZType=ZType_URIString;}
+    uriString(const uriString &&pIn) : _Base(pIn) {ZType=ZType_URIString;}
+    uriString(const char* pIn) : _Base(pIn) {ZType=ZType_URIString;}
 #ifdef QT_CORE_LIB
     uriString(const QString pIn)
     {
@@ -106,17 +107,9 @@ public:
 #endif
 
 
-    uriString &operator=(const uriString &pIn) { return (uriString&)_Base::operator=(pIn);}
-    uriString &operator=(const uriString &&pIn) { return (uriString&)_Base::operator=(pIn); }
+    uriString &operator=(const uriString &pIn) { return fromURI(pIn);}
+    uriString &operator=(const uriString &&pIn) { return fromURI(pIn); }
 
-    uriString(const utf8_t *pString) {fromUtf(pString);}
-    uriString(const char* pString) {strset((const utf8_t*)pString);}
-//    uriString(const uriString& pURI) {fromURI(pURI);}
-
-//    const char* toCString_Strait() {return (const char*)content;}
-    const char* toCChar() const {return (const char*)content;}
-
-    const uriString toConst() const { return *this; }
 
     using _Base::operator =;
     using _Base::operator +=;
@@ -135,20 +128,21 @@ public:
     }
 
     uriString& operator = (const utfdescString &pSource);
-    uriString& operator += (utfdescString &pSource);
+/*    uriString& operator += (utfdescString &pSource);
 
     uriString& operator = (utfcodeString &pCode) ;
     uriString& operator += (utfcodeString &pCode);
-
+*/
     ZStatus operator <<(ZDataBuffer& pDBS);
 
-    bool operator == (utfdescString& pCompare) ;
+/*    bool operator == (utfdescString& pCompare) ;
     bool operator != (utfdescString &pCompare);
     bool operator > (utfdescString& pCompare) ;
     bool operator < (utfdescString &pCompare);
-
+*/
  //   uriString& fromURI(const uriString& pURI) ;
     uriString &fromURI(const uriString* pURI) ;
+    uriString &fromURI(const uriString& pURI) ;
 
     uriString& fromdescString(const utfdescString &pString);
     uriString & fromcodeString(const utfcodeString &pURI) ;
@@ -160,11 +154,21 @@ public:
 
     static uriString getHomeDir(void) ;
 
-    utfdescString getFileExtension() const;
-    utfdescString getDirectoryPath() const;
-    utfdescString getLastDirectoryName() const;
-    utfdescString getBasename() const ;
-    utfdescString getRootBasename() const;
+    /*
+     *    /ddddddd/dddddddd/dddddddddd/<rootname>.<extension>
+     *    |                |          |                     |
+     *    |                +-last dir-+                     |
+     *    +---directory path----------+---base name---------+
+     */
+    utf8String getFileExtension() const;
+    /** @brief uriString::getDirectoryPath Returns a descString containing the file's directory path
+     * i. e. </directory path/><root base name>.<extension>
+     * @return an utf8String with the file's directory path including
+     */
+    utf8String getDirectoryPath() const;
+    utf8String getLastDirectoryName() const;
+    utf8String getBasename() const ;
+    utf8String getRootname() const;
 
     /** @brief getUrl() gets an url from local file path definition */
     utf8String getUrl() const;
@@ -173,7 +177,7 @@ public:
 
     uriString &setDirectoryPath(uriString &pDirectoryPath);
 
-    static utfdescString getUniqueName (const char* pRootName);
+    static utf8String getUniqueName (const char* pRootName);
 
     void setUniqueName (const char* pRootName);
 
@@ -181,6 +185,24 @@ public:
 
     bool        isDirectory (void);
     bool        isRegularFile(void);
+
+    /**
+     * @brief renameBck renames file with a special extension suffix given by pBckExt plus a incremental 2 digit value as follows :\n
+     *  <base filename>.<extension>_<pBckExt><nn>
+     *
+     * pBckExt is defaulted to string "bck".
+     *
+     * Example :  file name                   toto.doc\n
+     *            will be renamed to          toto.doc_bck01  nb: toto.doc does not exist anymore
+     *
+     *            if a second run is done while toto.doc has been created agein
+     *            will be renamed to          toto.doc_bck02
+     *
+     * @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.see: @ref ZBSError
+     * @errors :
+     *    ZS_FILEERROR  : cannot physically rename file.  ZException is loaded with errno and appropriate error explainations.
+     */
+    ZStatus renameBck(const char* pBckExt="bck");
 
     uriString& addConditionalDirectoryDelimiter(void);
     uriString& addDirectoryDelimiter(void);
@@ -208,9 +230,9 @@ public:
     checkSum getChecksum(void);
 
     ZStatus loadContent(ZDataBuffer &pDBS) const;
-    ZStatus loadUtf8(utf8VaryingString &pUtf8) ;
-    ZStatus loadUtf16(utf16VaryingString &pUtf16) ;
-    ZStatus loadUtf32(utf32VaryingString &pUtf32) ;
+    ZStatus loadUtf8(utf8VaryingString &pUtf8) const ;
+    ZStatus loadUtf16(utf16VaryingString &pUtf16) const ;
+    ZStatus loadUtf32(utf32VaryingString &pUtf32) const ;
 
     ZStatus loadAES256(ZDataBuffer &pDBS,const ZCryptKeyAES256& pKey,const ZCryptVectorAES256& pVector) ;
 
@@ -232,6 +254,10 @@ public:
 //    ZStatus writeText (varyingCString &pDBS) ;
 
     bool    exists(void) const  ;
+
+    /* set to userŝ working directory */
+    void    setcwd();
+
     /**
  * @brief uriString::suppress  suppresses the file pointed to by uriString content.
  *

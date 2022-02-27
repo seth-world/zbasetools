@@ -22,7 +22,7 @@ utfKeyContent::allocate (ssize_t pCount)
 
     if (KeyData)
             {
-            free(KeyData);
+            zfree(KeyData);
             }
     KeyData=(uint8_t* )malloc (pCount);
     if (!KeyData)

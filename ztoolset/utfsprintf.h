@@ -960,7 +960,7 @@ utfFormatInteger(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         if (wPlace == (int)wCAlloc)
             {
             wCAlloc += 5;
-            wConvert = (_Utf*) realloc(wConvert,wCAlloc*sizeof(_Utf));
+            wConvert = zrealloc(wConvert,wCAlloc*sizeof(_Utf));
             }
 
         } while (wUvalue);
@@ -970,7 +970,7 @@ utfFormatInteger(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         if ((wPlace + 3) >= (int)wCAlloc )
             {
             wCAlloc += 4;
-            wConvert = (_Utf*) realloc(wConvert,wCAlloc*sizeof(_Utf));
+            wConvert = zrealloc(wConvert,wCAlloc*sizeof(_Utf));
             }
         if (pFmtFlags & FMTF_Uppercase)
                 wConvert[wPlace++] = (_Utf) __X_UPPER__;
@@ -1046,7 +1046,7 @@ utfFormatInteger(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         ++wSpadlen;
         }
 
-    _free(wConvert);
+    zfree(wConvert);
 
     return (*pCurrlen-wLocalSize); // returns current full size of printed integer
 }// utfFormatInteger
@@ -1139,7 +1139,7 @@ utfSPFConvertInt(_ITp pValue,
     ZBool           wAtLeastOne=false;
 //    *pAllocated = pInitDigits + 5 ;
     _ASSERT_ (!pOutconvert," _Utf String pointer is null",1);
-    _free(*pOutconvert);
+    zfree(*pOutconvert);
 
     unsigned int wBase=10;
     if (pFmtFlags & FMTF_Hexa)
@@ -1163,16 +1163,16 @@ utfSPFConvertInt(_ITp pValue,
         if ((size_t)(*pOutDigits) == wCAlloc)
             {
             wCAlloc += 5;
-            wConvert = (_Utf*) realloc(wConvert,wCAlloc*sizeof(_Utf));
-            _ASSERT_ (!wConvert," cannot allocate memory",1);
+            wConvert = zrealloc(wConvert,wCAlloc*sizeof(_Utf));
+ //           _ASSERT_ (!wConvert," cannot allocate memory",1);
             }
         } while (pValue );
 
     if ((size_t)(*pOutDigits) == wCAlloc)
         {
         wCAlloc += 2;
-        wConvert = (_Utf*) realloc(wConvert,wCAlloc*sizeof(_Utf));
-        _ASSERT_ (!wConvert," cannot allocate memory",1);
+        wConvert = zrealloc(wConvert,wCAlloc*sizeof(_Utf));
+//        _ASSERT_ (!wConvert," cannot allocate memory",1);
         }
     wConvert[(*pOutDigits)] = __ENDOFSTRING__;
     if (pAllocated)
@@ -1209,7 +1209,7 @@ utfConvertLDouble (LONG_DOUBLE pValue,      /* value to convert as a long double
 
     int             wDigit;
     _ASSERT_ (!pOutconvert," _Utf String pointer is null",1);
-    _free(*pOutconvert);
+    zfree(*pOutconvert);
     int         wBase=10;
     LONG_DOUBLE wFBase=10.0;
     LONG_DOUBLE wFValue=pValue;
@@ -1258,8 +1258,8 @@ utfConvertLDouble (LONG_DOUBLE pValue,      /* value to convert as a long double
         if ((size_t)(*pOutDigits) == wCAlloc)
             {
             wCAlloc += 5;
-            wConvert = (_Utf*) realloc(wConvert,wCAlloc*sizeof(_Utf));
-            _ASSERT_ (!wConvert," cannot allocate memory",1);
+            wConvert = zrealloc(wConvert,wCAlloc*sizeof(_Utf));
+//            _ASSERT_ (!wConvert," cannot allocate memory",1);
             }
         } while (wULValue > 0 );
 
@@ -1271,15 +1271,15 @@ utfConvertLDouble (LONG_DOUBLE pValue,      /* value to convert as a long double
         if ((size_t)(*pOutDigits) == wCAlloc)
             {
             wCAlloc += 5;
-            wConvert = (_Utf*) realloc(wConvert,wCAlloc*sizeof(_Utf));
-            _ASSERT_ (!wConvert," cannot allocate memory",1);
+            wConvert = zrealloc(wConvert,wCAlloc*sizeof(_Utf));
+//            _ASSERT_ (!wConvert," cannot allocate memory",1);
             }
         } ;
     if ((size_t)(*pOutDigits) == wCAlloc)
         {
         wCAlloc += 2;
-        wConvert = (_Utf*) realloc(wConvert,wCAlloc*sizeof(_Utf));
-        _ASSERT_ (!wConvert," cannot allocate memory",1);
+        wConvert = zrealloc(wConvert,wCAlloc*sizeof(_Utf));
+//        _ASSERT_ (!wConvert," cannot allocate memory",1);
         }
     wConvert[(*pOutDigits)] = __ENDOFSTRING__;
     if (pAllocated)
@@ -1526,8 +1526,8 @@ LDoubleToUtfDigits_F(LONG_DOUBLE pValue,
         *(wUtfOutPtr++)=(_Utf)__ZERO__;
 
     *wUtfOutPtr=(_Utf)__ENDOFSTRING__;
-    _free(wFractionalDigits);
-    _free(wIntegralDigits);
+    zfree(wFractionalDigits);
+    zfree(wIntegralDigits);
 
     /* done */
     *pFractionalNb=wFractionalDigitsNb;
@@ -1800,8 +1800,8 @@ LDoubleToUtfDigits_G(LONG_DOUBLE pValue,
         }
     } // else if (wDigitsNb<1)
     *wUtfOutPtr=(_Utf)__ENDOFSTRING__;
-    _free(wFractionalDigits);
-    _free(wIntegralDigits);
+    zfree(wFractionalDigits);
+    zfree(wIntegralDigits);
 
     /* done */
     *pFractionalNb=wFractionalDigitsNb;
@@ -2035,8 +2035,8 @@ utfFormatFPF(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
     if (wSignvalue )
         utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, wSignvalue);
 
-    _free(wDigitStr);
-    _free(wFconvert);
+    zfree(wDigitStr);
+    zfree(wFconvert);
     return  (*pCurrlen-wLocalSize);
 }// utfFormatFPF
 
@@ -2278,8 +2278,8 @@ utfFormatFPE(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
     if (wAllocated <=(size_t) (wESlots + 5))
         {
         wAllocated += 5;
-        wEDigitStr =(_Utf*)realloc(wEDigitStr,wAllocated);
-        _ASSERT_(!wEDigitStr,"cannot allocate memory",1);
+        wEDigitStr =zrealloc(wEDigitStr,wAllocated);
+//        _ASSERT_(!wEDigitStr,"cannot allocate memory",1);
         }
 /* standard says : exponent has at least 2 digits - but : windows uses at least 3 - lets stick to standard */
 #ifdef __FLOAT_WINDOWS__
@@ -2453,8 +2453,8 @@ utfFormatFPE(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         ++wPadlen;
     }
 
-    _free(wFDigitStr);
-    _free(wEDigitStr);
+    zfree(wFDigitStr);
+    zfree(wEDigitStr);
     return  (*pCurrlen-wLocalSize);
 }// utfFormatFPS
 
@@ -2754,7 +2754,7 @@ utfFormatFPG(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
     if (wSignvalue )
         utfSPFOutChar<_Utf>(pBuffer, pCurrlen, pMaxlen, wSignvalue);
 
-    _free(wDigitStr);
+    zfree(wDigitStr);
     return  (*pCurrlen-wLocalSize);
 }// utfFormatFPG
 
@@ -3031,8 +3031,8 @@ utfFormatFPA(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
     if (wAllocatedSlots <= ((size_t)wESlots + 5))
         {
         wAllocatedSlots += 5;
-        wEDigitStr =(_Utf*)realloc(wEDigitStr,wAllocatedSlots);
-        _ASSERT_(!wEDigitStr,"cannot allocate memory",1);
+        wEDigitStr =zrealloc(wEDigitStr,wAllocatedSlots);
+//        _ASSERT_(!wEDigitStr,"cannot allocate memory",1);
         }
 /* For format specifier %a standard says : exponent has a minimum of 1 digit, even if exponent is 0
     Exponent is always signed */
@@ -3198,8 +3198,8 @@ utfFormatFPA(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         ++wPadlen;
     }
 
-    _free(wDigitStr);
-    _free(wEDigitStr);
+    zfree(wDigitStr);
+    zfree(wEDigitStr);
     return  (*pCurrlen-wLocalSize);
 }// utfFormatFPA
 
@@ -3517,9 +3517,9 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         ++wPadlen;
         }
 
-    _free(wValueBuffer);
-    _free(wDigitStr);
-    _free(wFconvert);
+    zfree(wValueBuffer);
+    zfree(wDigitStr);
+    zfree(wFconvert);
     return  (*pCurrlen-wLocalSize);
 }// utfFormatFPK
 
@@ -3868,8 +3868,8 @@ utfFormatFPK_1(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
         ++wPadlen;
         }
 
-    _free(wDigitStr);
-    _free(wFconvert);
+    zfree(wDigitStr);
+    zfree(wFconvert);
     return  (*pCurrlen-wLocalSize);
 }// utfFormatFPK_1
 
@@ -4040,7 +4040,7 @@ utfFormatGeneric(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
             wi++;
             }
 
-    _free(wFormatChunk);
+    zfree(wFormatChunk);
     return  (*pCurrlen-wLocalSize);
 }// utfFormatGeneric
 

@@ -20,6 +20,9 @@
 
 #include <ztoolset/zutfstrings.h>
 
+#include <ztoolset/ztypetype.h>
+
+
 /**
  * @brief checkSum::compute computes/recomputes SHA256 checksum.
  * @param pInBuffer
@@ -41,8 +44,7 @@ checkSum::compute(ZDataBuffer &pDataBuffer)
 }
 */
 
-checkSum &
-checkSum::fromHexa(const char* pInput, const size_t pSize)
+ZStatus checkSum::fromHexa(const char* pInput, const size_t pSize)
 {
 
     if (pSize <= cst_checksumHexa)
@@ -52,7 +54,7 @@ checkSum::fromHexa(const char* pInput, const size_t pSize)
                         " Checksum hexadecimal string size must be greater than or equal to <%d>\n",
                         _GET_FUNCTION_NAME_,
                         cst_checksumHexa);
-                _ABORT_
+                return ZS_INVSIZE;
                     }
     char wBuf[3];
     wBuf[2]='\0';
@@ -61,30 +63,27 @@ checkSum::fromHexa(const char* pInput, const size_t pSize)
                 ::strncpy(wBuf,(const char*)&pInput[wi*2],2);
                 content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
                 }
-    return (*this);
+    return ZS_SUCCESS;
 } //fromHexa
 
-checkSum &checkSum::fromHexa(const char *pInput)
+ZStatus checkSum::fromHexa(const utf8VaryingString&pInput)
 {
-
-    size_t wSize = ::strlen(pInput);
-    if (wSize < cst_checksumHexa)
+    if (pInput.strlen() != cst_checksumHexa)
     {
         fprintf(stderr,
-            "%s-F-INVSIZ Fatal Error : invalid size of input string from Hexadecimal convertion.\n"
+            "checkSum::fromHexa-F-INVSIZ Invalid size of input string from Hexadecimal convertion.\n"
             " Checksum hexadecimal string size must be greater than or equal to <%d>\n",
-            _GET_FUNCTION_NAME_,
             cst_checksumHexa);
-        _ABORT_
+        return ZS_INVSIZE;
     }
     char wBuf[3];
     wBuf[2]='\0';
     for(int wi=0; wi < cst_checksumHexa;wi++)
     {
-        ::strncpy(wBuf,(const char*)&pInput[wi*2],2);
+        ::strncpy(wBuf,(const char*)&pInput.Data[wi*2],2);
         content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
     }
-    return (*this);
+    return ZS_SUCCESS;
 }//fromHexa
 
 bool
@@ -97,24 +96,25 @@ checkSum::compareHexa(const char* pDesc)
 }
 
 
-const char*
-checkSum::toHexa(void)
+CharMan checkSum::toHexa(void) const
 {
+  CharMan wH;
 int wi;
     for(wi = 0; wi < cst_checksum; wi++)
-        std::sprintf(&StrHexa[wi*2],"%02X", (unsigned int)content[wi]);
-    return(StrHexa);
+        std::sprintf(&wH.content[wi*2],"%02X", (unsigned int)content[wi]);
+    return(wH);
 }
 
-bool checkSum::operator == (const char* pInput) {return(::strncmp(toHexa(),pInput,cst_checksumHexa+2));}
+
 
 checkSum& checkSum::_copyFrom(const checkSum &pIn)
 {
   for (size_t wi=0;wi<sizeof(content);wi++)
     content[wi]=pIn.content[wi];
+  return *this;
 }
 
-#include <ztoolset/ztypetype.h>
+
 
 /**
  * @brief checkSum::_exportURF
@@ -125,12 +125,12 @@ checkSum& checkSum::_copyFrom(const checkSum &pIn)
  * @return
  */
 ZDataBuffer*
-checkSum::_exportURF(ZDataBuffer*pUniversal)
+checkSum::_exportURF(ZDataBuffer*pUniversal) const
 {
 ZTypeBase wType=ZType_CheckSum;
 size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
 
-    pUniversal->allocateBZero(wUniversalSize);
+    pUniversal->extend(wUniversalSize);
                                                     // URF Header is
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);    // ZTypeBase in reverseOrder if LE (if little endian)
 
@@ -138,8 +138,9 @@ size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
     memmove((pUniversal->Data+sizeof(wType)),content,cst_checksum); // no reverse : checksum is Endian free
     return pUniversal;
 }
+
 ZStatus
-checkSum::_importURF(unsigned char* &pUniversal)
+checkSum::_importURF(const unsigned char* &pUniversal)
 {
 ZTypeBase   wType;
 
@@ -162,10 +163,10 @@ ZTypeBase   wType;
 }// _importURF
 
 ZStatus
-checkSum::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
+checkSum::getUniversalFromURF(const unsigned char* pURFDataPtr,ZDataBuffer& pUniversal,const unsigned char** pURFDataPtrOut)
 {
  ZTypeBase wType;
- unsigned char* wURFDataPtr = pURFDataPtr;
+ const unsigned char* wURFDataPtr = pURFDataPtr;
 
      memmove(&wType,wURFDataPtr,sizeof(ZTypeBase));
      wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
@@ -182,8 +183,29 @@ checkSum::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal
          }
 
     pUniversal.setData(wURFDataPtr,cst_checksum);
+
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wURFDataPtr + cst_checksum;
+      }
     return ZS_SUCCESS;
 }//getUniversalFromURF
+
+ZDataBuffer
+checkSum::_export() const
+{
+  ZDataBuffer wReturn;
+  wReturn.setData(content,sizeof(content));
+  return wReturn;
+}
+
+size_t
+checkSum::_import(const unsigned char* &pUniversal)
+{
+  memmove(content,pUniversal,cst_checksum);
+  pUniversal += cst_checksum;
+  return cst_checksum;
+}// _import
 
 
 #ifdef __COMMENT__

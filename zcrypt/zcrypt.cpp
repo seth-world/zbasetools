@@ -17,7 +17,12 @@
 
 
 #include <ztoolset/zutfstrings.h>
+
 #include <ztoolset/zdatabuffer.h>
+
+#include <ztoolset/zaierrors.h>
+#include <zxml/zxmlnode.h>
+#include <zxml/zxmlprimitives.h>
 
 const char cst_ReplacementChar = '.';
 
@@ -224,7 +229,9 @@ ZStatus ZCryptAES256::encrypt(unsigned char**      pCryptedBuffer,
                    handleErrors();
                    return ZS_CRYPTERROR;
                   }
+
     (*pCryptedBufferLen)  += len;
+/*
     (*pCryptedBuffer)=(unsigned char*)realloc((*pCryptedBuffer),(*pCryptedBufferLen) ); // adjust the size to effective crypted buffer size
     if (!*pCryptedBuffer)
               {
@@ -233,6 +240,9 @@ ZStatus ZCryptAES256::encrypt(unsigned char**      pCryptedBuffer,
                       *pCryptedBufferLen);
               abort();
               }
+ */
+    (*pCryptedBuffer)= zrealloc((*pCryptedBuffer),(*pCryptedBufferLen));
+
       /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
     ctx=nullptr;
@@ -311,7 +321,7 @@ ZStatus ZCryptAES256::uncrypt(unsigned char *&pPlainBuffer,
                                _GET_FUNCTION_NAME_);
 
                        handleErrors();
-                       _free(pPlainBuffer);
+                       zfree(pPlainBuffer);
                        pPlainBuffer = nullptr;
                        pPlainBufferLen = 0;
                        return ZS_CRYPTERROR;
@@ -357,17 +367,8 @@ ZStatus ZCryptAES256::uncrypt(unsigned char *&pPlainBuffer,
   pPlainBufferLen += len;
 
 //  *pPlainBuffer=(unsigned char*)realloc(*pPlainBuffer,*pPlainBufferLen);
-  pPlainBuffer=(unsigned char*)realloc(pPlainBuffer,pPlainBufferLen);
-  if (!pPlainBuffer)
-          {
-          fprintf(stderr,"%s-F-malloc fails to reallocate memory for plain text buffer(size is <%ld>)\n",
-                  _GET_FUNCTION_NAME_,
-                  pPlainBufferLen);
-          free(pPlainBuffer);
-          pPlainBufferLen = 0;
-          abort();
-          }
-//  PlainBuffer.Data[PlainBuffer.Size]='\0' ;
+  pPlainBuffer=zrealloc(pPlainBuffer,pPlainBufferLen);
+
 
   /* Clean up */
   EVP_CIPHER_CTX_free(ctx);
@@ -543,7 +544,7 @@ struct stat wStatBuffer ;
     fclose(wInfile);
     ZStatus wSts = uncrypt(pPlainBuffer, pPlainBufferLen, wCryptedBuffer, wCryptedBufferLen, pKey, pVector);
 
-    _free(wCryptedBuffer);
+    zfree(wCryptedBuffer);
 //-----------------------------
     return wSts;
 //------------------------------
@@ -695,7 +696,7 @@ uncryptB64( unsigned char**pOutString,size_t *pOutSize,unsigned char* pB64String
                 }
             else
                 {
-                *pOutString=(unsigned char*)realloc(*pOutString,wLen); // if already zero terminated, resize(truncate) to fit
+                *pOutString=zrealloc(*pOutString,wLen); // if already zero terminated, resize(truncate) to fit
                 }
     BIO_free_all(b64);
     return ZS_SUCCESS;
@@ -729,6 +730,11 @@ size_t calcDecodeLengthB64(const unsigned char* b64input,size_t pSize)  //Calcul
 
 ZStatus ZCryptKeyAES256::set(const unsigned char *pkey)
 {
+  if (pkey==nullptr)
+    {
+    setInvalid();
+    return ZS_EMPTY;
+    }
   const unsigned char *wPtrIn =  pkey;
   unsigned char *wPtr = content;
   size_t wi = 0;
@@ -739,6 +745,7 @@ ZStatus ZCryptKeyAES256::set(const unsigned char *pkey)
     {
       fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
           wi,cst_AES256cryptKeySize);
+      setInvalid();
       return ZS_INVSIZE;
     }
     content[wi] = wPtrIn[wi];
@@ -751,17 +758,22 @@ ZStatus ZCryptKeyAES256::set(const unsigned char *pkey)
 
 ZStatus ZCryptKeyAES256::set(const char *pkey)
 {
+  if (pkey==nullptr)
+    {
+    setInvalid();
+    return ZS_EMPTY;
+    }
   const unsigned char *wPtrIn = (const unsigned char *) pkey;
   unsigned char *wPtr = content;
   size_t wi = 0;
 //  while ((wi < cst_AES256cryptKeySize) && (wPtrIn[wi]))
   while ((wi < cst_AES256cryptKeySize))
-
     {
     if (wPtrIn[wi]==0)
       {
       fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
           wi,cst_AES256cryptKeySize);
+      setInvalid();
       return ZS_INVSIZE;
       }
     content[wi] = wPtrIn[wi];
@@ -772,28 +784,34 @@ ZStatus ZCryptKeyAES256::set(const char *pkey)
   return ZS_SUCCESS;
 }
 
-ZDataBuffer ZCryptKeyAES256::toB64()
+ZDataBuffer ZCryptKeyAES256::toB64() const
 {
-    ZDataBuffer wReturn;
-    wReturn.encryptB64(content, cst_AES256cryptKeySize);
-    return wReturn;
+  if (isInvalid())
+    return ZDataBuffer(nullptr,0);
+  ZDataBuffer wReturn;
+  wReturn.encryptB64((void*)content, cst_AES256cryptKeySize);
+  return wReturn;
 }
-int ZCryptKeyAES256::fromB64(ZDataBuffer &pZDB)
+ZStatus ZCryptKeyAES256::fromB64(ZDataBuffer &pZDB)
 {
-    pZDB.uncryptB64();
-    clear();
-    if (pZDB.Size < cst_AES256cryptKeySize) {
+  if (pZDB.isEmpty())
+    {
+    setInvalid();
+    return ZS_EMPTY;
+    }
+  pZDB.uncryptB64();
+  clear();
+  if (pZDB.Size < cst_AES256cryptKeySize) {
         fprintf(stderr,
-                "ZCryptKeyAES256::fromB64-S-INVSIZ Severe Error : invalid size <%ld> of input "
-                "string from Hexadecimal "
-                "convertion.\n"
-                " Checksum hexadecimal string size must be greater than or equal to <%ld>\n",
+                "ZCryptKeyAES256::fromB64-E-INVSIZ Invalid resulting string size <%ld> from B64 conversion.\n"
+                "Converted string size must be exactly <%ld>\n",
                 pZDB.Size,
                 cst_AES256cryptKeySize);
-        return -1;
+        setInvalid();
+        return ZS_INVSIZE;
     }
     memmove(content, pZDB.Data, cst_AES256cryptKeySize);
-    return 0;
+    return ZS_SUCCESS;
 }
 
 utf8VaryingString ZCryptKeyAES256::toStr()
@@ -826,17 +844,17 @@ utf8VaryingString ZCryptKeyAES256::toHexa()
         std::sprintf((char *) &wReturn.DataByte[wi * 2], "%02X", (unsigned int) content[wi]);
     return (wReturn);
 }
-int ZCryptKeyAES256::fromHexa(const utf8VaryingString &pHexa)
+ZStatus ZCryptKeyAES256::fromHexa(const utf8VaryingString &pHexa)
 {
     size_t wSize = (cst_AES256cryptKeySize * 2);
     if (pHexa.UnitCount < wSize) {
         fprintf(stderr,
-                "ZCryptKeyAES256::fromHexa-S-INVSIZ Severe Error : invalid size <%ld> of input string from Hexadecimal "
-                "convertion.\n"
-                " Crypting key hexadecimal string size must be greater than or equal to <%ld>\n",
+                "ZCryptKeyAES256::fromHexa-E-INVSIZ Invalid input string size <%ld> for Hexadecimal convertion.\n"
+                "Crypting key hexadecimal string size must be exactly <%ld>\n",
                 pHexa.UnitCount,
                 wSize);
-        return -1;
+        setInvalid();
+        return ZS_INVSIZE;
     }
     char wBuf[3];
     wBuf[2]='\0';
@@ -845,7 +863,7 @@ int ZCryptKeyAES256::fromHexa(const utf8VaryingString &pHexa)
         ::strncpy(wBuf,(const char*)&pHexa.DataByte[wi*2],2);
         content[wi]=(uint8_t)strtoul(wBuf,nullptr,16);
         }
-    return 0;
+    return ZS_SUCCESS;
 }//ZCryptKeyAES256::fromHexa
 
 
@@ -888,6 +906,11 @@ ZCryptKeyAES256 wK;
 /* crypting vector */
 ZStatus ZCryptVectorAES256::set(const unsigned char *pVector)
 {
+  if (pVector==nullptr)
+    {
+    setInvalid();
+    return ZS_EMPTY;
+    }
   const unsigned char *wPtrIn = (const unsigned char *) pVector;
   unsigned char *wPtr = content;
   size_t wi = 0;
@@ -898,6 +921,7 @@ ZStatus ZCryptVectorAES256::set(const unsigned char *pVector)
     {
       fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
           wi,cst_AES256cryptVectorSize);
+      setInvalid();
       return ZS_INVSIZE;
     }
     content[wi] = wPtrIn[wi];
@@ -910,6 +934,11 @@ ZStatus ZCryptVectorAES256::set(const unsigned char *pVector)
 
 ZStatus ZCryptVectorAES256::set(const char *pVector)
 {
+  if (pVector==nullptr)
+    {
+    setInvalid();
+    return ZS_EMPTY;
+    }
   const unsigned char *wPtrIn = (const unsigned char *) pVector;
   unsigned char *wPtr = content;
   size_t wi = 0;
@@ -920,6 +949,7 @@ ZStatus ZCryptVectorAES256::set(const char *pVector)
     {
       fprintf(stderr,"ZCryptKeyAES256::set-E-INVLEN Invalid crypting key len. Found <%ld> while required exactly <%ld>.\n",
           wi,cst_AES256cryptVectorSize);
+      setInvalid();
       return ZS_INVSIZE;
     }
     content[wi] = wPtrIn[wi];
@@ -930,28 +960,34 @@ ZStatus ZCryptVectorAES256::set(const char *pVector)
   return ZS_SUCCESS;
 }
 
-ZDataBuffer ZCryptVectorAES256::toB64()
+ZDataBuffer ZCryptVectorAES256::toB64() const
 {
-    ZDataBuffer wReturn;
-    wReturn.encryptB64(content, cst_AES256cryptVectorSize);
-    return wReturn;
+  if (isInvalid())
+    return ZDataBuffer(nullptr,0);
+  ZDataBuffer wReturn;
+  wReturn.encryptB64((void*)content, cst_AES256cryptVectorSize);
+  return wReturn;
 }
-int ZCryptVectorAES256::fromB64(ZDataBuffer &pZDB)
+ZStatus ZCryptVectorAES256::fromB64(ZDataBuffer &pZDB)
 {
-    pZDB.uncryptB64();
-    clear();
-    if (pZDB.Size < cst_AES256cryptVectorSize) {
+  if (pZDB.isEmpty())
+    {
+    setInvalid();
+    return ZS_EMPTY;
+    }
+  pZDB.uncryptB64();
+  clear();
+  if (pZDB.Size < cst_AES256cryptVectorSize) {
         fprintf(stderr,
-                "ZCryptVectorAES256::fromB64-S-INVSIZ Severe Error : invalid size <%ld> of input "
-                "string from Hexadecimal "
-                "convertion.\n"
-                " Checksum hexadecimal string size must be greater than or equal to <%ld>\n",
+                "ZCryptVectorAES256::fromB64-E-INVSIZ Invalid resulting string size <%ld> from B64 conversion.\n"
+                "Converted string size must be exactly <%ld>\n",
                 pZDB.Size,
                 cst_AES256cryptVectorSize);
-        return -1;
+        setInvalid();
+        return ZS_INVSIZE;
     }
-    memmove(content, pZDB.Data, cst_AES256cryptVectorSize);
-    return 0;
+  memmove(content, pZDB.Data, cst_AES256cryptVectorSize);
+  return ZS_SUCCESS;
 }
 
 utf8VaryingString ZCryptVectorAES256::toHexa()
@@ -1018,9 +1054,6 @@ int ZCryptVectorAES256::fromHexa(const utf8VaryingString &pHexa)
     }
     return 0;
 }//ZCryptVectorAES256::fromHexa
-
-
-
 
 
 

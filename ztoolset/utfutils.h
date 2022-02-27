@@ -1,5 +1,6 @@
 #ifndef UTFUTILS_H
 #define UTFUTILS_H
+
 /**
   *  Contains routines to manipulate utf format strings.
   *
@@ -33,7 +34,7 @@
 
 #include <ztoolset/zatomicconvert.h>
 
-#include <ztoolset/zmem.h> // for _free()
+#include <ztoolset/zmem.h> // for zfree()
 /*
 template <class _Utf>
 _Utf* utfStrdup(const _Utf* pString); // see strdup
@@ -94,7 +95,7 @@ _Utf *
 utfStrcpy(_Utf *pStr1, const _Utf *pStr2)
 {
   if (pStr1==nullptr)
-    return 0;
+    return nullptr;
   if (pStr2==nullptr)
     return pStr1;
   _Utf *s = pStr1;
@@ -112,6 +113,8 @@ template <class _Utf>
 _Utf*
 utfStrdup(const _Utf* pStr)
 {
+  if (pStr==nullptr)
+    return nullptr;
   size_t wSize=utfStrlen<_Utf>(pStr) ;
   _Utf* wDup= (_Utf*)malloc((wSize+1)*sizeof(_Utf));
   utfStrcpy<_Utf>(wDup,pStr);
@@ -127,7 +130,8 @@ template <class _Utf>
  */
  _Utf* utfSkipSpaces(_Utf*pString)
 {
-
+  if (pString==nullptr)
+    return nullptr;
      for (;(*pString)&&((*pString==(_Utf)0x020)||(*pString==(_Utf)0x0A));pString++);
      return pString;
 }
@@ -141,6 +145,8 @@ template <class _Utf>
  */
  _Utf* utfRTrimSpaces(_Utf*pString)
 {
+  if (pString==nullptr)
+    return nullptr;
 _Utf* wPtr=pString+ utfStrlen<_Utf>(pString);
      for (;(wPtr>pString)&&(*wPtr)&&((*wPtr==(_Utf)0x020)||(*wPtr==(_Utf)0x0A));wPtr--);
      *wPtr=0;
@@ -476,8 +482,23 @@ ZNumBase_type wBase;
         if (base == 0)
             base = (wUtf == (_Utf)'0') ? 8 : 10;
 
-        if (base==16)
-                wHexa=true;
+        switch(base)
+        {
+        case 10:
+          wBase=ZNBase_Decimal;
+          break;
+        case 2:
+          wBase=ZNBase_Binary;
+          break;
+        case 8:
+          wBase=ZNBase_Octal;
+          break;
+        case 16:
+          wBase=ZNBase_Hexa;
+          break;
+        }
+
+
 
 //=================================================
 
@@ -542,7 +563,7 @@ unsigned long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base=0)
 
     if (!pString)
             return 0;
-    ZNumBase_type wHexa=ZNBase_Any ;
+    ZNumBase_type wBase=ZNBase_Any ;
 
     _Utf* wPtr= utfStrdup<_Utf>(pString);
     _Utf *wPtrToFree = wPtr;
@@ -581,19 +602,32 @@ unsigned long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base=0)
             wUtf = wPtr[1];
             wPtr += 2;
             base = 16;
-            wHexa=ZNBase_Hexa;
+            wBase=ZNBase_Hexa;
         } else if ((base == 0 || base == 2) &&
             wUtf == (_Utf)'0' && (*wPtr == (_Utf)'b' || *wPtr == (_Utf)'B')) {
             wUtf = wPtr[1];
             wPtr += 2;
             base = 2;
-            wHexa=ZNBase_Binary;
+            wBase=ZNBase_Binary;
         }
         if (base == 0)
             base = (wUtf == (_Utf)'0') ? 8 : 10;
 
-        if (base==16)
-
+        switch(base)
+        {
+        case 10:
+          wBase=ZNBase_Decimal;
+          break;
+        case 2:
+          wBase=ZNBase_Binary;
+          break;
+        case 8:
+          wBase=ZNBase_Octal;
+          break;
+        case 16:
+          wBase=ZNBase_Hexa;
+          break;
+        }
 
 //=================================================
 
@@ -620,7 +654,7 @@ unsigned long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base=0)
     for (wResult = 0, wAny = 0;; wUtf = *wPtr++) {
         if ((wUtf==(_Utf)0x20) ||(wUtf==(_Utf)0x0A)) // skip space and non-breaking space within number (formatting marks)
                                     continue;
-        if ((wValue= utftoint(wUtf,wHexa))<0)  // returns -1 if not valid digit according wHexa (hexadecimal or not)
+        if ((wValue= utftoint(wUtf,wBase))<0)  // returns -1 if not valid digit according wHexa (hexadecimal or not)
                                         break ;
         if (wValue >= base)
                         break;
@@ -640,44 +674,9 @@ unsigned long utfStrtoul(_Utf*pString,_Utf**pPtrend,int base=0)
     if (pPtrend != 0)
         *pPtrend = (_Utf *)(wAny ? wPtr - 1 : pString);
 
-    free(wPtrToFree);
+    zfree(wPtrToFree);
     return (wResult);
 }//utfStrtoul
-#ifdef __COMMENT__
-/**
- * @brief utfStrtoul converts an
- * @param pString
- * @return
- */
-template <class _Utf>
-unsigned long utfStrtoul(_Utf*pString)
-{
-
-    if (!pString)
-            return 0;
-    bool wHexa=false ;
-    _Utf* wPtr= utfStrdup<_Utf>(pString);
-    wPtr=utfLTrim<_Utf>(wPtr);
-/** */
-    _Utf*wPtr1=wPtr;
-    if (wPtr1[0]==(_Utf)'0')                // if any
-        if ((wPtr1[1]==(_Utf)'x')||(wPtr1[1]==(_Utf)'X'))
-                {
-                wHexa=true;     // this is hexadecimal
-                wPtr1=&wPtr[2]; // skip this header
-                }
-    unsigned long w10=0;
-    unsigned long wRes=0;
-    unsigned long wR;
-    while(*wPtr1++)
-            {
-            if ((wR = utftoint<_Utf>(*wPtr1,wHexa)*w10++)>=0)
-                                                        wRes+=wR ; // count only valid digits : skip spaces and punctuation
-            }
-    free (wPtr);        // release strdupped string
-    return wRes;
-}//utfStrtol
-#endif // __COMMENT__
 
 #include <errno.h>
 //#include <float.h>  // __DBL_MIN_EXP__ and __DBL_MAX_EXP__ or see math.h
@@ -808,7 +807,6 @@ double utfStrtod(const _Utf *pString, const _Utf **pEndptr)
      if (pEndptr)
         *pEndptr = wPtr;
 
-//     free (wString);
      return wNumber;
 }// utfStrtod
 
@@ -820,19 +818,19 @@ template<class _Utf>
  *  Destination string is padded with 0 up to pMaxUnit.
  * @param pDest     Destination utf string
  * @param wSrc      Source utf string.
- * @param pMaxUnit  Maximum number of character units available in pDest
+ * @param pCapacity Maximum number of character units available in pDest
  * @param pSrcMaxCount  Maximum number of character units to copy from wSrc.
  * @return
  */
 
-_Utf* utfStrnset ( _Utf *pDest, const _Utf *pSrc,size_t pMaxUnit,size_t pSrcMaxCount)
+_Utf* utfStrnset ( _Utf *pDest, const _Utf *pSrc,ssize_t pCapacity,ssize_t pSrcMaxCount)
 {
     if (!pSrc)
             return pDest;
     _Utf*wPtr=pDest;
-    while (*pSrc && pSrcMaxCount-- && pMaxUnit--)
+    while (*pSrc && pSrcMaxCount-- && pCapacity--)
                             *wPtr++=*pSrc++;
-    while (pMaxUnit--)
+    while (pCapacity-- > 0)
             *wPtr++=(_Utf)'\0';
 
     return pDest;
@@ -851,8 +849,9 @@ template <class _Utf>
  * @param pInSize       Maximum number of character units to copy from pDataIn
  * @param pOutMax       Number of total character units available within pStringOut
  */
-void utfNSetReverse(_Utf*pStringOut,const _Utf*pDataIn,const size_t pInCount,const size_t pOutMax)
+void utfNSetReverse(_Utf*pStringOut,const _Utf*pDataIn,const size_t pInCount,const size_t pOutCapacity)
 {
+
     size_t wi=0;
     if (!pStringOut)
             return;
@@ -860,13 +859,13 @@ void utfNSetReverse(_Utf*pStringOut,const _Utf*pDataIn,const size_t pInCount,con
             return;
 
     if (sizeof(_Utf)==1)
-      while ((wi<pOutMax-2)&&(wi++<pInCount)) // checked
+      while ((wi<pOutCapacity-2)&&(wi++<pInCount)) // checked
         *pStringOut++=*pDataIn++ ;
     else
-      while ((wi<pOutMax-2)&&(wi++<pInCount)) // checked
+      while ((wi<pOutCapacity-2)&&(wi++<pInCount)) // checked
         *pStringOut++=reverseByteOrder_Conditional<_Utf>(*pDataIn++) ;
 
-    while (wi++<pOutMax)  // complement to binary zero
+    while (wi++<pOutCapacity)  // complement to binary zero
             *pStringOut++ = 0;
     return;
 }
@@ -903,9 +902,9 @@ size_t _getexportCharArrayUVFSize(const char*pDataIn);
 /** @brief _importCharArrayUVF imports pUniversalPtr an array of char in UVF from into pDataOut with size max pMaxSize
  *  pUniversalPtr is updated to point to first byte next to imported data
  */
-size_t _importCharArrayUVF(char* pDataOut, size_t pMaxSize, unsigned char *&pUniversalPtr);
+size_t _importCharArrayUVF(char* pDataOut, size_t pMaxSize,const unsigned char *&pUniversalPtr);
 /** @brief _getimportCharArrayUVFSize computes required size for importing UVF format pUniversalPtr */
-size_t _getimportCharArrayUVFSize(unsigned char*& pUniversalPtr);
+size_t _getimportCharArrayUVFSize(const unsigned char*& pUniversalPtr);
 
 template <class _Utf>
 /* Compare S1 and S2, returning less than, equal to or
@@ -1093,19 +1092,7 @@ utfStrncpy(_Utf *pStr1, const _Utf *pStr2,size_t pCount)
             *pStr1++=(_Utf)'\0';
     return pStr1;
 }
-/* Copyright (C) 1991-2018 Free Software Foundation, Inc.
-   This file is part of the GNU C Library.
-   The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2.1 of the License, or (at your option) any later version.
-   The GNU C Library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
-   You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library; if not, see
-   <http://www.gnu.org/licenses/>.  */
+
 template <class _Utf>
  _Utf *
 utfStrcat(_Utf *wDest, const _Utf *wSrc)
@@ -1141,7 +1128,10 @@ template <class _Utf>
  _Utf *
 utfStrchr(const _Utf *wStr,_Utf wChar)
 {
-    while (*wStr != wChar)
+  if (!wStr)
+    return nullptr;
+
+  while (*wStr != wChar)
         if (!*wStr++)
                     return nullptr;
     return ( _Utf *)wStr;
@@ -1154,6 +1144,9 @@ template <class _Utf>
  _Utf *
 utfStrrchr(_Utf* wStr,_Utf wChar)
 {
+  if (!wStr)
+    return nullptr;
+
     _Utf* wD=wStr+utfStrlen(wStr);
     while (*wD != wChar)
         {
@@ -1173,6 +1166,9 @@ utfStrrchr(_Utf* wStr,_Utf wChar)
  const  _Utf *
  utfStrrchr(const _Utf* wStr,const _Utf wChar)
  {
+   if (!wStr)
+     return nullptr;
+
      const _Utf* wD=wStr+utfStrlen(wStr);
      while (*wD != wChar)
          {
@@ -1189,6 +1185,9 @@ utfStrrchr(_Utf* wStr,_Utf wChar)
  template <class _Utf>
  _Utf* utfFindEnquoted(const _Utf* pInString,_Utf pQuote1,_Utf pQuote2)
  {
+   if (!pInString)
+     return nullptr;
+
    _Utf* wPtr = utfStrchr<_Utf>(pInString,pQuote1);
    wPtr++;
    if (wPtr==nullptr)
@@ -1223,6 +1222,8 @@ template <class _Utf>
  _Utf *
 utfFirstinSet (_Utf*pString,const _Utf *pSet)
 {
+  if (!pString)
+    return nullptr;
     _Utf*wStr = pString;
     const _Utf*wSet = pSet;
 
@@ -1250,6 +1251,8 @@ template <class _Utf>
  _Utf *
 utfLastinSet(const _Utf *pStr, const _Utf *pSet)
 {
+  if (!pStr)
+    return nullptr;
 size_t wL = utfStrlen(pSet);
 size_t wj = 0;
 long wi;
@@ -1264,6 +1267,9 @@ template <class _Utf>
  _Utf *
 utfLastNotinSet(const _Utf *pStr, const _Utf *pSet)
 {
+  if (!pStr)
+    return nullptr;
+
 size_t wL = utfStrlen(pSet);
 size_t wj = 0;
 _Utf* wStr=pStr+utfStrlen(pStr);
@@ -1282,6 +1288,9 @@ template <class _Utf>
  _Utf *
 utfLastNotChar(const _Utf *pStr, const _Utf pChar)
 {
+  if (!pStr)
+    return nullptr;
+
     _Utf *wPtr=(_Utf *)(pStr +utfStrlen<_Utf>(pStr));
 
     while ((wPtr>pStr)&&(*wPtr!=pChar))
@@ -1295,6 +1304,8 @@ template <class _Utf>
 bool
 utfIsTerminatedBy(_Utf *pStr,_Utf pChar)
 {
+  if (!pStr)
+    return false;
   return (utfLastNotChar((_Utf*)pStr,(_Utf)0x20)[0]==pChar);
 }
 
@@ -1311,6 +1322,9 @@ template <class _Utf>
 _Utf *
 utfReplaceSet(_Utf*pString, const _Utf *pSet, _Utf pReplace)
 {
+  if (!pString)
+    return nullptr;
+
     _Utf *wIn=pString;
   _Utf* wSet=pSet;
     while(*wIn)
@@ -1910,12 +1924,12 @@ utfLTrimSet(_Utf* pString,const _Utf *pSet=nullptr)
 }//utfLTrim
 template <class _Utf>
 const _Utf *
-utfRTrim(const _Utf *pString)
+utfRTrim(_Utf *pString)
 {
-    _Utf *wPtr=(char *)(pString +(utfStrlen(pString)-1));
+    _Utf *wPtr=(pString +(utfStrlen(pString)-1));
     _Utf* wContent=pString;
 
-    for (;(wPtr>=wContent)&&((*wPtr==(_Utf)0x020)||(*wPtr==(_Utf)0x0A));wPtr--);
+    for (;(wPtr>=wContent)&&(((*wPtr==0x020)||(*wPtr==0x0A))||(*wPtr==0x0D));wPtr--);
     wPtr++;
     *wPtr=0;
     return(pString);
@@ -1942,6 +1956,29 @@ utfLTrim (_Utf*pString, const _Utf *pSet)
             return(pString);
     return utfStrcpy<_Utf>(pString,wPtr);
 }// utfLTrim
+
+template <class _Utf>
+/**
+ * @brief utfLTrim
+ *          suppresses within _Utf string pString the leading characters that belong to pSet _Utf set of characters
+ * @param pString
+ * @param pSet
+ * @return
+ */
+const _Utf *
+utfLTrimPtr (_Utf*pString, const _Utf *pSet)
+{
+  const _Utf* wSet=pSet;
+  if (!wSet)
+    wSet=getDefaultDelimiter<_Utf>();
+
+  //    size_t wL =utfStrlen<_Utf>(pString);
+  _Utf *wPtr=(_Utf*)utfFirstNotinSet<_Utf>((const _Utf*)pString,wSet);
+  if (wPtr==nullptr)
+    return(pString);
+  return wPtr;
+}// utfLTrim
+
 
 
 template <class _Utf>
@@ -2095,31 +2132,123 @@ utfExpurgeString(_Utf *pInString, const _Utf *pSubString)
     *wPtrOut=0;  // add endofstring mark (not necessary because whole string set to 0)
 
     return wOutString;
-}// _expurgeString
+}// utfExpurgeString
+
+
+const char*
+getUnitFormat(uint8_t pSize);
 
 template <class _Utf>
 const char* getStringType(void)
 {
-_Utf wA;
-const char* wB;
-char* wC;
-    if (typeid(wA).hash_code()==typeid(wB).hash_code())
-                            return "char";
-    if (typeid (wA).hash_code()==typeid(wC).hash_code())
-                            return "char";
-    switch (sizeof(_Utf))
-    {
-    case sizeof(utf8_t):
-        return "UTF8";
-    case sizeof(utf16_t):
-        return "UTF16";
-    case sizeof(utf32_t):
-        return "UTF32";
-    default:
-        return "UNKNOWN";
-    }
+  _Utf wA;
+  const char* wB;
+  char* wC;
+  if (typeid(wA).hash_code()==typeid(wB).hash_code())
+    return "char";
+  if (typeid (wA).hash_code()==typeid(wC).hash_code())
+    return "char";
+  switch (sizeof(_Utf))
+  {
+  case sizeof(utf8_t):
+    return "UTF8";
+  case sizeof(utf16_t):
+    return "UTF16";
+  case sizeof(utf32_t):
+    return "UTF32";
+  default:
+    return "UNKNOWN";
+  }
 
 }
+
+
+
+/** UVF export/import template routines for array of _Utf units */
+
+#include <ztoolset/zdatabuffer.h>
+template <class _Utf>
+UVF_Size_type utfGetexportArrayUVFSize(const _Utf*pDataIn)
+{
+  UVF_Size_type wUnitCount = 0;
+  while (pDataIn[wUnitCount]!=0)
+    wUnitCount++;
+  return (UVF_Size_type)(wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1;
+}
+
+template <class _Utf=char>
+void utfExportAppendArrayUVF(const _Utf*pDataIn,ZDataBuffer& wReturn)
+{
+  UVF_Size_type wUnitCount = 0;
+  while (pDataIn[wUnitCount])
+    wUnitCount++;
+  _Utf* wPtrTarg=(_Utf*)wReturn.extend((size_t)(wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1);
+  /* set export data with char _Utf size */
+  *wPtrTarg = (uint8_t)sizeof (_Utf);
+  wPtrTarg++;
+  /* prepare and set unit count to export data */
+  UVF_Size_type wUnitCount_Export=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
+  memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
+  wPtrTarg += sizeof(UVF_Size_type);
+
+  while (*pDataIn)
+    *wPtrTarg++=reverseByteOrder_Conditional<_Utf>(*pDataIn++);
+  return ;
+}//_exportCharArrayUVF
+
+template <class _Utf=char>
+size_t utfGetimportArrayUVFSize(const _Utf*& pUniversalPtr)
+{
+  if (pUniversalPtr==nullptr)
+    return 0;
+  errno=0;
+  const _Utf* wPtrSrc = pUniversalPtr;
+  /* get and control char unit size */
+  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+
+  wPtrSrc++;
+  /* get char units to load excluding (_Utf)'\0' mark */
+  UVF_Size_type    wUnitCount;
+  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
+  return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
+}//utfGetimportArrayUVFSize
+
+template <class _Utf=char>
+size_t utfImportArrayUVF(_Utf* pDataOut,size_t pMaxSize,const unsigned char*& pUniversalPtr)
+{
+  errno=0;
+  const unsigned char* wPtrSrc = pUniversalPtr;
+  /* get and control char unit size */
+  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+  wPtrSrc++;
+  /* get char units to load excluding (_Utf)'\0' mark */
+  UVF_Size_type    wUnitCount;
+  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
+  if (wUnitCount > pMaxSize)
+  {
+    fprintf(stderr,"uriString::_importUVF-W-TRUNC Overflow : imported string length <%d> truncated to <%ld>.\n",
+        wUnitCount, pMaxSize-1);
+
+    wUnitCount=pMaxSize-1;
+  }
+  /* import string per char unit */
+
+  _Utf* wPtrOut=pDataOut ;
+  _Utf* wPtrIn=(_Utf*)(wPtrSrc);
+  _Utf* wPtrEnd = &wPtrIn[wUnitCount];
+  while (wPtrIn < wPtrEnd)
+    *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
+  while (wPtrOut < (pDataOut+pMaxSize))
+      *wPtrOut++ = 0;  /* pad to zero til pMaxSize-1 */
+
+  pUniversalPtr = (const unsigned char*)wPtrIn;
+  pUniversalPtr++;
+  return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
+}//utfImportArrayUVF
+
+
+
+
 
 const char* etUnitFormat(uint8_t pSize);
 

@@ -29,7 +29,7 @@ utfidentityString & utfidentityString::operator = (const utfdescString& pDesc ) 
 
 
  //===============Varying strings========================================
-#include <ztoolset/zwstrings.h>
+//#include <ztoolset/zwstrings.h>
 #include <wchar.h>
 #ifdef __COMMENT__
 

@@ -15,7 +15,7 @@ class zxmlNameSpace;
 class zxmlElement;
 
 zxmlNode* zxmlcreateNode(xmlNodePtr pxmlNode);
-zxmlElement* zxmlcreateElement(const char* pxmlNodeName);
+zxmlElement* zxmlcreateElement(const utf8VaryingString &pxmlNodeName);
 zxmlAttribute* zxmlcreateAttribute(xmlAttrPtr pxmlNode);
 zxmlNameSpace* zxmlcreateNameSpace(xmlNsPtr pxmlNode);
 

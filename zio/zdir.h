@@ -122,10 +122,10 @@ public:
         uriString::clear();
     }
 
-    ZStatus setPath (const char*pPath) ;
-    ZStatus setPath (const uriString& pPath);
+    ZStatus setPath (const utf8String& pPath) ;
+/*    ZStatus setPath (const uriString& pPath);
     ZStatus setPath (const uriString&& pPath);
-
+*/
 
 
     /** @brief readDir() */

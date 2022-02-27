@@ -73,10 +73,10 @@ ZDate fromString(char* pDate);
 uint32_t    _export(void);  // export in universal format
 void        _import(uint32_t pIDate); // import from universal format
 ZDataBuffer *_exportURF(ZDataBuffer *pZDB); // export in URF format
-ZStatus     _importURF(unsigned char *pZDB);     // import from URF format
-ZStatus getValueFromUniversal(unsigned char* pUniversalDataPtr);
+ZStatus     _importURF(const unsigned char *pZDB);     // import from URF format
+ZStatus getValueFromUniversal(const unsigned char* pUniversalDataPtr);
 
-static ZStatus getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal); // extracts Universal value from URF data
+static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const  unsigned char **pURFDataPtrOut=nullptr); // extracts Universal value from URF data
 
 ZDate fromZDateFull(const ZDateFull &wDateFull);
 utfdescString toFormatted(const char* pFormat="%F");
@@ -157,13 +157,13 @@ typedef ZDateFull::tm _Base;
 
     ZDateFull& _fromTimet(time_t pTime);
 
-uint64_t _export(void);  // export in universal format
+uint64_t _export(void) const ;  // export in universal format
 void _import(uint64_t pIDate); // import from universal format
 ZDataBuffer* _exportURF(ZDataBuffer *pZDB); // export in URF format
-ZStatus _importURF(unsigned char *pZDB);     // import from URF format
-static ZStatus getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal); // extracts Universal value from URF data
+ZStatus _importURF(const unsigned char *pZDB);     // import from URF format
+static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr); // extracts Universal value from URF data
 
-ZStatus getValueFromUniversal(unsigned char* pUniversalDataPtr);
+ZStatus getValueFromUniversal(const unsigned char *pUniversalDataPtr);
 
 /* UTC ISO 8601 "2011-10-08T07:07:09.000Z" */
 utfcodeString toUTC()

@@ -3,7 +3,6 @@
 
 #include <zconfig.h>
 
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,7 +16,6 @@
 #include <zthread/zarglist.h>
 
 #include <functional>
-
 
 
 void* _threadLoop(void* pArgList);
@@ -81,10 +79,14 @@ unsigned long       Milliseconds;   // duration to sleep for in milliseconds
 } ;
 struct ZTHEventExecute
 {
+  ZTHEventExecute() {clear();}
+  void clear()
+  {
+    memset(this,0,sizeof(ZTHEventExecute));
+  }
 ZThreadSignal_type  Signal;     // must be   ZTSGN_Execute
 ZTH_Functor         Function;   // Function to execute
-//ZTH_Arglist*  Arglist;                           // argument list for the function to be executed
-zbs::ZArgList*&     Arglist;    // argument list for the function to be executed
+zbs::ZArgList*      Arglist;    // argument list for the function to be executed
 } ;
 /**
  * @brief The ZTHEvent union Component of thread event queue : allow to manage threads behavior.
@@ -93,7 +95,7 @@ union ZTHEvent {
 public:
   ZTHEvent& _copyFrom(const ZTHEvent& pIn)
   {
-    memset(this,0,sizeof(ZTHEvent));
+    clear();
     if (pIn.Signal==ZTSGN_Sleep)
       {
       Sleep.Signal=ZTSGN_Sleep;
@@ -111,8 +113,16 @@ public:
     Signal=pIn.Signal;
     return *this;
   }
-  ZTHEvent() {memset(this,0,sizeof(ZTHEvent));}
-  ZTHEvent(const ZThreadSignal_type pSignal) {memset(this,0,sizeof(ZTHEvent)); Signal=pSignal;}
+
+  void clear()
+  {
+    size_t wSize=std::max(sizeof(ZTHEventSleep),sizeof (ZTHEventExecute));
+//     memset(&Execute,0,sizeof (ZTHEventExecute));
+     Execute.clear();
+  }
+
+  ZTHEvent() {clear();}
+  ZTHEvent(const ZThreadSignal_type pSignal) {clear(); Signal=pSignal;}
   ZTHEvent(const ZTHEvent& pIn) {_copyFrom(pIn);}
   ZTHEvent(const ZTHEvent&& pIn) {_copyFrom(pIn);}
 
@@ -126,6 +136,9 @@ struct ZTHEventExecute  Execute;
 class ZThreadEventQueue : public zbs::ZQueue<ZTHEvent>
 {
 public:
+  using zbs::ZQueue<ZTHEvent>::lock;
+  using zbs::ZQueue<ZTHEvent>::unlock;
+
   ZThreadEventQueue();
   void addSignal(const ZThreadSignal_type pSignal)
   {
@@ -148,7 +161,6 @@ public:
     wEvent.Execute.Arglist = pArgs;
     push(wEvent);
   }
-
 };
 
 
@@ -172,10 +184,10 @@ public:
     ZThread_Id() {clear();}
     ZThread_Id ( ZThread_Native_Handle_type &pId) {Id=pId;}
 
-    void clear () {memset(this,0,sizeof(ZThread_Id));}
+    void clear () {memset(&Id,0,sizeof(ZThread_Native_Handle_type));}
     ZThread_Native_Handle_type get_Native_Handle(void) {return Id;}
 
-    ZThread_Native_Handle_type*    get_Id(void)  {return &Id;}
+    ZThread_Native_Handle_type*    get_IdPtr(void)  {return &Id;}
 
 //    bool operator == (const ZThread_Id &pId) {return (this->Id==pId.Id);}
     bool operator == (const ZThread_Id pId) {return (this->Id==pId.Id);}
@@ -194,7 +206,27 @@ class ZThread_Base
 {
 public:
     ZThread_Base(ZThread_type pType=ZTH_Inherit, int pPriority =-1,int pStackSize=-1);
-    ZThread_Base(void *(*pFunction)(void *), void* pArglist, ZThread_type pType=ZTH_Inherit, ZThread_Priority pPriority =-1, int pStackSize=-1);
+
+/*
+    ZThread_Base(const ZThread_Base& pIn) {_copyFrom(pIn);}
+
+    ZThread_Base& _copyFrom(const ZThread_Base& pIn)
+    {
+      Father=pIn.Father;
+      _created=pIn._created;
+      _joinable=pIn._joinable;
+      Thread_Attributes=pIn.Thread_Attributes;
+      ThreadId=pIn.ThreadId;
+      ProcessId=pIn.ProcessId;
+      Priority=pIn.Priority;
+      Type=pIn.Type;
+      State=pIn.State;
+      StackSize=pIn.StackSize;
+    }
+*/
+
+
+//    ZThread_Base(void *(*pFunction)(void *), void* pArglist, ZThread_type pType=ZTH_Inherit, ZThread_Priority pPriority =-1, int pStackSize=-1);
     ~ZThread_Base(void) ;
 
     ZThread_Base (const ZThread_Base&) = delete;                  // cannot copy
@@ -202,6 +234,19 @@ public:
 
     friend void *::_threadLoop( void* pArglist);
     friend class ::ZThreadExitHandler ;
+
+    void clear()
+    {
+      _created=false;
+      _joinable=false;
+      memset(&Thread_Attributes,0,sizeof(Thread_Attributes));
+      ThreadId.clear();
+      ProcessId=0;
+      Priority=0;
+      Type=ZTH_Notype;
+      State=ZTHS_Nothing;
+      StackSize=-1;
+    }
 
     /** @brief setPriority sets the priority of a running thread and updates threads attributes */
     void setPriority(ZThread_Priority pPriority);
@@ -212,7 +257,7 @@ public:
     void initStackSize (const int pStackSize);
     void setStackSize (const int pStackSize);
 
-    bool _start(void* (*pFunction)(void *), void *pArglist);
+    bool _start(void* (*pFunction)(void *), void *pArgList);
 
 
     void lock(void) {_Mtx.lock(); return;}
@@ -246,30 +291,29 @@ public:
      * @brief getId return the given thread id as stored when creating the thread
      * @return
      */
-    inline ZThread_Id& getId(void) {return(ThreadId);}
-    inline pid_t    getPid(void)    {return ProcessId;}
+    inline ZThread_Id&  getId(void)     {return(ThreadId);}
+    inline pid_t        getPid(void)    {return ProcessId;}
 
     inline ZThread_Native_Handle_type get_Native_Handle(void) {return (ThreadId.get_Native_Handle());}
 
     ZThread_Priority getPriority( void );
-    bool isJoinable (void)  { return(_isJoinable); }
-
 
     ZThreadState_type getState (void) {return State;}  // getState must remains with no mutex locking
     ZThread_type getType (void) {return Type;}
 
-
-
     void setState (ZThreadState_type pState) ;
 
-//-----------Thread data---------------------------------
-public:
-  bool          Created = false;
-
+    bool isCreated () {return _created;}
+    bool isJoinable() {return _joinable;}
 private:
     bool init(const ZThread_type pType=ZTH_Inherit, const ZThread_Priority pPriority=-1, const int pStackSize=-1);
 
+//-----------Thread data---------------------------------
+
 protected:
+    bool                _created = false;
+    bool                _joinable = true;
+
     pthread_attr_t      Thread_Attributes;
     ZThread_Id          ThreadId;
 
@@ -278,9 +322,8 @@ protected:
     ZThread_type        Type= ZTH_Notype;
     ZThreadState_type   State= ZTHS_Nothing;
     ssize_t             StackSize=-1;
-    bool                _isJoinable = true;
 
-    ZMutex              _Mtx;
+    ZMutex              _Mtx; /* not copied */
 
 }; // ZThread
 #ifdef __COMMENT__
@@ -453,16 +496,14 @@ public:
 
     friend class ZThreadExitHandler ;
 
-    ZThread() {memset(Identity,0,sizeof(Identity));}
-
-//    ZThread() = default;
-
+    ZThread() = delete;
+    ZThread(ZThread* pFather);
     ~ZThread() ;
-
 
     ZThread(ZThread&) = delete;
     ZThread& operator = (ZThread&)=delete;
 
+    ZThread* getNewThread() { return  new ZThread(this);}
 
     /**
      * @brief startLoop  starts a thread loop with function pFunction.
@@ -524,8 +565,20 @@ public:
      *  - with a unique argument as a pointer to a ZArgList that will contain user's arguments
      *  each argument must be unstacked in reverse order of the call and casted to a pointer onto the appropriate data type
      *  - returning a ZStatus
+     *
+     *
+     * Arguments : ZArgList.
+     *
+     *  index     content
+     *  0         argument rank 0
+     *  1         argument rank 1
+     *  ...
+     *  n         pointer to function
+     *  last      pointer to ZThread owning the thread
+     *
+     *
      */
-    void startNoLoopVariadic(ZTH_Functor pFunction,...); // last argument must be nullptr
+    bool startNoLoopVariadic(ZTH_Functor pFunction,...); // last argument must be nullptr
 
 //    void registerExitFunction(ZTH_Functor pExitFunction, ZArgList *pExitArguments);
     void registerExitFunction(ZTH_Functor pExitFunction,...);
@@ -549,10 +602,46 @@ public:
 
     ZMutexCondition* getMutexCondition(void) {return &_MtxCond;}
 
-    ZThreadEventQueue EventQueue;
+    /** @brief waitForEvent puts the thread in dormant mode until one of addSignalEvent, addCancelEvent ,.. routines are invoked */
+    ZStatus waitForEvent()
+      {
+      setDormant();
+      return processEventQueue();
+      }
+    /** @brief addSleepEvent set the current thread to sleep pmsec milliseconds */
+    void addSleepEvent(const long pmsec)
+      {
+      EventQueue.addSleep(pmsec);
+      wakeup();
+      }
+
+    void addSignalEvent(const ZThreadSignal_type pSignal)
+        {
+        EventQueue.addSignal(pSignal);
+        wakeup();
+        }
+    /** @brief addCancelEvent signal to thread a cancel event request, then wake up the thread */
+    void addCancelEvent()
+        {
+          EventQueue.addSignal(ZTSGN_CancelRequest);
+          wakeup();
+        }
+    /** @brief addTerminateEvent signal to thread a terminate event request, then wake up the thread */
+    void addTerminateEvent()
+        {
+          EventQueue.addSignal(ZTSGN_Terminate);
+          wakeup();
+        }
+    void addExecEvent(const ZTH_Functor pFunction,zbs::ZArgList*& pArgs)
+      {
+      EventQueue.addExec(pFunction,pArgs);
+      wakeup();
+      }
+
 //    ZQueue<ZTHEvent>    EventQueue;  //event queue
 
     ZStatus processEventQueue(void) ;
+
     /** @brief setIdentity user may describe freely the thread  max 149 char */
     void setIdentity(const char*pString) { strncpy(Identity,pString,149); return;}
     void addIdentity(const char*pString) {strncat(Identity,pString,149); return;}
@@ -563,49 +652,14 @@ public:
     /*
      * ============thread arguments management ================
     */
-    void initMainFunctionArguments() {MainFunctionArguments=new zbs::ZArgList;}
-    void addArgument(void* pArgument)
-    {
-        if (!MainFunctionArguments)
-                initMainFunctionArguments();
-        MainFunctionArguments->push(pArgument);
-    }
-    void addArgument(ZTH_Functor pFunction)
-    {
-        if (!MainFunctionArguments)
-                initMainFunctionArguments();
-        MainFunctionArguments->push((void*)pFunction);
-    }
-    void addThisThreadAsArgument()
-    {
-        if (!MainFunctionArguments)
-                initMainFunctionArguments();
-        MainFunctionArguments->push((void*)this);
-    }
-    void addArgumentInt(int pArgument)
-    {
-        union {
-            void*  Ptr;
-            int    Int;
-        } wArg;
-        if (!MainFunctionArguments)
-                initMainFunctionArguments();
-        wArg.Int=pArgument;
-        MainFunctionArguments->push(wArg.Ptr);
-    }
+    void initArgList() {ArgList=new zbs::ZArgList; ArgList->clear();}
+    void addArgument(void* pArgument);
+    void addArgument(ZTH_Functor pFunction);
+    void addThisThreadAsArgument();
+    void addArgumentInt(int pArgument);
 
-    void addArgumentList(int argc,char** argv)
-    {
-        for (int wi=0;wi < argc;wi++)
-                addArgument(argv[wi]);
-    }
-    void copyArguments(zbs::ZArgList* pArgList)
-    {
-        if (!MainFunctionArguments)
-                MainFunctionArguments=new zbs::ZArgList;
-        for (long wi=0;wi<pArgList->count();wi++)
-            MainFunctionArguments->push(pArgList->Tab[wi]);
-    }
+    void addArgumentList(int argc,char** argv);
+    void copyArguments(zbs::ZArgList* pArgList);
 
     /**
      * @brief getArgument gets a void pointer from argument stack at position wi without destroying it.
@@ -614,112 +668,57 @@ public:
      * @return a void pointer or nullptr if argument index is outside argument stack
      */
 
-    void* getArgument(int wi)
-    {
-        if (!MainFunctionArguments)
-                return nullptr;
-        if (wi >= MainFunctionArguments->count())
-                return nullptr;
-        return MainFunctionArguments->Tab[wi];
-    }
+    void* getArgument(int wi);
     /**
      * @brief getArgumentInt gets an int from argument stack at position wi without destroying it.
      * if wi is outside argument stack, then it returns nullptr
      * @param wi argument index to get
      * @return an int or nullptr if argument index is outside argument stack
      */
-    int getArgumentInt(int wi)
-    {
-        union {
-            void*  Ptr;
-            int    Int;
-        } wArg;
-        if (!MainFunctionArguments)
-                return 0;
-        if (wi >= MainFunctionArguments->count())
-                return 0;
-        wArg.Ptr=MainFunctionArguments->Tab[wi];
-        return wArg.Int;
-    }
+    int getArgumentInt(int wi);
     /**
      * @brief popArgument gets the last argument as a void pointer from argument stack and removes it from stack
      * @return a void pointer or nullptr if argument stack has not been initialized
      */
-    void* popArgument()
-    {
-        if (!MainFunctionArguments)
-                return nullptr;
-        return MainFunctionArguments->popR();
-    }
+    void* popArgument();
     /**
      * @brief popArgument gets the last argument as an int from argument stack and removes it from stack
      * @return an int or nullptr if argument stack has not been initialized
      */
-    int popArgumentInt()
-    {
-        union {
-            void*  Ptr;
-            int    Int;
-        } wArg;
-        if (!MainFunctionArguments)
-                return 0;
-        wArg.Ptr=MainFunctionArguments->popR();
-        return wArg.Int;
-    }
+    int popArgumentInt();
     /**
      * @brief popFrontArgument gets the first argument as a void pointer from argument stack and removes it from stack
      * @return a void pointer or nullptr if argument stack has not been initialized
      */
-    void* popFrontArgument()
-    {
-        if (!MainFunctionArguments)
-                return nullptr;
-        return MainFunctionArguments->popR_front();
-    }
+    void* popFrontArgument();
     /**
      * @brief popFrontArgumentInt gets the first argument as an int from argument stack and removes it from stack
      * @return an int or nullptr if argument stack has not been initialized
      */
-    int popFrontArgumentInt()
-    {
-        union {
-            void*  Ptr;
-            int    Int;
-        } wArg;
-        if (!MainFunctionArguments)
-                return 0;
-        wArg.Ptr=MainFunctionArguments->popR_front();
-        return wArg.Int;
-    }
+    int popFrontArgumentInt();
     /**
      * @brief getArgumentsCount returns the current size of argument stack. Returns -1 if argument stack is null (has not been initialized).
      *
      * @return
      */
-    int getArgumentsCount()
-    {
-        if (!MainFunctionArguments)
-                return -1;
-        return MainFunctionArguments->count();
-    }
+    int getArgumentsCount();
 
 protected:
     ZMutexCondition     _MtxCond;
     char Identity[150]; // string max 149 : free comment describing thread
 public:
-    ZQueue<threadRoutine*> ExitRoutinesQueue;
-
+  ZThread*                  Father=nullptr;
+  ZQueue<threadRoutine*>    ExitRoutinesQueue;
+  ZThreadEventQueue         EventQueue;
 //    ZThreadExitHandler  *ExitHandler=nullptr;
 
 //private:
-    ZArgList*       MainFunctionArguments=nullptr; // Only to be used with variadic start;
-    ZStatus         ThreadStatus=ZS_NOTHING;
+  ZArgList*       ArgList=nullptr; // Only to be used with variadic start;
+  ZStatus         ThreadStatus=ZS_NOTHING;
 };
 
 
-#ifndef ZTHREAD_CPP
-extern thread_local ZThread* ThisThread;
-#endif
+
 
 } // namespace zbs
 
@@ -729,6 +728,8 @@ extern thread_local ZThread* ThisThread;
  * @return
  */
 zbs::ZThread_Id getSysThreadId(void);
+
+zbs::ZThread* getThisThread();
 
 // functions
 

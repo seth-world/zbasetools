@@ -2223,9 +2223,9 @@ ZCharset_type wCharset;
 
     //  free allocated memory
 
-    _free(wInOffsets);
-    _free(wOutOffsets);
-    _free(wUPivot);
+    zfree(wInOffsets);
+    zfree(wOutOffsets);
+    zfree(wUPivot);
 
     // restore callbacks to their original state - or close them
 
@@ -2279,7 +2279,7 @@ ZCharset_type wCharset;
                      true,
                      " while converting utf-8 (icu algo built in) to charset <%s>\n",
                      wOutName)>0){
-                        free (wOutString);
+                        zfree (wOutString);
                         return  ZS_ICUERROR;
                         }
     *pOutCharStr=wOutString;
@@ -2380,7 +2380,7 @@ ZCharset_type wCharset;
                      " while converting <%s> (icu algo built in) to charset <%s>\n",
                      wUCNV_Name,
                      wOutName) < UST_SEVERE){
-                                            free (wOutString);
+                                            zfree (wOutString);
                                             return  ZS_ICUERROR;
                                             }
     *pOutCharStr=wOutString;
@@ -2486,7 +2486,7 @@ ZCharset_type wCharset;
                      " while converting <%s> (icu algo built in) to charset <%s>\n",
                      wUCNV_Name,
                      wOutName) < UST_SEVERE){
-                                            free (wOutString);
+                                            zfree (wOutString);
                                             return  ZS_ICUERROR;
                                             }
     *pOutCharStr=wOutString;
@@ -4433,103 +4433,103 @@ nameToZCharset (const char* pName)
     utfToUpper<char>(wName,nullptr);
 // NB: ANSI_X3.4-1968 is US_ASCII
     if (strstr(wName,"ANSIX341968")||strstr(wName,"USASCII")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_ASCII;}
 
     if (strstr(wName,"UTF7")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_UTF7;}
 
     if (strstr(wName,"UTF8")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_UTF8;}
     if (strstr(wName,"UTF16LE")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_UTF16LE;}
     if ((strstr(wName,"UTF32BE")||(strstr(wName,"UCS4")))){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_UTF16BE;}
     if (strstr(wName,"UTF32LE")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_UTF32LE;}
     if ((strstr(wName,"UTF32BE")||(strstr(wName,"UCS4")))){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_UTF32BE;}
     if (strstr(wName,"UTF32LE")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_UTF32LE;}
     if ((strstr(wName,"ISO88591"))||(strstr(wName,"LATIN1"))){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_LATIN_1;}
     if ((strstr(wName,"ISO88592"))||(strstr(wName,"LATIN2"))){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_LATIN_2;}
 
     if ((strstr(wName,"ISO88593"))||(strstr(wName,"LATIN3"))){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_8859_3;}
     if (strstr(wName,"ISO88594")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_8859_4;}
     if (strstr(wName,"ISO88595")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_8859_5;}
     if (strstr(wName,"ISO88596")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_8859_6;}
     if (strstr(wName,"ISO88597")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_8859_7;}
     if (strstr(wName,"ISO88598")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_8859_8;}
     if (strstr(wName,"ISO88599")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_8859_9;}
     if (strstr(wName,"ISO885910")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_NOTSUPPORTED;}
     if (strstr(wName,"ISO885911")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_NOTSUPPORTED;}
     if (strstr(wName,"ISO885913")){
                 free(wName);
                 return ZCHARSET_NOTSUPPORTED;}
     if (strstr(wName,"ISO885914")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_NOTSUPPORTED;}
     if (strstr(wName,"ISO885915")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_NOTSUPPORTED;}
 //
     if (strstr(wName,"IMAPMAILBOX")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_IMAP_MAILBOX;}
 
     if (strstr(wName,"EBCDIC")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_EBCDIC;}
 //
     if (strstr(wName,"ISO2022JIS")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_2022;}
     if (strstr(wName,"SHIFTJIS")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_SHIFT_JIS;}
     if (strstr(wName,"HZ")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_HZ;}
     if (strstr(wName,"BOCU1")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_BOCU1;}
     if (strstr(wName,"CESU8")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_CESU8;}
     if (strstr(wName,"SCSU")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_SCSU;}
     if (strstr(wName,"ISCII")){
-                free(wName);
+                zfree(wName);
                 return ZCHARSET_ISCII;}
 
     return ZCHARSET_ERROR;
@@ -4550,98 +4550,98 @@ validateCharsetName (const char* pName)
     utfToUpper<char>(wName,nullptr);
 // NB: ANSI_X3.4-1968 is US_ASCII
     if (strstr(wName,"ANSIX341968")||strstr(wName,"USASCII")){
-                free(wName);
+                zfree(wName);
                 return "US-ASCII";}
 
     if (strstr(wName,"UTF7")){
-                free(wName);
+                zfree(wName);
                 return "UTF7";}
 
     if (strstr(wName,"UTF8")){
-                free(wName);
+                zfree(wName);
                 return "UTF8";}
     if ((strstr(wName,"UTF16BE")||(strstr(wName,"UCS2")))){
-                free(wName);
+                zfree(wName);
                 return "UTF16BE";}
     if (strstr(wName,"UTF16LE")){
-                free(wName);
+                zfree(wName);
                 return "UTF16LE";}
     if (strstr(wName,"UTF32LE")){
-                free(wName);
+                zfree(wName);
                 return "UTF32LE";}
     if ((strstr(wName,"UTF32BE")||(strstr(wName,"UCS4")))){
-                free(wName);
+                zfree(wName);
                 return "UTF32BE";}
     if (strstr(wName,"UTF32LE")){
-                free(wName);
+                zfree(wName);
                 return "UTF32LE";}
     if ((strstr(wName,"ISO88591"))||(strstr(wName,"LATIN1"))){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-1";}
     if ((strstr(wName,"ISO88592"))||(strstr(wName,"LATIN2"))){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-2";}
     if ((strstr(wName,"ISO88593"))||(strstr(wName,"LATIN3"))){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-3";}
     if (strstr(wName,"ISO88594")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-4";}
     if (strstr(wName,"ISO88595")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-5";}
     if (strstr(wName,"ISO88596")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-6";}
     if (strstr(wName,"ISO88597")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-7";}
     if (strstr(wName,"ISO88598")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-8";}
     if (strstr(wName,"ISO88599")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-9";}
     if (strstr(wName,"ISO885910")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-10";}
     if (strstr(wName,"ISO885911")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-11";}
     if (strstr(wName,"ISO885913")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-13";}
     if (strstr(wName,"ISO885914")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-14";}
     if (strstr(wName,"ISO885915")){
-                free(wName);
+                zfree(wName);
                 return "ISO8859-15";}
 //
     if (strstr(wName,"IMAPMAILBOX")){
-                free(wName);
+                zfree(wName);
                 return "IMAPMAILBOX";}
 //
     if (strstr(wName,"ISO2022JIS")){
-                free(wName);
+                zfree(wName);
                 return "ISO2022-JIS";}
     if (strstr(wName,"SHIFTJIS")){
-                free(wName);
+                zfree(wName);
                 return "SHIFT-JIS";}
     if (strstr(wName,"HZ")){
-                free(wName);
+                zfree(wName);
                 return "HZ";}
     if (strstr(wName,"BOCU1")){
-                free(wName);
+                zfree(wName);
                 return "BOCU1";}
     if (strstr(wName,"CESU8")){
-                free(wName);
+                zfree(wName);
                 return "CESU8";}
     if (strstr(wName,"SCSU")){
-                free(wName);
+                zfree(wName);
                 return "SCSU";}
     if (strstr(wName,"ISCII")){
-                free(wName);
+                zfree(wName);
                 return "ISCII";}
 
 // if not found try ICU internal names

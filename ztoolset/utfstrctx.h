@@ -265,7 +265,7 @@ class utfStrCtx:public CtxCmd
 public:
     utfStrCtx(void) {init();}
     ~utfStrCtx(void)
-                {  if (ErrorQueue) {delete ErrorQueue;} if (SavedChunk) _free(SavedChunk);  }
+                {  if (ErrorQueue) {delete ErrorQueue;} if (SavedChunk) zfree(SavedChunk);  }
 
     using CtxCmd::StopOnConvErr;
     using CtxCmd::Reverse;

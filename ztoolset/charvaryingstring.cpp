@@ -43,7 +43,7 @@ charVaryingString::fromUtf8(const utf8_t* pUtf8, const ssize_t pByteSize)
                  _GET_FUNCTION_NAME_,
                  wSt,
                  decode_UST(wSt));
-        _free(wString);
+        zfree(wString);
         return this;
     }
     if (wSt!=UST_SUCCESS)
@@ -53,7 +53,7 @@ charVaryingString::fromUtf8(const utf8_t* pUtf8, const ssize_t pByteSize)
                  wSubstitutions);
         }
     strset(wString);
-    _free(wString);
+    zfree(wString);
     return this;
 }//fromUtf8
 
@@ -70,7 +70,7 @@ charVaryingString::fromUtf16(const utf16_t* pInString, const ssize_t pByteSize, 
                  _GET_FUNCTION_NAME_,
                  wSt,
                  decode_UST(wSt));
-        _free(wString);
+        zfree(wString);
         return nullptr;
     }
     if (wSt!=UST_SUCCESS)
@@ -80,7 +80,7 @@ charVaryingString::fromUtf16(const utf16_t* pInString, const ssize_t pByteSize, 
                  wSubstitutions);
         }
     strset(wString);
-    _free(wString);
+    zfree(wString);
     return this;
 }//fromUtf16
 
@@ -100,12 +100,12 @@ charVaryingString::fromUtf32(const utf32_t* pInString, const ssize_t pByteSize, 
                                           plittleEndian);
     if (wSt<UST_SEVERE)
     {
-        _free(wString);
+        zfree(wString);
         return nullptr;
     }
 
     strset(wString);
-    _free(wString);
+    zfree(wString);
     return this;
 }//fromUtf32
 /**
@@ -234,7 +234,7 @@ charVaryingString::toUtf32(utf32VaryingString &pUtf32,bool *plittleEndian)
 
 
  //===============Varying strings========================================
-#include <ztoolset/zwstrings.h>
+//#include <ztoolset/zwstrings.h>
 #include <wchar.h>
 #ifdef __COMMENT__
 

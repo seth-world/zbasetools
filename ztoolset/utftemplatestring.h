@@ -27,7 +27,7 @@ const char* getUnitFormat(uint8_t pSize);
 
 //#include <openssl/sha.h>  // required for checksum
 
-#include <ztoolset/zmem.h>  // for _free routine
+#include <ztoolset/zmem.h>  // for zfree routine
 #include <ztoolset/zerror.h>
 #include <ztoolset/zdatabuffer.h>
 #include <string.h>
@@ -90,8 +90,6 @@ const char* _Zsprintf(char *pBuf,const char* pFormat,...);
  * 
  *  This base template contains all the common routines to process and encode/decode fixed strings
  */
-
-
 template <size_t _Sz=255,class _Utf=utf8_t>
 class utftemplateString : public utfStringDescriptor
 {
@@ -165,6 +163,23 @@ public:
 
     utftemplateString& operator += (const char* pIn) {return addV<char>(pIn);}
     utftemplateString &operator+=(std::string &pIn) { return addV<char>(pIn.c_str()); }
+
+
+    utftemplateString operator + (const utftemplateString& pIn)
+    {
+      utftemplateString wD;
+      wD.strset(toUtf());
+      wD.add(pIn);
+      return wD;
+    }
+    utftemplateString operator + (const utftemplateString&& pIn)
+    {
+      utftemplateString wD;
+      wD.strset(toUtf());
+      wD.add(pIn);
+      return wD;
+    }
+
 
     void utfInit(ZType_type pZType,ZCharset_type pCharset)
     {
@@ -270,6 +285,9 @@ public:
 //    inline int compare(const char* pString2) ; /** see template compareV usage in derived classes */
     inline int ncompare(const _Utf* pString2,size_t pCount) ; /** corresponds to strncmp witn native _Utf argument */
     inline int ncompare(const char* pString2,size_t pCount);/** corresponds to strncmp witn native char argument */
+
+    bool isEqualCase (const _Utf *pCompare) ;
+    bool isEqualCase (const utftemplateString<_Sz,_Utf>& pCompare) ;
 
     /**
      * @brief toDouble converts string content to a double
@@ -414,7 +432,7 @@ public:
 
     ZDataBuffer _exportURF() const ;
     ZDataBuffer *_exportURF(ZDataBuffer *pURFData) const ;
-    size_t _importURF(unsigned char* &pURFDataPtr);
+    size_t _importURF(const unsigned char* &pURFDataPtr);
 
     /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
      *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
@@ -424,6 +442,10 @@ public:
      * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
      */
     ZDataBuffer _exportUVF() const;
+
+    /** @brief _exportUVF same as previous but extends pUVF with string content in uvf format */
+    ZDataBuffer& _exportAppendUVF(ZDataBuffer& pUVF) const;
+
     /** @brief _importUVF Import string from Varying Universal Format (dedicated format for strings)
      *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
      *  led by
@@ -453,7 +475,7 @@ public:
      *      output data is padded with '\0' character up until full capacity of current fixed string.
      * @return a ZStatus
      */
-    static ZStatus getUniversalFromURF(ZTypeBase pType,unsigned char* pURFDataPtr,ZDataBuffer &pUniversal);
+    static ZStatus getUniversalFromURF(ZTypeBase pType,const unsigned char* pURFDataPtr,ZDataBuffer &pUniversal,const unsigned char** pURFDataPtrOut=nullptr);
     /**
      * @brief utftemplateString::getUniversalFromURF_Truncated
      *      Static method that extract Universal value from memory zone pointed by pURFDataPtr
@@ -462,7 +484,7 @@ public:
      *      output data is padded with '\0' character up until full capacity of current fixed string.
      * @return
      */
-    static ZStatus getUniversalFromURF_Truncated(ZTypeBase pType,unsigned char* pURFDataPtr,ZDataBuffer &pUniversal);
+    static ZStatus getUniversalFromURF_Truncated(ZTypeBase pType,const unsigned char* pURFDataPtr,ZDataBuffer &pUniversal,const unsigned char** pURFDataPtrOut=nullptr);
 
 
     utftemplateString<_Sz,_Utf>& fromISOLatin1(const unsigned char* pString, size_t pInSize,ZStatus* pStatus);
@@ -482,11 +504,11 @@ public:
         }
 
     //----------------crypting checksum md5---------------------------
-    checkSum getCheckSum(void)
+    checkSum getCheckSum(void) const
     {
         size_t byteLen = utfStrlen<_Utf>(content)*sizeof(_Utf);
         return checkSum ((unsigned char*)content,byteLen);}// gets a checkSum from string content without '\0'
-    md5 getMd5(void)
+    md5 getMd5(void) const
     {
         size_t byteLen = utfStrlen<_Utf>(content)*sizeof(_Utf);
         return md5 ((unsigned char*)content,byteLen);
@@ -499,10 +521,10 @@ public:
 
 
     //-------------------------------------------------------------------
-    bool isEmpty(void) {return (content[0]==(_Utf)'\0');}
+    bool isEmpty (void) const {return (content[0]==(_Utf)'\0');}
     void clear(void) {memset(content,0,getUnitCount()); UnitCount = _Sz; ByteSize= UnitCount *sizeof(_Utf);}
 
-    _Utf * toString(void) {content[sizeof(content)-1]=(_Utf)'\0';return(content);}
+    const _Utf * toString(void) const {return((const _Utf *)content);}
 
     /**
      * @brief addUtfUnit adds an Utf unit at the end of string (a unit is not necessarily a character) plus _Utf \0 sign.
@@ -551,7 +573,7 @@ public:
     bool startsCaseWith(const _Utf* pString,const _Utf* pSet=__DEFAULTDELIMITERSET__);
     bool startsWith(const _Utf* pString) const;
     bool startsWithApprox(const _Utf* pString, ssize_t pApprox, const _Utf* pSet=(const _Utf*)__DEFAULTDELIMITERSET__);
-     bool startsCaseWithApprox(const _Utf* pString,int pApprox,const _Utf* pSet=(const _Utf*)__DEFAULTDELIMITERSET__);
+    bool startsCaseWithApprox(const _Utf* pString,int pApprox,const _Utf* pSet=(const _Utf*)__DEFAULTDELIMITERSET__);
 
      int Substr(const _Utf *pSub, int pOffset=0) const ;
      int SubstrCase(const _Utf *pSub, int pOffset=0) const;
@@ -559,8 +581,8 @@ public:
      /** @brief subString() returns a new string with content of current string starting a position pOffset and with pLen character units */
      utftemplateString subString(size_t pOffset, int pLen=-1) const;
 
-     utftemplateString Left (size_t pLen);
-     utftemplateString Right (size_t pLen);
+     utftemplateString Left (size_t pLen) const ;
+     utftemplateString Right (size_t pLen) const;
 
      utftemplateString & eliminateChar (_Utf pChar);
 
@@ -861,12 +883,18 @@ template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>&
 utftemplateString<_Sz,_Utf>::addConditionalOR (const _Utf*pString)
 {
+  _Utf wOr[4];
+  wOr[0]=_Utf(' ');
+  wOr[1]=_Utf('|');
+  wOr[2]=_Utf(' ');
+  wOr[3]=0;
+
     if (!pString)
             return *this;
     if (!*pString)
             return *this;
     if (!isEmpty())
-            add((const utf8_t*)" | ");
+            add(wOr);
     add(pString);
     return *this;
 } // addConditionalOR
@@ -1241,7 +1269,7 @@ utftemplateString<_Sz,_Utf>::SubstrCase(const _Utf *pSub, int pOffset) const
  */
 template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>
-utftemplateString<_Sz,_Utf>::Left (size_t pLen)
+utftemplateString<_Sz,_Utf>::Left (size_t pLen) const
 {
    utftemplateString<_Sz,_Utf> wU ((utfStringDescriptor*)this); /* create a string with same structure as current */
    wU.strnset(content,pLen);
@@ -1256,7 +1284,7 @@ utftemplateString<_Sz,_Utf>::Left (size_t pLen)
  */
 template <size_t _Sz,class _Utf>
 utftemplateString<_Sz,_Utf>
-utftemplateString<_Sz,_Utf>::Right (size_t pLen)
+utftemplateString<_Sz,_Utf>::Right (size_t pLen) const
 {
     utftemplateString<_Sz,_Utf> wU ((utfStringDescriptor*)this); /* create a string with same structure as current */
    int wStart= utfStrlen<_Utf>(content)-pLen;
@@ -1445,7 +1473,7 @@ template <size_t _Sz,class _Utf>
  * @return
  */
 size_t
-utftemplateString<_Sz,_Utf>::_importURF(unsigned char *& pURFDataPtr)
+utftemplateString<_Sz,_Utf>::_importURF(const unsigned char *& pURFDataPtr)
 {
 ZTypeBase           wType;
 URF_Capacity_type   wCanonical;
@@ -1501,7 +1529,7 @@ size_t      wOffset=0;
 }// _importURF
 
 /**  Routine to get URF data header information for an utfxxFixedString or utfxxVaryingString. */
-ZStatus _getutfStringURFData(unsigned char* pURFDataPtr,ZTypeBase& pZType,uint16_t &pCanonical,uint16_t &pUniversalSize);
+ZStatus _getutfStringURFData(const unsigned char* pURFDataPtr,ZTypeBase& pZType,uint16_t &pCanonical,uint16_t &pUniversalSize);
 
 
 template <size_t _Sz,class _Utf>
@@ -1521,9 +1549,9 @@ ZDataBuffer utftemplateString<_Sz, _Utf>::_exportUVF() const
 /* Count effective char units excluding (_Utf)'\0' mark */
     UVF_Size_type wUnitCount = utfStrlen<_Utf>(content);
 
-    size_t wByteLen = wUnitCount*sizeof(_Utf);
+    wUVF.allocate((wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1);
 
-    unsigned char* wPtrTarg=(unsigned char*)content;
+    unsigned char* wPtrTarg=wUVF.Data;
 
     /* set export data with char unit size */
     *wPtrTarg = (uint8_t)sizeof (_Utf);
@@ -1534,19 +1562,60 @@ ZDataBuffer utftemplateString<_Sz, _Utf>::_exportUVF() const
     memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
     wPtrTarg += sizeof(UVF_Size_type);
 
+
     /* export char units : each char unit must be reversed if necessary (big /little endian) */
 
     _Utf* wPtrOut=(_Utf*)(wPtrTarg);
     const _Utf* wPtrIn=content;
 
-    if (sizeof (_Utf)==1)
+    if ((sizeof (_Utf)==1)||(!is_little_endian()))
+      {
       while (*wPtrIn)
         *wPtrOut++=*wPtrIn++;
+      }
     else
       while (*wPtrIn)
         *wPtrOut++=reverseByteOrder_Conditional<UVF_Size_type>(*wPtrIn++);
 
     return wUVF;
+}// _exportUVF
+
+template <size_t _Sz,class _Utf>
+ZDataBuffer& utftemplateString<_Sz, _Utf>::_exportAppendUVF(ZDataBuffer& pUVF) const
+{
+
+  /* Count effective char units excluding (_Utf)'\0' mark */
+  UVF_Size_type wUnitCount = utfStrlen<_Utf>(content);
+
+
+  /* allocate additional storage for exporting  (plus one byte for security) */
+  unsigned char* wPtrTarg=pUVF.extendBZero((wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1);
+
+  /* set export data with char unit size */
+  *wPtrTarg = (uint8_t)sizeof (_Utf);
+  wPtrTarg++;
+
+  /* prepare and set unit count to export data */
+  UVF_Size_type wUnitCount_Export=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
+  memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
+  wPtrTarg += sizeof(UVF_Size_type);
+
+
+  /* export char units : each char unit must be reversed if necessary (big /little endian) */
+
+  _Utf* wPtrOut=(_Utf*)(wPtrTarg);
+  const _Utf* wPtrIn=content;
+
+  if ((sizeof (_Utf)==1)||(!is_little_endian()))
+  {
+    while (*wPtrIn)
+      *wPtrOut++=*wPtrIn++;
+  }
+  else
+    while (*wPtrIn)
+      *wPtrOut++=reverseByteOrder_Conditional<UVF_Size_type>(*wPtrIn++);
+
+  return pUVF;
 }// _exportUVF
 
 template <size_t _Sz,class _Utf>
@@ -1557,9 +1626,7 @@ UVF_Size_type
 utftemplateString<_Sz,_Utf>::_getexportUVFSize()
 {
   /* Count char units excluding (_Utf)'\0' mark starting from end */
-  UVF_Size_type wUnitCount = utfStrlen<_Utf>(content);
-  UVF_Size_type wByteLen=wUnitCount*sizeof(_Utf) +sizeof(UVF_Size_type)+ 1;
-  return wByteLen;
+  return UVF_Size_type((utfStrlen<_Utf>(content)*sizeof(_Utf)) +sizeof(UVF_Size_type)+1);
 
 }//_getimportUVFSize
 
@@ -1573,11 +1640,11 @@ template <size_t _Sz,class _Utf>
  * @return total size of consumed bytes in pUniversalPtr buffer (Overall size of string in UVF)
  */
 size_t
-utftemplateString<_Sz,_Utf>::_importUVF(unsigned char*& pUniversalPtr)
+utftemplateString<_Sz,_Utf>::_importUVF(unsigned char*& pPtrIn)
 {
-  unsigned char* wPtrSrc=pUniversalPtr;
+  unsigned char* wPtrSrc=pPtrIn;
   /* get and control char unit size */
-  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+  uint8_t wUnitSize=(uint8_t)*pPtrIn;
   if (wUnitSize!=sizeof(_Utf))
   {
     fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
@@ -1586,13 +1653,13 @@ utftemplateString<_Sz,_Utf>::_importUVF(unsigned char*& pUniversalPtr)
     return 0;
   }
 
-  wPtrSrc++;
+  pPtrIn++;
   /* get char units to load excluding (_Utf)'\0' mark */
   UVF_Size_type    wUnitCount;
 
-  memmove(&wUnitCount, wPtrSrc ,sizeof(UVF_Size_type));
+  memmove(&wUnitCount, pPtrIn ,sizeof(UVF_Size_type));
   wUnitCount=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
-  wPtrSrc += sizeof(UVF_Size_type);
+  pPtrIn += sizeof(UVF_Size_type);
 
   /* check capacity */
   if (wUnitCount >= _Sz)
@@ -1609,16 +1676,18 @@ utftemplateString<_Sz,_Utf>::_importUVF(unsigned char*& pUniversalPtr)
   /* import string per char unit */
 
   _Utf* wPtrOut=content ;
-  _Utf* wPtrIn=(_Utf*)(wPtrSrc);
+  _Utf* wPtrIn=(_Utf*)(pPtrIn);
   _Utf* wPtrEnd = &wPtrIn[wUnitCount];
   if (wUnitSize==1)
-    while (wPtrIn < wPtrEnd)
-      *wPtrOut++=*wPtrIn++;
+    while (pPtrIn < wPtrEnd)
+      *wPtrOut++=*pPtrIn++;
   else
     while (wPtrIn < wPtrEnd)
       *wPtrOut++=reverseByteOrder_Conditional<UVF_Size_type>(*wPtrIn++);
 //  addConditionalTermination();
-  *wPtrEnd = 0;
+  *wPtrOut = 0;
+
+  pPtrIn += (wUnitCount*sizeof(_Utf)) + 1;
   return (wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1;
 }// _importUVF
 
@@ -1647,11 +1716,11 @@ utftemplateString<_Sz,_Utf>::_getimportUVFSize(unsigned char* pUniversalPtr)
 template <size_t _Sz,class _Utf>
 
 ZStatus
-utftemplateString<_Sz,_Utf>::getUniversalFromURF(ZTypeBase pType,unsigned char* pURFDataPtr,ZDataBuffer &pUniversal)
+utftemplateString<_Sz,_Utf>::getUniversalFromURF(ZTypeBase pType,const unsigned char* pURFDataPtr,ZDataBuffer &pUniversal,const unsigned char** pURFDataPtrOut)
 {
 URF_Fixed_Size_type wUnitSize , wEffectiveUSize;
 ZTypeBase wType;
-    unsigned char*wDataPtr=pURFDataPtr;
+    const unsigned char*wDataPtr=pURFDataPtr;
     memmove(&wType,wDataPtr,sizeof(ZTypeBase));
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
     if (wType!=pType)
@@ -1677,6 +1746,10 @@ ZTypeBase wType;
     pUniversal.allocateBZero(wUnitSize);       // fixed string must have canonical characters count allocated
     memmove(pUniversal.DataChar,wDataPtr,(size_t)wEffectiveUSize); // effective number of char is effective universal size
                                                                     // without '\0' terminator
+    if (pURFDataPtrOut)
+    {
+      *pURFDataPtrOut = wDataPtr + wEffectiveUSize;
+    }
     return ZS_SUCCESS;
 }//getUniversalFromURF
 
@@ -1684,11 +1757,11 @@ ZTypeBase wType;
 
 template <size_t _Sz,class _Utf>
 ZStatus
-utftemplateString<_Sz,_Utf>::getUniversalFromURF_Truncated(ZTypeBase pType,unsigned char* pURFDataPtr,ZDataBuffer &pUniversal)
+utftemplateString<_Sz,_Utf>::getUniversalFromURF_Truncated(ZTypeBase pType, const unsigned char *pURFDataPtr, ZDataBuffer &pUniversal, const unsigned char** pURFDataPtrOut)
 {
 URF_Fixed_Size_type wUnitNb , wEffectiveUSize;
 ZTypeBase wType;
-    unsigned char*wDataPtr=pURFDataPtr;
+    const unsigned char*wDataPtr=pURFDataPtr;
     memmove(&wType,wDataPtr,sizeof(ZTypeBase));
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
     if (wType!=pType)
@@ -1719,6 +1792,12 @@ ZTypeBase wType;
             *wPtr++=*wPtrIn++;
             }
     *wPtr=(_Utf)__ENDOFSTRING__;
+
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wDataPtr + wEffectiveUSize;
+      }
+
     return ZS_SUCCESS;
 }//getUniversalFromURF_Truncated
 
@@ -2021,6 +2100,35 @@ utftemplateString<_Sz,_Utf>::ncompare(const char* pString2,size_t pCount)
     return 1; // string 1 is longer
 }/** corresponds to strncmp */
 
+template <size_t _Sz,class _Utf>
+bool
+utftemplateString<_Sz,_Utf>::isEqualCase (const _Utf *pCompare)
+{
+
+  _Utf* wPtr1=content;
+  const _Utf* wPtr2=pCompare;
+
+  int wS=capacity();
+
+  while (*wPtr1 && *wPtr2 && (utfUpper(*wPtr1++)==utfUpper(*wPtr2++))&& wS--) ;
+  if ((*wPtr1==0) && (*wPtr2==0))
+    return true;
+  return false;
+}
+template <size_t _Sz,class _Utf>
+bool
+utftemplateString<_Sz,_Utf>::isEqualCase (const utftemplateString<_Sz,_Utf>& pCompare)
+{
+
+  _Utf* wPtr1=content;
+  _Utf* wPtr2=pCompare.content;
+  int wSize=capacity();
+  while (*wPtr1 && *wPtr2 && (utfUpper(*wPtr1++)==utfUpper(*wPtr2++)) && wSize-- ) ;
+
+  if ((*wPtr1==0) && (*wPtr2==0))
+    return true;
+  return false;
+}
 
 
 

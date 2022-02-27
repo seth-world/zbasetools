@@ -4,11 +4,13 @@
 #include <ztoolset/zarray.h>
 #include <ztoolset/zutfstrings.h>
 
-enum ZaiE_Severity{
-    ZAIES_Info      =   0,
-    ZAIES_Warning   =   1,
-    ZAIES_Error     =   2,
-    ZAIES_Fatal     =   4
+enum ZaiE_Severity : uint8_t
+{
+    ZAIES_Text      =   0,
+    ZAIES_Info      =   1,
+    ZAIES_Warning   =   2,
+    ZAIES_Error     =   4,
+    ZAIES_Fatal     =   8
 };
 
 const char* decode_ZAIES(ZaiE_Severity pSeverity);
@@ -16,7 +18,8 @@ const char* decode_ZAIES(ZaiE_Severity pSeverity);
 ZaiE_Severity cvttoZAIESeverity(Severity_type pZEXSev);
 Severity_type cvttoZEXSeverity(ZaiE_Severity pZEXSev);
 
-struct ZaiError {
+class ZaiError {
+public:
     ZaiError()=default;
     ZaiError(const char* pFormat,...)
     {
@@ -39,6 +42,7 @@ struct ZaiError {
         Severity=pSeverity;
 
         switch (pSeverity) {
+        case ZAIES_Text:
         case ZAIES_Info:
         case ZAIES_Warning:
             Status = ZS_NOTHING;
@@ -74,9 +78,9 @@ struct ZaiError {
 
     ZStatus getZStatus() { return Status; }
 
-    ZaiE_Severity   Severity;
     ZStatus         Status=ZS_NOTHING;
     utf8String     _Message ;
+    ZaiE_Severity   Severity;
 };
 
 /**
@@ -88,10 +92,16 @@ class ZaiErrors : public zbs::ZArray<ZaiError*>
 {
 public:
     ZaiErrors()=default;
-    ZaiErrors(const char* pContext) {Context=pContext;}
+    ZaiErrors(const char* pContext)
+    {
+      Context.push(pContext);
+    }
 
     ~ZaiErrors()
     {
+      if ((Output!=stderr)&&(Output!=stdout))
+        fclose(Output);
+
         while (count())
             delete popR();
     }
@@ -113,9 +123,27 @@ public:
         char wContext[200];
         memset(wContext,0,sizeof(wContext));
         vsnprintf(wContext,199,pContext,args);
-        Context = wContext;
+        Context.push(wContext);
+
+        textLog("           Changing context to <%s>",Context.last().toCChar());
+
         va_end(args);
     }
+
+    void popContext()
+    {
+      if (Context.count()>0)
+        Context.pop();
+      textLog("            Restoring context to <%s>",Context.last().toCChar());
+    }
+
+    void printContext()
+    {
+      if (Context.count()>0)
+          textLog("        Current context is <%s>",Context.last().toCChar());
+    }
+
+
     void add (ZaiErrors& pIn)
     {
         for (long wi=0;wi < pIn.count();wi++)
@@ -124,16 +152,32 @@ public:
         }
     }
 
+    void setOutput(const char* pOutfile);
+    void setOutput(const utf8String& pOutfile)
+    {
+      setOutput(pOutfile.toCChar());
+    }
+
     void clear() { cleanupLogged();}
     void cleanupLogged();
+
+
+
     ZStatus getLastZStatus() { return last()->getZStatus(); }
 
+
+    Severity_type getSeverity();
 
     /**
    * @brief displayAll prints to pOutput (defaulted to stdout) errors messages from least recent to most recent
    * @param pOutput
    */
     void displayAllLogged(FILE* pOutput=stdout );
+
+    utf8VaryingString allLoggedToString();
+    utf8VaryingString errorsToString();
+
+
     void displayErrors(FILE* pOutput=stdout );
     utf8String getLastError( );
     void log(ZaiE_Severity pSeverity,const char* pFormat,...);
@@ -144,10 +188,11 @@ public:
 
     void errorLog(const char* pFormat,...);
     void infoLog(const char* pFormat,...);
+    void textLog(const char* pFormat,...);
     void warningLog(const char* pFormat,...);
     bool hasError()
     {
-        return ErrorLevel > ZAIES_Warning ;
+      return ErrorLevel & (ZAIES_Error|ZAIES_Fatal) ;
         /*      if (count()==0)
           return false;
       for (long wi=0;wi<count();wi++)
@@ -157,13 +202,7 @@ public:
     }
     bool hasFatal()
     {
-        return ErrorLevel > ZAIES_Warning ;
-        /*      if (count()==0)
-          return false;
-      for (long wi=0;wi<count();wi++)
-            if (Tab[wi]->Severity > ZAIES_Info)
-                    return true;
-      return false;*/
+        return ErrorLevel & ZAIES_Fatal ;
     }
     bool hasWarning()
     {
@@ -171,13 +210,15 @@ public:
     }
     bool hasMessages()
     {
-        return count()!=0 ;
+        return ErrorLevel ;
     }
+
     void setAutoPrintOn(bool pOnOff) {AutoPrint=pOnOff;}
 
     bool AutoPrint=false; /* if set then prints info and warning messages to stdout and error messages to stderr as soon as registrated */
-    std::string Context;
-    int ErrorLevel=0;
+    ZArray<utf8String> Context;
+    uint8_t ErrorLevel=0;
+    FILE* Output=stderr;
 };
 
 #endif // ZAIERRORS_H

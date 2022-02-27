@@ -17,17 +17,17 @@
 
 ZDir::ZDir (const utf8_t *pDirName)
 {
-    if (setPath((const char *)pDirName)!=ZS_SUCCESS)
+    if (setPath(pDirName)!=ZS_SUCCESS)
                 ZException.exit_abort();
 }
-ZStatus ZDir::setPath(const uriString &pPath)
+/*ZStatus ZDir::setPath(const uriString &pPath)
 {
     return setPath((const char *)pPath.content);
 }
 ZStatus ZDir::setPath(const uriString &&pPath)
 {
     return setPath((const char *)pPath.content);
-}
+}*/
 
 int ZDir::countElements(uriString &pDirEntry,ZDir_File_type pZDFT)
 {
@@ -68,13 +68,13 @@ ZDir::setPath(const QString pPath)
 #endif //QT_CORE_LIB
 
 ZStatus
-ZDir::setPath(const char *pPath)
+ZDir::setPath(const utf8String &pPath)
 {
 //    memset(Path,0,sizeof(Path));
 //    utfStrcpy<utf8_t> (Path,pPath);
 
-    this->strset((const utf8_t*)pPath);
-    _SystDir=opendir((const char*)content);
+    strset(pPath.toUtf());
+    _SystDir=opendir(toCChar());
     if (_SystDir==nullptr)
          {
          ZException.getErrno(-1,
@@ -82,19 +82,19 @@ ZDir::setPath(const char *pPath)
                              ZS_NOTDIRECTORY,
                              Severity_Error,
                              "Error setting directory path to <%s>",
-                             content);
+                             toCChar());
          return ZS_NOTDIRECTORY;
          }
     return ZS_SUCCESS;
 }
-ZStatus setPath (const uriString& pPath)
+/*ZStatus setPath (const uriString& pPath)
 {
     return setPath(pPath.toUtf());
 }
 ZStatus setPath (const uriString&& pPath)
 {
     return setPath(pPath.toUtf());
-}
+}*/
 void
 ZDir::closeDir(void)
 {
@@ -173,7 +173,7 @@ ZStatus wSt;
 
     if (_SystDir==nullptr)
             {
-            wSt=setPath(content);
+            wSt=setPath(Data);
             if (wSt!=ZS_SUCCESS)
                 {
                     _SystDir=nullptr;
@@ -228,7 +228,7 @@ It is recommended that applications use readdir(3) instead of
                             ZS_FILEERROR,
                             Severity_Error,
                             "Error scanning directory <%s>",
-                            content);
+                            toCChar());
         wSt = ZS_FILEERROR;
     } else
         wSt = ZS_EOF;
@@ -264,7 +264,7 @@ ZStatus ZDir::fullDir(DirMap &pDirEntry, ZDir_File_type pZDFT)
     ZStatus wSt;
 
     if (_SystDir == nullptr) {
-        wSt = setPath(content);
+        wSt = setPath(Data);
         if (wSt != ZS_SUCCESS) {
             _SystDir = nullptr;
             return wSt;
@@ -328,7 +328,7 @@ It is recommended that applications use readdir(3) instead of
                             ZS_FILEERROR,
                             Severity_Error,
                             "Error scanning directory <%s>",
-                            content);
+                            toCChar());
         wSt = ZS_FILEERROR;
     } else
         wSt = ZS_EOF;
@@ -384,7 +384,7 @@ public:
     long add(DirMap &pIn)
     {
         long wi = 0;
-        while ((Tab[wi].Name.compare(pIn.Name) < 0) && (wi < count()))
+        while ((Tab[wi].Name.compare(pIn.Name.toUtf()) < 0) && (wi < count()))
             wi++;
         if (wi < count())
             insert(pIn, wi);
@@ -395,7 +395,7 @@ public:
     long add(DirMap &&pIn)
     {
       long wi = 0;
-      while ((Tab[wi].Name.compare(pIn.Name) < 0) && (wi < count()))
+      while ((Tab[wi].Name.compare(pIn.Name.toUtf()) < 0) && (wi < count()))
         wi++;
       if (wi < count())
         insert(pIn, wi);
@@ -451,7 +451,7 @@ ZStatus ZDir::dirByName(DirMap &pDirEntry, ZDir_File_type pZDFT)
     uriStat wStat;
     wSt = dir(wElt, pZDFT);
     while (wSt == ZS_SUCCESS) {
-        wFull = content;
+        wFull.fromURI(this);
         wFull.addConditionalDirectoryDelimiter();
         wFull += wElt;
         wSt = wFull.getStatR(wStat);
@@ -490,7 +490,7 @@ ZStatus wSt;
 
     if (_SystDir==nullptr)
             {
-            wSt=setPath(content);
+            wSt=setPath(Data);
             if (wSt!=ZS_SUCCESS)
                 {
                     _SystDir=nullptr;
@@ -504,7 +504,7 @@ ZStatus wSt;
     if ((wDirEntry!=nullptr)&&(wRet=0))
         {
             pDirEntry.clear();
-            pDirEntry =(const utf8_t*)wDirEntry->d_name;
+            pDirEntry = wDirEntry->d_name;
             switch (pZDFT)
             {
             case ZDFT_All :
@@ -539,7 +539,7 @@ ZStatus wSt;
                             _GET_FUNCTION_NAME_,
                             ZS_FILEERROR,
                             Severity_Error,
-                            "Error scanning directory <%s>",content);
+                            "Error scanning directory <%s>",toCChar());
         closeDir();
         _SystDir=nullptr;
         return ZS_FILEERROR;

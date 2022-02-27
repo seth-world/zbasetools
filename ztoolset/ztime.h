@@ -19,6 +19,8 @@ int clock_gettime(int X, struct timespec *tv);
 
 #endif //  __USE_STD_CHRONO__
 
+#include <ztoolset/charman.h>
+
 enum ZDelayPrecision_type
 {
     ZDPT_Seconds=0,
@@ -31,18 +33,22 @@ enum ZDelayPrecision_type
  * ZTime precision is nano seconds (ZTime.tv_nsec)
  *
  */
+class ZDataBuffer;
 class ZTime : public timespec
 {
 public:
     ZTime () {clear();}
     ZTime (long pT) {tv_sec=pT/1000000000; tv_nsec= pT-(tv_sec*1000000000);}
 
-    ZTime (ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; }
+    ZTime (const ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; }
+    ZTime (const timespec& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; }
+
+    ZTime& _copyFrom(const ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; return *this;}
 
     void clear() {memset(this,0,sizeof(ZTime));}
 
-    ZTime& operator = (ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; return *this;}
-    ZTime operator = (timespec pTi){tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; return *this;}
+    ZTime& operator = (const ZTime& pTi) {return _copyFrom(pTi);}
+    ZTime operator = (timespec pTi){return _copyFrom(pTi);}
     ZTime operator = (timeval pTi){tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_usec*1000; return *this;} // micro to nanoseconds
 
     ZTime operator +=  (ZTime pTime)
@@ -106,6 +112,9 @@ public:
      * @brief getCurrentTime set ZTime to current time using clock_realtime
      */
     ZTime& getCurrentTime(void) {clock_gettime(CLOCK_REALTIME,this); return *this;}
+
+    static ZTime currentTime(void) {ZTime wTi;clock_gettime(CLOCK_REALTIME,&wTi); return wTi;}
+
     /**
      * @brief absoluteFromDelay computes an absolute time from now + pDelay according pDelayType (seconds, milli, micro, nano)
      * and returns current ZTime content.
@@ -168,8 +177,14 @@ public:
 
     char* toString(char* pBuf,unsigned int pLen, const char* pFormat=nullptr,ZDelayPrecision_type pDelayType=ZDPT_Seconds) ;
 
+    CharMan toString(const char* pFormat=nullptr,ZDelayPrecision_type pDelayType=ZDPT_Seconds);
+
     char* delaytoString (char* pBuf,unsigned int pLen,ZDelayPrecision_type pDelayType=ZDPT_Milliseconds) ;
 
+    /** @brief _export() serializes ZTime */
+    ZDataBuffer _export();
+    /** @brief _export() deserializes input pPtrIn and loads ZTime with imported value */
+    const unsigned char * _import(const unsigned char *&pPtrIn);
 
 
 #ifdef __USE_STD_CHRONO__

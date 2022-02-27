@@ -6,21 +6,19 @@
 #include <ztoolset/zexceptionmin.h>
 #include <zthread/zthreadexithandler.h>
 
+#define __ZTHREADVERBOSE__  ZVerbose & ZVB_Thread
+
+using namespace zbs;
+
 ZThreadEventQueue::ZThreadEventQueue()
 {
 
 }
 
-#define __ZTHREADVERBOSE__  ZVerbose & ZVB_Thread
-
-using namespace zbs;
-
+ZThread*      MainThread=nullptr;
 
 thread_local ZThreadExitHandler atThreadExit; // defines the exit handler locally for each thread
-namespace zbs{
-thread_local ZThread*           ThisThread=nullptr;
-}
-
+thread_local ZThread*      ThisThread=nullptr; // pointer to main thread ZThread object */
 
 
 
@@ -44,7 +42,7 @@ ZThread_Base::ZThread_Base(ZThread_type pType, int pPriority ,int pStackSize)
     init(Type,Priority,StackSize);
     return;
 }
-
+/*
 ZThread_Base::ZThread_Base(void* (*pFunction)(void*),void* pArglist,ZThread_type pType, ZThread_Priority pPriority ,int pStackSize)
 {
         ThreadId.clear();
@@ -56,7 +54,7 @@ ZThread_Base::ZThread_Base(void* (*pFunction)(void*),void* pArglist,ZThread_type
         _start (pFunction, pArglist);
         return;
 }
-
+*/
 ZThread_Base::~ZThread_Base(void)
 {
     pthread_attr_destroy(&Thread_Attributes);
@@ -78,14 +76,14 @@ int wRet;
     _Mtx.lock();
     Type = pType;
     if (State==ZTHS_Created)
-    {
+        {
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVOP,
                               Severity_Error,
                               "Cannot initialize ZThread attributes while it is running.");
         _Mtx.unlock();
         return false;
-    }
+        }
 
     wRet=pthread_attr_init(&Thread_Attributes);
     Type=pType;
@@ -96,7 +94,6 @@ int wRet;
     if (pPriority>0)
             setPriority(pPriority);
     setStackSize(pStackSize);
-ZThread_init_end:
     State=ZTHS_Created;
     _Mtx.unlock();
     return true;
@@ -104,32 +101,28 @@ ZThread_init_end:
 
 
 
-bool ZThread_Base::_start(void*(*pFunction)(void *), void *pArglist)
+bool ZThread_Base::_start(void*(*pFunction)(void *), void *pArgList)
 {
-    if (State>=ZTHS_Active)
+  if (State>=ZTHS_Active)
     {
         fprintf (stderr,"ZThread::start-F-ACTIVE  Thread is active while trying to start it.\n");
         abort();
     }
 int wRet;
-
-
     if (Type&ZTH_Inherit)
         {
-
-        wRet = pthread_create(ThreadId.get_Id(),
+        wRet = pthread_create(ThreadId.get_IdPtr(),
                               nullptr,
                               pFunction,
-                              pArglist);
-
+                              pArgList);
         }
 
     else
         {
-        wRet = pthread_create(ThreadId.get_Id(),
+        wRet = pthread_create(ThreadId.get_IdPtr(),
                               &Thread_Attributes,
                               pFunction,
-                              pArglist);
+                              pArgList);
         }
     if (wRet!=0)
         {
@@ -144,7 +137,7 @@ int wRet;
 
     if (Type&ZTH_Detached)
                 {
-                wRet=pthread_detach(*ThreadId.get_Id());
+                wRet=pthread_detach(*ThreadId.get_IdPtr());
                 if (wRet!=0)
                     {
                     ZException.getErrno(wRet,
@@ -418,7 +411,7 @@ void
 ZThread_Base::exitThread(int pReturn)
 {
     setState(ZTHS_Terminated);
-    Created=false;
+    _created=false;
 //    ThreadId.clear();
     exit (pReturn);
 }
@@ -693,17 +686,23 @@ ZThread_Base::setState (ZThreadState_type pState)
 }
 //===================ZThread============================================================
 
+ZThread::ZThread(ZThread* pFather)
+{
+  memset(Identity,0,sizeof(Identity));
+  Father=pFather;
+}
+
 ZThread::~ZThread() // when thread object is deleted, registered exit routines are executed, then routine structure are deleted
 {
-    if (MainFunctionArguments)
-                    delete MainFunctionArguments;
+
     while (!ExitRoutinesQueue.isEmpty())
     {
         threadRoutine* wExitRoutine = ExitRoutinesQueue.popR();
         wExitRoutine->Function(wExitRoutine->ArgList);
         delete wExitRoutine;
-//                delete ExitRoutinesQueue.popR();
     }//while
+    if (ArgList)
+      delete ArgList;
 }
 
 /**
@@ -797,102 +796,111 @@ void
 ZThread::startLoopArg(ZTH_Functor pFunction, ZArgList *pArgList)
 {
     copyArguments(pArgList);
-    MainFunctionArguments->push((void*)pFunction);
-    MainFunctionArguments->push(this);
-    _start(&_threadLoop,MainFunctionArguments);
+    ArgList->push((void*)pFunction);
+    ArgList->push(this);
+    _start(&_threadLoop,ArgList);
 }
 void
 ZThread::startLoopVariadic(ZTH_Functor pFunction,...)
 {
 void *wArgPtr=nullptr;
 
-    MainFunctionArguments = new ZArgList;
+    if (ArgList==nullptr)
+      ArgList=new ZArgList;
+    ArgList->reset();
+
      va_list wArguments;
      va_start(wArguments,pFunction);
      wArgPtr=va_arg(wArguments,void*);
      while(wArgPtr!=nullptr)
      {
-        MainFunctionArguments->push(wArgPtr);
+       ArgList->push(wArgPtr);
         wArgPtr=va_arg(wArguments,void*);
      }
      va_end(wArguments);
-    MainFunctionArguments->push((void*)pFunction);
-    MainFunctionArguments->push(this);
-     _start(&_threadLoop,MainFunctionArguments);
-}
+    ArgList->push((void*)pFunction);
+    ArgList->push(this);
+    _start(&_threadLoop,ArgList);
+
+}//startLoopVariadic
 
 void
 ZThread::startLoop(ZTH_Functor pFunction,int argc,char** argv)
 {
-    if (!MainFunctionArguments)
-            MainFunctionArguments = new ZArgList;
+    if (ArgList==nullptr)
+            ArgList = new ZArgList;
+    ArgList->reset();
+
     for (int wi=0; wi < argc; wi++)
             addArgument(argv[wi]);
 
-    MainFunctionArguments->push((void*)pFunction);
-    MainFunctionArguments->push(this);
-     _start(&_threadLoop,MainFunctionArguments);
+    if (MainThread==nullptr)
+          MainThread = this;      /* push pointer to main thread ZThread object (this object)*/
+
+    ArgList->push((void*)pFunction);
+    ArgList->push(this);/* push pointer to local thread ZThread object */
+    _start(&_threadLoop,ArgList);
 }
 
 void
 ZThread::startNoLoopArg(ZTH_Functor pFunction, ZArgList *pArgList)
 {
     copyArguments(pArgList);
-    MainFunctionArguments->push((void*)pFunction);
-    MainFunctionArguments->push(this);
-    _start(_threadNoLoop,MainFunctionArguments);
+    ArgList->push((void*)pFunction);
+    ArgList->push(this);
+    _start(_threadNoLoop,ArgList);
 }
 
 void
 ZThread::startNoLoop(ZTH_Functor pFunction,int argc,char** argv)
 {
-    if (!MainFunctionArguments)
-            MainFunctionArguments = new ZArgList;
+    if (ArgList==nullptr)
+            ArgList = new ZArgList;
+    ArgList->reset();
+
     for (int wi=0; wi < argc; wi++)
             addArgument(argv[wi]);
 
-    MainFunctionArguments->push((void*)pFunction);
-    MainFunctionArguments->push(this);
+    ArgList->push((void*)pFunction);
+    ArgList->push(this);
 
-    _start(_threadNoLoop,MainFunctionArguments);
+    _start(_threadNoLoop,ArgList);
 }
 void
 ZThread::startNoLoop(ZTH_Functor pFunction)
 {
+    if (ArgList==nullptr)
+            ArgList = new ZArgList;
+    ArgList->clear();
+    ArgList->push((void*)pFunction);
+    ArgList->push(this);
 
-    if (!MainFunctionArguments)
-            MainFunctionArguments = new ZArgList;
-    MainFunctionArguments->push((void*)pFunction);
-    MainFunctionArguments->push(this);
-
-    _start(_threadNoLoop,(void*)MainFunctionArguments);
+    _start(_threadNoLoop,(void*)ArgList);
 }
 
-void
+bool
 ZThread::startNoLoopVariadic(ZTH_Functor pFunction,...)
 {
 void *wArgPtr=nullptr;
-//void *vArgPtr1=(void*)-1;
 long wArgCount=0;
 
-    if (MainFunctionArguments)
-                delete MainFunctionArguments;
+    if (ArgList==nullptr)
+                ArgList = new ZArgList;
+    ArgList->clear();
 
-    MainFunctionArguments = new ZArgList;
      va_list wArguments;
      va_start(wArguments,pFunction);
      wArgPtr=va_arg(wArguments,void*);
      while(wArgPtr!=nullptr)
      {
-        MainFunctionArguments->push(wArgPtr);
+        ArgList->push(wArgPtr);
         wArgCount++;
         wArgPtr=va_arg(wArguments,void*);
      }
-
      va_end(wArguments);
-     MainFunctionArguments->push((void*)pFunction);
-     MainFunctionArguments->push(this);
-    startNoLoopArg(pFunction,MainFunctionArguments);
+     ArgList->push((void*)pFunction);
+     ArgList->push(this);
+     return _start(_threadNoLoop,ArgList);
 }
 
 
@@ -920,12 +928,10 @@ _threadLoop( void* pArgList)
 ZArgList* wArglist = static_cast<ZArgList*> (pArgList);
 
 ZThread* wThread = static_cast<ZThread*>   (wArglist->popR());
-
-//ThisThread =static_cast<ZThread*>   (wArglist->popR());
-ThisThread = wThread;
+ThisThread=wThread;
+/* MainThread contains a pointer to main thread ZThread object */
 
 ZTH_Functor wMainFunction = reinterpret_cast<ZTH_Functor>    (wArglist->popR());
-
 
     ThisThread->ProcessId = getpid ();         // keep thread process id in the ZThread object
     ThisThread->ThreadId=ThisThread->getId();  // store thread id
@@ -936,15 +942,13 @@ ZTH_Functor wMainFunction = reinterpret_cast<ZTH_Functor>    (wArglist->popR());
         if (ThisThread->ThreadStatus!=ZS_SUCCESS)
                                                 break;
         // if status is not OK : End the thread
-
          ThisThread->ThreadStatus= ThisThread->processEventQueue();
 
         }// while !wExitThread
 
-//    ThisThread->exitThread(wSt);
 
-//    return nullptr;
-    return &ThisThread->ThreadStatus;
+  return &ThisThread->ThreadStatus;
+
 }//_threadLoop
 
 
@@ -1037,13 +1041,13 @@ void* wVoidPtr;
 }// _threadNOLoop
 
 ZStatus
-
 ZThread::processEventQueue()
 {
 ZTHEvent wEvent;
 ZStatus wSt=ZS_SUCCESS;
 //bool wExitThread=false;
 
+    EventQueue.lock();
     while (EventQueue.size()>0)
     {
     wEvent = EventQueue.last();
@@ -1097,6 +1101,8 @@ ZStatus wSt=ZS_SUCCESS;
     }// switch
     EventQueue.pop(); // forget this and get next
     } // while (wThread->EventQueue.size()>0)
+    EventQueue.unlock();
+
     return wSt;
 }// processEventQueue
 
@@ -1117,6 +1123,153 @@ ZThread_Id wId(std::this_thread::get_id());
 #endif
 return wId;
 }
+
+
+zbs::ZThread* getThisThread()
+{
+  return ThisThread;
+}
+
+
+void ZThread::addArgument(void* pArgument)
+{
+  if (ArgList==nullptr)
+    initArgList();
+  ArgList->push(pArgument);
+}
+void ZThread::addArgument(ZTH_Functor pFunction)
+{
+  if (ArgList==nullptr)
+    initArgList();
+  ArgList->push((void*)pFunction);
+}
+void ZThread::addThisThreadAsArgument()
+{
+  if (ArgList==nullptr)
+    initArgList();
+  ArgList->push((void*)this);
+}
+void ZThread::addArgumentInt(int pArgument)
+{
+  union {
+    void*  Ptr;
+    int    Int;
+  } wArg;
+  if (ArgList==nullptr)
+    initArgList();
+  wArg.Int=pArgument;
+  ArgList->push(wArg.Ptr);
+}
+
+void ZThread::addArgumentList(int argc,char** argv)
+{
+  for (int wi=0;wi < argc;wi++)
+    addArgument(argv[wi]);
+}
+void ZThread::copyArguments(zbs::ZArgList* pArgList)
+{
+  if (ArgList==nullptr)
+      initArgList();
+  for (long wi=0;wi<pArgList->count();wi++)
+    ArgList->push(pArgList->Tab[wi]);
+}
+
+/**
+     * @brief getArgument gets a void pointer from argument stack at position wi without destroying it.
+     * if wi is outside argument stack, then it returns nullptr
+     * @param wi argument index to get
+     * @return a void pointer or nullptr if argument index is outside argument stack
+     */
+
+void* ZThread::getArgument(int wi)
+{
+  if (!ArgList)
+    return nullptr;
+  if (wi >= ArgList->count())
+    return nullptr;
+  return ArgList->Tab[wi];
+}
+/**
+     * @brief getArgumentInt gets an int from argument stack at position wi without destroying it.
+     * if wi is outside argument stack, then it returns nullptr
+     * @param wi argument index to get
+     * @return an int or nullptr if argument index is outside argument stack
+     */
+int ZThread::getArgumentInt(int wi)
+{
+  union {
+    void*  Ptr;
+    int    Int;
+  } wArg;
+  if (!ArgList)
+    return 0;
+  if (wi >= ArgList->count())
+    return 0;
+  wArg.Ptr=ArgList->Tab[wi];
+  return wArg.Int;
+}
+/**
+     * @brief popArgument gets the last argument as a void pointer from argument stack and removes it from stack
+     * @return a void pointer or nullptr if argument stack has not been initialized
+     */
+void* ZThread::popArgument()
+{
+  if (!ArgList)
+    return nullptr;
+  return ArgList->popR();
+}
+/**
+     * @brief popArgument gets the last argument as an int from argument stack and removes it from stack
+     * @return an int or nullptr if argument stack has not been initialized
+     */
+int ZThread::popArgumentInt()
+{
+  union {
+    void*  Ptr;
+    int    Int;
+  } wArg;
+  if (!ArgList)
+    return 0;
+  wArg.Ptr=ArgList->popR();
+  return wArg.Int;
+}
+/**
+     * @brief popFrontArgument gets the first argument as a void pointer from argument stack and removes it from stack
+     * @return a void pointer or nullptr if argument stack has not been initialized
+     */
+void* ZThread::popFrontArgument()
+{
+  if (!ArgList)
+    return nullptr;
+  return ArgList->popR_front();
+}
+/**
+     * @brief popFrontArgumentInt gets the first argument as an int from argument stack and removes it from stack
+     * @return an int or nullptr if argument stack has not been initialized
+     */
+int ZThread::popFrontArgumentInt()
+{
+  union {
+    void*  Ptr;
+    int    Int;
+  } wArg;
+  if (!ArgList)
+    return 0;
+  wArg.Ptr=ArgList->popR_front();
+  return wArg.Int;
+}
+/**
+     * @brief getArgumentsCount returns the current size of argument stack. Returns -1 if argument stack is null (has not been initialized).
+     *
+     * @return
+     */
+int ZThread::getArgumentsCount()
+{
+  if (!ArgList)
+    return -1;
+  return ArgList->count();
+}
+
 
 const char *
 decode_ZTHS(ZThreadState_type pZTHS)

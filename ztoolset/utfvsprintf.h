@@ -1049,7 +1049,7 @@ template <size_t _Sz,class _Utf>
  * @return
  */
 ZStatus
-utftemplateString<_Sz,_Utf>::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer &pUniversal)
+utftemplateString<_Sz,_Utf>::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer &pUniversal,unsigned char** pURFDataPtr)
 {
 uint16_t wCanonSize , wEffectiveUSize;
 ZTypeBase wType;
@@ -1079,6 +1079,11 @@ ZTypeBase wType;
     pUniversal.allocateBZero(wCanonSize);       // fixed string must have canonical characters count allocated
     memmove(pUniversal.DataChar,wDataPtr,(size_t)wEffectiveUSize); // effective number of char is effective universal size
                                                                     // without '\0' terminator
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wURFDataPtr + wEffectiveUSize;
+      }
+
     return ZS_SUCCESS;
 }//getUniversalFromURF
 /**
@@ -1093,7 +1098,7 @@ ZTypeBase wType;
  */
 template <size_t _Sz,class _Utf>
 ZStatus
-utftemplateString<_Sz,_Utf>::getUniversalFromURF_Truncated(unsigned char* pURFDataPtr,ZDataBuffer &pUniversal)
+utftemplateString<_Sz,_Utf>::getUniversalFromURF_Truncated(unsigned char* pURFDataPtr,ZDataBuffer &pUniversal,unsigned char** pURFDataPtrOut)
 {
 uint16_t wCanonSize , wEffectiveUSize;
 ZTypeBase wType;
@@ -1122,6 +1127,10 @@ ZTypeBase wType;
 
     pUniversal.setData(wDataPtr,(size_t)wEffectiveUSize);   // effective number of char is effective universal size
                                                             // without '\0' terminator
+    if (pURFDataPtrOut)
+    {
+      *pURFDataPtrOut = wURFDataPtr + wEffectiveUSize;
+    }
     return ZS_SUCCESS;
 }//getUniversalFromURF_Truncated
 

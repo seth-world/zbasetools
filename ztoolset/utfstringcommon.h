@@ -23,7 +23,7 @@ enum ZCryptMethod_type : uint8_t
  * @brief The utfStringDescriptor class common base object for fixed AND varying utf strings.
  */
 #pragma pack(push)
-#pragma pack(0)
+#pragma pack(1)
 
 class utfStringDescriptor
 {
@@ -95,10 +95,10 @@ public:
     using utfStringDescriptor::getUnitCount;
 
 
-    ZStatus _importURFGeneric(unsigned char* pURFDataPtr) ;
+    ZStatus _importURFGeneric(const unsigned char *pURFDataPtr) ;
     ZStatus _exportURFGeneric(ZDataBuffer* pURF) ;
     ZStatus _exportURFAnyGeneric(ZDataBuffer* pTargetURF, ZTypeBase   pTargetType,URF_Capacity_type pTargetCapacity);
-    static ZStatus getUniversalFromURF(ZType_type pType, unsigned char* pURFDataPtr,ZDataBuffer &pUniversal);
+    static ZStatus getUniversalFromURF(ZType_type pType, const unsigned char *pURFDataPtr, ZDataBuffer &pUniversal, const  unsigned char **pURFDataPtrOut=nullptr);
     template <class _Utf>
     _Utf* allocateChars(ssize_t pCharCount);
 };
@@ -117,7 +117,7 @@ utfStringHeader::allocateChars(ssize_t pCharCount)
                 _GET_FUNCTION_NAME_,
                 ZType,
                 decode_ZType(ZType));
-        _ABORT_ ;
+        _ABORT_
         }
     if ((pCharCount>__INVALID_SIZE__)||(pCharCount<0))
     {
@@ -125,18 +125,19 @@ utfStringHeader::allocateChars(ssize_t pCharCount)
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid character units %ld \n",
                 _GET_FUNCTION_NAME_,
                 pCharCount);
-        _ABORT_ ;
+        _ABORT_
 
     }
  size_t wByteSize= (pCharCount) * sizeof(_Utf);
 
     if (DataByte==nullptr)
-        DataByte=(uint8_t*)malloc((size_t)wByteSize);
+ //     DataByte=(uint8_t*)malloc((size_t)wByteSize);
+        DataByte=zmalloc<uint8_t>((size_t)wByteSize);
     else
         {
-        DataByte=(uint8_t*)realloc(DataByte,(size_t)wByteSize);
+        DataByte=zrealloc(DataByte,(size_t)wByteSize);
         }
-    if (DataByte==nullptr)
+/*    if (DataByte==nullptr)
     { // ZException not defined yet
         fprintf(stderr,
                 "Module   %s\n"
@@ -148,7 +149,8 @@ utfStringHeader::allocateChars(ssize_t pCharCount)
                 decode_Severity( Severity_Fatal),
                 wByteSize);
         _ABORT_;
-    }
+    }*/
+
     ByteSize=wByteSize;
     UnitCount = pCharCount;
 //    DataByte= (uint8_t*)Data;
@@ -168,8 +170,8 @@ setURFBufferValue(unsigned char*pOutPtr,_Tp pValue)
 }
 
 template <class _Tp>
-inline unsigned char*
-getURFBufferValue(_Tp* pValue,unsigned char*pOutPtr)
+inline const unsigned char*
+getURFBufferValue(_Tp* pValue,const unsigned char*pOutPtr)
 {
     _Tp wValue;
     memmove(&wValue,pOutPtr,sizeof(_Tp));
@@ -191,7 +193,7 @@ setURFOffsetValue(unsigned char*pURFBuffer,_Tp pValue,size_t &pOffset)
 
 template <class _Tp>
 inline size_t
-getURFOffsetValue(_Tp* pValue,unsigned char*pURFBuffer,size_t &pOffset)
+getURFOffsetValue(_Tp* pValue,const unsigned char*pURFBuffer,size_t &pOffset)
 {
     _Tp wValue;
     memmove(&wValue,&pURFBuffer[pOffset],sizeof(_Tp));

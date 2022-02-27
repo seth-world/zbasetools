@@ -11,7 +11,7 @@ QT -= core
 QT -= gui
 
 TEMPLATE = lib
-CONFIG += c++17 shared dll
+CONFIG += c++17 shared dll create_prl link_prl
 TARGET = zbase
 DEFINES += ZBASE_LIBRARY
 
@@ -77,7 +77,7 @@ include ($${TOOLSET_ROOT}/common/zbasecommon.pri)
 QMAKE_CXXFLAGS += -std=c++17 -Wall  -pthread -fPIC # -fpic for shared libraries
 
 #if not using ldap-lssl
-QMAKE_LFLAGS +=  -shared -lpthread
+QMAKE_LFLAGS +=  -shared -lpthread -fPIC # -fpic for shared libraries
 #if using ldap AND dynamic linkage
 #QMAKE_LFLAGS +=  -lldap
 
@@ -101,14 +101,13 @@ LIBS += -ldl  -lstdc++
 #libldap static
 #unix:LIBS += /usr/lib/x86_64-linux-gnu/libldap.a
 #libldap dynamic
-unix:LIBS += -lldap
+#unix:LIBS += -lldap
 
 # if using libxml++  (version 2.6)
 #LIBS +=/usr/lib/libxml++-2.6.a
 
 # if using libxml2
 #for libxml2 static
-#LIBS +=/usr/local/lib/libxml2.a
 #unix:LIBS += -L/usr/lib/x86_64-linux-gnu/ -llibxml2.a
 #unix:LIBS += /usr/lib/x86_64-linux-gnu/libxml2.a
 
@@ -126,8 +125,9 @@ unix:LIBS +=  -lxml2
 #LIBS += $$ICU_BASE/lib/libicutest.a
 
 #for icu dynamic
-#LIBS+= -Wl,-Bdynamic -L/usr/lib/x86_64-linux-gnu -licuuc -licudata -licui18n -licuio -licutu -licutest
-LIBS+= -licuuc -licudata -licui18n -licuio -licutu -licutest
+
+#LIBS+= -L$${ICU_LIB} -licuuc -licudata -licui18n -licuio -licutu -licutest
+LIBS+=  -licuuc -licudata -licui18n -licuio -licutu -licutest
 
 #LIBS += /usr/lib/libicuuc.so
 #LIBS += /usr/lib/libicui18n.so
@@ -291,7 +291,7 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/ztokenizer.h \
     $$TOOLSET_BASE/ztoolset/zsystemuser.h \
     $$TOOLSET_BASE/ztoolset/zbitset.h \
-    $$TOOLSET_BASE/ztoolset/templatewstring.h \
+#    $$TOOLSET_BASE/ztoolset/templatewstring.h \
     $$TOOLSET_BASE/ztoolset/zfunctions.h \
     $$TOOLSET_BASE/ztoolset/charman.h \
     $$TOOLSET_BASE/ztoolset/userid.h \
@@ -317,6 +317,8 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/zaierrors.cpp \
     $$TOOLSET_BASE/ztoolset/zhtmlreport.cpp \
     $$TOOLSET_BASE/zxml/zxmlprimitives.cpp \
+    ../zthread/zarglist.cpp \
+    ../ztoolset/zarray.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
     $$TOOLSET_BASE/zthread/zmutex.cpp \
@@ -325,7 +327,7 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/ztokenizer.cpp \
     $$TOOLSET_BASE/ztoolset/zsystemuser.cpp \
     $$TOOLSET_BASE/ztoolset/zbitset.cpp \
-    $$TOOLSET_BASE/ztoolset/templatewstring.cpp \
+#    $$TOOLSET_BASE/ztoolset/templatewstring.cpp \
 #    $$TOOLSET_BASE/ztoolset/templatestring.cpp \
 #    $$TOOLSET_BASE/ztoolset/zwstrings.cpp \
     $$TOOLSET_BASE/ztoolset/zmodulestack.cpp \
@@ -365,7 +367,8 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
 
 DISTFILES += \
     $$TOOLSET_ROOT/common/postlinkcopy.py \
-    $$TOOLSET_ROOT/common/zbasecommon.pri
+    $$TOOLSET_ROOT/common/zbasecommon.pri \
+    ../../debugger/zbasetypes.py
 
 # need to resolve local files path : QMake runs in a different directory and needs absolute paths
 HEADERS2PY=""

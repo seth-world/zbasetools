@@ -510,7 +510,7 @@ utfVsnprintf(ZCharset_type pCharset,void *pBuffer, size_t pMaxlen, const utfFmt 
         wConverter->Utf16toEncoding(decode_ZCharset(wOutCharset),wBufferChar,pMaxlen,
                                     wBufferUtf16,wOutCount );
 
-        _free(wBufferUtf16);
+        zfree(wBufferUtf16);
         return wOutCount;
     }//switch (pCharset)
 
@@ -2007,6 +2007,7 @@ Numeric values :
     case __X_UPPER__:
         wFmtFlags |= FMTF_Uppercase;    /* let it go thru */
     case __X_LOW__ :
+        wFmtFlags |= FMTF_Unsigned;
         wFmtFlags |= FMTF_Hexa;
         wFmtFlags |= FMTF_Int;
         pFormat++;

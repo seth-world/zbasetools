@@ -4,9 +4,8 @@
 #include <stdint.h>
 #include <byteswap.h>
 
-bool is_little_endian();    // in zdatatype.cpp
-template <class _Tp>
-_Tp _negate(_Tp &pValue); // in zdatatype.cpp
+bool is_little_endian();    // in zatomicconvert.cpp
+bool is_big_endian();       // in zatomicconvert.cpp
 
 unsigned char*  _negate(unsigned char* pValue, ssize_t pSize);
 
@@ -15,7 +14,7 @@ unsigned char*  _negate(unsigned char* pValue, ssize_t pSize);
  * @param pValue
  */
 template <class _Tp>
-_Tp _negate(_Tp &pValue)
+_Tp _negate(_Tp pValue)
 {
     uint8_t *wValuePtr=(uint8_t*)&pValue;
     uint8_t wValueUint8;
@@ -96,7 +95,7 @@ _Tp forceReverseByteOrder(_Tp pValue)
 
 template<class _Tp>
 static inline
-_Tp reverseByteOrder_Ptr(unsigned char* pValue)
+_Tp reverseByteOrder_Ptr(const unsigned char* pValue)
 {
 _Tp wValue;
     memmove(&wValue,pValue,sizeof(wValue));

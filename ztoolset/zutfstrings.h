@@ -76,8 +76,8 @@ public:
 //    int compare(utfcodeString &pComp) { return utfStrcmp<utf8_t>(content, pComp.content); }
 
 };
-#ifndef __UTFDESCSTRING__
-#define __UTFDESCSTRING__
+//#ifndef __UTFDESCSTRING__
+//#define __UTFDESCSTRING__
 
 class utfdescString : public utf8FixedString<cst_desclen+1>
 {
@@ -108,7 +108,7 @@ public:
     int compare(const utfdescString &pComp) const { return utfStrcmp<utf8_t>(content, pComp.content); }
 };
 
-#endif// __UTFDESCSTRING__
+//#endif// __UTFDESCSTRING__
 
 
 class utffieldNameString : public utf8FixedString<cst_fieldnamelen+1>

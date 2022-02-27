@@ -34,7 +34,7 @@ size_t _getexportCharArrayUVFSize(const char*pDataIn)
 void _exportCharArrayUVF(const char*pDataIn,ZDataBuffer& wReturn)
 {
   UVF_Size_type wUnitCount = 0;
-  while (pDataIn[wUnitCount]!=0)
+  while (pDataIn[wUnitCount])
     wUnitCount++;
   unsigned char* wPtrTarg=wReturn.extend((ssize_t)wUnitCount+sizeof(UVF_Size_type)+1);
   /* set export data with char unit size */
@@ -51,10 +51,10 @@ void _exportCharArrayUVF(const char*pDataIn,ZDataBuffer& wReturn)
   return ;
 }//_exportCharArrayUVF
 
-size_t _getimportCharArrayUVFSize(unsigned char*& pUniversalPtr)
+size_t _getimportCharArrayUVFSize(const unsigned char *&pUniversalPtr)
 {
   errno=0;
-  unsigned char* wPtrSrc = pUniversalPtr;
+  const unsigned char* wPtrSrc = pUniversalPtr;
   /* get and control char unit size */
   uint8_t wUnitSize=(uint8_t)*wPtrSrc;
   if (wUnitSize!=sizeof(char))
@@ -71,10 +71,10 @@ size_t _getimportCharArrayUVFSize(unsigned char*& pUniversalPtr)
   return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
 }//_getCharArrayUVFSize
 
-size_t _importCharArrayUVF(char* pDataOut,size_t pMaxSize,unsigned char*& pUniversalPtr)
+size_t _importCharArrayUVF(char* pDataOut, size_t pMaxSize, const unsigned char *&pUniversalPtr)
 {
   errno=0;
-  unsigned char* wPtrSrc = pUniversalPtr;
+  const unsigned char* wPtrSrc = pUniversalPtr;
   /* get and control char unit size */
   uint8_t wUnitSize=(uint8_t)*wPtrSrc;
   if (wUnitSize!=sizeof(char))

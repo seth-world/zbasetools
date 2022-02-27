@@ -90,10 +90,10 @@ wchar_t         content[_Sz];                    //!< main string fixed size con
 
 
     ZDataBuffer *_exportURF(ZDataBuffer *pUniversal);
-    templateWString& _importURF(unsigned char* &pUniversal);
+    templateWString& _importURF(const unsigned char* &pUniversal);
 
-    static ZStatus getUniversalFromURF(unsigned char *pURFDataPtr, ZDataBuffer& pUniversal);
-    static ZStatus getUniversalFromURF_Truncated(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal);
+    static ZStatus getUniversalFromURF(const unsigned char *pURFDataPtr, ZDataBuffer& pUniversal, const unsigned char **pURFDataPtrOut=nullptr);
+    static ZStatus getUniversalFromURF_Truncated(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr);
 
     virtual bool isEmpty(void) {return (content[0]==L'\0');}
     virtual void clear(void) {memset(content,0,sizeof(content));}
@@ -793,11 +793,11 @@ templateWString<_Sz>::encryptB64(void)
     ZStatus wSt=::encryptB64( &wB64String,&wB64Size,(const unsigned char*)content,wcslen(content)*sizeof(wchar_t) );
     if (wSt!=ZS_SUCCESS)
         {
-        _free(wB64String);
+        zfree(wB64String);
         return nullptr;
         }
     ZDataBuffer* wZDB= new ZDataBuffer(wB64String,wB64Size);
-    _free(wB64String);
+    zfree(wB64String);
     return wZDB;
 }
 
@@ -1021,12 +1021,12 @@ template <size_t _Sz>
  * @return
  */
 ZStatus
-templateWString<_Sz>::getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
+templateWString<_Sz>::getUniversalFromURF(const unsigned char* pURFDataPtr,ZDataBuffer& pUniversal,const unsigned char** pURFDataPtrOut)
 {
 uint16_t wCanonSize , wEffectiveUSize , wEffectiveArrayCount;
-size_t wURFByteSize;
+
 ZTypeBase wType;
-unsigned char* wURFDataPtr = pURFDataPtr;
+const unsigned char* wURFDataPtr = pURFDataPtr;
 
     memmove(&wType,wURFDataPtr,sizeof(ZTypeBase));
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
@@ -1057,6 +1057,10 @@ unsigned char* wURFDataPtr = pURFDataPtr;
     pUniversal.allocateBZero(((size_t)wCanonSize)*sizeof(content[0])); // fixed string must have canonical characters count allocated
 
     memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wURFDataPtr + wEffectiveUSize;
+      }
 
     return ZS_SUCCESS;
 }//getUniversalFromURF
@@ -1074,12 +1078,12 @@ template <size_t _Sz>
  * @return
  */
 ZStatus
-templateWString<_Sz>::getUniversalFromURF_Truncated(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal)
+templateWString<_Sz>::getUniversalFromURF_Truncated(const unsigned char* pURFDataPtr,ZDataBuffer& pUniversal,const unsigned char** pURFDataPtrOut)
 {
 uint16_t wCanonSize , wEffectiveUSize , wEffectiveArrayCount;
 size_t wURFByteSize;
 ZTypeBase wType;
-unsigned char* wURFDataPtr = pURFDataPtr;
+const unsigned char* wURFDataPtr = pURFDataPtr;
 
     memmove(&wType,wURFDataPtr,sizeof(ZTypeBase));
     wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
@@ -1110,7 +1114,10 @@ unsigned char* wURFDataPtr = pURFDataPtr;
     pUniversal.allocateBZero(((size_t)wCanonSize)*sizeof(content[0])); // fixed string must have canonical characters count allocated
 
     memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
-
+    if (pURFDataPtrOut)
+    {
+      *pURFDataPtrOut = wURFDataPtr + wEffectiveUSize;
+    }
     return ZS_SUCCESS;
 }//getUniversalFromURF_Truncated
 
@@ -1122,7 +1129,7 @@ template <size_t _Sz1>
  * @return
  */
 templateWString<_Sz1> &
-templateWString<_Sz1>::_importURF(unsigned char* &pUniversal)
+templateWString<_Sz1>::_importURF(const unsigned char* &pUniversal)
 {
 ZTypeBase   wType;
 uint16_t    wCanonical;

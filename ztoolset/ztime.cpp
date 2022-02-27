@@ -4,6 +4,9 @@
 #include <ztoolset/ztime.h>
 #include <cstdio>
 #include <ztoolset/zerror.h>
+
+#include <ztoolset/zdatabuffer.h>
+
 /**
  * @brief ZTime::absoluteFromDelay
  * @param pDelay
@@ -108,10 +111,10 @@ char* ZTime::toString(char* pBuf,unsigned int pLen, const char* pFormat,ZDelayPr
         struct tm t;
 
         tzset();
-        if (localtime_r(&(tv_sec), &t) == NULL)
+        if (localtime_r(&(tv_sec), &t) == nullptr)
             return nullptr;
 
-        if (pFormat==NULL)
+        if (pFormat==nullptr)
                 wRet = strftime(pBuf, pLen, "%d-%m-%y %T", &t);
             else
                 wRet = strftime(pBuf, pLen, pFormat, &t);
@@ -148,6 +151,13 @@ char* ZTime::toString(char* pBuf,unsigned int pLen, const char* pFormat,ZDelayPr
 
         return pBuf;
 
+}
+
+CharMan ZTime::toString(const char* pFormat,ZDelayPrecision_type pDelayType)
+{
+  CharMan wReturn;
+  toString(wReturn.content,wReturn.Maxlen(),pFormat,pDelayType);
+  return wReturn;
 }
 
 
@@ -223,6 +233,25 @@ char* ZTime::delaytoString(char* pBuf,unsigned int pLen,ZDelayPrecision_type pDe
         return pBuf;
 
 }
+
+ZDataBuffer ZTime::_export()
+{
+  ZDataBuffer wReturn;
+
+  _exportAtomic<__time_t>(tv_sec,wReturn);
+  _exportAtomic<__syscall_slong_t>(tv_nsec,wReturn);
+  return wReturn;
+}
+const unsigned char *ZTime::_import(const unsigned char *&pPtrIn)
+{
+  _importAtomic<__time_t>(tv_sec,pPtrIn);
+  _importAtomic<__syscall_slong_t>(tv_nsec,pPtrIn);
+  return pPtrIn;
+}
+
+
+
+
 timeval setTimevalFromMicroSeconds(long pMicroseconds)
 {
 timeval pTime;

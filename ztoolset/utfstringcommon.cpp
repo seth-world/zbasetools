@@ -39,14 +39,14 @@
  * @return a ZStatus
  */
 ZStatus
-utfStringHeader::_importURFGeneric(unsigned char* pURFDataPtr)
+utfStringHeader::_importURFGeneric(const unsigned char *pURFDataPtr)
 {
 ZTypeBase               wSourceType;
 URF_Capacity_type       wCapacity;
 URF_Fixed_Size_type     wFUniversalSize;
 URF_Varying_Size_type   wVUniversalSize;
-size_t                  wUGenericSize;
-size_t                  wUnits;
+ssize_t                  wUGenericSize;
+ssize_t                  wUnits;
 
 ZStatus         wFinalSt=ZS_SUCCESS;
 
@@ -82,7 +82,7 @@ ZStatus         wFinalSt=ZS_SUCCESS;
     if (wSourceType&ZType_VaryingLength) // source is varying string
             {
             pURFDataPtr=getURFBufferValue<URF_Varying_Size_type>(&wVUniversalSize,pURFDataPtr);
-            wUGenericSize=(uint64_t)wVUniversalSize;
+            wCapacity=wFUniversalSize=wUGenericSize=(uint64_t)wVUniversalSize;
             }
         else // Source is fixed string
             {
@@ -100,13 +100,13 @@ ZStatus         wFinalSt=ZS_SUCCESS;
     if (wUGenericSize > getByteSize())
                 {
                 ZException.setMessage(_GET_FUNCTION_NAME_,
-                                      ZS_STRTRUNCATED,
+                                      ZS_TRUNCATED,
                                       Severity_Warning,
                                       " Capacity of utftemplateString overflow: requested %d while capacity in bytes is %ld . String truncated.",
                                       wFUniversalSize,
                                       getByteSize());
                 wUGenericSize=getByteSize()-1 ; // yes : but will be appropriately truncated when dividing by sizeof(_Utf) of utf16 and utf32
-                wFinalSt=ZS_STRTRUNCATED;
+                wFinalSt=ZS_TRUNCATED;
                 }
 
     switch (wTargetType&ZType_AtomicMask)
@@ -123,7 +123,7 @@ ZStatus         wFinalSt=ZS_SUCCESS;
         case ZType_U8:
         {
         wUnits=wUGenericSize/sizeof(utf8_t);
-        utfStrnset<utf8_t>((utf8_t*)DataByte,
+        utfNSetReverse<utf8_t>((utf8_t*)DataByte,
                            (const utf8_t*)pURFDataPtr,
                            wUnits,
                            wCapacity);
@@ -554,7 +554,7 @@ size_t wByteSize;
                 {
                 wTargetUnitsCount= pTargetCapacity-1;
                 wTargetFUniversalSize=wTargetUnitsCount*sizeof(char);
-                wFinalSt=ZS_STRTRUNCATED;
+                wFinalSt=ZS_TRUNCATED;
                 break;
                 }
         wTargetUnitsCount=(URF_Fixed_Size_type)(wTargetFUniversalSize/sizeof(char));
@@ -567,7 +567,7 @@ size_t wByteSize;
                 {
                 wTargetUnitsCount= pTargetCapacity-1;
                 wTargetFUniversalSize=wTargetUnitsCount*sizeof(uint8_t);
-                wFinalSt=ZS_STRTRUNCATED;
+                wFinalSt=ZS_TRUNCATED;
                 break;
                 }
         wTargetUnitsCount=(URF_Fixed_Size_type)(wUGenericSize/sizeof(uint8_t));
@@ -580,7 +580,7 @@ size_t wByteSize;
                 {
                 wTargetUnitsCount= pTargetCapacity-1;
                 wTargetFUniversalSize=wUBytesCapacity;
-                wFinalSt=ZS_STRTRUNCATED;
+                wFinalSt=ZS_TRUNCATED;
                 break;
                 }
 
@@ -594,7 +594,7 @@ size_t wByteSize;
                 {
                 wTargetUnitsCount= pTargetCapacity-1;
                 wTargetFUniversalSize=wUBytesCapacity;
-                wFinalSt=ZS_STRTRUNCATED;
+                wFinalSt=ZS_TRUNCATED;
                 break;
                 }
         wTargetUnitsCount=(URF_Fixed_Size_type)(wUGenericSize/sizeof(uint32_t));
@@ -612,10 +612,10 @@ size_t wByteSize;
     wTargetURFPtr=setURFBufferValue<URF_Capacity_type>(wTargetURFPtr,pTargetCapacity);
     wTargetURFPtr=setURFBufferValue<URF_Fixed_Size_type>(wTargetURFPtr,wTargetFUniversalSize);
 
-    if (wFinalSt==ZS_STRTRUNCATED)
+    if (wFinalSt==ZS_TRUNCATED)
         {
         ZException.setMessage(_GET_FUNCTION_NAME_,
-                              ZS_STRTRUNCATED,
+                              ZS_TRUNCATED,
                               Severity_Warning,
                               " Target capacity is <%d> bytes while requested string bytes size is <%ld>. String is being truncated.",
                               wTargetFUniversalSize,
@@ -716,23 +716,23 @@ _exportURFOther_TargetVarying:
  * @return a ZStatus
  */
 ZStatus
-utfStringHeader::getUniversalFromURF(ZType_type pType, unsigned char* pURFDataPtr,ZDataBuffer &pUniversal)
+utfStringHeader::getUniversalFromURF(ZType_type pType,const unsigned char* pURFDataPtr, ZDataBuffer &pUniversal, const unsigned char **pURFDataPtrOut)
 {
 URF_Capacity_type       wCapacity;
 size_t                  wUnits;
 URF_Fixed_Size_type     wFUniversalSize;
 URF_Varying_Size_type   wVUniversalSize;
 
-unsigned char*wDataPtr=pURFDataPtr;
+const unsigned char*wDataPtr=pURFDataPtr;
 
 ZTypeBase wType;
 
 utf8_t*wU8Ptr=nullptr;
-utf8_t*wU8PtrIn= nullptr;
+const utf8_t*wU8PtrIn= nullptr;
 utf16_t*wU16Ptr=nullptr;
-utf16_t*wU16PtrIn= nullptr;
+const utf16_t*wU16PtrIn= nullptr;
 utf32_t*wU32Ptr=nullptr;
-utf32_t*wU32PtrIn= nullptr;
+const utf32_t*wU32PtrIn= nullptr;
 
 
     memmove(&wType,wDataPtr,sizeof(ZTypeBase));
@@ -761,6 +761,10 @@ utf32_t*wU32PtrIn= nullptr;
     wDataPtr += sizeof (URF_Fixed_Size_type);
     pUniversal.allocateBZero((size_t)wFUniversalSize); /* allocate size without endofstring mark */
 
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wDataPtr + wFUniversalSize;
+      }
 
     wUnits=0;
     switch (pType&ZType_AtomicMask)
@@ -768,7 +772,7 @@ utf32_t*wU32PtrIn= nullptr;
     case ZType_Char:
     case ZType_U8:
         wU8Ptr=(utf8_t*)pUniversal.Data;
-        wU8PtrIn= (utf8_t*)wDataPtr;
+        wU8PtrIn= (const utf8_t*)wDataPtr;
         wUnits=wFUniversalSize/sizeof(utf8_t); /* compute effective units number */
         while (wUnits--)
                 {
@@ -808,7 +812,10 @@ _getUniversal_Varying:
     wDataPtr += sizeof (URF_Varying_Size_type);
 //    pUniversal.allocateBZero((size_t)wEffectiveUSize+sizeof(_Utf)); /* allocate size + endofstring mark */
     pUniversal.allocateBZero((size_t)wVUniversalSize); /* allocate size without endofstring mark */
-
+    if (pURFDataPtrOut)
+      {
+      *pURFDataPtrOut = wDataPtr + wVUniversalSize;
+      }
 
     wUnits=0;
     switch (pType&ZType_AtomicMask)
@@ -816,7 +823,7 @@ _getUniversal_Varying:
     case ZType_Char:
     case ZType_U8:
         wU8Ptr=(utf8_t*)pUniversal.Data;
-        wU8PtrIn= (utf8_t*)wDataPtr;
+        wU8PtrIn= (const utf8_t*)wDataPtr;
         wUnits=wVUniversalSize/sizeof(utf8_t); /* compute effective units number */
         while (wUnits--)
                 {
@@ -825,7 +832,7 @@ _getUniversal_Varying:
         break;
     case ZType_U16:
         wU16Ptr=(utf16_t*)pUniversal.Data;
-        wU16PtrIn= (utf16_t*)wDataPtr;
+        wU16PtrIn= (const utf16_t*)wDataPtr;
         wUnits=wVUniversalSize/sizeof(utf16_t); /* compute effective units number */
         while (wUnits--)
                 {
@@ -834,7 +841,7 @@ _getUniversal_Varying:
         break;
     case ZType_U32:
         wU32Ptr=(utf32_t*)pUniversal.Data;
-        wU32PtrIn= (utf32_t*)wDataPtr;
+        wU32PtrIn= (const utf32_t*)wDataPtr;
         wUnits=wVUniversalSize/sizeof(utf32_t); /* compute effective units number */
         while (wUnits--)
                 {

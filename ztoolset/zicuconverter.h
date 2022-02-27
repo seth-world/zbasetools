@@ -175,7 +175,7 @@ UST_Status_type wUSTSt;
                      " while Converting <%s> string to unicode pivot\n",mainCharset);
     if (zis_Error(wSt))
                     {
-                    _free(wUPivot);
+                    zfree(wUPivot);
                     return wSt;
                     }
 
@@ -184,8 +184,8 @@ UST_Status_type wUSTSt;
     *pOutCharStr=(char*)calloc(wCount,sizeof(char));
     if(!*pOutCharStr)
             {
-            _free(wInOffsets);
-            _free(wUPivot);
+            zfree(wInOffsets);
+            zfree(wUPivot);
             return ZS_MEMERROR;
             }
     *pOutCount = wCount*sizeof(char);
@@ -213,9 +213,9 @@ UST_Status_type wUSTSt;
 
     //  free allocated memory
 
-    _free(wInOffsets);
-    _free(wOutOffsets);
-    _free(wUPivot);
+    zfree(wInOffsets);
+    zfree(wOutOffsets);
+    zfree(wUPivot);
 
     return wSt;
 }//toEncoding
@@ -286,7 +286,7 @@ ZStatus wSt=ZS_SUCCESS;
                      " while Converting string encoded from <%s> to unicode pivot\n", wExtEncoding);
     if (zis_Error(wSt))
                     {
-                    _free(wUPivot);
+                    zfree(wUPivot);
                     return wSt;
                     }
 
@@ -295,8 +295,8 @@ ZStatus wSt=ZS_SUCCESS;
     *putfString=(_Utf*)calloc(wCount,sizeof(_Utf));
     if(!*putfString)
             {
-            _free(wInOffsets);
-            _free(wUPivot);
+            zfree(wInOffsets);
+            zfree(wUPivot);
             return ZS_MEMERROR;
             }
     *pOutCount = wCount ;
@@ -323,9 +323,9 @@ ZStatus wSt=ZS_SUCCESS;
 
     //  free allocated memory
 
-    _free(wInOffsets);
-    _free(wOutOffsets);
-    _free(wUPivot);
+    zfree(wInOffsets);
+    zfree(wOutOffsets);
+    zfree(wUPivot);
 
     return wSt;
 }//fromEncoding

@@ -127,6 +127,19 @@ uid_t geteuid();
 //#include <ztoolset/zutfstrings.h>
 //#include <ztoolset/zexceptionmin.h>
 
+class utf8VaryingString;
+
+/** @brief versions Versions are defined with 3 elements : <version number>.<release major>-<release minor>
+ *  these elements are packed in an unsigned long variable
+ */
+
+/** @brief getVersionStr() formats a version/major/minor to string from an unsigned long */
+utf8VaryingString getVersionStr (unsigned long pVersion); /* instantiated within <ztoolset/zfunctions.cpp> */
+
+/** @brief getVersionNum() get an unsigned long from a string containing version/major/minor */
+unsigned long getVersionNum (const utf8VaryingString& pVersion); /* instantiated within <ztoolset/zfunctions.cpp> */
+
+
+
 
 #endif // ZFUNCTIONS_H
-

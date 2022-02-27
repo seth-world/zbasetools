@@ -2,7 +2,6 @@
 #define UTFTEMPLATESTRING_CPP
 
 #include <ztoolset/utftemplatestring.h>
-//#include <zindexedfile/zdatatype.h>
 #include <ztoolset/zexceptionmin.h>
 
 
@@ -11,7 +10,7 @@
  * @param pUniversal pointer to first byte of URF data header
  * @return a ZStatus
  */
-ZStatus _getutfStringURFData(unsigned char* pURFDataPtr,ZTypeBase& pZType,uint16_t &pCanonical,uint16_t &pUniversalSize)
+ZStatus _getutfStringURFData(const unsigned char* pURFDataPtr,ZTypeBase& pZType,uint16_t &pCanonical,uint16_t &pUniversalSize)
 {
 //size_t      wURFByteSize;
 size_t      wOffset=0;

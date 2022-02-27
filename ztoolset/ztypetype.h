@@ -67,16 +67,17 @@ enum ZType_type : ZTypeBase
 //
 // atomic data types - is combined (ored) with other attributes to give the full data type
 //
-    ZType_UChar          = 0x00000202,    //!< unsigned char - mostly used for encoding/decoding
-    ZType_Char           = 0x00000201,    //!< char - a single ascii character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
+    ZType_UChar          = 0x00000002,    //!< unsigned char - mostly used for encoding/decoding
+    ZType_Char           = 0x00000001,    //!< char - a single ascii character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
 
     ZType_U8             = 0x00000004,    //!< arithmetic byte
     ZType_S8             = 0x00010004,    //!< arithmetic signed byte
     ZType_U16            = 0x00100008,    //!< arithmetic 2 bytes value unsigned (no leading sign byte)
 
+/* Not to be used anymore
     ZType_WChar          = 0x00110208,    //!< WChar is a char string based on uint16_t wchar_t (no leading sign byte) but subject to endian conversion
     ZType_WUChar         = 0x00100208,    //!< WUChar is a char string based on uint16_t unsigned wchar_t subject to endian conversion
-
+*/
     ZType_S16            = 0x00110008,    //!< arithmetic 2 bytes value signed (with leading sign byte)
     ZType_U32            = 0x00100010,    //!< arithmetic 4 bytes value unsigned (no leading sign byte)
     ZType_S32            = 0x00110010,    //!< arithmetic 4 bytes value signed (with leading sign byte)
@@ -92,9 +93,10 @@ enum ZType_type : ZTypeBase
     ZType_AtomicUChar    = 0x01000002,    //!< unsigned char - mostly used for encoding/decoding
     ZType_AtomicChar     = 0x01000001,    //!< char - a single ascii character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
 
+/*  not to be used anymore
     ZType_AtomicWUChar   = 0x0110000A,    //!< unsigned wchar_t (is a char and an uint16_t
     ZType_AtomicWChar    = 0x01100009,    //!< wchar_t - a single double character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
-
+*/
 
     ZType_AtomicU8       = 0x01000004,    //!< arithmetic byte      no Endian
     ZType_AtomicS8       = 0x01010004,    //!< arithmetic signed byte no Endian
@@ -124,12 +126,15 @@ enum ZType_type : ZTypeBase
     */
     ZType_bit            = 0x00000400,
     ZType_bitset         = 0x10000400,    //!< bitset is a ZType_ByteSeq with atomic data 'bit'
+    ZType_bitsetFull     = 0x100004FF,    //!< bitset with any bit set : used by field presence
 
     ZType_CharVaryingString = ZType_String|ZType_VaryingLength|ZType_Char,
 
     ZType_Utf8VaryingString = ZType_String|ZType_VaryingLength|ZType_U8,
     ZType_Utf16VaryingString = ZType_String|ZType_VaryingLength|ZType_U16,
     ZType_Utf32VaryingString = ZType_String|ZType_VaryingLength|ZType_U32,
+
+    ZType_UtfVaryingString  = ZType_String|ZType_VaryingLength,
 
     ZType_CharFixedString   = ZType_String|ZType_Char,
 
@@ -140,15 +145,18 @@ enum ZType_type : ZTypeBase
 
     // ==============deprecated=============================
     ZType_VaryingCString = ZType_String|ZType_VaryingLength|ZType_Char ,  //!< data type is a C string : varying length of char ended with '\0'
-    ZType_VaryingWString = ZType_String|ZType_VaryingLength|ZType_WChar,  //!< data type is a W string : varying length of char ended with L'\0'
     ZType_FixedCString   = ZType_String|ZType_Char,  //!< a fixed length string containing a c string :templateWString and derived
+/*  Not to be used anymore
+    ZType_VaryingWString = ZType_String|ZType_VaryingLength|ZType_WChar,  //!< data type is a W string : varying length of char ended with L'\0'
     ZType_FixedWString   = ZType_String|ZType_WChar,  //!< a fixed length string containing a W string :templateWString and derived
     ZType_FixedWUString   = ZType_String|ZType_WUChar,  //!< a fixed length string containing a unsigned W string :templateWString and derived
+*/
     // ============== end deprecated=============================
 
     ZType_CString        = ZType_Pointer|ZType_VaryingLength|ZType_Char, //!< standard cstring (char*) ZType_Pointer | ZType_Char
+/* not to be used anymore
     ZType_WString        = ZType_Pointer|ZType_VaryingLength|ZType_WChar, //!< standard cstring (wchar_t*) ZType_Pointer | ZType_WChar
-
+*/
 
 //    ZType_ZDate          = 0x21100010,    //!< a struct giving uint32_t  is ZDate (export and import)
 //    ZType_ZDateFull      = 0x21100020,    //!< a struct giving uint64_t  is ZDate (export and import)
@@ -158,10 +166,21 @@ enum ZType_type : ZTypeBase
 
     ZType_CheckSum       = ZType_Class | ZType_UChar, //!< a struct containing fixed array of unsigned char
 
-    ZType_Unknown        = 0xF00FFFFF     //! Unmanaged data type : generally an error
+    ZType_Resource       =  0x20000001,
+
+    ZType_URI            =  0x30000000,
+
+    ZType_URIString     = ZType_URI | ZType_Utf8VaryingString ,
+
+    ZType_Unknown        =  0xF00FFFFF     //! Unmanaged data type : generally an error
 } ;
 
 }// extern "C"
+
+/**
+ * @brief isKeyEligible returns true is data type pType is capable of being part of an index key and false if not
+ */
+bool isKeyEligible(ZTypeBase pType);
 
 class ZDataBuffer;
 const char *decode_ZType (ZTypeBase pType) ;            // /zindexedfile/zdatatype.cpp

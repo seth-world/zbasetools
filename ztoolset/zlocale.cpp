@@ -1,7 +1,7 @@
 #ifndef ZLOCALE_CPP
 #define ZLOCALE_CPP
 
-#include <ztoolset/zmem.h> // for _free()
+#include <ztoolset/zmem.h> // for zfree()
 #include <ztoolset/zerror.h> // for macros & status
 #include <ztoolset/zcharset.h>
 
@@ -12,9 +12,9 @@ ZLocale _zlocale;
 
 void ZLocale::GCleanCurrencyCode(void)
 {
-    _free(GCurrencyCode8);
-    _free(GCurrencyCode16);
-    _free(GCurrencyCode32);
+    zfree(GCurrencyCode8);
+    zfree(GCurrencyCode16);
+    zfree(GCurrencyCode32);
 }
 
 UST_Status_type

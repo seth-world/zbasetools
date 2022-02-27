@@ -2,6 +2,10 @@
 #define ZXMLPRIMITIVES_CPP
 
 #include <zxml/zxmlprimitives.h>
+#include <ztoolset/utfvaryingstring.h>
+
+using namespace zbs;
+
 
 int cst_XMLIndent = 3;
 void setXmlIdent(int pIndent)
@@ -12,7 +16,7 @@ void setXmlIdent(int pIndent)
 
 
 zxmlNode*
-XMLsearchForChildTag(zxmlNode* pTopNode, const char* pTag)
+XMLsearchForChildTag(zxmlNode* pTopNode, const utf8VaryingString &pTag)
 {
   zxmlNode* wNode;
   zxmlNode* wNode1=nullptr;
@@ -30,19 +34,70 @@ XMLsearchForChildTag(zxmlNode* pTopNode, const char* pTag)
   return nullptr;
 }//XMLsearchForChildTag
 
+bool
+XMLhasNamedChild(zxmlNode* pTopNode, const utf8VaryingString &pName)
+{
+  zxmlNode* wNode;
+  zxmlNode* wNode1=nullptr;
+  if (pTopNode->getName()==pName)
+    return true;
+  ZStatus wSt=pTopNode->getFirstChild(wNode);
+  while (wSt==ZS_SUCCESS)
+  {
+    if (wNode->getName()==pName)
+        return true;
+    wSt=wNode->getNextNode(wNode1);
+    XMLderegister(wNode);
+    wNode=wNode1;
+  }
+  return false;
+}//XMLsearchForChildTag
 
-std::string fmtXMLnode(const char*pNodeName, const int pLevel)
+utf8VaryingString fmtXMLdeclaration(const utf8VaryingString& pEncoding)
+{
+  utf8VaryingString wBuffer;
+  wBuffer.sprintf ( "<?xml version='1.0' encoding='%s'?>\n",pEncoding.toCChar());
+  return wBuffer;
+}
+utf8VaryingString fmtXMLmainVersion(const utf8VaryingString& pName,unsigned long pFullVersion,const int pLevel)
+{
+  utf8String wStr;
+  wStr.sprintf("'%s'",getVersionStr(pFullVersion).toCChar());
+
+  return fmtXMLnodeWithAttributes(pName,"version",wStr.toCChar(),pLevel);
+}
+utf8VaryingString fmtXMLversion(const utf8VaryingString& pName,unsigned long pFullVersion,const int pLevel)
+{
+  utf8String wStr;
+  wStr.sprintf("'%s'",getVersionStr(pFullVersion).toCChar());
+  return fmtXMLchar(pName,wStr.toCChar(),pLevel);
+}
+
+
+utf8VaryingString fmtXMLnode(const utf8VaryingString &pNodeName, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>\n",
-            wIndent,' ',pNodeName);
-    return std::string(wBuffer);
+            wIndent,' ',pNodeName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLnodeWithAttributes(const char*pNodeName,
-                                     const char* pAttName,const char*pAttValue,
+
+utf8VaryingString fmtXMLendnode(const utf8VaryingString &pNodeName, const int pLevel)
+{
+  int wIndent=pLevel*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+  sprintf (wBuffer,
+      "%*c</%s>\n",
+      wIndent,' ',pNodeName.toCChar());
+  return utf8VaryingString(wBuffer);
+}
+
+utf8VaryingString fmtXMLnodeWithAttributes(const utf8VaryingString& pNodeName,
+                                     const utf8VaryingString &pAttName,const utf8VaryingString &pAttValue,
                                      const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
@@ -50,12 +105,12 @@ std::string fmtXMLnodeWithAttributes(const char*pNodeName,
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s %s = \"%s\">\n",
-            wIndent,' ',pNodeName,pAttName,pAttValue);
-    return std::string(wBuffer);
+            wIndent,' ',pNodeName.toCChar(),pAttName.toCChar(),pAttValue.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLnodeWithAttributes(const char*pNodeName,
-                                     const char* pAttName1,const char*pAttValue1,
-                                     const char* pAttName2,const char*pAttValue2,
+utf8VaryingString fmtXMLnodeWithAttributes(const utf8VaryingString &pNodeName,
+                                     const utf8VaryingString &pAttName1,const utf8VaryingString &pAttValue1,
+                                     const utf8VaryingString &pAttName2,const utf8VaryingString &pAttValue2,
                                      const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
@@ -63,338 +118,592 @@ std::string fmtXMLnodeWithAttributes(const char*pNodeName,
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s %s = \"%s\" %s = \"%s\" > \n",
-            wIndent,' ',pNodeName,pAttName1,pAttValue1,pAttName2,pAttValue2);
-    return std::string(wBuffer);
+            wIndent,' ',pNodeName.toCChar(),pAttName1.toCChar(),pAttValue1.toCChar(),pAttName2.toCChar(),pAttValue2.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLendnode(const char*pNodeName, const int pLevel)
+
+utf8VaryingString fmtXMLnodeWithAttributes( const utf8VaryingString &pNodeName,
+                                            const utf8VaryingString &pAttName1,const utf8VaryingString &pAttValue1,
+                                            const utf8VaryingString &pAttName2,const utf8VaryingString &pAttValue2,
+                                            const utf8VaryingString &pAttName3,const utf8VaryingString &pAttValue3,
+                                            const int pLevel)
 {
-    int wIndent=pLevel*cst_XMLIndent;
-    char wBuffer[500];
-    memset (wBuffer,0,sizeof(wBuffer));
-    sprintf (wBuffer,
-            "%*c</%s>\n",
-            wIndent,' ',pNodeName);
-    return std::string(wBuffer);
+  int wIndent=pLevel*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+  sprintf (wBuffer,
+      "%*c<%s %s = \"%s\" %s = \"%s\" %s = \"%s\"> \n",
+      wIndent,' ',pNodeName.toCChar(),pAttName1.toCChar(),pAttValue1.toCChar(),pAttName2.toCChar(),pAttValue2.toCChar(),pAttName3.toCChar(),pAttValue3.toCChar());
+  return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLchar(const char*pVarName,const char* pVarContent, const int pLevel)
+
+
+utf8VaryingString fmtXMLchar(const utf8VaryingString &pVarName, const utf8VaryingString &pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%s</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent.toCChar(),pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLcomment(const char* pContent, const int pLevel)
+utf8VaryingString fmtXMLcomment(const utf8VaryingString &pContent, const int pLevel)
 {
   int wIndent=pLevel*cst_XMLIndent;
   char wBuffer[500];
   memset (wBuffer,0,sizeof(wBuffer));
   sprintf (wBuffer,
       "%*c<!-- %s -->\n",
-      wIndent,' ',pContent);
-  return std::string(wBuffer);
+      wIndent,' ',pContent.toCChar());
+  return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLstring(const char*pVarName,utf8String& pVarContent, const int pLevel)
+
+utf8VaryingString fmtXMLcomment(const utf8VaryingString &pContent)
+{
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+  sprintf (wBuffer,
+      "<!-- %s -->\n",
+      pContent.toCChar());
+  return utf8VaryingString(wBuffer);
+}
+
+utf8VaryingString& suppressLF(utf8VaryingString& pString)
+{
+  if (pString.isEmpty())
+    return pString;
+  utf8_t* wPtr=pString.Data+pString.UnitCount;
+  while ((wPtr > pString.Data)&&(*wPtr!='\n'))
+    wPtr--;
+  *wPtr=0;
+  return pString;
+}
+utf8VaryingString& fmtXMLaddInlineComment(utf8VaryingString& pXmlString, const utf8VaryingString &pComment)
+{
+  suppressLF(pXmlString).addsprintf("<!-- %s -->\n",pComment.toCChar());
+  return pXmlString;
+}
+
+
+utf8VaryingString fmtXMLstring(const utf8VaryingString &pVarName, utf8String& pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%s</%s>\n",
-            wIndent,' ',pVarName,pVarContent.toCChar(),pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent.toCChar(),pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLdouble(const char*pVarName,const double pVarContent, const int pLevel)
+utf8VaryingString fmtXMLdouble(const utf8VaryingString &pVarName,const double pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%g</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLfloat(const char*pVarName,const float pVarContent, const int pLevel)
+utf8VaryingString fmtXMLfloat(const utf8VaryingString &pVarName,const float pVarContent, const int pLevel)
 {
     return fmtXMLdouble(pVarName,double(pVarContent),pLevel);
 }
-std::string fmtXMLint(const char*pVarName,const int pVarContent, const int pLevel)
+utf8VaryingString fmtXMLint(const utf8VaryingString &pVarName,const int pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%d</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLuint(const char*pVarName,const unsigned int pVarContent, const int pLevel)
+utf8VaryingString fmtXMLuint(const utf8VaryingString &pVarName,const unsigned int pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%u</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLlong(const char*pVarName,const long pVarContent, const int pLevel)
+utf8VaryingString fmtXMLlong(const utf8VaryingString &pVarName, const long pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%ld</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLulong(const char*pVarName,const unsigned long pVarContent, const int pLevel)
+utf8VaryingString fmtXMLulong(const utf8VaryingString &pVarName,const unsigned long pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%lu</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLint32(const char*pVarName,const int32_t pVarContent, const int pLevel)
+utf8VaryingString fmtXMLint32(const utf8VaryingString &pVarName,const int32_t pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%d</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLuint32(const char*pVarName,const uint32_t pVarContent, const int pLevel)
+utf8VaryingString fmtXMLuint32(const utf8VaryingString &pVarName,const uint32_t pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%u</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLint64(const char*pVarName,const int64_t pVarContent, const int pLevel)
+utf8VaryingString fmtXMLint64(const utf8VaryingString &pVarName,const int64_t pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%ld</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLuint64(const char*pVarName,const uint64_t pVarContent, const int pLevel)
+utf8VaryingString fmtXMLuint64(const utf8VaryingString &pVarName,const uint64_t pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%lu</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
 
-std::string fmtXMLintHexa(const char*pVarName,const int pVarContent, const int pLevel)
+utf8VaryingString fmtXMLintHexa(const utf8VaryingString &pVarName, const int pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%Xd</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLuintHexa(const char*pVarName,const unsigned int pVarContent, const int pLevel)
+utf8VaryingString fmtXMLuintHexa(const utf8VaryingString &pVarName,const unsigned int pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%Xu</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
 
-std::string fmtXMLlongHexa(const char*pVarName,const long pVarContent, const int pLevel)
+utf8VaryingString fmtXMLlongHexa(const utf8VaryingString &pVarName,const long pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%lXd</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLulongHexa(const char*pVarName,const unsigned long pVarContent, const int pLevel)
+utf8VaryingString fmtXMLulongHexa(const utf8VaryingString &pVarName,const unsigned long pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%lXu</%s>\n",
-            wIndent,' ',pVarName,pVarContent,pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
-std::string fmtXMLbool(const char*pVarName,const bool pVarContent, const int pLevel)
+utf8VaryingString fmtXMLbool(const utf8VaryingString &pVarName,const bool pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
             "%*c<%s>%s</%s>\n",
-            wIndent,' ',pVarName,pVarContent?"true":"false",pVarName);
-    return std::string(wBuffer);
+            wIndent,' ',pVarName.toCChar(),pVarContent?"true":"false",pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
 }
 
-int
-XMLgetChildText (zxmlElement*pElement,const char* pChildName,utf8String& pTextValue,ZaiErrors* pErrorlog)
+ZStatus
+XMLgetChildText (zxmlElement*pElement,const utf8VaryingString& pChildName,utf8String& pTextValue,ZaiErrors* pErrorlog,ZaiE_Severity pSeverity)
 {
     zxmlElement*wChild=nullptr;
-    ZStatus wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName);
+    ZStatus wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName.toCChar());
     if (wSt!=ZS_SUCCESS)
     {
-        pErrorlog->logZStatus(ZAIES_Error,wSt,"XMLgetChildText-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
-                       pChildName,
+        pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildText-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
+                       pChildName.toCChar(),
                        decode_ZStatus(wSt));
-        return -1;
+        return wSt;
     }
     wSt=wChild->getNodeText(pTextValue);
     if (wSt!=ZS_SUCCESS)
     {
-        pErrorlog->logZStatus(ZAIES_Error,wSt,"XMLgetChildText-E-CNTFINDND Error cannot find text within element <%s> status <%s>",
+        pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildText-E-CNTFINDND Error cannot find text within element <%s> status <%s>",
                        wChild->getName().toCChar(),
                        decode_ZStatus(wSt));
-        return -1;
+        return wSt;
     }
-    return 0;
+    return ZS_SUCCESS;
 } //XMLgetChildText
-int
-XMLgetChildFloat (zxmlElement*pElement,const char* pChildName,float& pFloat,ZaiErrors* pErrorlog)
+ZStatus
+XMLgetChildFloat (zxmlElement*pElement,const utf8VaryingString &pChildName,float& pFloat,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
     pFloat=float(wValue.toDouble());
-    return 0;
+    return ZS_SUCCESS;
 } //XMLgetChildFloat
-int
-XMLgetChildDouble (zxmlElement*pElement,const char* pChildName,double&pDouble,ZaiErrors* pErrorlog)
+ZStatus
+XMLgetChildDouble (zxmlElement*pElement, const utf8VaryingString &pChildName, double& pDouble, ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+      return wSt;
     pDouble=wValue.toDouble();
-    return 0;
+    return ZS_SUCCESS;
 } //XMLgetChildDouble
-int
-XMLgetChildBool (zxmlElement*pElement,const char* pChildName,bool &pBool,ZaiErrors* pErrorlog)
+ZStatus
+XMLgetChildBool (zxmlElement*pElement,const utf8VaryingString &pChildName,bool &pBool,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
-    wValue.toUpper();
-    if (wValue=="TRUE")
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
+
+  wValue.toUpper();
+  if (wValue=="TRUE")
         pBool=true;
     else
         pBool=false;
-    return 0;
+    return ZS_SUCCESS;
 } //XMLgetChildBool
-int
-XMLgetChildInt (zxmlElement*pElement,const char* pChildName,int &pInt,ZaiErrors* pErrorlog)
+ZStatus
+XMLgetChildInt (zxmlElement*pElement,const utf8VaryingString & pChildName,int &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pInt=wValue.toInt();
-    return 0;
+  pInt=wValue.toInt();
+  return ZS_SUCCESS;
 } //XMLgetChildInt
-int
-XMLgetChildLong (zxmlElement*pElement,const char* pChildName,long &pLong,ZaiErrors* pErrorlog)
+ZStatus
+XMLgetChildLong (zxmlElement*pElement, const utf8VaryingString & pChildName, long &pLong, ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pLong=wValue.toLong(0); /* base 0 : let string content decide for base */
-    return 0;
+  pLong=wValue.toLong(0); /* base 0 : let string content decide for base */
+  return ZS_SUCCESS;
 } //XMLgetChildInt
-int
-XMLgetChildUInt (zxmlElement*pElement,const char* pChildName,unsigned int &pInt,ZaiErrors* pErrorlog)
+
+ZStatus
+XMLgetChildUInt (zxmlElement*pElement,const utf8VaryingString & pChildName,unsigned int &pUInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pInt=wValue.toUInt(0);/* base 0 : let string content decide for base */
-    return 0;
+  pUInt=wValue.toUInt(0);/* base 0 : let string content decide for base */
+  return ZS_SUCCESS;
 } //XMLgetChildInt
-int
-XMLgetChildULong (zxmlElement*pElement,const char* pChildName,unsigned long &pLong,ZaiErrors* pErrorlog)
+
+ZStatus
+XMLgetChildULong (zxmlElement*pElement,const utf8VaryingString & pChildName,unsigned long &pULong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pLong=wValue.toULong(0);/* base 0 : let string content decide for base */
-    return 0;
-} //XMLgetChildInt
-int
-XMLgetChildIntHexa (zxmlElement*pElement,const char* pChildName,int &pInt,ZaiErrors* pErrorlog)
+  pULong=wValue.toULong(0);/* base 0 : let string content decide for base */
+  return ZS_SUCCESS;
+} //XMLgetChildULong
+
+ZStatus
+XMLgetChildVersion (zxmlElement*pElement,const utf8VaryingString& pChildName,unsigned long &pVersion,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pInt=wValue.toInt(16);/* base 16 : hexadecimal expected */
-    return 0;
-} //XMLgetChildInt
-int
-XMLgetChildLongHexa (zxmlElement*pElement,const char* pChildName,long &pLong,ZaiErrors* pErrorlog)
+  pVersion=getVersionNum(wValue);
+  return ZS_SUCCESS;
+} //XMLgetChildULong
+
+ZStatus
+XMLgetChildIntHexa (zxmlElement*pElement,const utf8VaryingString & pChildName,int &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pLong=wValue.toLong(16);/* base 16 : hexadecimal expected */
-    return 0;
+  pInt=wValue.toInt(16);/* base 16 : hexadecimal expected */
+  return ZS_SUCCESS;
 } //XMLgetChildInt
-int
-XMLgetChildUIntHexa (zxmlElement*pElement,const char* pChildName,unsigned int &pInt,ZaiErrors* pErrorlog)
+
+ZStatus
+XMLgetChildLongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,long &pLong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pInt=wValue.toUInt(16);/* base 16 : hexadecimal expected */
-    return 0;
-} //XMLgetChildInt
-int
-XMLgetChildULongHexa (zxmlElement*pElement,const char* pChildName,unsigned long &pULong,ZaiErrors* pErrorlog)
+  pLong=wValue.toLong(16);/* base 16 : hexadecimal expected */
+  return ZS_SUCCESS;
+} //XMLgetChildLongHexa
+
+ZStatus
+XMLgetChildUIntHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,unsigned int &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
-    utf8String wValue;
+  ZStatus wSt;
+  utf8String wValue;
 
-    if (XMLgetChildText(pElement,pChildName,wValue,pErrorlog) <0)
-        return -1;
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
 
-    pULong=wValue.toULong(16);/* base 16 : hexadecimal expected */
-    return 0;
-} //XMLgetChildInt
+  pInt=wValue.toUInt(16);/* base 16 : hexadecimal expected */
+  return ZS_SUCCESS;
+} //XMLgetChildUIntHexa
+
+ZStatus
+XMLgetChildULongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,unsigned long &pULong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+  ZStatus wSt;
+  utf8String wValue;
+
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
+
+  pULong=wValue.toULong(16);/* base 16 : hexadecimal expected */
+  return ZS_SUCCESS;
+} //XMLgetChildULongHexa
+/*
+  md5 xml representation
+
+  <name>
+    <md5>HEXAVALUE</md5>
+  </name>
+
+ */
+ZStatus
+XMLgetChildMd5 (zxmlElement*pElement,const utf8VaryingString &pChildName,md5 &pMd5,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+  utf8String wValue;
+  zxmlElement*wChild=nullptr;
+  ZStatus wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName);
+  if (wSt!=ZS_SUCCESS)
+    {
+    pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildMd5-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
+                          pChildName.toCChar(),
+                          decode_ZStatus(wSt));
+    return ZS_NOTFOUND;
+    }
+
+  if (XMLgetChildText(wChild,"md5",wValue,pErrorlog,pSeverity) <0)
+    return ZS_INVNAME;
+/*  utf8_t* wPtr=wValue.Data;
+  if (wValue.Data[0]=='<')
+    {
+    wPtr++;
+    utf8_t* wPtr1 = wPtr;
+    while (*wPtr1 &&(*wPtr1 != '>'))
+      wPtr1++;
+    *wPtr1='\0';
+    }
+*/
+  return pMd5.fromHexa(wValue);
+} //XMLgetChildMd5
+
+ZStatus
+XMLgetChildCheckSum (zxmlElement*pElement,const utf8VaryingString & pChildName,checkSum &pCheckSum,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+  utf8String wValue;
+  zxmlElement*wChild=nullptr;
+  ZStatus wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName);
+  if (wSt!=ZS_SUCCESS)
+    {
+    pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildCheckSum-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
+                          pChildName.toCChar(),
+                          decode_ZStatus(wSt));
+    return ZS_XMLERROR;
+    }
+
+  if (XMLgetChildText(wChild,"checksum",wValue,pErrorlog,pSeverity) <0)
+    return ZS_INVNAME;
+  utf8_t* wPtr=wValue.Data;
+  if (wValue.Data[0]=='<')
+  {
+    wPtr++;
+    utf8_t* wPtr1 = wPtr;
+    while (*wPtr1 &&(*wPtr1 != '>'))
+      wPtr1++;
+    *wPtr1='\0';
+  }
+  return pCheckSum.fromHexa((const char*)wPtr);
+
+} //XMLgetChildCheckSum
+
+utf8VaryingString fmtXMLmd5(const utf8VaryingString &pVarName, const md5& pVarContent, const int pLevel)
+{
+  utf8VaryingString wReturn = fmtXMLnode(pVarName,pLevel);
+
+  int wIndent=(pLevel+1)*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+
+
+  sprintf (wBuffer,
+      "%*c<md5>%s</md5>\n",
+      wIndent,' ',pVarContent.toHexa().toChar());
+
+  wReturn += wBuffer;
+
+  wReturn += fmtXMLendnode(pVarName,pLevel);
+  return wReturn;
+}
+
+utf8VaryingString fmtXMLcheckSum(const utf8VaryingString &pVarName, const checkSum& pVarContent, const int pLevel)
+{
+  utf8VaryingString wReturn = fmtXMLnode(pVarName,pLevel);
+
+  int wIndent=(pLevel+1)*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+
+  sprintf (wBuffer,
+      "%*c<checksum>%s</checksum>\n",
+      wIndent,' ',pVarContent.toHexa().toChar());
+
+  wReturn += wBuffer;
+
+  wReturn += fmtXMLendnode(pVarName,pLevel);
+  return wReturn;
+}//fmtXMLcheckSum
+
+
+utf8VaryingString fmtXMLSSLKeyB64(const utf8VaryingString &pVarName, const ZCryptKeyAES256& pVarContent, const int pLevel)
+{
+  utf8VaryingString wReturn = fmtXMLnode(pVarName,pLevel);
+
+  int wIndent=(pLevel+1)*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+
+  sprintf (wBuffer,
+      "%*c<sslkeyaes256b64>%s</sslkeyaes256b64>\n",
+      wIndent,' ',pVarContent.toB64().DataChar);
+
+  wReturn += wBuffer;
+
+  wReturn += fmtXMLendnode(pVarName,pLevel);
+  return wReturn;
+}//fmtXMLSSLKeyB64
+
+
+utf8VaryingString fmtXMLSSLVectorB64(const utf8VaryingString &pVarName, const ZCryptVectorAES256& pVarContent, const int pLevel)
+{
+  utf8VaryingString wReturn = fmtXMLnode(pVarName,pLevel);
+
+  int wIndent=(pLevel+1)*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+
+  sprintf (wBuffer,
+      "%*c<sslvectoraes256b64>%s</sslvectoraes256b64>\n",
+      wIndent,' ',pVarContent.toB64().DataChar);
+
+  wReturn += wBuffer;
+
+  wReturn += fmtXMLendnode(pVarName,pLevel);
+  return wReturn;
+}//fmtXMLSSLVectorB64
+
+
+ZStatus
+XMLgetChildSSLKeyB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,ZCryptKeyAES256 &pKey,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+  utf8String wValue;
+  zxmlElement*wChild=nullptr;
+  ZStatus wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName);
+  if (wSt!=ZS_SUCCESS)
+  {
+    pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildSSLKeyB64-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
+                          pChildName.toCChar(),
+                          decode_ZStatus(wSt));
+    return ZS_XMLERROR;
+  }
+
+  if (XMLgetChildText(pElement,"sslkeyaes256b64",wValue,pErrorlog,pSeverity) <0)
+    {
+    pErrorlog->log(pSeverity,"XMLgetChildSSLKeyB64-E-INVTYPE cannot find node content <sslkeyaes256b64>");
+    return ZS_INVTYPE;
+    }
+  return pKey.set(wValue.decodeB64().toUtf());
+} //XMLgetChildSSLKeyB64
+
+
+ZStatus
+XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,ZCryptVectorAES256 &pKey,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+  utf8String wValue;
+  zxmlElement*wChild=nullptr;
+  ZStatus wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName);
+  if (wSt!=ZS_SUCCESS)
+  {
+    pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildSSLVectorB64-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
+        pChildName.toCChar(),
+        decode_ZStatus(wSt));
+    return ZS_XMLERROR;
+  }
+
+  if (XMLgetChildText(pElement,"sslvectoraes256b64",wValue,pErrorlog,pSeverity) <0)
+  {
+    pErrorlog->log(pSeverity,"XMLgetChildSSLVectorB64-E-INVTYPE cannot find node <sslvectoraes256b64>");
+    return ZS_INVTYPE;
+  }
+  return pKey.set(wValue.decodeB64().toUtf());
+
+} //XMLgetChildSSLKeyB64
+
 #endif //ZXMLPRIMITIVES_CPP

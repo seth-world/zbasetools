@@ -45,6 +45,8 @@ ZStatus uncryptB64(unsigned char**pOutString, size_t *pOutSize, unsigned char* p
 
 class ZDataBuffer;
 class utf8VaryingString;
+class ZaiErrors;
+class zxmlNode;
 
 namespace zbs {
 
@@ -82,17 +84,22 @@ public:
         return *this;
     }
 
+    bool isInvalid() const {return content[0]==0;}
+    bool isValid() const {return content[0]!=0;}
+
+    void setInvalid() {memset(content,0,cst_AES256cryptVectorSize);}
+
+
     utf8VaryingString toStr();
 
-    ZDataBuffer toB64();
-    int fromB64(ZDataBuffer &pZDB);
+    ZDataBuffer toB64() const;
+    ZStatus fromB64(ZDataBuffer &pZDB);
 
     utf8VaryingString toHexa();
-    int fromHexa(const utf8VaryingString &pHexa);
-
+    ZStatus fromHexa(const utf8VaryingString &pHexa);
 
     void clear() { memset(content, 0, cst_AES256cryptKeySize);}
-};
+}; // ZCryptKeyAES256
 
 //class ZDataBuffer;
 
@@ -121,12 +128,17 @@ public:
     }
     void clear() { memset(content, 0, cst_AES256cryptVectorSize);}
 
+    bool isInvalid() const  {return content[0]==0;}
+    bool isValid() const {return content[0]!=0;}
+
+    void setInvalid() {memset(content,0,cst_AES256cryptVectorSize);}
+
     static ZCryptVectorAES256 generate();
 
     utf8VaryingString toStr();
 
-    ZDataBuffer toB64();
-    int fromB64(ZDataBuffer &pZDB);
+    ZDataBuffer toB64() const;
+    ZStatus fromB64(ZDataBuffer &pZDB);
 
     utf8VaryingString toHexa();
     int fromHexa(const utf8VaryingString &pHexa);

@@ -21,16 +21,21 @@ public:
 
     char *Content =nullptr;
 
-    void clear() {if (Content!=nullptr)
-                            free(Content);
-                  Length=0;
-                 }
+    void clear()
+    {
+      zfree(Content);
+      Length=0;
+    }
     char * escapeReserved (const char*pString);
     char * escapeReservedChar(const char *pString , char *&pReturnString);
 
     char * toChar(void) {return Content;}
 
-    void allocate(size_t Delta) { Length += Delta;Content =(char *) realloc(Content,Length); }
+    void allocate(size_t Delta)
+    {
+      Length += Delta;
+      Content =zrealloc(Content,Length);
+    }
 private:
     long Length=0;
 

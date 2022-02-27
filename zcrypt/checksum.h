@@ -35,17 +35,19 @@ public:
 
   checkSum& operator = (const checkSum& pIn) {return _copyFrom(pIn);}
 
+
+
   checkSum(const unsigned char *pInBuffer,size_t pLen) {compute(pInBuffer,pLen);}
 
 
-  checkSum& setContent(unsigned char *pInBuffer,size_t pLen) {memmove (content,pInBuffer,pLen); return *this;}
+  checkSum& setContent(const unsigned char *pInBuffer,size_t pLen) {memmove (content,pInBuffer,pLen); return *this;}
 
-  size_t size(void) {return(cst_checksum);}
+  size_t size(void) const {return(cst_checksum);}
 
-  bool isClear(void) { char wCompare[cst_checksum];
+  bool isClear(void) const  { char wCompare[cst_checksum];
                          memset(wCompare,0,sizeof(wCompare));
                         return (memcmp(content,wCompare,cst_checksum)); }
-  bool isEmpty(void) {return (isClear()); }
+  bool isEmpty(void) const  {return (isClear()); }
   checkSum &clear(void) {memset(content,0,cst_checksum);return(*this);}
 
   void compute(const unsigned char *pInBuffer,size_t pLen);
@@ -54,9 +56,14 @@ public:
 //    template <class _Utf>
 //    checkSum& compute (utfVaryingString<_Utf> &pDataBuffer);
 
-    ZDataBuffer *_exportURF(ZDataBuffer *pUniversal);
-    ZStatus _importURF(unsigned char* &pUniversal);
-    static ZStatus getUniversalFromURF(unsigned char* pURFDataPtr,ZDataBuffer& pUniversal);
+    ZDataBuffer *_exportURF(ZDataBuffer *pUniversal) const;
+    ZStatus _importURF(const unsigned char *&pUniversal);
+    static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr);
+
+    ZDataBuffer _export() const;
+    size_t _import(const unsigned char *&pUniversal);
+
+
 
 #ifdef QT_CORE_LIB
     checkSum & fromQByteArray (const QByteArray &pQBA) ;
@@ -64,12 +71,12 @@ public:
 #endif
     /** @brief fromHexa() converts a checkSum pInput expressed as a string containing hexadecimal printable values and set it as binary content
      * remark : hexadecimal string must have a size of cst_checksumHexa, not less, not more  */
-    checkSum & fromHexa(const char *pInput, const size_t pSize) ;
-    checkSum & fromHexa(const char *pInput) ;
+    ZStatus fromHexa(const char *pInput, const size_t pSize) ;
+    ZStatus fromHexa(const utf8VaryingString &pInput) ;
     void fromCheckSum(checkSum& pChecksum) { memmove(content,pChecksum.content,sizeof(content)); return ;}
 //    checkSum &  fromHex(QDataBuffer_struct &pQDB) ;
     /** @brief toHexa() delivers checkSum content as a string containing hexadecimal printable values */
-    const char *toHexa(void);
+    CharMan toHexa(void) const;
     /** @brief toBinary() delivers the content of checkSum in its binary format */
     unsigned char * toBinary(void) {return(content);}
 //    ZDataBuffer& toZDataBuffer (ZDataBuffer &pQDB) { pQDB.setData( content, size()); return(pQDB);}
@@ -82,7 +89,7 @@ public:
     bool operator == (const checkSum *pChecksum) {return (memcmp(content,pChecksum->content,sizeof(content))==0);}
     bool operator == (const checkSum &pChecksum) {return (memcmp(content,pChecksum.content,sizeof(content))==0);}
     bool operator != (const checkSum &pChecksum) {return !(memcmp(content,pChecksum.content,sizeof(content))==0);}
-    bool operator == (const char *pInput) ;
+    bool operator == (const char* pInput)        {return(::strncmp(toHexa().toChar(),pInput,cst_checksumHexa));}
 };
 
 

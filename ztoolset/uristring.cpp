@@ -33,9 +33,22 @@ uriString&
 uriString::fromURI(const uriString *pURI)
 {
     if (pURI==nullptr)
-                    abort();
-    memmove(content,pURI->content, cst_urilen+1);
+                    _ABORT_
+    if (Data==nullptr)
+      allocateUnits(pURI->UnitCount);
+    strset(pURI->toUtf());
     return(*this);
+}
+uriString&
+uriString::fromURI(const uriString& pURI)
+{
+  if (pURI==nullptr)
+    _ABORT_
+  if (Data==nullptr)
+    allocateUnits(pURI.UnitCount);
+  strset(pURI.toUtf());
+  _Base::CheckData();
+  return(*this);
 }
 
 ZStatus
@@ -43,7 +56,7 @@ uriString::operator << (ZDataBuffer& pDBS)
 {
     return writeContent (pDBS) ;
 }
-
+/*
 uriString&
 uriString::operator += (utfdescString &pSource)
 {
@@ -66,7 +79,7 @@ bool uriString::operator == (utfdescString &pCompare) { return(compare(pCompare.
 bool uriString::operator != (utfdescString& pCompare) { return!(compare(pCompare.content)==0);}
 bool uriString::operator > (utfdescString& pCompare) { return(compare(pCompare.content)>0);}
 bool uriString::operator < (utfdescString& pCompare) { return(compare(pCompare.content)<0);}
-
+*/
 
 //#include <dirent.h>
 
@@ -169,8 +182,7 @@ uriString::fromcodeString(const utfcodeString &pCode)
 }
 
 
-uriString&
-uriString::operator = (const utfdescString &pSource) {return fromdescString(pSource);}
+
 
 
 /**
@@ -182,18 +194,12 @@ uriString::addConditionalDirectoryDelimiter(void)
     long wS=strlen();
     if ((isEmpty())||(wS<1))
                     return(*this);
-    RTrim();
+    utfRTrim(Data);
+
     wS=strlen();
-    if (content[wS-1]==(utf8_t)Delimiter)
+    if (Data[wS-1]==(utf8_t)Delimiter)
                             return(*this);
-    if (wS+1>cst_urilen)
-                    {
-                    fprintf(stderr,"%s-F-STRINGOVERFLOW Out of boundaries while appending delimiter char",_GET_FUNCTION_NAME_);
-                    abort();
-                    }
-    content[wS]=(utf8_t)Delimiter;
-    wS++;
-    content[wS]=(utf8_t)'\0';
+    add(__DELIMITER_STRING__);
     return(*this);
 }//addConditionalDirectoryDelimiter
 
@@ -206,16 +212,7 @@ uriString::addConditionalDirectoryDelimiter(void)
 uriString&
 uriString::addDirectoryDelimiter(void)
 {
-size_t wS=strlen();
-
-    if (wS>cst_urilen-1)
-                {
-                fprintf(stderr,"%s-F-STRINGOVERFLOW Out of boundaries while appending delimiter char",_GET_FUNCTION_NAME_);
-                abort();
-                }
-    content[wS]=Delimiter;
-    wS++;
-    content[wS]='\0';
+    add(__DELIMITER_STRING__);
     return(*this);
 }//addDirectoryDelimiter
 //#include <unistd.h>
@@ -247,84 +244,99 @@ uriString uriString::getHomeDir(void)
 bool
 uriString::addMimeFileExtension (utfdescString pMimeName)
 {
-    utf8_t* wPtr=pMimeName.strchr((utf8_t)'/');
-    if (wPtr==nullptr)
+  if (isEmpty())
+    return false;
+
+    utf8_t* wMimeExt=pMimeName.strchr((utf8_t)'/');
+    if (wMimeExt==nullptr)
                 return false;
-    wPtr++;
-    utf8_t* wPtr1 = utfStrchr<utf8_t>((content + 2),(utf8_t)'.');
+    wMimeExt++;
+    utf8_t* wPtr1 = utfStrchr<utf8_t>((Data + 2),(utf8_t)'.');
     if (wPtr1==nullptr)
             {
-            wPtr1=&content[strlen()];
-            *wPtr1='.';
+            add(".");
+            wPtr1=&Data[strlen()];
             }
     wPtr1++;
     *wPtr1=(utf8_t)'\0';
-    add(wPtr);
+    add(wMimeExt);
     return true;
 }//addMimeFileExtension
 //
 // ----------PathName searches and extractions
 //
-utfdescString DSBuffer;
+//utfdescString DSBuffer;
 
-utfdescString uriString::getFileExtension() const
+utf8String uriString::getFileExtension() const
 {
-    utfdescString pExt=content;
+  if (isEmpty())
+    return utf8String ("");
+
+    utf8String wExt;
     utf8_t *wPtr = strchr((utf8_t)'.');
-    if (wPtr!=nullptr)
-            { wPtr++; pExt=wPtr;}
-    return pExt;
+    if (wPtr==nullptr)
+      return utf8String("");
+    wPtr++;
+    wExt=wPtr;
+    return wExt;
 }
 
 /**
  * @brief uriString::getDirectoryPath Returns a descString containing the file's directory path
         i. e. </directory path/><root base name>.<extension>
 
- * @return a descString with the file's directory path
+ * @return an utf8String with the file's directory path
  */
-utfdescString
+utf8String
 uriString::getDirectoryPath () const
 {
-    utfdescString pExt=content;
-    utf8_t *wPtr = pExt.strrchr((utf8_t)Delimiter);
-    if (wPtr==nullptr)
-                pExt.clear();
-         else
-            {
-            wPtr++;
-            wPtr[0]='\0';
-            }
-    return pExt;
+  if (isEmpty())
+    return utf8String ("");
+  utf8String wDir(Data);
+ //   utf8_t *wPtr = pExt.strrchr((utf8_t)Delimiter);
+    utf8_t *wPtr = &wDir.Data[wDir.UnitCount-1];
+    while ((wPtr > wDir.Data) && (*wPtr!=Delimiter))
+      wPtr--;
+    wPtr++;
+    while (wPtr < &wDir.Data[wDir.UnitCount])
+        *wPtr++=0;
+  return wDir;
 }//getDirectoryPath
 /**
- * @brief uriString::getDirectoryPath Returns a descString containing the file's directory path
+ * @brief uriString::getLastDirectoryName Returns a descString containing the file's directory path
         i. e. </directory path/><root base name>.<extension>
 
  * @return a descString with the file's directory path
  */
-utfdescString
+utf8String
 uriString::getLastDirectoryName() const
 {
-    utfdescString pExt;
+  if (isEmpty())
+    return utf8String ("");
 
-    const utf8_t* wPtr1=content+(UnitCount-1);
-    while((wPtr1>content)&&(*wPtr1!=(utf8_t)Delimiter))
+    utf8String wDir;
+
+    const utf8_t* wPtr1=Data+(UnitCount-1);
+    while((wPtr1>Data)&&(*wPtr1!=(utf8_t)Delimiter))
             wPtr1--;
 
     const utf8_t *wPtr2=--wPtr1;
 
-    while((wPtr2>content)&&(*wPtr2!=(utf8_t)Delimiter))
+    while((wPtr2>Data)&&(*wPtr2!=(utf8_t)Delimiter))
             wPtr2--;
-    pExt.clear();
-    if (wPtr2>content)
+    if (wPtr2>Data)
             wPtr2++;
-    utf8_t* wPtr3=pExt.content;
-    while (wPtr2 < wPtr1)
-            *wPtr3++=*wPtr2++;
-    return pExt;
+
+    wDir = wPtr2;
+    utf8_t* wPtr3=wDir.Data;
+    while (*wPtr3 &&(*wPtr3!=(utf8_t)Delimiter))
+      *wPtr3++;
+    while (wPtr3 < &wDir.Data[wDir.UnitCount])
+        *wPtr3++=0;
+    return wDir;
 }//getLastDirectoryName
 /**
- * @brief uriString::getBasename       returns a descString containing the file's full base name
+ * @brief uriString::getBasename       returns a utf8String containing the file's full base name
 
  i. e. </directory path/><root base name>.<extension>
  Where full base name is : <root base name>.<extension> without directory path
@@ -332,69 +344,74 @@ uriString::getLastDirectoryName() const
  * @return a descString with the file's base name
  */
 
-utfdescString
+utf8String
 uriString::getBasename ()const
 {
-utfdescString pExt;
+  if (isEmpty())
+    return utf8String ("");
+
+utf8String wBasename;
     utf8_t *wPtr =  strrchr((utf8_t)Delimiter);
+
     if (wPtr==nullptr)
-                pExt.fromUtf( content ) ;
+            wBasename = Data ;
          else
             {
             wPtr++;
-            pExt.fromUtf( wPtr  );
+            wBasename = wPtr;
             }
 
-/*    wPtr = pExt.strrchr((utf8_t)'.');
-    if (wPtr==nullptr)
-                return pExt;
-    *wPtr=(utf8_t)'\0';*/
-    return pExt;
+    return wBasename;
 } // getBasename
 
 /**
- * @brief uriString::getRootBasename returns a descString containing the file's root base name
+ * @brief uriString::getRootname returns a utf8String containing the file's root name
  *
- *  i. e. </directory path/><root base name>.<extension>
- * @return a descString with the file's root base name
+ *  i. e. </directory path/><root name>.<extension>
+ * @return a utf8String with the file's root base name
  */
-utfdescString
-uriString::getRootBasename () const
+utf8String
+uriString::getRootname () const
 {
+  if (isEmpty())
+    return utf8String ("");
 
-    utfdescString pExt=getBasename();
-    utf8_t *wPtr = pExt.strchr((utf8_t)'.');
+  utf8_t* wPtrEnd=nullptr;
+    utf8String wRoot=getBasename();
+    utf8_t* wPtr = utfStrchr<utf8_t>(wRoot.Data,'.');
     if (wPtr!=nullptr)
-            {
-            *wPtr='\0';
-            }
-    return pExt;
+      {
+      wPtrEnd = &wRoot.Data[wRoot.ByteSize];
+      while (wPtr < wPtrEnd)
+            *wPtr++=0;
+      }
+    return wRoot;
 }//getRootBasename
 #include <limits.h>
 #include <stdlib.h>
 utf8String
 uriString::getUrl () const
 {
-  if (::strncmp((const char*)content,"file://",7)==0)
-    return utf8String(content);
+  if (::strncmp((const char*)Data,"file://",7)==0)
+    return utf8String(Data);
 
   utf8String wReturn;
   char* wCRet=nullptr;
-  wCRet=realpath((const char*)content,nullptr);
+  wCRet=realpath((const char*)Data,nullptr);
   wReturn = "file://";
   wReturn += wCRet;
-  free((void*)wCRet);
+  zfree(wCRet);
   return wReturn;
 }//getUrl
 
 uriString
 uriString::getLocal () const
 {
-  if (::strncmp((const char*)content,"file://",7)!=0)
+  if (::strncmp((const char*)Data,"file://",7)!=0)
     return *this;
 
   uriString wReturn;
-  utf8_t* wPtr =(utf8_t*) (content+7);
+  utf8_t* wPtr =(utf8_t*) (Data+7);
   wReturn = wPtr;
   return wReturn;
 }//getLocal
@@ -409,27 +426,27 @@ uriString::getLocal () const
 uriString&
 uriString::setDirectoryPath (uriString &pDirectoryPath)
 {
-utfdescString wBaseName;
+utf8String wBaseName;
     wBaseName = getBasename();
 
-    strset (pDirectoryPath.toString());
+    strset ((const utf8_t*)pDirectoryPath.toCChar());
     addConditionalDirectoryDelimiter();
-    add(wBaseName.content);
+    add(wBaseName);
 
     return *this;
 }//setDirectoryPath
 
-utfdescString
+utf8String
 uriString::getUniqueName (const char* pRootName)
 {
     char wTempName[30];
-    strncpy(wTempName,pRootName,20);
-    strncat(wTempName,"XXXXXX",29);
+    ::strncpy(wTempName,pRootName,20);
+    ::strncat(wTempName,"XXXXXX",29);
 
 #ifdef __USE_WINDOWS__
-    return utfdescString((utf8_t*)_mktemp(wTempName));
+    return utf8String((utf8_t*)_mktemp(wTempName));
 #else
-    return utfdescString((utf8_t*)mktemp(wTempName));
+    return utf8String((utf8_t*)mktemp(wTempName));
 #endif //__USE_WINDOWS__
 
 
@@ -444,25 +461,61 @@ uriString::setUniqueName (const char* pRootName)
 void
 uriString::setExtension (const char* pExtension)
 {
-    utf8_t* wPtr=strrchr( '.');
 
-    if (wPtr==nullptr)
-            {
-            add((utf8_t*)".");
-            add((utf8_t*)pExtension);
-            return;
-            }
+  size_t wExtSize=::strlen(pExtension);
+  utf8_t* wPtr=strrchr( '.');
+
+  size_t wSz=wPtr + 1 - Data;
+
+  long wNeed = UnitCount - wSz ;
+  wNeed -= wExtSize;
+
+  if (wNeed < 0)
+    extendUnitsBZero((- wNeed) + 1 );
+
+  if (wPtr==nullptr)
+            add(".");
+
     wPtr++;
-    utf8_t* wPtrmax=content + (UnitCount-1);
-    while((*pExtension)&&(wPtr<wPtrmax))
-        {
-        *wPtr=(utf8_t)*pExtension;
-        pExtension++;
-        wPtr++;
-        }
-    *wPtr=0;
+    add(pExtension);
+    return;
 }
 
+
+ZStatus
+uriString::renameBck(const char* pBckExt)
+{
+if (!exists())
+  return ZS_FILEERROR;
+int wFormerNumber = 1;
+
+  uriString wFormerURI(*this);
+
+  while (wFormerURI.exists())
+    {
+    wFormerNumber ++;
+    wFormerURI.sprintf("%s_%s%02ld",toCChar(),pBckExt,wFormerNumber);
+    }
+  int wRet= rename(toCChar(),wFormerURI.toCChar());
+  if (wRet!=0)
+    {
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        ZS_FILEERROR,
+        Severity_Severe,
+        "Error renaming existing file <%s> to <%s>\n",
+        toCChar(),
+        wFormerURI.toCChar());
+    return ZS_FILEERROR;
+    }
+
+  if (__ZRFVERBOSE__)
+    fprintf (stdout,
+        "Renamed existing file <%s> to <%s> \n",
+        toCChar(),
+        wFormerURI.toCChar());
+  return ZS_SUCCESS;
+}
 //
 //---------String search and handling
 //
@@ -488,6 +541,13 @@ struct stat wStatBuffer ;
             return(false);
             }
     return(true);
+}
+
+void    uriString::setcwd()
+{
+  char wBuf[cst_urilen];
+
+  strset((const utf8_t*)getcwd((char *)wBuf,cst_urilen));
 }
 
 
@@ -661,7 +721,7 @@ passwd *wUserInfo;
                                    ZS_FILEERROR,
                                    Severity_Error,
                                    "error calling stat for file %s",
-                                   content);
+                                   toCChar());
             return(ZS_FILEERROR);
             }
 
@@ -749,7 +809,7 @@ uriStat wStat;
                                   ZS_ERROPEN,
                                   Severity_Error,
                                   "-E-ERROPEN error on fopen file for read  <%s> \n",
-                                  content);
+                                  toCChar());
             if (ZVerbose)
                 ZException.printLastUserMessage(stderr);
             return ZS_ERROPEN;
@@ -769,7 +829,7 @@ uriStat wStat;
                                               ZS_FILEPOSERR,
                                               Severity_Error,
                                               "E-ERROPEN error reading file  <%s> \n %s",
-                                              content);
+                                              toCChar());
                         fclose(wFile);
                         pDBS.freeData();
                         return (ZS_FILEERROR);
@@ -801,7 +861,7 @@ ZStatus uriString::loadAES256(ZDataBuffer &pDBS,
 
 
 ZStatus
-uriString::loadUtf8(utf8VaryingString &pUtf8)
+uriString::loadUtf8(utf8VaryingString &pUtf8) const
 {
 ZStatus wSt;
 ZDataBuffer wZDBContent;
@@ -845,7 +905,7 @@ ZDataBuffer wZDBContent;
 }//loadUtf8
 
 ZStatus
-uriString::loadUtf16(utf16VaryingString &pUtf16)
+uriString::loadUtf16(utf16VaryingString &pUtf16) const
 {
 ZStatus wSt;
 ZDataBuffer wZDBContent;
@@ -903,7 +963,7 @@ ZBool wProcessEndian= false; /* no big / little endian processing requested by d
 
 }//loadUtf16
 ZStatus
-uriString::loadUtf32(utf32VaryingString &pUtf32)
+uriString::loadUtf32(utf32VaryingString &pUtf32) const
 {
 ZStatus wSt;
 ZDataBuffer wZDBContent;
@@ -985,7 +1045,7 @@ uriString::writeContent (ZDataBuffer& pDBS)
                                   ZS_ERROPEN,
                                   Severity_Error,
                                   "-E-ERROPEN error on fopen file for writing  <%s> \n",
-                                  content);
+                                  toCChar());
             if (ZVerbose)
                 ZException.printLastUserMessage(stderr);
             return ZS_ERROPEN;
@@ -1001,7 +1061,7 @@ uriString::writeContent (ZDataBuffer& pDBS)
                                       ZS_FILEERROR,
                                       Severity_Error,
                                       "E-ERROPEN error writing to file  <%s> ",
-                                      content);
+                                      toCChar());
                 fclose(wFile);
                 return (ZS_FILEERROR);
                 }
@@ -1021,7 +1081,7 @@ uriString::appendContent (ZDataBuffer& pDBS)
         ZS_ERROPEN,
         Severity_Error,
         "-E-ERROPEN error on fopen file for writing  <%s> \n",
-        content);
+        toCChar());
     if (ZVerbose)
       ZException.printLastUserMessage(stderr);
     return ZS_ERROPEN;
@@ -1037,7 +1097,7 @@ uriString::appendContent (ZDataBuffer& pDBS)
         ZS_FILEERROR,
         Severity_Error,
         "E-ERROPEN error writing to file  <%s> ",
-        content);
+        toCChar());
     fclose(wFile);
     return (ZS_FILEERROR);
   }
@@ -1058,7 +1118,7 @@ uriString::writeContent (utf8VaryingString &pStr)
                                   ZS_ERROPEN,
                                   Severity_Error,
                                   "-E-ERROPEN error on fopen file for writing  <%s> \n",
-                                  content);
+                                  toCChar());
             if (ZVerbose)
                 ZException.printLastUserMessage(stderr);
             return ZS_ERROPEN;
@@ -1098,7 +1158,7 @@ uriString::appendContent (utf8VaryingString &pStr)
         ZS_ERROPEN,
         Severity_Error,
         "-E-ERROPEN error on fopen file for writing  <%s> \n",
-        content);
+        toCChar());
     if (ZVerbose)
       ZException.printLastUserMessage(stderr);
     return ZS_ERROPEN;

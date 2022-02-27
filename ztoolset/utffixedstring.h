@@ -358,12 +358,12 @@ char *wStr=nullptr;
              Context.InUnitOffset,
              Context.Status,
              decode_UST(Context.Status));
-    _free(wStr);
+    zfree(wStr);
     return nullptr;
     }
     ZDataBuffer* wZDB=new ZDataBuffer();
     wZDB->appendData(wStr,Context.Strlen+1);
-    _free(wStr);
+    zfree(wStr);
     return wZDB;
 }// utf8FixedString::toCString
 
@@ -661,7 +661,7 @@ utf8_getByChunk_Main:
     Context.SavedChunkSize=0;
     Context.SavedChunkFullSize=0;
 
-    _free(Context.SavedChunk);
+    zfree(Context.SavedChunk);
 
     while (true)
     {
@@ -681,7 +681,7 @@ utf8_getByChunk_Main:
 
         if (Context.Status==UST_TRUNCATEDCHAR)  // utf char is cut in middle of units
             {  // save it
-            _free(Context.SavedChunk);
+            zfree(Context.SavedChunk);
 
             Context.SavedChunk=calloc(5,sizeof(utf8_t));
             utf8_t* wPSavedChunk= (utf8_t*)Context.SavedChunk;  /* allocate an utf8 char max length */
@@ -1877,12 +1877,12 @@ char *wStr=nullptr;
              (int)(Context.InPtr-Context.Start),
              Context.Status,
              decode_UST(Context.Status));
-    _free(wStr);
+    zfree(wStr);
     return nullptr;
     }
     ZDataBuffer* wZDB=new ZDataBuffer();
     wZDB->setString(wStr);
-    _free(wStr);
+    zfree(wStr);
     return wZDB;
 }// utf16FixedString::toCString
 
@@ -2387,7 +2387,7 @@ utfSCErr_struct wError;
     while ((pInString[Context.Strlen++])&&(Context.Strlen < __STRING_MAX_LENGTH__));
     if (Context.Strlen == __STRING_MAX_LENGTH__)
                     {
-                    return  ZS_STRNOENDMARK;
+                    return  ZS_NOENDMARK;
                     }
 
     ZBOM_type wBOM = Context.LittleEndian ? ZBOM_UTF32_LE : ZBOM_UTF32_BE;
@@ -2596,12 +2596,12 @@ char *wStr=nullptr;
              (int)(Context.getOffset()),
              Context.Status,
              decode_UST(Context.Status));
-    _free(wStr);
+    zfree(wStr);
     return nullptr;
     }
     ZDataBuffer* wZDB=new ZDataBuffer();
     wZDB->setString(wStr);
-    _free(wStr);
+    zfree(wStr);
     return wZDB;
 }// utf32FixedString::toCString
 

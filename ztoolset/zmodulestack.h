@@ -14,33 +14,10 @@ public:
     void printStack(FILE*pOutput=stderr);
 };
 
-#ifdef __USE_ZRANDOMFILE__
-#ifndef __ZOPENZRFPOOL__
-#define __ZOPENZRFPOOL__
-class ZFileDescriptor;
-class ZOpenZRFPool: public zbs::ZArray <ZFileDescriptor*>
-{
-public:
-    void addOpenFile(ZFileDescriptor* pFileData)
-        { push(pFileData);}
-    ZStatus removeFileByObject(ZFileDescriptor*pZRF);
-    ZStatus removeFileByFd(int pFd);
-    void closeAll();
-
-}; //ZOpenZRFPool
-
-/*#ifndef ZRANDOMFILE_CPP
-    extern ZOpenZRFPool* ZRFPool;
-#endif //ZRANDOMFILE_CPP*/
-
-#endif // __ZOPENZRFPOOL__
-
-#endif // __USE_ZRANDOMFILE__
 
 #ifndef ZMODULESTACK_CPP
     extern  ZModuleStack* CurStack ;
     extern char *wMsg;
-    extern ZOpenZRFPool* ZRFPool;
 #endif// ZMODULESTACK_CPP
 
 void zprintStack(void) ;
@@ -62,9 +39,34 @@ void zprintStack(void) ;
  \
 sprintf(wMsg,__VA_ARGS__); \
 zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg) ;
-
+#ifndef __USE_ZRANDOMFILE__
 #define _ABORT_ {\
         abort() ;}
+#else
+
+#ifndef __ZOPENZRFPOOL__
+#define __ZOPENZRFPOOL__
+namespace zbs {
+class ZRandomFile; }
+class ZOpenZRFPool: public zbs::ZArray <zbs::ZRandomFile*>
+{
+public:
+  void addOpenFile(zbs::ZRandomFile* pFileData)
+  { push(pFileData);}
+  ZStatus removeFileByObject(zbs::ZRandomFile*pZRF);
+  ZStatus removeFileByFd(int pFd);
+  void closeAll();
+
+}; //ZOpenZRFPool
+#endif// __ZOPENZRFPOOL__
+#ifndef ZRANDOMFILE_CPP
+extern ZOpenZRFPool* ZRFPool;
+#endif //ZRANDOMFILE_CPP*/
+
+#define _ABORT_ {\
+        ZRFPool->closeAll() ; \
+        abort() ;}
+#endif // __USE_ZRANDOMFILE__
 
 #define _ASSERT_(__CONDITION__,__ABORT_MESSAGE__,...) \
 { if (__CONDITION__)  \
@@ -92,7 +94,6 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
 #ifdef __USE_ZRANDOMFILE__
 #define _EXIT_ \
     zbs::CurStack->printStack(stdout) ; \
-    zbs::ZRFPool->closeAll(); \
     exit
 
 #ifdef __USE_LIBXML2__
@@ -100,13 +101,11 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
 
     #define _ABORT_ { fprintf(stderr,"*** Abort - stack dump follows****\n");\
         zbs::CurStack->printStack(stderr) ;   \
-        zbs::ZRFPool->closeAll();\
         cleanupXML();\
         abort() ;}
     #else // __USE_LIBXML2__
     #define _ABORT_ { fprintf(stderr,"*** Abort - stack dump follows****\n");\
         zbs::CurStack->printStack(stderr) ;   \
-        zbs::ZRFPool->closeAll();\
         abort() ;}
 #endif //__USE_LIBXML2__
 

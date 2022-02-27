@@ -49,6 +49,11 @@ size_t UVScalcDecodeLengthB64(const uint8_t *b64input, size_t pSize) { //Calcula
 utf8VaryingString
 utf8VaryingString::encodeB64( void ) const
 {
+  if (isEmpty())
+  {
+    fprintf(stderr,"utf8VaryingString::encodeB64-W-EMPTY String is empty. No B64 encoding performed.\n");
+    return *this;
+  }
   utf8VaryingString wReturn;
     BIO *bio, *b64;
     BUF_MEM *bptr;
@@ -102,6 +107,11 @@ utf8VaryingString::encodeB64( void ) const
 utf8VaryingString
 utf8VaryingString::decodeB64(void) const
 {
+  if (isEmpty())
+    {
+    fprintf(stderr,"utf8VaryingString::decodeB64-W-EMPTY String is empty. No B64 decoding performed.\n");
+    return *this;
+    }
   utf8VaryingString wReturn;
     //----------------------------------------------
     BIO *bio,*b64 ;
@@ -125,7 +135,7 @@ utf8VaryingString::decodeB64(void) const
     wReturn.setData(buffer,ByteSize);
     //    addTermination();
 
-    free(buffer);
+    zfree(buffer);
     wReturn.CryptMethod = ZCM_Uncrypted;
     wReturn.addConditionalTermination();
     return(wReturn);
@@ -193,11 +203,11 @@ utf8VaryingString::toCString(ZDataBuffer& pZDB)
              (int)(Context.InPtr-Context.Start),
              Context.Status,
              decode_UST(Context.Status));
-    _free(wStr);
+    zfree(wStr);
     return pZDB;
     }
     pZDB.setString(wStr);
-    free(wStr);
+    zfree(wStr);
     return pZDB;
 }// utf8VaryingString::toCString
 
@@ -652,7 +662,7 @@ utf8Varying_getByChunk_Main:
     Context.SavedChunkSize=0;
     Context.SavedChunkFullSize=0;
 
-    _free(Context.SavedChunk);
+    zfree(Context.SavedChunk);
     wInPtr=Context.utfGetEffective<utf8_t>();
 
     while (true)
@@ -675,7 +685,7 @@ utf8Varying_getByChunk_Main:
                                      break;
      if (Context.Status==UST_TRUNCATEDCHAR)  // utf char is cut in middle of units
          {  // save it
-         _free(Context.SavedChunk);
+         zfree(Context.SavedChunk);
 
          Context.SavedChunk=calloc(5,sizeof(utf8_t));
          utf8_t* wPSavedChunk= (utf8_t*)Context.SavedChunk;  /* allocate an utf8 char max length */
@@ -1476,7 +1486,7 @@ utf16VaryingString::toCString(ZDataBuffer& pZDB)
                         /* see if nullptr could be littleEndian parameter within string descriptor */
     if (wStr)
          pZDB.setString(wStr);
-    _free(wStr);
+    zfree(wStr);
  return pZDB;
 }
 
@@ -2327,7 +2337,7 @@ utf32VaryingString::toCString(ZDataBuffer& pZDB)
             /* see if nullptr could be littleEndian parameter within string descriptor */
     if (wStr)
         pZDB.setString(wStr);
- _free(wStr);
+ zfree(wStr);
  return &pZDB;
 }
 /**
@@ -3132,7 +3142,7 @@ utf32VaryingString::addBOM(ZBool *pEndian)
 size_t wByteSize=0;
 utf32_t* wString=addUtf32Bom((utf32_t*)Data,&wByteSize,pEndian);
 setData(wString,wByteSize);
-_free(wString);
+zfree(wString);
 return *this;
 }*/
 
@@ -3235,12 +3245,12 @@ ZArray<utf8VaryingString> utf8VaryingString::strtok(const utf8_t* pSeparator)
     wPtr=utfFirstNotinSet<utf8_t>(wPtr1,pSeparator);
   }
 
-  free (wPtrOrig);
+  zfree (wPtrOrig);
   return wReturn;
 }//strtok
 
  //===============Varying strings========================================
-#include <ztoolset/zwstrings.h>
+//#include <ztoolset/zwstrings.h>
 #include <wchar.h>
 #ifdef __COMMENT__
 
@@ -3429,6 +3439,25 @@ ZArray<utf8VaryingString> utf8VaryingString::strtok(const utf8_t* pSeparator)
 
 #endif // __COMMENT__
 
+ utf8VaryingString operator +(const utf8VaryingString& pOne,const utf8VaryingString& pTwo)
+ {
+   utf8VaryingString wResult = pOne;
 
+   wResult += pTwo;
+   return wResult;
+ }
+ utf8VaryingString operator +(const utf8VaryingString& pOne,const char* pTwo)
+ {
+   utf8VaryingString wResult = pOne;
+
+   wResult += pTwo;
+   return wResult;
+ }
+ utf8VaryingString operator +(const char* pOne,const utf8VaryingString& pTwo)
+ {
+   utf8VaryingString wResult = pOne;
+
+   wResult += pTwo;
+   return wResult;
+ }
 #endif // UTFVARYINGSTRING_CPP
-
