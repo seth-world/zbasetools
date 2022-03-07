@@ -185,7 +185,7 @@ const char*
 utf8VaryingString::toCChar() const
 {
   if (Data==nullptr)
-            return "";
+            return "<null>";
     return (const char*)Data ;
 }// utf8VaryingString::toCChar
 
@@ -198,8 +198,7 @@ utf8VaryingString::toCString(ZDataBuffer& pZDB)
     Context.reset();
    if ((Context.Status=utf8StrToCharStr(&wStr,_Base::getCharset() ,Data,getByteSize()))<0)
     {
-    fprintf (stderr,"%s>> conversion to C String failed at source character unit offset <%d> status <0x%X> <%s>\n",
-             _GET_FUNCTION_NAME_,
+    fprintf (stderr,"utf8VaryingString::toCChar>> conversion to C String failed at source character unit offset <%d> status <0x%X> <%s>\n",
              (int)(Context.InPtr-Context.Start),
              Context.Status,
              decode_UST(Context.Status));

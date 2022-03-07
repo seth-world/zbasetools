@@ -717,7 +717,14 @@ public:
       return _addV<const _Utf>(pString);
     }
 
-
+    utfVaryingString<_Utf> &addConditionalSpace(const utfVaryingString<_Utf>& pString)
+    {
+      if (pString.isEmpty())
+        return *this;
+      if (!isEmpty())
+        addUtfUnit(_Utf(' '));
+      return _addV<const _Utf>(pString.Data);
+    }
     /**
      * @brief _rfindEOSM reverse find for end of string mark
      * @return a pointer to end of string mark
@@ -912,7 +919,9 @@ public:
 
 //------------------ operator overloads  ------------------------------------------------
 
-    _Utf operator [] (const size_t pIdx)  { if(pIdx>getUnitCount()) return NULL; return (Data[pIdx]);}
+    _Utf operator [] (const size_t pIdx) const  { if(pIdx>getUnitCount()) abort(); return (Data[pIdx]);}
+
+    void setCharacter(size_t pIdx,_Utf pChar) {if(pIdx>getUnitCount()) abort(); Data[pIdx]=pChar; }
 
     utfVaryingString<_Utf> & operator = (const _Utf* pString) {return strset(pString);}
     utfVaryingString<_Utf> & operator += (const _Utf* pString) {return add(pString);}

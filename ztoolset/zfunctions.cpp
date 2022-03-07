@@ -2131,25 +2131,41 @@ getVersionNum (const utf8VaryingString& pVersion)
     return 0UL;
   utf8VaryingString wV= pVersion.duplicate();
   utf8_t* wPtr_Max=wV.Data + wV.UnitCount;
+  utf8_t* wSeparators = (utf8_t*)".-_,;";
+
 
   errno = 0;
-  utf8_t* wPtr = wV.strchr('.');
+  unsigned long wVersion;
+  unsigned long wRelease;
+//  utf8_t* wPtr = wV.strchr('.');
+  utf8_t* wPtr = utfFirstinSet(wV.Data,wSeparators);
   if (!wPtr)
-    return 0UL;
-
+    {
+    wVersion = utfStrtoul<utf8_t>(wV.Data,nullptr,10);
+    if (errno)
+      return 0UL;
+    wVersion *= 1000000;
+    return wVersion;
+    }
   wPtr[0]='\0';
-  unsigned long wVersion = utfStrtoul<utf8_t>(wV.Data,nullptr,10);
+  wVersion = utfStrtoul<utf8_t>(wV.Data,nullptr,10);
   if (errno)
     return 0UL;
   wVersion=wVersion*1000000;
 
   wPtr++;
-  utf8_t* wPtr1 = utfStrchr(wPtr,(utf8_t)'-');
+//  utf8_t* wPtr1 = utfStrchr(wPtr,(utf8_t)'-');
+  utf8_t* wPtr1 = utfFirstinSet(wPtr,wSeparators);
   if (!wPtr1)
+    {
+    wRelease = utfStrtoul<utf8_t>(wPtr,nullptr,10);
+    if (errno)
+      return wVersion;
+    wVersion+=(wRelease*1000);
     return wVersion;
-
+    }
   wPtr1[0]='\0';
-  unsigned long wRelease = utfStrtoul<utf8_t>(wPtr,nullptr,10);
+  wRelease = utfStrtoul<utf8_t>(wPtr,nullptr,10);
   if (errno)
     return wVersion;
   wVersion+=(wRelease*1000);

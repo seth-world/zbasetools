@@ -613,6 +613,7 @@ public:
      utftemplateString<_Sz,_Utf>& addConditionalOR (const _Utf*pValue);
 
 
+
 //------------B64------------------------------------
 
  utftemplateString<_Sz,_Utf> & decodeB64(void);
@@ -628,7 +629,7 @@ public:
 //------------------ operator overloads  ------------------------------------------------
 //
 
-     _Utf& operator [] (const size_t pIdx)
+     _Utf& operator [] (const size_t pIdx) const
         { if(pIdx>getUnitCount()) _ABORT_ return  (content[pIdx]);}
 
 

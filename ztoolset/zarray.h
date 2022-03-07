@@ -7,12 +7,11 @@
 
 #include <ztoolset/zerror_min.h>
 
-
 #ifdef __USE_ZTHREAD__
     #include <zthread/zmutex.h>
 #endif
 
-
+#include <cassert>
 
 //extern ZVerbose_Base ZVerbose;
 
@@ -33,7 +32,7 @@
 
 namespace zbs {
 
-
+using namespace std;
 
 /**
  * @brief The ZAExport struct
@@ -213,15 +212,17 @@ public:
  //  ZArray& operator = (ZArray&)=delete;     // can not copy
 //#ifdef __USE_ZARRAY_COPY_CONTRUCTOR__
 
-   ZArray(ZArray& pIn)
+   ZArray(ZArray& pIn):_Mutex()
    {
 //       _mInit(); /* init with default allocation values */
+        _mInit(_cst_default_allocation,_cst_realloc_quota);
        _copyFrom(pIn);
        return;
    }
-   ZArray( ZArray&& pIn)
+   ZArray( ZArray&& pIn):_Mutex()
    {
      //       _mInit(); /* init with default allocation values */
+     _mInit(_cst_default_allocation,_cst_realloc_quota);
      _copyFrom(pIn);
      return;
    }
@@ -318,6 +319,7 @@ public:
                     return (Tab[pIndex]);
             fprintf(stderr,"ZArray-E-IVIDXVAL invalid index value out of array boundary.\n");
             }// we must be able to access to this operator function from the inherited class
+
   const _Tp & operator []  (const long pIndex) const { return (Tab[pIndex]);}   // we must be able to access to this operator function from the inherited class
 
   /**
@@ -346,8 +348,247 @@ public:
     */
    long operator -- (void) {return(pop());}
 
-   /** end operator to be overloaded for ZIndex */
-/*=================================================================
+/** end operator to be overloaded for ZIndex */
+
+/** Iterators */
+
+   class iterator
+   {
+   public:
+     typedef _Tp value_type;
+     typedef _Tp& reference;
+//     typedef _Tp* pointer;
+     typedef forward_iterator_tag iterator_category;
+     typedef int difference_type;
+     iterator() {}
+     iterator(ZArray<_Tp> *pArray) : Array(pArray),Index(pArray->ZCurrentNb) { }
+     iterator(ZArray<_Tp> &pArray) : Array(&pArray),Index(pArray.ZCurrentNb) { }
+     iterator(const iterator &pIn) {_copyFrom(pIn); }
+     iterator& _copyFrom(const iterator& pIn) {
+       Array=pIn.Array;
+       Index=pIn.Index;
+       return *this;
+     }
+     iterator& operator=(const iterator& pIn) {return _copyFrom(pIn);}
+
+     iterator& operator++() {
+       if (Index ==  Array->ZCurrentNb)
+         abort();
+       Index++;
+       return *this;
+     }
+
+     iterator operator++(int) {
+       auto retval(*this);
+       Index++;
+       return retval;
+     }
+
+     iterator& operator--() {
+       if (Index != 0)
+        Index--;
+       return *this;
+     }
+     iterator operator--(int) {
+       auto retval(*this);
+       Index--;
+       return retval;
+     }
+
+     iterator& operator+=(int pVal) {
+       Index+= pVal;
+       return *this;
+     }
+     iterator& operator-=(int pVal) {
+       Index-= pVal;
+       return *this;
+     }
+
+     _Tp* getPtr() {return (Array->Tab + Index) ; }
+     const _Tp* getConstPtr() const  {return (Array->Tab + Index) ; }
+
+     _Tp& operator*() { return *(Array->Tab + Index) ; }
+     _Tp* operator->() { return (Array->Tab + Index) ; }
+
+     bool operator==(const iterator& pIn) { return (Array->Tab == pIn.Array->Tab) && (Index==pIn.Index); }
+     bool operator!=(const iterator& pIn) { return (Array->Tab != pIn.Array->Tab) || (Index!=pIn.Index);  }
+
+     iterator operator-(const iterator& pIn) {
+       /* only if both iterators are for the same ZArray object */
+    assert((Array->Tab == pIn.Array->Tab) && (Index==pIn.Index));
+    iterator wReturn=*this ;
+
+    if (wReturn.Index == 0)
+        {
+         fprintf(stderr,"iterator::operator-  invalid operation, cannot have negative value for index.\n");
+          abort();
+        }
+    wReturn.Index -= pIn.Index;
+    return wReturn;
+    }//operator-
+
+     iterator operator+(const iterator& pIn) {
+      /* only if both iterators are for the same ZArray object */
+       assert((Array->Tab == pIn.Array->Tab) && (Index==pIn.Index));
+
+       iterator wReturn=*this ;
+
+       wReturn.Index += pIn.Index;
+       if (wReturn.Index > end().Index)
+         return end();
+       return wReturn;
+     }//operator+
+
+    iterator operator+(const long pIn) {
+       iterator wReturn=*this ;
+       wReturn.Index += pIn;
+       if (wReturn.Index > end().Index)
+         return end();
+       return wReturn;
+     } //operator+
+
+
+     iterator operator-(const long pIn) {
+       iterator wReturn=*this ;
+       wReturn.Index -= pIn;
+       if (wReturn.Index < 0)
+         return begin();
+       return wReturn;
+     } //operator+
+
+     void setEnd() {Index=Array->ZCurrentNb;}
+
+     iterator begin() {Index=0 ; return *this;}
+     iterator end() {Index=Array->ZCurrentNb ; return *this;}
+   protected:
+     ZArray<_Tp>* Array=nullptr;
+     long Index=0;
+   }; // iterator
+
+   iterator begin() {
+     return std::move(iterator (*this).begin());
+   }
+
+   iterator end() {
+     return iterator (*this).end();
+   }
+
+   class const_iterator
+   {
+   public:
+     typedef _Tp value_type;
+     typedef _Tp& reference;
+     //     typedef _Tp* pointer;
+     typedef forward_iterator_tag iterator_category;
+     typedef int difference_type;
+     const_iterator() {}
+     const_iterator(ZArray<_Tp> *pArray) : Array(pArray),Index(pArray->ZCurrentNb) { }
+     const_iterator(ZArray<_Tp> &pArray) : Array(&pArray),Index(pArray.ZCurrentNb) { }
+     const_iterator(const iterator &pIn) {_copyFrom(pIn); }
+     const_iterator& _copyFrom(const const_iterator& pIn) {
+       Array=pIn.Array;
+       Index=pIn.Index;
+       return *this;
+     }
+     const_iterator& operator=(const iterator& pIn) {return _copyFrom(pIn);}
+
+     const_iterator& operator++() {
+       if (Index ==  Array->ZCurrentNb)
+         abort();
+       Index++;
+       return *this;
+     }
+
+     const_iterator operator++(int) {
+       auto retval(*this);
+       Index++;
+       return retval;
+     }
+
+     const_iterator& operator--() {
+       if (Index != 0)
+         Index--;
+       return *this;
+     }
+     const_iterator operator--(int) {
+       auto retval(*this);
+       Index--;
+       return retval;
+     }
+     const_iterator& operator+=(int pVal) {
+       Index+= pVal;
+       return *this;
+     }
+     const_iterator& operator-=(int pVal) {
+       Index-= pVal;
+       return *this;
+     }
+//     _Tp* getPtr() {return (Array->Tab + Index) ; }
+     const _Tp* getPtr() const  {return (Array->Tab + Index) ; }
+
+     const _Tp& operator*() { return *(Array->Tab + Index) ; }
+     const _Tp* operator->() { return (Array->Tab + Index) ; }
+
+     bool operator==(const const_iterator& pIn) { return (Array->Tab == pIn.Array->Tab) && (Index==pIn.Index); }
+     bool operator!=(const const_iterator& pIn) { return (Array->Tab != pIn.Array->Tab) || (Index!=pIn.Index);  }
+
+     const_iterator operator-(const const_iterator& pIn) {
+       /* only if both iterators are for the same ZArray object */
+       assert((Array->Tab == pIn.Array->Tab) && (Index==pIn.Index));
+       const_iterator wReturn=*this ;
+
+       if (wReturn.Index == 0)
+       {
+         fprintf(stderr,"iterator::operator-  invalid operation, cannot have negative value for index.\n");
+         abort();
+       }
+       wReturn.Index -= pIn.Index;
+       return wReturn;
+     }//operator-
+
+     const_iterator operator+(const const_iterator& pIn) {
+       /* only if both iterators are for the same ZArray object */
+       assert((Array->Tab == pIn.Array->Tab) && (Index==pIn.Index));
+
+       const_iterator wReturn=*this ;
+
+       wReturn.Index += pIn.Index;
+       if (wReturn.Index > end().Index)
+         return end();
+       return wReturn;
+     }//operator+
+
+     const_iterator operator+(const long pIn) {
+       const_iterator wReturn=*this ;
+       wReturn.Index += pIn;
+       if (wReturn.Index > end().Index)
+         return end();
+       return wReturn;
+     } //operator+
+
+
+     const_iterator operator-(const long pIn) {
+       const_iterator wReturn=*this ;
+       wReturn.Index -= pIn;
+       if (wReturn.Index < 0)
+         return begin();
+       return wReturn;
+     } //operator+
+
+     void setEnd() {Index=Array->ZCurrentNb;}
+
+     const_iterator begin() {Index=0 ; return *this;}
+     const_iterator end() {Index=Array->ZCurrentNb ; return *this;}
+
+   protected:
+     ZArray<_Tp>* Array=nullptr;
+     long Index=0;
+   }; // const_iterator
+
+
+/** end Iterators */
+
+/** =================================================================
  *      Methods to be protected when using ZSortedArray
  */
 
@@ -740,7 +981,7 @@ _Tp & ZArray<_Tp>::assign (_Tp &pValue, const long pIdx)
     }
   memset(&Tab[pIdx],0,sizeof(_Tp)); /* cannot invoke constructor but can set memory surface to zero */
   Tab[pIdx] = pValue;               /* copy constructor and operator = must be defined if class */
-////  _hasChanged=true;
+//  _hasChanged=true;
   return Tab[pIdx];
 }
 
@@ -1197,6 +1438,14 @@ inline long ZArray<_Tp>::count(void) const
 template <typename _Tp>
 void ZArray<_Tp>::addCheck(long pAdd)
 {
+  /* following is necessary when assign() applies to a ZArray itself and it has been zeroed */
+  if (ZAllocation == 0){
+    if (ZReallocQuota == 0)
+      ZReallocQuota=_cst_realloc_quota;
+    allocate (_cst_default_allocation) ;
+  }
+
+
 long wFreeSlots = ZAllocation-ZCurrentNb  ;  // size remaining to fill
   if (wFreeSlots > pAdd)
             return ;

@@ -58,10 +58,10 @@ struct md5 {
         *wPtrIn++ = *pPtrIn++;
     }
 
-    bool operator == (const md5 *pChecksum) {return (memcmp(content,pChecksum->content,sizeof(content))==0);}
-    bool operator == (const md5 &pChecksum) {return (memcmp(content,pChecksum.content,sizeof(content))==0);}
-    bool operator != (const md5 &pChecksum) {return !(memcmp(content,pChecksum.content,sizeof(content))==0);}
-    bool operator == (const char* pInput)   {return(::strncmp(toHexa().toChar(),pInput,cst_md5Hexa));}
+    bool operator == (const md5 *pChecksum) const {return (memcmp(content,pChecksum->content,sizeof(content))==0);}
+    bool operator == (const md5 &pChecksum) const {return (memcmp(content,pChecksum.content,sizeof(content))==0);}
+    bool operator != (const md5 &pChecksum) const {return !(memcmp(content,pChecksum.content,sizeof(content))==0);}
+    bool operator == (const char* pInput)   const {return(::strncmp(toHexa().toChar(),pInput,cst_md5Hexa));}
 };
 
 

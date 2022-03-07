@@ -146,6 +146,8 @@ public:
                             const ZCryptKeyAES256& pKey,
                             const ZCryptVectorAES256& pVector);
 
+
+//    utf8_t operator [] (const size_t pIdx) const  { if(pIdx>getUnitCount()) return 0; return (Data[pIdx]);}
     utf8VaryingString & operator = (const char* pString) { Check=0xFFFFFFFF; return fromChar(pString);}
     utf8VaryingString & operator = (const utf8VaryingString& pString) { Check=0xFFFFFFFF; _Base::_copyFrom(pString); return *this;}
     utf8VaryingString & operator = (const utf8VaryingString&& pString) { Check=0xFFFFFFFF; _Base::_copyFrom(pString); return *this;}

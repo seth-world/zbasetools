@@ -67,6 +67,30 @@ static  int is_real(double x)
     return (x < Inf) && (x >= -Inf);
 }
 
+template <class _Utf>
+bool utfIsAsciiChar(_Utf pChar)
+{
+  if ((pChar >= (_Utf)'0') && (pChar <= (_Utf)'9'))
+    return true;
+  if ((pChar >= (_Utf)'A') && (pChar <= (_Utf)'Z'))
+    return true;
+  if ((pChar >= (_Utf)'a') && (pChar <= (_Utf)'z'))
+    return true;
+ /* switch (pChar)
+  {
+  case (_Utf)'é':
+  case (_Utf)'à':
+  case (_Utf)'è':
+  case (_Utf)'ü':
+  case (_Utf)'ö':
+  case (_Utf)'ç':
+  case (_Utf)'*':
+  case (_Utf)'"':
+
+  }
+*/
+  return false;
+}
 
 
 
