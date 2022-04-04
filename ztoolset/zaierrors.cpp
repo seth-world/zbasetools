@@ -5,12 +5,14 @@
 
 void ZaiErrors::logZException()
 {
+  ZaiE_Severity wS= ZAIES_Info;
     if (ZException.count() == 0)
         push(new ZaiError(ZAIES_Info, (const utf8_t*)"No exception logged at this time"));
-    else
-        push(new ZaiError(cvttoZAIESeverity(ZException.last().Severity), ZException.lastUtf8().toUtf()));
-
-    if (AutoPrint)
+    else {
+      wS=cvttoZAIESeverity(ZException.last().Severity);
+        push(new ZaiError(wS, ZException.lastUtf8().toUtf()));
+    }
+    if (wS >= AutoPrint )
         fprintf(Output,"<%s> %s\n",decode_ZAIES(last()->Severity),last()->Message());
 }
 
@@ -229,7 +231,7 @@ void ZaiErrors::log(ZaiE_Severity pSeverity,const char* pFormat,...)
   va_list args;
   va_start (args, pFormat);
   push(new ZaiError(pSeverity,pFormat,args));
-  if (AutoPrint)
+  if (pSeverity >= AutoPrint)
     fprintf(Output,"<%s> %s \n",decode_ZAIES(last()->Severity),last()->Message());
 
   va_end(args);
@@ -240,7 +242,7 @@ void ZaiErrors::logZStatus(ZaiE_Severity pSeverity,ZStatus pSt,const char* pForm
   va_list args;
   va_start (args, pFormat);
   push(new ZaiError(pSeverity,pSt,pFormat,args));
-  if (AutoPrint)
+  if (pSeverity >= AutoPrint)
     fprintf(Output,"<%s> <%s> %s \n",decode_ZAIES(last()->Severity),decode_ZStatus(last()->Status),last()->Message());
 
   va_end(args);
@@ -253,8 +255,7 @@ void ZaiErrors::errorLog(const char* pFormat,...)
   va_list args;
   va_start (args, pFormat);
   push(new ZaiError(ZAIES_Error,pFormat,args));
-
-  if (AutoPrint)
+  if (ZAIES_Error >= AutoPrint)
     fprintf(Output,"<%s> %s \n",decode_ZAIES(last()->Severity),last()->Message());
 
   va_end(args);
@@ -266,7 +267,7 @@ void ZaiErrors::textLog(const char* pFormat,...)
   va_start (args, pFormat);
   push(new ZaiError(ZAIES_Text,pFormat,args));
 
-  if (AutoPrint)
+  if (ZAIES_Text >= AutoPrint)
     fprintf(Output,"%s \n",last()->Message());
 
   va_end(args);
@@ -278,7 +279,7 @@ void ZaiErrors::infoLog(const char* pFormat,...)
   va_start (args, pFormat);
   push(new ZaiError(ZAIES_Info,pFormat,args));
 
-  if (AutoPrint)
+  if (ZAIES_Info >= AutoPrint)
     fprintf(Output,"<%s> %s \n",decode_ZAIES(last()->Severity),last()->Message());
 
   va_end(args);
@@ -290,7 +291,7 @@ void ZaiErrors::warningLog(const char* pFormat,...)
   va_start (args, pFormat);
   push(new ZaiError(ZAIES_Warning,pFormat,args));
 
-  if (AutoPrint)
+  if (ZAIES_Warning >= AutoPrint)
     fprintf(Output,"<%s> %s \n",decode_ZAIES(last()->Severity),last()->Message());
 
   va_end(args);

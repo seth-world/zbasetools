@@ -98,11 +98,11 @@ class utfVaryingString : public utfStringDescriptor
 {
 protected:
     utfVaryingString& _copyFrom(const utfVaryingString& pIn)
-    {
-      utfStringDescriptor::_copyFrom(pIn);
+    {   
 //      CryptMethod=pIn.CryptMethod;
-      allocateBytes( pIn.ByteSize);
-      memmove(Data,pIn.Data,ByteSize);
+      allocateBytes(pIn.ByteSize);   /* ByteSize must have the former size value when entering within allocateBytes */
+      utfStringDescriptor::_copyFrom(pIn);
+      memmove(Data,pIn.Data,pIn.ByteSize);
       CheckData();
       return(*this);
     }
@@ -112,7 +112,7 @@ public:
     utfVaryingString (const utfVaryingString&& pIn);
 
 
-    _Utf *          Data=nullptr;
+    _Utf *           Data=nullptr;
     utfVaryingString (void) ;
     utfVaryingString (_Utf *pData,ssize_t pCount);
     utfVaryingString (size_t pCount);

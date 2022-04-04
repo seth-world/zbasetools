@@ -10,7 +10,8 @@ enum ZaiE_Severity : uint8_t
     ZAIES_Info      =   1,
     ZAIES_Warning   =   2,
     ZAIES_Error     =   4,
-    ZAIES_Fatal     =   8
+    ZAIES_Fatal     =   8,
+    ZAIES_None      = 0xFF
 };
 
 const char* decode_ZAIES(ZaiE_Severity pSeverity);
@@ -213,9 +214,9 @@ public:
         return ErrorLevel ;
     }
 
-    void setAutoPrintOn(bool pOnOff) {AutoPrint=pOnOff;}
+    void setAutoPrintOn(ZaiE_Severity pOnOff) {AutoPrint=ZAIES_Error;}
 
-    bool AutoPrint=false; /* if set then prints info and warning messages to stdout and error messages to stderr as soon as registrated */
+    ZaiE_Severity AutoPrint=ZAIES_None; /* if set then prints info and warning messages to stdout and error messages to stderr as soon as registrated */
     ZArray<utf8String> Context;
     uint8_t ErrorLevel=0;
     FILE* Output=stderr;
