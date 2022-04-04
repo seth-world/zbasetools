@@ -13,6 +13,8 @@
 
 #include <cassert>
 
+#include <memory.h>
+
 //extern ZVerbose_Base ZVerbose;
 
 /*
@@ -163,10 +165,15 @@ public:
 
 typedef long ZArrayIndex_type;
 
+using namespace std;
+
 template <typename _Tp>
 class ZArray
 {
-  /*
+
+private: allocator_traits<_Tp> Allocator;
+
+/*
  *  Data Attributes
  */
 
@@ -794,6 +801,12 @@ public:
 protected :
     void addCheck(long pAdd);
     void allocate(long pAlloc);
+    _Tp* allocateNew(long pAlloc);
+    _Tp* extendNew(long pExtent);
+
+    _Tp& assignNew (_Tp &pValue, const long pIdx);
+
+
     void _sizeAllocate(size_t pSizeAlloc);
     void _setContent (void *pContent,size_t pSize) {memmove(Tab,pContent,pSize); return;}
 
@@ -1466,7 +1479,7 @@ long wReallocValue = ZReallocQuota;
  *                  Nota Bene: pAlloc CANNOT be less than the existing number of element within the ZArray
  */
 template <typename _Tp>
-void ZArray<_Tp>::allocate(long pAlloc)
+_Tp* ZArray<_Tp>::allocateNew(long pAlloc)
 {
 #if __DEBUG_LEVEL__  > 4
     if (ZAllocation >= pAlloc )
@@ -1475,27 +1488,107 @@ void ZArray<_Tp>::allocate(long pAlloc)
                 }
 #endif // _DEBUG_LEVEL
 
-    if (pAlloc < ZCurrentNb)
-                {
+    if (pAlloc < ZCurrentNb) {
 #if __DEBUG_LEVEL__  > 1
                 fprintf (stderr,"ZArray::allocate-W-ERRALLOC requested new allocation <%ld> not greater than existing number of elements within ZArray <%ld> .\n"
                          "You should suppress elements from the ZArray and use trimming facility to reduce the memory allocated (ZArray::trim).\n",
                          pAlloc,ZCurrentNb);
                 return;
 #endif // _DEBUG_LEVEL
-                }
+      }
+
+    if (Tab==nullptr)
+      Tab=Allocator.allocate(pAlloc);
+
     ZAllocatedSize = sizeof(_Tp)*pAlloc;
     ZAllocation = pAlloc;
 
     _Tp * wPtr;
     char* wPtrChar;
 
-    Tab =zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
+//    Tab =zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
+
+    Allocator.
 
     wPtrChar = (char*) Tab;
     wPtrChar[ZAllocatedSize] = _HighValue ;
 
+  return Tab;
+}// allocateNew
+
+template <typename _Tp>
+_Tp* ZArray<_Tp>::extendNew(long pExtent)
+{
+  if (Tab==nullptr)
+    return allocateNew(pExtent);
+
+  _Tp* wSvData=Tab;
+
+  Tab = allocateNew(ZAllocation + pExtent);
+
+  for (long wi=0;wi < ZCurrentNb ; wi++) {
+    Tab[wi] = std::move<_Tp>(wSvData[wi]);
+  }
+  free (wSvData);
+  return Tab;
+}
+
+template<class _Tp>
+_Tp & ZArray<_Tp>::assignNew (_Tp &pValue, const long pIdx)
+{
+  if ((size_t)pIdx >= ZAllocation)
+  {
+    fprintf (stderr,"ZArray::assign-F-OVERFLW Index <%ld> bypasses allocation <%ld>\n",pIdx,ZAllocation);
+    abort();
+  }
+
+  Allocator.construct(&Tab[pIdx],pValue);
+//  memset(&Tab[pIdx],0,sizeof(_Tp)); /* cannot invoke constructor but can set memory surface to zero */
+//  Tab[pIdx] = pValue;               /* copy constructor and operator = must be defined if class */
+  //  _hasChanged=true;
+  return Tab[pIdx];
+}
+
+
+
+
+
+template <typename _Tp>
+void ZArray<_Tp>::allocate(long pAlloc)
+{
+#if __DEBUG_LEVEL__  > 4
+  if (ZAllocation >= pAlloc )
+  {
+    fprintf (stderr,"ZArray::allocate-W-Warning requested new allocation <%ld> not greater than existing allocation <%ld> \n",pAlloc,ZAllocation);
+  }
+#endif // _DEBUG_LEVEL
+
+  if (pAlloc < ZCurrentNb)
+  {
+#if __DEBUG_LEVEL__  > 1
+    fprintf (stderr,"ZArray::allocate-W-ERRALLOC requested new allocation <%ld> not greater than existing number of elements within ZArray <%ld> .\n"
+                    "You should suppress elements from the ZArray and use trimming facility to reduce the memory allocated (ZArray::trim).\n",
+        pAlloc,ZCurrentNb);
+    return;
+#endif // _DEBUG_LEVEL
+  }
+  ZAllocatedSize = sizeof(_Tp)*pAlloc;
+  ZAllocation = pAlloc;
+
+  _Tp * wPtr;
+  char* wPtrChar;
+
+  Tab =zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
+
+  Allocator.
+
+      wPtrChar = (char*) Tab;
+  wPtrChar[ZAllocatedSize] = _HighValue ;
+
 }// ZAllocate
+
+
+
 
 /** @brief allocate  dynamic memory allocation / reallocation allocates memory with a size in bytes given by pSizeAlloc (in place of a number of elements)
  *                  pSizeAlloc is the rough total size in bytes to be allocated before a reallocQuota memory extension.\n
