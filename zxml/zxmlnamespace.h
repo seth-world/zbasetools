@@ -21,7 +21,12 @@ public:
     zxmlNameSpace(zxmlDoc* pDoc,const char* pURL,const char* pPrefix);      // global ns
     zxmlNameSpace(zxmlNode* pNode, const char* pURL, const char* pPrefix);    // local ns
 
-    ~zxmlNameSpace() {if (_xmlInternalNameSpace)xmlFreeNs(_xmlInternalNameSpace);}
+    ~zxmlNameSpace() {
+      if (_xmlInternalNameSpace) {
+        xmlFreeNs(_xmlInternalNameSpace);
+        _xmlInternalNameSpace=nullptr;
+      }
+    }
 
     zxmlNameSpace(const zxmlNameSpace&)=delete;
     zxmlNameSpace& operator=(const zxmlNameSpace&) = delete;  // no copy

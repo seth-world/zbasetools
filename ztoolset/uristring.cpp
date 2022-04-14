@@ -297,7 +297,8 @@ uriString::getDirectoryPath () const
     utf8_t *wPtr = &wDir.Data[wDir.UnitCount-1];
     while ((wPtr > wDir.Data) && (*wPtr!=Delimiter))
       wPtr--;
-    wPtr++;
+    if (wPtr!=wDir.Data)
+      wPtr++;
     while (wPtr < &wDir.Data[wDir.UnitCount])
         *wPtr++=0;
   return wDir;
@@ -386,7 +387,60 @@ uriString::getRootname () const
             *wPtr++=0;
       }
     return wRoot;
-}//getRootBasename
+}//getRootname
+
+void uriString::changeFileExtension(const utf8VaryingString& pExt) {
+  if (pExt.isEmpty())
+    return;
+
+  utf8VaryingString wReturn;
+  size_t wLen = strlen();
+
+  utf8_t* wPtrDot = strchr('.');
+
+  if (wPtrDot!=nullptr)
+    *wPtrDot=0;
+  wReturn = Data;
+
+  if (pExt[0]=='.') {
+    wReturn += pExt;
+    strset(wReturn.Data);
+    return;
+  }// if (pExt[0]=='.')
+  wReturn += ".";
+  wReturn += pExt;
+  strset(wReturn.Data);
+  return;
+}//changeFileExtension
+
+void uriString::changeBasename(const utf8VaryingString& pBasename) {
+  utf8_t *wPtrBegin =  strrchr((utf8_t)Delimiter);
+
+  utf8VaryingString wResult;
+
+  if (wPtrBegin==nullptr)
+    wPtrBegin = Data ;
+  else
+  {
+    wPtrBegin++;
+  }
+
+  *wPtrBegin = '\0';
+
+  wResult.strset(Data);
+
+  utf8_t* wPtrEnd =++wPtrBegin;
+  while (*wPtrEnd && (*wPtrEnd!='.'))
+      wPtrEnd++;
+
+  wResult += pBasename;
+
+  wResult += wPtrEnd;
+
+  strset (wResult.Data);
+  return;
+}
+
 #include <limits.h>
 #include <stdlib.h>
 utf8String
@@ -412,7 +466,8 @@ uriString::getLocal () const
 
   uriString wReturn;
   utf8_t* wPtr =(utf8_t*) (Data+7);
-  wReturn = wPtr;
+
+  wReturn.strset(wPtr);
   return wReturn;
 }//getLocal
 
@@ -481,6 +536,39 @@ uriString::setExtension (const char* pExtension)
     return;
 }
 
+
+ZStatus
+uriString::remove() {
+  ZStatus wSt=ZS_SUCCESS;
+  if (::remove(toCChar())!=0) {
+    switch (errno)
+    {
+    case (EPERM) :
+    case (EACCES) :
+      wSt = ZS_ACCESSRIGHTS;
+      break;
+    case (EBUSY) :
+      wSt = ZS_LOCKED;
+      break;
+    case (ENOENT) :
+      wSt =ZS_FILENOTEXIST;
+      break;
+    default:
+      wSt = ZS_FILEERROR;
+      break;
+    }// switch
+
+
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        wSt,
+        Severity_Severe,
+        " Cannot remove file <%s>",
+        toCChar());
+    return wSt;
+  }
+  return ZS_SUCCESS;
+}//remove
 
 ZStatus
 uriString::renameBck(const char* pBckExt)
@@ -640,7 +728,7 @@ ZStatus
 uriString::suppress(void)
 {
   errno=0;
-    int wSt=remove(toCString_Strait());
+  int wSt=::remove(toCString_Strait());
     if (wSt<0)
             {
             switch (errno)
@@ -1033,7 +1121,7 @@ In case of error :returned ZStatus is appropriately set
 */
 
 ZStatus
-uriString::writeContent (ZDataBuffer& pDBS)
+uriString::writeContent (ZDataBuffer& pDBS) const
 {
 
     FILE *wFile =fopen(toCChar(),"wb");
@@ -1069,7 +1157,7 @@ uriString::writeContent (ZDataBuffer& pDBS)
     return(ZS_SUCCESS);
 }//writeContent
 ZStatus
-uriString::appendContent (ZDataBuffer& pDBS)
+uriString::appendContent (ZDataBuffer& pDBS) const
 {
 
   FILE *wFile =fopen(toCChar(),"ab");
@@ -1106,7 +1194,7 @@ uriString::appendContent (ZDataBuffer& pDBS)
 }//writeContent
 
 ZStatus
-uriString::writeContent (utf8VaryingString &pStr)
+uriString::writeContent (utf8VaryingString &pStr) const
 {
 
     FILE *wFile =fopen(toCChar(),"w");
@@ -1119,8 +1207,8 @@ uriString::writeContent (utf8VaryingString &pStr)
                                   Severity_Error,
                                   "-E-ERROPEN error on fopen file for writing  <%s> \n",
                                   toCChar());
-            if (ZVerbose)
-                ZException.printLastUserMessage(stderr);
+//            if (ZVerbose)
+//                ZException.printLastUserMessage(stderr,true);
             return ZS_ERROPEN;
             }
 
@@ -1146,7 +1234,7 @@ uriString::writeContent (utf8VaryingString &pStr)
     return(ZS_SUCCESS);
 }//writeContent
 ZStatus
-uriString::appendContent (utf8VaryingString &pStr)
+uriString::appendContent (utf8VaryingString &pStr) const
 {
 
   FILE *wFile =fopen(toCChar(),"a");

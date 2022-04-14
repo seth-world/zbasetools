@@ -55,6 +55,8 @@ public:
      *         ZS_OUTBOUNDHIGH if pBitRank is out of biset boundary
      */
     ZStatus set(const size_t pBitRank);
+    void setAll();
+    void resetAll();
     /**
      * @brief reset resets the bit pointed by pBitRank (to 0)
      * @return ZS_SUCCESS if operation is successfull
@@ -76,14 +78,15 @@ public:
     bool test(const size_t pBitRank);
 
     inline uint16_t getByteSize(void)  {return (uint16_t)(Size*sizeof(ZBitsetType));}
-    inline uint16_t getExportSize(void)
+    inline uint16_t getURFSize(void)
     {
       if (bit==nullptr)
         return (uint16_t)sizeof(ZTypeBase);
       return (uint16_t) (sizeof(ZTypeBase)+sizeof(uint16_t)+sizeof(uint16_t)+(size_t)getByteSize());
     }
     uint16_t getEffectiveBitSize(void) {return((uint16_t)EffectiveBitSize);}
-    ZDataBuffer& _exportAppendURF(ZDataBuffer& pBitsetExport);
+    ZDataBuffer&  _exportAppendURF(ZDataBuffer& pBitsetExport);
+    size_t        _exportURF_Ptr(unsigned char*& pURF);
 /**
  * @brief ZBitset::_importURF imports a ZBitset structure from an URF
  * @param pPtrIn pointer to begining of URF data to import (pointing to beginning of URF header).

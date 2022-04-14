@@ -9,6 +9,8 @@
 #include <ztoolset/charman.h>
 #include <ztoolset/zstatus.h>
 
+class ZDataBuffer;
+
 //#include <ztoolset/zdatabuffer.h>
 class utf8VaryingString;
 
@@ -43,7 +45,7 @@ struct md5 {
     }
     bool isValid() const {return !isInvalid();}
 
-    void _export(unsigned char* pPtrOut)
+    void _export(unsigned char* pPtrOut) const
     {
       for (int wi=0;wi < cst_md5Hexa;wi++)
         pPtrOut[wi]=content[wi];
@@ -57,6 +59,13 @@ struct md5 {
       while (wi--)
         *wPtrIn++ = *pPtrIn++;
     }
+
+    ZDataBuffer*  _exportURF(ZDataBuffer*pUniversal) const;
+    size_t        _exportURF_Ptr(unsigned char*& pURF) const;
+
+    size_t        getURFSize() const;
+
+    ZStatus       _importURF(const unsigned char* &pUniversal);
 
     bool operator == (const md5 *pChecksum) const {return (memcmp(content,pChecksum->content,sizeof(content))==0);}
     bool operator == (const md5 &pChecksum) const {return (memcmp(content,pChecksum.content,sizeof(content))==0);}

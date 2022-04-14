@@ -2,6 +2,7 @@
 #define ZTYPETYPE_CPP
 #include <ztoolset/ztypetype.h>
 #include <ztoolset/zsymbols.h>
+#include <ztoolset/zutfstrings.h>
 
 //======================Encoding Decoding ZType_type=====================================
 
@@ -43,23 +44,47 @@ _Utf* utfAddConditionalOR(_Utf*pBuffer,const _Utf*pString)
 */
 const char *decode_ZType (ZTypeBase pType)
 {
-static utf8_t ZStringBuffer1[250];
+  ZTypeBase wType = pType;
+  if (pType==ZType_Nothing)
+    return "ZType_Nothing" ;
 
-    if (pType==ZType_Nothing)
-                return "ZType_Nothing" ;
+static char ZStringBuffer1[250];
 
-    if (pType==ZType_URIString)
-      return "ZType_URIString" ;
+ZTypeBase wSType= pType & ZType_StructureMask ;
+ZTypeBase wAType= pType & ZType_AtomicMask ;
+  memset(ZStringBuffer1,0,sizeof(ZStringBuffer1));
 
-    switch (pType)  /* partial type decoding */
+
+  if (wType & ZType_Array) {
+    utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Array ");
+    wType &= ~ ZType_Array;
+  }
+  if (wType & ZType_Pointer) {
+    utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Pointer ");
+    wType &= ~ ZType_Pointer;
+  }
+
+
+  if (wType==ZType_URIString) {
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_URIString ");
+      return ZStringBuffer1 ;
+  }
+ /*   if (pType==ZType_Bool){
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Bool ");
+      return ZStringBuffer1 ;
+    }
+*/
+    switch (wType)  /* partial type decoding */
     {
-    case ZType_Nothing:
-      return "ZType_Nothing" ;
       /* atomic types */
     case ZType_AtomicUChar:
-      return "ZType_AtomicUChar" ;
+    case ZType_UChar:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_UChar ");
+      return ZStringBuffer1 ;
     case ZType_AtomicChar:
-      return "ZType_AtomicChar" ;
+    case ZType_Char:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Char ");
+      return ZStringBuffer1 ;
 /* not to be used anymore
      case ZType_AtomicWUChar:
       return "ZType_AtomicWUChar" ;
@@ -67,169 +92,148 @@ static utf8_t ZStringBuffer1[250];
       return "ZType_AtomicWChar" ;
 */
     case ZType_AtomicU8:
-      return "ZType_AtomicU8" ;
+    case ZType_U8:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicU8 ");
+      return ZStringBuffer1 ;
     case ZType_AtomicS8:
-      return "ZType_AtomicS8" ;
+    case ZType_S8:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicS8 ");
+      return ZStringBuffer1 ;
+
     case ZType_AtomicU16:
-      return "ZType_AtomicU16" ;
+    case ZType_U16:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicU16 ");
+      return ZStringBuffer1 ;
+
     case ZType_AtomicS16:
-      return "ZType_AtomicS16" ;
+    case ZType_S16:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicS16 ");
+      return ZStringBuffer1 ;
+
     case ZType_AtomicU32:
-      return "ZType_AtomicU32" ;
+    case ZType_U32:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicU32 ");
+      return ZStringBuffer1 ;
     case ZType_AtomicS32:
-      return "ZType_AtomicS32" ;
+    case ZType_S32:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicS32 ");
+      return ZStringBuffer1 ;
     case ZType_AtomicU64:
-          return "ZType_AtomicU64" ;
+    case ZType_U64:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicU64 ");
+      return ZStringBuffer1 ;
     case ZType_AtomicS64:
-      return "ZType_AtomicS64" ;
+    case ZType_S64:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicS64 ");
+      return ZStringBuffer1 ;
     case ZType_AtomicFloat:
-      return "ZType_AtomicFloat" ;
+    case ZType_Float:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicFloat ");
+      return ZStringBuffer1 ;
     case ZType_AtomicDouble:
-      return "ZType_AtomicDouble" ;
+    case ZType_Double:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicDouble ");
+      return ZStringBuffer1 ;
     case ZType_AtomicLDouble:
-          return "ZType_AtomicLDouble" ;
+    case ZType_LDouble:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicLDouble ");
+      return ZStringBuffer1 ;
+    case ZType_Bool:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Bool ");
+      return ZStringBuffer1 ;
 
   /* varying strings */
     case ZType_CharVaryingString:
-      return "ZType_CharVaryingString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_CharVaryingString ");
+      return ZStringBuffer1 ;
     case ZType_Utf8VaryingString:
-      return "ZType_Utf8VaryingString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Utf8VaryingString ");
+      return ZStringBuffer1 ;
     case ZType_Utf16VaryingString:
-      return "ZType_Utf16VaryingString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Utf16VaryingString ");
+      return ZStringBuffer1 ;
     case ZType_Utf32VaryingString:
-      return "ZType_Utf32VaryingString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Utf32VaryingString ");
+      return ZStringBuffer1 ;
 
       /* fixed string */
     case ZType_CharFixedString:
-      return "ZType_CharFixedString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZTyZType_CharFixedStringpe_Bool ");
+      return ZStringBuffer1 ;
     case ZType_Utf8FixedString:
-      return "ZType_Utf8FixedString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Utf8FixedString ");
+      return ZStringBuffer1 ;
     case ZType_Utf16FixedString:
-      return "ZType_Utf16FixedString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Utf16FixedString ");
+      return ZStringBuffer1 ;
     case ZType_Utf32FixedString:
-      return "ZType_Utf32FixedString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Utf32FixedString ");
+      return ZStringBuffer1 ;
 
       /* other classes */
     case ZType_bitset:
-      return "ZType_bitset" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_bitset ");
+      return ZStringBuffer1 ;
     case ZType_bitsetFull:
-      return "ZType_bitsetFull" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_bitsetFull ");
+      return ZStringBuffer1 ;
     case ZType_ZDate:
-      return "ZType_ZDate" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_ZDate ");
+      return ZStringBuffer1 ;
     case ZType_ZDateFull:
-      return "ZType_ZDateFull" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_ZDateFull ");
+      return ZStringBuffer1 ;
     case ZType_CheckSum:
-      return "ZType_CheckSum" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_CheckSum ");
+      return ZStringBuffer1 ;
     case ZType_Resource:
-      return "ZType_Resource" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Resource ");
+      return ZStringBuffer1 ;
     case ZType_URIString:
-      return "ZType_URIString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_URIString ");
+      return ZStringBuffer1 ;
     case ZType_Blob:
-      return "ZType_Blob" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Blob ");
+      return ZStringBuffer1 ;
     case ZType_StdString:
-      return "ZType_StdString" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_StdString ");
+      return ZStringBuffer1 ;
 
     case ZType_Unknown:
-      return "ZType_Unknown" ;
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Unknown ");
+      return ZStringBuffer1 ;
     default:
       break;
     }
 
-
-
-ZTypeBase wSType= pType & ZType_StructureMask ;
-ZTypeBase wAType= pType & ZType_AtomicMask ;
-    memset(ZStringBuffer1,0,sizeof(ZStringBuffer1));
-
-
-    if (wSType & ZType_Array)
-                    utfAddConditionalOR<utf8_t>(ZStringBuffer1,(const utf8_t*)"ZType_Array ");
-
-    if ((pType & ZType_String)==ZType_String)
-        {
-/*        if ((pType&ZType_Utf8VaryingString)==ZType_Utf8VaryingString)
-                                        return "ZType_Utf8VaryingString ";
-        if ((pType&ZType_Utf16VaryingString)==ZType_Utf16VaryingString)
-                                        return "ZType_Utf16VaryingString ";
-        if ((pType&ZType_Utf32VaryingString)==ZType_Utf32VaryingString)
-                                        return "ZType_Utf32VaryingString ";
-        if ((pType&ZType_CharVaryingString)==ZType_CharVaryingString)
-                                        return "ZType_CharVaryingString ";
-
-        if ((pType&ZType_CharFixedString)==ZType_CharFixedString)
-                                        return "ZType_CharFixedString ";
-
-        if ((pType&ZType_Utf8FixedString)==ZType_Utf8FixedString)
-                                        return "ZType_Utf8FixedString ";
-        if ((pType&ZType_Utf16FixedString)==ZType_Utf16FixedString)
-                                        return "ZType_Utf16FixedString ";
-        if ((pType&ZType_Utf32FixedString)==ZType_Utf32FixedString)
-                                        return "ZType_Utf32FixedString ";
-
-
-        if (pType==ZType_StdString)
-                    return "ZType_StdString ";
-*/
-        if (pType==ZType_FixedCString)
-                    return "ZType_FixedCString ";
-
-        if (pType==ZType_CString)
-          return "<Deprecated>ZType_Pointer | ZType_CString ";
-        if (pType==ZType_VaryingCString)
-          return "<Deprecated>ZType_VaryingCString ";
-/* not to be used anymore
-        if (pType==ZType_FixedWString)
-                    return "<Deprecated> ZType_FixedWString ";
-        if (pType==ZType_FixedWUString)
-                    return "<Deprecated> ZType_FixedWUString ";
-        if (pType==ZType_WString)
-                    return "<Deprecated>ZType_Pointer | ZType_WString ";
-        if (pType==ZType_VaryingWString)
-                    return "<Deprecated>ZType_VaryingWString ";
-*/
-        return "Unknown String type";
-        }
-    if ((pType & ZType_Class)==ZType_Class)
-        {
-        if (pType==ZType_ZDate)
-                    {
-                    return "ZType_ZDate";
-                    }
-        if (pType==ZType_ZDateFull)
-                    {
-                    return "ZType_ZDateFull";
-                    }
-        if (pType==ZType_CheckSum)
-                    return "ZType_CheckSum ";
-        }
+/*
     if (pType&ZType_VaryingLength)
-                utfAddConditionalOR<utf8_t>(ZStringBuffer1, (utf8_t*)"ZType_VaryingLength");
+                utfAddConditionalOR<char>(ZStringBuffer1, "ZType_VaryingLength");
             else
-                utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_FixedLength");
+                utfAddConditionalOR<char>(ZStringBuffer1,"ZType_FixedLength");
+*/
+  return ZStringBuffer1;
 
     while (true)
     {
     if (pType & ZType_Atomic)
             {
-//            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)" ZType_Atomic") ;
+//            utfAddConditionalOR<char>(ZStringBuffer1," ZType_Atomic") ;
             ::strcpy((char*)ZStringBuffer1,"ZType_Atomic"); // reset string to this litteral
             break;
             }
-    if (pType & ZType_Pointer)
-            {
-//            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)" ZType_Pointer") ;
-            ::strcpy((char*)ZStringBuffer1,"ZType_Pointer"); // reset string to this litteral
+    if (pType & ZType_Pointer) {
+            utfAddConditionalOR<char>(ZStringBuffer1," ZType_Pointer") ;
+//            ::strcpy((char*)ZStringBuffer1,"ZType_Pointer"); // reset string to this litteral
             break;
             }
-    if (pType & ZType_Array)
-            {
-//            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_Array") ;
-            ::strcpy((char*)ZStringBuffer1,"ZType_Array"); // reset string to this litteral
+    if (pType & ZType_Array){
+           utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Array") ;
+//            ::strcpy((char*)ZStringBuffer1,"ZType_Array"); // reset string to this litteral
             break;
             }
-    if ((pType & ZType_Class)==ZType_Class)
-            {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)" ZType_Class") ;
+    if ((pType & ZType_Class)==ZType_Class){
+            utfAddConditionalOR<char>(ZStringBuffer1," ZType_Class") ;
             break;
             }
 /*    if (pType & ZType_Enum)
@@ -238,102 +242,101 @@ ZTypeBase wAType= pType & ZType_AtomicMask ;
             break;
             }*/
 
-    utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_StructUnknown");
+    utfAddConditionalOR<char>(ZStringBuffer1,"ZType_StructUnknown");
     break;
     }// while (true)
 
 /* Herebelow is not necessary :atomic type gives signed and endianness option
 
     if (pType & ZType_Signed)
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_Signed ");
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Signed ");
         else
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"UnSigned ");
+            utfAddConditionalOR<char>(ZStringBuffer1,"UnSigned ");
     if (pType & ZType_Endian)
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_Endian ");
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Endian ");
 */
     while (true) // carefull to put first signed type otherwise detect unsigned while it is signed (same mask with sign byte )
     {
     if ((pType & ZType_Char)==ZType_Char)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_Char") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Char") ;
             break;
             }
-    if ((pType & ZType_UChar)== ZType_UChar)
-        {
-        utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_UChar") ;
+    if ((pType & ZType_UChar)== ZType_UChar) {
+        utfAddConditionalOR<char>(ZStringBuffer1,"ZType_UChar") ;
         break;
         }
 /*    if ((pType & ZType_WChar)== ZType_WChar)
         {
-        ZStringBuffer1.addConditionalOR((utf8_t*)"ZType_WChar") ;
+        ZStringBuffer1.addConditionalOR("ZType_WChar") ;
         break;
         }
     if ((pType & ZType_WUChar)== ZType_WUChar)
         {
-        ZStringBuffer1.addConditionalOR((utf8_t*)"ZType_WUChar") ;
+        ZStringBuffer1.addConditionalOR("ZType_WUChar") ;
         break;
         }*/
     if ((pType & ZType_S8)==ZType_S8)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_S8") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_S8") ;
             break;
             }
     if ((pType & ZType_U8)==ZType_U8)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_U8") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_U8") ;
             break;
             }
 
     if ((pType & ZType_S16)==ZType_S16)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_S16") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_S16") ;
             break;
             }
     if ((pType & ZType_U16)==ZType_U16)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_U16") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_U16") ;
             break;
             }
 
     if ((pType & ZType_S32)==ZType_S32)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_S32") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_S32") ;
             break;
             }
     if ((pType & ZType_U32)==ZType_U32)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_U32") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_U32") ;
             break;
             }
 
     if ((pType & ZType_S64)==ZType_S64)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_S64") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_S64") ;
             break;
             }
     if ((pType & ZType_U64)==ZType_U64)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_U64") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_U64") ;
             break;
             }
 
     if ((pType & ZType_Float)==ZType_Float)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_Float") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Float") ;
             break;
             }
     if ((pType & ZType_Double)==ZType_Double)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_Double") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Double") ;
             break;
             }
     if ((pType & ZType_LDouble)==ZType_LDouble)
             {
-            utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_LDouble") ;
+            utfAddConditionalOR<char>(ZStringBuffer1,"ZType_LDouble") ;
             break;
             }
 
-    utfAddConditionalOR<utf8_t>(ZStringBuffer1,(utf8_t*)"ZType_AtomicUnknown");
+    utfAddConditionalOR<char>(ZStringBuffer1,"ZType_AtomicUnknown");
     break;
     }// while (true)
 
@@ -351,6 +354,385 @@ ZTypeBase wAType= pType & ZType_AtomicMask ;
     return (const char*)ZStringBuffer1 ;
 
 } // decode_ZType
+
+ZTypeBase encode_ZType (const utf8VaryingString &pString)
+{
+  ZTypeBase wZType=ZType_Nothing ;
+/* atomic types */
+  while (true) {
+    if (pString.strstr((const utf8_t*)"ZType_Char")) {
+      wZType|=ZType_Char; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_UChar")) {
+      wZType|=ZType_UChar; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_S8")) {
+      wZType|=ZType_S8; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_U8")) {
+      wZType|=ZType_U8; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_S16")) {
+      wZType|=ZType_S16; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_U16")) {
+      wZType|=ZType_U16; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_S32")) {
+      wZType|=ZType_S32; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_U32")) {
+      wZType|=ZType_U32; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_S64")) {
+      wZType|=ZType_S64; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_U64")) {
+      wZType|=ZType_U64; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Float")) {
+      wZType|=ZType_Float; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Double")) {
+      wZType|=ZType_Double; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_LDouble")) {
+      wZType|=ZType_LDouble; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Bool")) {
+      wZType|=ZType_Bool; break ; }
+
+    if (pString.strstr((const utf8_t*)"ZType_AtomicChar")) {
+      wZType|=ZType_AtomicChar; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicUChar")) {
+      wZType|=ZType_AtomicUChar; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicS8")) {
+      wZType|=ZType_AtomicS8; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicU8")) {
+      wZType|=ZType_AtomicU8; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicS16")) {
+      wZType|=ZType_AtomicS16; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicU16")) {
+      wZType|=ZType_AtomicU16; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicS32")) {
+      wZType|=ZType_AtomicS32; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicU32")) {
+      wZType|=ZType_AtomicU32; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicS64")) {
+      wZType|=ZType_AtomicS64; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicU64")) {
+      wZType|=ZType_AtomicU64; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicFloat")) {
+      wZType|=ZType_AtomicFloat; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicLDouble")) {
+      wZType|=ZType_AtomicLDouble; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_AtomicLDouble")) {
+      wZType|=ZType_AtomicLDouble; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Bool")) {
+      wZType|=ZType_Bool; break ; }
+
+    /* strings */
+    if (pString.strstr((const utf8_t*)"ZType_Utf8VaryingString")) {
+      wZType|=ZType_Utf8VaryingString; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Utf8String")) {
+      wZType|=ZType_Utf8VaryingString; break ; }
+
+    if (pString.strstr((const utf8_t*)"ZType_Utf16VaryingString")) {
+      wZType|=ZType_Utf16VaryingString; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Utf32VaryingString")) {
+      wZType|=ZType_Utf32VaryingString; break ; }
+
+    if (pString.strstr((const utf8_t*)"ZType_Utf32FixedString")) {
+      wZType|=ZType_Utf32FixedString; break ; }
+
+    if (pString.strstr((const utf8_t*)"ZType_URIString")) {
+      wZType|=ZType_URIString; break ; }
+
+    if (pString.strstr((const utf8_t*)"ZType_Blob")) {
+      wZType|=ZType_Blob; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_StdString")) {
+      wZType|=ZType_StdString; break ; }
+
+
+    if (pString.strstr((const utf8_t*)"ZType_CharFixedString")) {
+      wZType|=ZType_CharFixedString; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Utf8FixedString")) {
+      wZType|=ZType_Utf8FixedString; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Utf16FixedString")) {
+      wZType|=ZType_Utf16FixedString; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Utf32FixedString")) {
+      wZType|=ZType_Utf32FixedString; break ; }
+
+    /* dates */
+    if (pString.strstr((const utf8_t*)"ZType_ZDateFull")) {
+      wZType|=ZType_ZDateFull; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_ZDate")) {
+      wZType|=ZType_ZDate; break ; }
+
+    /* other classes */
+
+    if (pString.strstr((const utf8_t*)"ZType_CheckSum")) {
+      wZType|=ZType_CheckSum; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_bitset")) {
+      wZType|=ZType_bitset; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_bitsetFull")) {
+      wZType|=ZType_bitsetFull; break ; }
+    if (pString.strstr((const utf8_t*)"ZType_Resource")) {
+      wZType|=ZType_Resource; break ; }
+
+    wZType|=ZType_Unknown;
+    break;
+  } // while (true)
+
+  /* other complementary attributes */
+
+  if (pString.strstr((const utf8_t*)"ZType_Array"))
+    wZType|=ZType_Array;
+
+  if (pString.strstr((const utf8_t*)"ZType_Pointer"))
+    wZType|=ZType_Pointer;
+
+  return wZType;
+}
+
+bool isAtomic(ZTypeBase pType) {
+//  ZTypeBase wType = pType & ZType_AtomicMask;
+  switch (pType)  /* partial type decoding */
+  {
+    /* atomic types */
+  case ZType_AtomicUChar:
+  case ZType_UChar:
+    return true ;
+  case ZType_AtomicChar:
+  case ZType_Char:
+    return true ;
+
+  case ZType_AtomicU8:
+  case ZType_U8:
+    return true ;
+  case ZType_AtomicS8:
+  case ZType_S8:
+    return true ;
+
+  case ZType_AtomicU16:
+  case ZType_U16:
+   return true ;
+
+  case ZType_AtomicS16:
+  case ZType_S16:
+    return true ;
+
+  case ZType_AtomicU32:
+  case ZType_U32:
+    return true ;
+  case ZType_AtomicS32:
+  case ZType_S32:
+    return true ;
+  case ZType_AtomicU64:
+  case ZType_U64:
+    return true ;
+  case ZType_AtomicS64:
+  case ZType_S64:
+    return true ;
+  case ZType_AtomicFloat:
+  case ZType_Float:
+    return true ;
+  case ZType_AtomicDouble:
+  case ZType_Double:
+    return true ;
+  case ZType_AtomicLDouble:
+  case ZType_LDouble:
+    return true ;
+  case ZType_Bool:
+    return true ;
+  default:
+    return false;
+  }
+}
+
+
+/**
+ * @brief decode_ZType decode the ZType_type value given as a long into a human readable string
+* @param[in] pType  ZType_type mask to decode
+ * @return a C string
+*/
+const char *ZTypeToCType (ZTypeBase pType, long pCapacity)
+{
+  //  pInclude.clear();
+
+  ZTypeBase wType = pType;
+  if (pType==ZType_Nothing)
+    return "ZType_Nothing" ;
+  if (pType==ZType_Unknown)
+    return "ZType_Unknown" ;
+  static utf8VaryingString ZStringBuffer;
+//  static CharMan ZStringBuffer;
+
+  ZTypeBase wSType = pType & ZType_StructureMask ;
+  ZTypeBase wAType= pType & ZType_AtomicMask ;
+
+  ZStringBuffer.clear();
+
+  if (pType & ZType_Atomic) {
+    switch (pType & ~ (ZType_Array | ZType_Pointer))  /* partial type decoding */
+      {
+        /* atomic types */
+      case ZType_AtomicUChar:
+      case ZType_UChar:
+        ZStringBuffer = "unsigned char";
+        break;
+      case ZType_AtomicChar:
+      case ZType_Char:
+        ZStringBuffer = "char";
+        break;
+        /* not to be used anymore
+       case ZType_AtomicWUChar:
+        return "ZType_AtomicWUChar" ;
+      case ZType_AtomicWChar:
+        return "ZType_AtomicWChar" ;
+  */
+      case ZType_AtomicU8:
+      case ZType_U8:
+        ZStringBuffer = "uint8_t";
+        break;
+
+      case ZType_AtomicS8:
+      case ZType_S8:
+        ZStringBuffer = "int8_t";
+        break;
+
+      case ZType_AtomicU16:
+      case ZType_U16:
+        ZStringBuffer = "uint16_t";
+        break;
+
+      case ZType_AtomicS16:
+      case ZType_S16:
+        ZStringBuffer = "int16_t";
+        break;
+
+
+      case ZType_AtomicU32:
+      case ZType_U32:
+        ZStringBuffer = "uint32_t";
+        break;
+
+      case ZType_AtomicS32:
+      case ZType_S32:
+        ZStringBuffer = "int32_t";
+        break;
+
+      case ZType_AtomicU64:
+      case ZType_U64:
+        ZStringBuffer = "uint64_t";
+        break;
+
+      case ZType_AtomicS64:
+      case ZType_S64:
+        ZStringBuffer = "int64_t";
+        break;
+
+      case ZType_AtomicFloat:
+      case ZType_Float:
+        ZStringBuffer = "float";
+        break;
+
+      case ZType_AtomicDouble:
+      case ZType_Double:
+        ZStringBuffer = "double";
+        break;
+
+      case ZType_AtomicLDouble:
+      case ZType_LDouble:
+        ZStringBuffer = "long double";
+        break;
+
+      case ZType_Bool:
+        ZStringBuffer = "bool";
+        break;
+
+      default:
+        ZStringBuffer = "Unknown_atomic_type";
+        break;
+      }
+
+    if (pType & ZType_Pointer) {
+      ZStringBuffer += "* ";
+    }
+    return ZStringBuffer.toCChar();
+  }// if (pType & ZType_Atomic)
+
+
+
+//  if (pType & ZType_StructureMask) {
+
+  switch (pType & ~ (ZType_Array | ZType_Pointer)){
+    case ZType_URIString:
+      ZStringBuffer = "uriString";
+//      pInclude = "ztoolset/uristring.h";
+      break;
+    case ZType_Utf8VaryingString:
+      ZStringBuffer = "utf8VaryingString";
+//      pInclude = "ztoolset/utfvaryingstring.h";
+      break;
+    case ZType_Utf16VaryingString:
+      ZStringBuffer = "utf16VaryingString";
+//      pInclude = "ztoolset/utfvaryingstring.h";
+      break;
+    case ZType_Utf32VaryingString:
+      ZStringBuffer = "utf8VaryingString";
+//      pInclude = "ztoolset/utfvaryingstring.h";
+      break;
+    case ZType_Utf8FixedString:
+      ZStringBuffer.sprintf("utf8FixedString<%ld>",pCapacity);
+//      pInclude = "ztoolset/utffixedstring.h";
+      break;
+    case ZType_Utf16FixedString:
+      ZStringBuffer.sprintf("utf16FixedString<%ld>",pCapacity);
+//      pInclude = "ztoolset/utffixedstring.h";
+      break;
+    case ZType_Utf32FixedString:
+      ZStringBuffer.sprintf("utf32FixedString<%ld>",pCapacity);
+//      pInclude = "ztoolset/utffixedstring.h";
+      break;
+    case ZType_ZDate:
+      ZStringBuffer = "ZDate";
+//      pInclude = "ztoolset/zdate.h";
+      break;
+    case ZType_ZDateFull:
+      ZStringBuffer = "ZDateFull";
+//      pInclude = "ztoolset/zdate.h";
+      break;
+    case ZType_CheckSum:
+      ZStringBuffer = "checkSum";
+//      pInclude = "zcrypt/checksum.h";
+      break;
+    case ZType_MD5:
+      ZStringBuffer = "md5";
+//      pInclude = "zcrypt/md5.h";
+      break;
+    case ZType_bitset:
+      ZStringBuffer = "ZBitset";
+//      pInclude = "ztoolset/zbitset.h";
+      break;
+
+    case ZType_StdString:
+      ZStringBuffer = "std::string";
+//      pInclude = "string";  // do not include <string.h> but <string>
+      break;
+
+    case ZType_StdWString:
+      ZStringBuffer = "std::wstring";
+//      pInclude = "string";  // do not include <string.h> but <string>
+      break;
+
+    case ZType_Resource:
+      ZStringBuffer = "ZResource";
+//      pInclude = "zcommon/zresource.h";
+      break;
+  /* deprecated */
+/*    case ZType_bitsetFull:
+      ZStringBuffer = "ZBitsetFull ";
+      break;
+*/
+    default:
+      ZStringBuffer = "Unknown_class_type";
+      break;
+  } // switch
+
+    if (pType & ZType_Pointer) {
+      ZStringBuffer += "* ";
+    }
+
+    return ZStringBuffer.toCChar();
+} // ZTypeToCType
 
 #include <ztoolset/zexceptionmin.h>
 #include <ztoolset/zdatabuffer.h>
@@ -380,6 +762,9 @@ encodeZTypeFromString (ZTypeBase &pZType ,ZDataBuffer &pString)
 
     if (pString.bsearch((void *)"ZType_Pointer",strlen("ZType_Pointer"))>-1)
                     pZType|=ZType_Pointer;
+
+    if (pString.bsearch((void *)"ZType_Bool",strlen("ZType_Bool"))>-1)
+      pZType|=ZType_Bool;
 
 /*    if (pString.bsearch((void *)"ZType_Enum",strlen("ZType_Enum"))>-1)
                     pZType=ZType_Enum;
@@ -682,6 +1067,8 @@ getUnitSize(ZType_type pType)
     case ZType_U32:
     case ZType_S32:
         return sizeof(uint32_t);
+    case ZType_Bool:
+      return sizeof(bool);
     default:
         return sizeof(uint8_t);
     }

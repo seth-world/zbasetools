@@ -20,6 +20,7 @@
 const uint16_t cst_EndianCheck_Normal=2;
 const uint16_t cst_EndianCheck_Reversed=reverseByteOrder_Conditional<uint16_t>(cst_EndianCheck_Normal);
 
+const uint32_t     cst_ZFILEBLOCKSTART = 0xF9F9F9F9;  //!< Begin marker of a file block structure on file it is a palyndroma
 
 const uint32_t     cst_ZBLOCKSTART = 0xF5F5F5F5;  //!< Begin marker of a data structure on file it is a palyndroma
 const uint32_t     cst_ZBLOCKEND   = 0xFCFCFCFC;  //!< End marker of a data structure on file : it is a palyndroma
@@ -28,6 +29,7 @@ const uint32_t     cst_ZFIELDSTART = 0xF4F4F4F4;  //!< Begin marker of a field d
 
 const uint8_t      cst_ZSTART_BYTE = 0xF5;
 
+const uint8_t      cst_ZFILESTART_BYTE = 0xF9;
 
 const long        cst_ZRF_default_allocation=10;
 const long        cst_ZRF_default_extentquota=5;

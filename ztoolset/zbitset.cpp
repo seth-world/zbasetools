@@ -75,7 +75,18 @@ if (wByteRank>=Size)
     bit[wByteRank] &= ~(1 << wReminder);
     return ZS_SUCCESS;
 }
-
+void
+ZBitset::setAll()
+{
+  for (int wi=0;wi < Size;wi++)
+    bit[wi]=0xFF;
+}
+void
+ZBitset::resetAll()
+{
+  for (int wi=0;wi < Size;wi++)
+    bit[wi]=0;
+}
 void
 ZBitset::print(FILE*pOutput)
 {
@@ -213,7 +224,7 @@ unsigned char* wURFPtr;
       return pBitsetExport;
       }
 
-    wURFPtr=pBitsetExport.extendBZero((size_t)getExportSize()); /* create room */
+    wURFPtr=pBitsetExport.extendBZero((size_t)getURFSize()); /* create room */
 
     wURFPtr=setURFBufferValue<ZTypeBase>(wURFPtr,wType);
 
@@ -225,15 +236,37 @@ unsigned char* wURFPtr;
     return pBitsetExport;
 }//_exportAppendURF
 
+size_t
+ZBitset::_exportURF_Ptr(unsigned char*& pURF)
+{
+  uint16_t wByteSize = (uint16_t)getByteSize();
+  uint16_t wEffectiveBitSize = (uint16_t)getEffectiveBitSize();
+  ZTypeBase wType=ZType_bitset;
+  unsigned char* wURFPtr;
+
+  printf ("bitset export\n byte size %d\n effective bit size %d \n",wByteSize,wEffectiveBitSize);
+  // bitset is stored as a sequence of bytes without taking UnitByteSize into account
+
+  if (bit==nullptr)
+  {
+    _exportAtomicPtr<ZTypeBase>(ZType_bitsetFull,pURF);
+    return sizeof(ZTypeBase);
+  }
+
+  _exportAtomicPtr<ZTypeBase>(ZType_bitset,pURF);
+  _exportAtomicPtr<uint16_t>(getByteSize(),pURF);
+  _exportAtomicPtr<uint16_t>(getEffectiveBitSize(),pURF);
+  memmove (wURFPtr,bit,(size_t)getByteSize());
+  pURF += (size_t)getByteSize();
+  return sizeof(ZTypeBase)+sizeof(uint16_t)+sizeof(uint16_t)+getByteSize();
+}//_exportURF_Ptr
+
 ZStatus
 ZBitset::_importURF(const unsigned char* &pPtrIn)
 {
 
 uint16_t    wByteSize,wEffectiveBitSize;
 ZTypeBase   wType;
-
-//    memmove(&wType,pBitsetPtr,sizeof(ZTypeBase));
-//    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
 
     pPtrIn=getURFBufferValue<ZTypeBase>(&wType,pPtrIn);
 

@@ -530,7 +530,25 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
    QByteArray toQByteArray(void) { return (QByteArray ((char *)Data,Size)); }
    QString toQString(void)      {return QString(toQByteArray());}
 #endif // QT_CORE_LIB
+   /**
+ * @brief ZDataBuffer::bsearch   Binary search for a key
+ *
+ *  searches in a binary mode for a Key contained in pKey with pKeySize length
+ *  in ZDataBuffer::Data Content of Size length.
+ *
+ *  Returns the offset of pKey if it has been found. -1 if nothing has been found
+ *
+ * @param[in] pKey      pointer to a byte sequence to search for
+ * @param[in] pKeySize  length of byte sequence
+ * @param[in] pOffset   starting offset for search in ZDataBuffer::Data
+ * @return the offset of pKey if it has been found. -1 if nothing has been found
+ */
    ssize_t bsearch (void *pKey,const size_t pKeySize,const size_t pOffset=0);
+   /**
+ * @brief bsearch   Binary search for a key
+ *  Same as previous but key to search is ZDataBuffer::Data Content of ZDataBuffer::Size length.
+ * @return the offset of pKey if it has been found. -1 if nothing has been found
+ */
    ssize_t bsearch(ZDataBuffer &pKey,const size_t pOffset=0);
 
    ssize_t bsearchCaseRegardless (void *pKey, ssize_t pSize, ssize_t pOffset);

@@ -1909,12 +1909,11 @@ bool wlittleEndianRequested=false;
 }//utf16NextChar
 
 
-/**
- * @brief utf16Encode encodes an utf32 character to utf16 unicode format
+/** @brief utf16Encode encodes an utf32 character to utf16 unicode format
  * @param[out] pUtf16Result resulting utf16 string: must be an array of 3 * utf16_t. Last character unit is followed by an (utf16_t) zero.
  * @param[out] pUtf16Count utf16_t size (number of utf16_t character units) of the resulting utf16 character.
  *
- * @param[in] pUtf32Codepoint utf32 character codepoint to convert. This data must have current system endianness.
+ * @param[in] pCodepoint utf32 character codepoint to convert. This data must have current system endianness.
  * @param[in] plittleEndian Optional flag for endianness of the resulting utf16 format : if omitted, current endianness is used.
 
     pLittleEndian           system endianness       wSetLittleEndian    Comment
@@ -4089,7 +4088,6 @@ _toISOLatin1(ZDataBuffer& pOutString,templateString<_Sz>& pInString)
 const char* toConvCode="ISO8991-1";
 ZStatus wSt;
 ZDataBuffer wZDB;
-size_t wSize;
   wSt= iconvFromTo(pInString.Charset ,
                    toConvCode,
                    (const unsigned char*)pInString.content,
@@ -4111,7 +4109,7 @@ size_t wSize;
 ZDataBuffer wZDB;
   uint16_t wGuess= guessZCharset(pInString,pInSize);
 
-  wSt= iconvFromTo(decode_ZCharset( wGuess),
+  wSt= iconvFromTo(decode_ZCharset( (ZCharset_type)wGuess),
                    decode_ZCharset(pOutString.Charset),
                    pInString,
                    pInSize,
@@ -4833,11 +4831,11 @@ singleUtf32toUtf16 (utf16_t *pOutChar, size_t* pOutCount,
                     size_t* pCurrLen, size_t pMaxLength)
 {
 
-    utf32_t wCodePoint;
+    utf32_t wCodePoint=pInChar;
     size_t  wUtf16Count;
     utf16_t wUtf16Char[3];
     if (utf16Encode(wUtf16Char,&wUtf16Count,wCodePoint,nullptr) < UST_SEVERE)
-                            _ABORT_;
+                            _ABORT_
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)+= wUtf16Count;
@@ -5096,7 +5094,7 @@ encode_ZCharset(const char* pCharset)
     return ZCHARSET_ERROR;
 }//encode_ZCharset
 
-ZCharset_type guessZCharset (uint8_t* pString, size_t pLen)
+ZCharset_type guessZCharset (const uint8_t* pString, size_t pLen)
         { return  getZCharsetFromXMLEncoding((uint8_t)xmlDetectCharEncoding(pString,pLen)); }
 
 const char*

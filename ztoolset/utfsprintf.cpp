@@ -388,7 +388,7 @@ utfFormatStringChunk(OutEncoding_type pOutOET,
  */
 
 
-#ifndef __COMPACT_CODE__
+#ifdef __COMPACT_CODE__
 inline
 #endif
 size_t
@@ -1583,7 +1583,7 @@ utfSubDoprintfvoid(OutEncoding_type pOutOET, /* Output buffer utf type : only Un
     if (*pFormat == __N_LOW__) /* address immediately 'n' option : nothing in buffer- expects a pointer to an int */
     {
         int* wArgValue = va_arg(args,int*);
-        wArgValue[0]= wCurrlen;
+        wArgValue[0]= int(wCurrlen);
         pFormat++;
         continue;
     }//if (wFmtChar==__N_LOW__)

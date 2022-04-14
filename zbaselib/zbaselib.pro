@@ -298,7 +298,8 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/zaierrors.h \
     $$TOOLSET_BASE/ztoolset/zhtmlreport.h \
     $$TOOLSET_BASE/ztoolset/zstatus.h \
-    $$TOOLSET_BASE/zxml/zxmlprimitives.h
+    $$TOOLSET_BASE/zxml/zxmlprimitives.h \
+    ../ztoolset/utfvstrings.h
 
 
 

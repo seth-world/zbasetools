@@ -46,6 +46,18 @@ public:
     ZDate(ZDate &pIn) { _copyFrom(pIn); }
     ZDate(ZDate &&pIn) { _copyFrom(pIn); }
 
+    bool isInvalid() {
+      uint8_t* wPtr=(uint8_t*)this;
+      size_t wi=0;
+      while ( wi < sizeof(ZDate) )
+        if (wPtr[wi++])
+          return false;
+      return true;
+    }
+    void setInvalid() {
+      memset(this, 0, sizeof(ZDate));
+    }
+
     ZDate &_copyFrom(ZDate &pIn)
     {
         memset(this, 0, sizeof(ZDate));
@@ -70,11 +82,15 @@ static ZDate currentDate(void); //-----------Static get date-------------------
 ZDate fromZDateString (ZDate_string &wDateS);
 ZDate fromString(char* pDate);
 
-uint32_t    _export(void);  // export in universal format
-void        _import(uint32_t pIDate); // import from universal format
-ZDataBuffer *_exportURF(ZDataBuffer *pZDB); // export in URF format
-ZStatus     _importURF(const unsigned char *pZDB);     // import from URF format
+uint32_t      _export(void) const;  // export in universal format
+void          _import(uint32_t pIDate); // import from universal format
+ZDataBuffer*  _exportURF(ZDataBuffer *pZDB) const; // export in URF format
+size_t        _exportURF_Ptr(unsigned char *&pURF) const; // export in URF format
+size_t        getURFSize() const ;
+ZStatus       _importURF(const unsigned char *&pZDB);     // import from URF format
 ZStatus getValueFromUniversal(const unsigned char* pUniversalDataPtr);
+
+size_t getUniversal_Ptr(unsigned char * &pUniversalPtr) const;
 
 static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const  unsigned char **pURFDataPtrOut=nullptr); // extracts Universal value from URF data
 
@@ -122,9 +138,23 @@ public:
     uint8_t Min;
     uint8_t Sec;
 
+    typedef ZDateFull::tm _Base;
+
     ZDateFull() { memset(this, 0, sizeof(ZDateFull)); }
     ZDateFull(const ZDateFull &pIn) { _copyFrom(pIn); }
     ZDateFull(const ZDateFull &&pIn) { _copyFrom(pIn); }
+
+    bool isInvalid() {
+      uint8_t* wPtr=(uint8_t*)this;
+      size_t wi=0;
+      while ( wi < sizeof(ZDateFull) )
+        if (wPtr[wi++])
+          return false;
+      return true;
+    }
+    void setInvalid() {
+      memset(this, 0, sizeof(ZDateFull));
+    }
 
     ZDateFull &_copyFrom(const  ZDateFull &pIn)
     {
@@ -151,17 +181,37 @@ public:
     ZDateFull &operator=(const ZDateFull &pIn) { return _copyFrom(pIn); }
     ZDateFull &operator=(const ZDateFull &&pIn) { return _copyFrom(pIn); }
 
-typedef ZDateFull::tm _Base;
+
 
     struct tm& getBase(void) {return (struct tm&)*this;}
 
     ZDateFull& _fromTimet(time_t pTime);
 
 uint64_t _export(void) const ;  // export in universal format
-void _import(uint64_t pIDate); // import from universal format
-ZDataBuffer* _exportURF(ZDataBuffer *pZDB); // export in URF format
-ZStatus _importURF(const unsigned char *pZDB);     // import from URF format
+void _exportPtr(unsigned char* &pPtr) const {
+  uint64_t wDE=_export();
+  memmove(pPtr,&wDE,sizeof(uint64_t));
+  pPtr += sizeof(uint64_t);
+}
+void _exportAppend(ZDataBuffer& pZDB) const {
+  unsigned char* wPtr=pZDB.extend(sizeof(uint64_t));
+  _exportPtr(wPtr);
+}
+
+void _import(const unsigned char* &pPtrIn) {
+  uint64_t* wPtr=(uint64_t* )pPtrIn;
+  _import(wPtr[0]);
+  pPtrIn+=sizeof(uint64_t);
+}
+void          _import(uint64_t pIDate); // import from universal format
+ZDataBuffer*  _exportURF(ZDataBuffer *pZDB) const; // export in URF format
+size_t        _exportURF_Ptr(unsigned char* &pURF) const;
+
+size_t        getURFSize() const;
+ZStatus       _importURF(const unsigned char *&pZDB);     // import from URF format
 static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr); // extracts Universal value from URF data
+
+size_t getUniversal_Ptr(unsigned char * &pUniversalPtr) const;
 
 ZStatus getValueFromUniversal(const unsigned char *pUniversalDataPtr);
 
@@ -243,7 +293,7 @@ ZDateFull fromQString(const QString &pDate);
 //-----------reverse conversion----------------
 
 
-#ifdef QT_CORE_LIB
+#ifdef __DEPRECATED__
 
 QDateTime toQDateTime(void);
 
@@ -262,7 +312,7 @@ QTime toQTime(void);
 
 ZDateFull operator = (const QDateTime& pDateTime) {fromQDateTime(pDateTime);return (*this);}
 
-#endif // QT_CORE_LIB
+#endif // __DEPRECATED__
 
 ZDate   toZDate(void);
 ZDateFull fromZDate(const ZDate &wDate);

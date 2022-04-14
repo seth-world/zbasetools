@@ -16,6 +16,9 @@ enum ZStatus: ZStatusBase
                 ZS_WARNING          =   +0x02 ,     // Generic warning (not negative)
                 ZS_INVALIDSTATUS    = 0xFFFFFFFF,   //this status is invalid
 
+                ZS_REJECTED         =   -0x10,
+
+
                 ZS_NOTFOUND         =   -0x04,      //< Requested element has not been found
 
                 ZS_OUTBOUND         =   -0x20,    //< Requested key value is not in the range of any existing key values
@@ -23,8 +26,8 @@ enum ZStatus: ZStatusBase
                 ZS_OUTBOUNDHIGH     =   -0x22,    //< Requested key value is higher to any value in the range of existing key values
 
 
-                ZS_DUPVIOLATION     =   -0x08,          //< Range of values induces a duplicate key while rebuilding index. This is a severe error that may be caused by an inappropriate access to ZAM content.
-                ZS_DUPLICATEKEY     =   -0x10,          //< Duplicate key has been found and prevents to complete operation (No duplicates allowed)
+                ZS_DUPVIOLATION     =   -0x40,          //< Range of values induces a duplicate key while rebuilding index. This is a severe error that may be caused by an inappropriate access to ZAM content.
+                ZS_DUPLICATEKEY     =   -0x41,          //< Duplicate key has been found and prevents to complete operation (No duplicates allowed)
 
 
                 ZS_KEYFIELDPARTIAL  =   0x0A,   //< Due to variable length of records a key field composing a key has been partially extracted reaching the end of the variable record.This is Not an error.
@@ -80,6 +83,7 @@ enum ZStatus: ZStatusBase
                 ZS_WRITETIMEOUT       =   -0x001402,        //< Timeout on write operation
 
 
+
   /*   *
     zmail_nothing                           =     0,
     zmail_success                           =     1,
@@ -111,6 +115,8 @@ enum ZStatus: ZStatusBase
                 ZS_INVBLOCKADDR       =   -0x001011,        //< Invalid block address : given address does not correspond to a beginning of a block
 
                 ZS_CORRUPTED          =   -0x001012,        //< read data is corrupted
+
+                ZS_CANTALLOCSPACE     =   -0x001020,        //< Cannot allocate more free space in Free pool
 
                 ZS_BADFILEHEADER      =   -0x002000,        //< file header (FCB + ZBAT + ZFBT) is malformed or corrupted
                 ZS_BADFILEDESC        =   -0x002001,        //< file descriptor (ZFileDescriptor) is invalid malformed or corrupted
@@ -258,7 +264,9 @@ enum ZStatus: ZStatusBase
                 ZS_SUCCESS          =    1,                 //< Everything went OK
                 ZS_ENDCLIENT        =    3,                 //< Client thread ended OK
                 ZS_CANCEL           =    5,                 //< Client has been requested to cancel @see ZThreadState_type ZTHS_CancelRequested
-                ZS_CONFWARN         =   0x10
+                ZS_CONFWARN         =   0x10,
+                ZS_REPLACED         =   0x20,               //< Application : successful replacement
+                ZS_CREATED          =   0x21                //< Application : successful creation
              }  ;
 // @}
 

@@ -9,7 +9,7 @@
 const uint32_t     cst_ZMSTART = 0xF6F6F6F6;  //!< Begin marker of a data structure on file it is a palyndroma
 const uint32_t     cst_ZSTRINGEND   = 0xFAFAFAFA;  //!< End marker of a string data memory zone
 const uint32_t     cst_ZBUFFEREND   = 0xFBFBFBFB;  //!< End marker of a ZDataBuffer data structure in memory
-
+const uint32_t     cst_ZCHECK       = 0xFFFFFFFF;   //!< End of utf string
 template <class _Tp>
 void zfree(_Tp *&pPtr)
 {

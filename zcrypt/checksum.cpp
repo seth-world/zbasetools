@@ -138,6 +138,21 @@ size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
     memmove((pUniversal->Data+sizeof(wType)),content,cst_checksum); // no reverse : checksum is Endian free
     return pUniversal;
 }
+size_t
+checkSum::_exportURF_Ptr(unsigned char*& pURF) const
+{
+  ZTypeBase wType=ZType_CheckSum;
+  size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
+
+  _exportAtomicPtr<ZTypeBase>(ZType_CheckSum,pURF);
+  memmove((pURF),content,cst_checksum); // no reverse : checksum is Endian free
+  return wUniversalSize;
+}
+
+size_t
+checkSum::getURFSize() const {
+  return sizeof(ZTypeBase) + cst_checksum ;
+}
 
 ZStatus
 checkSum::_importURF(const unsigned char* &pUniversal)

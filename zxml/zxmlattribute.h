@@ -18,7 +18,12 @@ public:
 
     zxmlAttribute(zxmlNode& pNode,const char*pName,const char* pValue,zxmlNameSpace* pNameSpace=nullptr);
 //    ~zxmlAttribute() {if (!_xmlInternalAttribute->doc)xmlFreeProp(_xmlInternalAttribute);}
-    ~zxmlAttribute() {if (!_xmlInternalNode->doc)xmlFreeProp((xmlAttrPtr)_xmlInternalNode);}
+    ~zxmlAttribute() {
+      if (!_xmlInternalNode->doc) {
+          xmlFreeProp((xmlAttrPtr)_xmlInternalNode);
+          _xmlInternalNode=nullptr;
+      }
+    }
 
     zxmlAttribute(const zxmlAttribute&)=delete;
     zxmlAttribute& operator=(const zxmlAttribute&) = delete;  // no copy

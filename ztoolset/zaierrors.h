@@ -2,16 +2,21 @@
 #define ZAIERRORS_H
 
 #include <ztoolset/zarray.h>
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvstrings.h>
+#include <functional>
+
+//#define __DISPLAYCALLBACK__(__NAME__)  void (*__NAME__) (const utf8VaryingString& pOut)
+#define __DISPLAYCALLBACK__(__NAME__)  std::function<void (const utf8VaryingString&)> __NAME__
 
 enum ZaiE_Severity : uint8_t
 {
-    ZAIES_Text      =   0,
-    ZAIES_Info      =   1,
-    ZAIES_Warning   =   2,
-    ZAIES_Error     =   4,
-    ZAIES_Fatal     =   8,
-    ZAIES_None      = 0xFF
+    ZAIES_Text      =   0x01,
+    ZAIES_Info      =   0x02,
+    ZAIES_Warning   =   0x04,
+    ZAIES_Error     =   0x08,
+    ZAIES_Fatal     =   0x10,
+    ZAIES_None      =   0x00,
+    ZAIES_All       =   0xFF
 };
 
 const char* decode_ZAIES(ZaiE_Severity pSeverity);
@@ -126,10 +131,15 @@ public:
         vsnprintf(wContext,199,pContext,args);
         Context.push(wContext);
 
-        textLog("           Changing context to <%s>",Context.last().toCChar());
+        textLog("           Context set to <%s>",Context.last().toCChar());
 
         va_end(args);
     }
+
+    int countType(uint8_t pC);
+
+    int countErrors() {return countType(ZAIES_Error | ZAIES_Fatal);}
+    int countWarnings() {return countType(ZAIES_Warning);}
 
     void popContext()
     {
@@ -214,7 +224,14 @@ public:
         return ErrorLevel ;
     }
 
-    void setAutoPrintOn(ZaiE_Severity pOnOff) {AutoPrint=ZAIES_Error;}
+    void setAutoPrintOn(ZaiE_Severity pOnOff) {AutoPrint=pOnOff;}
+    void setOutput(FILE* pOutput) {Output=pOutput;}
+
+    void _print(const char *pFormat,...);
+    void _print(const utf8VaryingString& pOut);
+
+    void setDisplayCallback(__DISPLAYCALLBACK__(pdisplayCallback) ) {_displayCallback=pdisplayCallback;}
+    __DISPLAYCALLBACK__(_displayCallback) ;
 
     ZaiE_Severity AutoPrint=ZAIES_None; /* if set then prints info and warning messages to stdout and error messages to stderr as soon as registrated */
     ZArray<utf8String> Context;

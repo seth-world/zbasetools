@@ -45,6 +45,8 @@ public:
 
     char& operator[](size_t pIdx) { if (pIdx>=sizeof(content)) return content[0]; return content[pIdx]; }
 
+    void clear() {memset(content,0,sizeof(content));}
+
     void sprintf(const char* pFormat,...)
     {
         va_list args;
@@ -66,7 +68,7 @@ public:
     int Maxlen() {return sizeof(content);}
 
     char* toChar() {return content;}
-    char content[200];
+    char content[250];
 };
 
 #endif // CHARMAN_H

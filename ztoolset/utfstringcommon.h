@@ -6,6 +6,7 @@
 #include <ztoolset/zcharset.h>
 
 #include <ztoolset/zlimit.h>
+#include <ztoolset/zmem.h>
 
 #ifndef __ZCRYPTMETHOD_TYPE__
 #define __ZCRYPTMETHOD_TYPE__
@@ -28,9 +29,19 @@ enum ZCryptMethod_type : uint8_t
 class utfStringDescriptor
 {
 protected:
+  inline void _check() const {
+    if (Check!=cst_ZCHECK) {
+      fprintf(stderr,"utfStringDescriptor::_check  Fatal error: Invalid check int.\n");
+      abort();
+    }
+  }
     utfStringDescriptor &_copyFrom(const utfStringDescriptor &pIn)
     {
-        Check=0xFFFFFFFF;
+      if (pIn.Check!=cst_ZCHECK) {
+        fprintf(stderr,"utfStringDescriptor::_copyFrom  Fatal error: Invalid check int while copying input utf string.\n");
+        abort();
+      }
+        Check=cst_ZCHECK;
 //        DataByte = pIn.DataByte;
         UnitCount = pIn.UnitCount;
         ByteSize = pIn.ByteSize;
@@ -42,7 +53,7 @@ protected:
     }
     utfStringDescriptor& _copyFrom(const utfStringDescriptor* pIn)
     {
-        Check=0xFFFFFFFF;
+        Check=cst_ZCHECK;
         DataByte = pIn->DataByte;
         UnitCount = pIn->UnitCount;
         ByteSize = pIn->ByteSize;
@@ -60,7 +71,7 @@ public:
     ZCharset_type       Charset=ZCHARSET_UTF8;
     ZCryptMethod_type   CryptMethod=ZCM_Uncrypted;
     ZBool               littleEndian=false;  // RFFU:this induce we might have native strings with endianness different from system default
-    unsigned int        Check=0xFFFFFFFF;
+    uint32_t            Check=cst_ZCHECK;
 public:
     utfStringDescriptor() {}
     utfStringDescriptor(const utfStringDescriptor& pIn) { _copyFrom(pIn); }

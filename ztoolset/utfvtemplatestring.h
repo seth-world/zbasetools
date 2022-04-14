@@ -2,6 +2,7 @@
 #define UTFVTEMPLATESTRING_H
 
 #include <zconfig.h>
+#include <cassert>
 
 #ifdef QT_CORE_LIB
 #include <QByteArray>
@@ -166,9 +167,9 @@ public:
     }
     inline void CheckData()
     {
-      if (Check!=0xFFFFFFFF)
+      if (Check!=cst_ZCHECK)
       {
-        fprintf(stderr,"utfVaryingString::CheckData-F-OUTBOUND memory error.\n");
+        fprintf(stderr,"utfVaryingString::CheckData-F-CORRUPTED memory error.\n");
         abort();
       }
     }
@@ -285,10 +286,7 @@ public:
     memset(wDupPtr,0,ByteSize);
 
     _Utf* wInPtr=wDupPtr;
-    _Utf* wToReplace;
-
     _Utf* wCurrentPtr = Data;
-
     _Utf* wDataBoundary = Data ;
     wDataBoundary += UnitCount;
 
@@ -677,8 +675,10 @@ public:
         }
     return *s1 - wCChar;
     }
-    int ncompare(const _Utf* pString2,size_t pCount) ; /** corresponds to strncmp */
-
+    int ncompare(const _Utf* pString2,size_t pCount) const ; /** corresponds to strncmp */
+    int ncompare(const utfVaryingString<_Utf> & pString2,size_t pCount) const {
+      return ncompare(pString2.Data,pCount);
+    }
     ssize_t strlen() const {return (utfStrlen<_Utf>(Data));}
 
     const _Utf* toString() const ;
@@ -914,6 +914,13 @@ public:
       return  (wPtr - Data) ;
     }
 
+    _Utf last() {
+      if (isEmpty())
+        return 0;
+      return Data[strlen()-1];
+    }
+
+
     /** @brief subString() returns a new string with content of current string starting a position pOffset and with pLen character units */
     utfVaryingString<_Utf> subString(size_t pOffset, int pLen=-1) const;
 
@@ -969,8 +976,10 @@ public:
          return utfStrtoul<_Utf>(Data,nullptr,pBase);
      }
 
-    ZDataBuffer* _exportURF(ZDataBuffer *pURF) const;
-    size_t _importURF(const unsigned char *&pURF);
+    ZDataBuffer*  _exportURF(ZDataBuffer *pURF) const;
+    size_t        _exportURF_Ptr(unsigned char* &pURF) const;
+    size_t        getURFSize() const ;
+    size_t        _importURF(const unsigned char *&pURF);
 
      /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
      *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
@@ -1023,9 +1032,9 @@ public:
         abort();
       }
       memmove(&wOut, Data, sizeof(_Tp));
-      if (Check!=0xFFFFFFFF)
+      if (Check!=cst_ZCHECK)
       {
-        fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+        fprintf(stderr,"utfVaryingString::moveTo-F-CORRUPTED memory problem.\n");
         abort();
       }
 
@@ -1050,9 +1059,9 @@ _Tp& moveOut(typename std::enable_if<!(std::is_pointer<_Tp>::value||std::is_arra
                 wSize=sizeof(_Tp);
 
     memmove(&pOutData,Data+pOffset,wSize);
-    if (Check!=0xFFFFFFFF)
+    if (Check!=cst_ZCHECK)
     {
-      fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+      fprintf(stderr,"utfVaryingString::moveOut-F-CORRUPTED memory problem.\n");
       abort();
     }
     return pOutData;
@@ -1067,9 +1076,9 @@ _Tp& moveOut(typename std::enable_if<std::is_array<_Tp>::value,_Tp> &pOutData,ss
                 wSize=sizeof(_Tp);
 
     memmove(pOutData,Data+pOffset,wSize);
-    if (Check!=0xFFFFFFFF)
+    if (Check!=cst_ZCHECK)
     {
-      fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+      fprintf(stderr,"utfVaryingString::moveOut-F-CORRUPTED memory problem.\n");
       abort();
     }
     return pOutData;
@@ -1084,9 +1093,9 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
                 wSize=sizeof(_Tp);
 
     memmove(pOutData,Data+pOffset,wSize);
-    if (Check!=0xFFFFFFFF)
+    if (Check!=cst_ZCHECK)
     {
-      fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+      fprintf(stderr,"utfVaryingString::moveOut-F-CORRUPTED memory problem.\n");
       abort();
     }
     return pOutData;
@@ -1103,9 +1112,9 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
         ssize_t wSize=sizeof(_Tp) ;
         allocateBytes(sizeof(_Tp));
         memmove(Data,&pInData,wSize);
-        if (Check!=0xFFFFFFFF)
+        if (Check!=cst_ZCHECK)
         {
-          fprintf(stderr,"utfVaryingString::clearData-F-OUTBOUND memory problem.\n");
+          fprintf(stderr,"utfVaryingString::moveIn-F-CORRUPTED memory problem.\n");
           abort();
         }
         return *this;
@@ -1127,14 +1136,15 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     }
 
     utfVaryingString& addTermination(void) {allocateUnits (UnitCount+1); Data[UnitCount-1]=0; return *this;}
-    utfVaryingString& addConditionalTermination(void)
-        {
-        if (Data[UnitCount-1]==0)
+    utfVaryingString& addConditionalTermination(void) {
+      if (Data==nullptr)
+        abort();
+      if (Data[UnitCount-1]<=0)
                             return *this;
-        allocateUnits (UnitCount+1);
-        Data[UnitCount-1]=(_Utf)'\0';
-        return *this;
-        }
+      allocateUnits (UnitCount+1);
+      Data[UnitCount-1]=(_Utf)'\0';
+      return *this;
+    }
 
   utfVaryingString toUpper(void) const;
   utfVaryingString dropAccute(void) const;
@@ -1402,7 +1412,7 @@ utfVaryingString<_Utf>::utfVaryingString (const utfStringDescriptor& pIn)
  void
  utfVaryingString<_Utf>::utfInit(void)
  {
-    Check=0xFFFFFFFF;
+    Check=cst_ZCHECK;
     zfree(Data);
 
 //    Data=nullptr;
@@ -1518,12 +1528,14 @@ utfVaryingString<_Utf>::strnset ( const _Utf *wSrc, size_t pCount)
       wSrc++;
       }
   }// if (wSrc)
-  while (wi++ < pCount)
+  while (wi < pCount)
     {
     *wPtr = 0;
     wPtr++;
+    wi++;
     }
-  addConditionalTermination();
+  *wPtr=0;
+//  addConditionalTermination();
   return *this;
 }// strnset
 
@@ -2667,6 +2679,32 @@ unsigned char* wURF_Ptr;
    return pURF;
 }//_exportURF
 
+template <class _Utf>
+size_t
+utfVaryingString<_Utf>::_exportURF_Ptr(unsigned char* &pURF) const
+{
+  unsigned char* wURF_Ptr;
+  URF_Varying_Size_type wByteSize=(URF_Varying_Size_type)ByteSize;
+
+//  wURF_Ptr=pURF->allocateBZero(wByteSize+sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type));
+
+  _exportAtomicPtr<ZTypeBase>(ZType,pURF);
+  _exportAtomicPtr<URF_Varying_Size_type>(wByteSize,pURF);
+
+  utfSetReverse<_Utf>((_Utf*)pURF,
+      (_Utf*) Data,
+      (const size_t)getUnitCount());// character units count
+
+  pURF += getByteSize();
+
+  return sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type)+getByteSize();
+}//_exportURF
+
+template <class _Utf>
+size_t
+utfVaryingString<_Utf>::getURFSize() const {
+  return sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type) + ByteSize ;
+}
 
 
 /**
@@ -3283,6 +3321,12 @@ utfVaryingString<_Utf>::isEqualCase (const _Utf *pCompare)
 
   while (*wPtr1 && *wPtr2 && (utfUpper(*wPtr1++)==utfUpper(*wPtr2++))) ;
 
+  while (*wPtr1 && *wPtr2){
+    if (utfUpper(*wPtr1)!=utfUpper(*wPtr2))
+      return false ;
+    wPtr1++;
+    wPtr2++;
+  }
   if ((*wPtr1==0) && (*wPtr2==0))
     return true;
   return false;
@@ -3296,7 +3340,12 @@ utfVaryingString<_Utf>::isEqualCase (const utfVaryingString<_Utf>& pCompare)
   _Utf* wPtr1=Data;
   _Utf* wPtr2=pCompare.Data;
 
-  while (*wPtr1 && *wPtr2 && (utfUpper(*wPtr1++)==utfUpper(*wPtr2++))) ;
+  while (*wPtr1 && *wPtr2){
+    if (utfUpper(*wPtr1)!=utfUpper(*wPtr2))
+      return false ;
+    wPtr1++;
+    wPtr2++;
+  }
 
   if ((*wPtr1==0) && (*wPtr2==0))
     return true;
@@ -3410,40 +3459,37 @@ utfVaryingString<_Utf>::compare(const _Utf* pString2) const
 
 template <class _Utf>
 inline int
-utfVaryingString<_Utf>::ncompare(const _Utf* pString2,size_t pCount)
+utfVaryingString<_Utf>::ncompare(const _Utf* pString2,size_t pCount) const
 {
-    const _Utf* wPtr=Data;
-    if (Data==pString2)
-                return 0;
-    if (pString2==nullptr)
-                return 1;
-    if (pCount<1)
-                pCount=0;
-    int wCount = pCount>0?0:-1;
-    int wComp = (int)(*wPtr - *pString2);
-    while ((!wComp)&&(*wPtr)&&(*pString2)&&(wCount<pCount))
-    {
-    wPtr++;
-    pString2++;
-    if (pCount)
-                wCount++;
-    wComp=(int)(*wPtr - *pString2);
-    }
-    if (wComp)
-            return wComp;
-    if (wCount==pCount)
-            return wComp;
-    // up to here wComp==0 (equality)
-    //    test string lengths
-    if (*wPtr==0) // string 1 exhausted
-            {
-            if (*pString2==0)   // so is string2
-                        return 0;   // perfect equality
-            return -1; // string 2 is greater than string1 (because more characters)
-            }
-    // up to here wComp==0 but string1 is not exhausted
-    //
-    return 1; // string 1 is longer
+  assert (pCount > 0);
+  const _Utf* wPtr=Data;
+  if (Data==pString2)
+    return 0;
+  if (isEmpty())
+    return -1;
+  if (pString2==nullptr)
+    return 1;
+
+  int wCount = 0;
+  int wComp = (int)(*wPtr - *pString2);
+
+  for (;!wComp && wPtr[wCount] && pString2[wCount] && (wCount < pCount); wCount++) {
+    wComp=(int)(wPtr[wCount] - pString2[wCount]);
+  }// for
+  if (wComp)
+    return wComp;
+  if (wCount==pCount)
+    return wComp;
+  // up to here wComp==0 (equality)
+  //    test string lengths
+  if (wPtr[wCount]==0) { // string 1 exhausted
+    if (pString2[wCount]==0)   // so is string2
+      return 0;   // equality
+    return -1; // string 2 is greater than string1 (because more characters)
+  }
+  // up to here wComp==0 but string1 is not exhausted
+  //
+  return 1; // string 1 is longer
 }/** corresponds to strncmp */
 
 

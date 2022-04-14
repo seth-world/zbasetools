@@ -152,12 +152,12 @@ public:
 
     utftemplateString& operator = (const char* pIn)
     {
-      Check = 0xFFFFFFFF;
+      Check = cst_ZCHECK;
       return strSetV<char>(pIn);
     }
     utftemplateString& operator = (std::string& pIn)
     {
-      Check = 0xFFFFFFFF;
+      Check = cst_ZCHECK;
       return strSetV<char>(pIn.c_str());
     }
 
@@ -183,7 +183,7 @@ public:
 
     void utfInit(ZType_type pZType,ZCharset_type pCharset)
     {
-      Check = 0xFFFFFFFF;
+      Check = cst_ZCHECK;
         DataByte=(uint8_t*)content;
         UnitCount=_Sz;
         ByteSize=_Sz*sizeof(_Utf);
@@ -430,9 +430,11 @@ public:
 
     ZStatus setCharSet(const ZCharset_type pCharset); /** RFFU  */
 
-    ZDataBuffer _exportURF() const ;
-    ZDataBuffer *_exportURF(ZDataBuffer *pURFData) const ;
-    size_t _importURF(const unsigned char* &pURFDataPtr);
+    ZDataBuffer   _exportURF() const ;
+    size_t        getURFSize() const ;
+    ZDataBuffer*  _exportURF(ZDataBuffer *pURFData) const ;
+    size_t        _exportURF_Ptr(unsigned char* &pURF) const ;
+    size_t        _importURF(const unsigned char* &pURFDataPtr);
 
     /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
      *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
@@ -1439,7 +1441,6 @@ size_t wTotalByteSize=(size_t)(wUniversalSize+
                       sizeof(URF_Fixed_Size_type)+
                       sizeof(URF_Capacity_type)+
                       sizeof(ZTypeBase));
-size_t wOffset=0;
 
   pURFData->clear();
   unsigned char* wPtrOut=pURFData->allocate((ssize_t)wTotalByteSize);
@@ -1466,6 +1467,71 @@ size_t wOffset=0;
 
   return  pURFData;
 }// _exportURF
+
+template <size_t _Sz,class _Utf>
+size_t
+utftemplateString<_Sz,_Utf>::_exportURF_Ptr(unsigned char* &pURF) const
+{
+  URF_Capacity_type wCanonical=(URF_Capacity_type)getUnitCount(); /* fixed size in unit count */
+
+  size_t wEffectiveUnitCount= utfStrlen<_Utf>(content);   /* effective string size in unit count '\0' excluded */
+  URF_Fixed_Size_type wUniversalSize=URF_Fixed_Size_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
+
+  if (wUniversalSize>=UINT16_MAX)
+  {
+    fprintf (stderr,"%s>>Fatal error incoherent fixed string maximum capacity overflow <%d> while <%d> authorized.\n",
+        _GET_FUNCTION_NAME_,
+        wUniversalSize,
+        UINT16_MAX);
+    _ABORT_
+  }
+
+  size_t wTotalByteSize=(size_t)(wUniversalSize+
+                                   sizeof(URF_Fixed_Size_type)+
+                                   sizeof(URF_Capacity_type)+
+                                   sizeof(ZTypeBase));
+
+//  unsigned char* pURF=pURFData->allocate((ssize_t)wTotalByteSize);
+  const _Utf* wPtrIn=content;
+
+  _exportAtomicPtr<ZTypeBase>(ZType,pURF);
+
+  _exportAtomicPtr<URF_Capacity_type>(wCanonical,pURF);
+
+  _exportAtomicPtr<URF_Fixed_Size_type>(wUniversalSize,pURF);
+
+  int wUnitCount=0;
+  if (sizeof(_Utf)==1)
+    while (*wPtrIn)
+      *pURF++=*wPtrIn++;
+  else
+    while (*wPtrIn)
+      *pURF++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
+
+  return  sizeof(ZTypeBase) + sizeof(URF_Capacity_type) + sizeof(URF_Fixed_Size_type) + wUniversalSize;
+
+}// _exportURF_Ptr
+
+template <size_t _Sz,class _Utf>
+size_t
+utftemplateString<_Sz,_Utf>::getURFSize() const {
+  size_t wEffectiveUnitCount= utfStrlen<_Utf>(content);   /* effective string size in unit count '\0' excluded */
+  URF_Fixed_Size_type wUniversalSize=URF_Fixed_Size_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
+
+  if (wUniversalSize>=UINT16_MAX) {
+    fprintf (stderr,"%s>>Fatal error incoherent fixed string maximum capacity overflow <%d> while <%d> authorized.\n",
+        _GET_FUNCTION_NAME_,
+        wUniversalSize,
+        UINT16_MAX);
+    _ABORT_
+  }
+
+  return (size_t)(wUniversalSize+
+         sizeof(URF_Fixed_Size_type)+
+         sizeof(URF_Capacity_type)+
+         sizeof(ZTypeBase));
+} // getURFSize
+
 
 template <size_t _Sz,class _Utf>
 /**
@@ -1819,7 +1885,7 @@ utftemplateString<_Sz,_Utf>::strset ( const _Utf *wSrc)
 {
     if (!wSrc)
             return *this;
-    size_t wi=0;
+
     _Utf*   wPtr=content;
     _Utf*   wEndPtr=content+(_Sz-1); /* take care of endofstring sign */
 
@@ -1843,7 +1909,8 @@ utftemplateString<_Sz,_Utf>::strnset ( const _Utf *wSrc, size_t pCount)
             return *this;
     size_t wi=0;
     _Utf*wPtr=content;
-    for (;*wSrc && pCount-- && (wi<(getUnitCount()-1));wi++)
+    _Utf*   wEndPtr=content+(_Sz-1); /* take care of endofstring sign */
+    for (;*wSrc && pCount-- && (wPtr < wEndPtr);wi++)
                             *wPtr++=*wSrc++;
     while (wi++ < getUnitCount())
             *wPtr++ =0;

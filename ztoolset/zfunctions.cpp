@@ -85,6 +85,9 @@ const char * decode_ZStatus (ZStatus ZS)
         case ZS_INVALIDSTATUS :
           return ("ZS_INVALIDSTATUS");
 
+        case ZS_REJECTED :
+          return ("ZS_REJECTED");
+
         case ZS_ENDCLIENT :
                 {
                     return ("ZS_ENDCLIENT");
@@ -262,9 +265,10 @@ const char * decode_ZStatus (ZStatus ZS)
                 return ("ZS_FILEPOSERR");
             }
     case ZS_INVBLOCKADDR:
-            {
-                return ("ZS_INVBLOCKADDR");
-            }
+      return ("ZS_INVBLOCKADDR");
+    case ZS_CANTALLOCSPACE:
+      return ("ZS_CANTALLOCSPACE");
+
     case ZS_NOTDIRECTORY :
             {
                 return ("ZS_NOTDIRECTORY");
@@ -2129,53 +2133,58 @@ getVersionNum (const utf8VaryingString& pVersion)
 {
   if (pVersion.isEmpty())
     return 0UL;
-  utf8VaryingString wV= pVersion.duplicate();
-  utf8_t* wPtr_Max=wV.Data + wV.UnitCount;
-  utf8_t* wSeparators = (utf8_t*)".-_,;";
 
 
-  errno = 0;
-  unsigned long wVersion;
-  unsigned long wRelease;
-//  utf8_t* wPtr = wV.strchr('.');
-  utf8_t* wPtr = utfFirstinSet(wV.Data,wSeparators);
-  if (!wPtr)
-    {
-    wVersion = utfStrtoul<utf8_t>(wV.Data,nullptr,10);
-    if (errno)
-      return 0UL;
-    wVersion *= 1000000;
-    return wVersion;
-    }
-  wPtr[0]='\0';
-  wVersion = utfStrtoul<utf8_t>(wV.Data,nullptr,10);
-  if (errno)
-    return 0UL;
-  wVersion=wVersion*1000000;
+  unsigned long wVersion=0;
 
-  wPtr++;
-//  utf8_t* wPtr1 = utfStrchr(wPtr,(utf8_t)'-');
-  utf8_t* wPtr1 = utfFirstinSet(wPtr,wSeparators);
-  if (!wPtr1)
-    {
-    wRelease = utfStrtoul<utf8_t>(wPtr,nullptr,10);
-    if (errno)
-      return wVersion;
-    wVersion+=(wRelease*1000);
-    return wVersion;
-    }
-  wPtr1[0]='\0';
-  wRelease = utfStrtoul<utf8_t>(wPtr,nullptr,10);
-  if (errno)
-    return wVersion;
-  wVersion+=(wRelease*1000);
+  int wLen=int(pVersion.strlen());
+  int wNumber=0;
 
-  wPtr1++;
-  unsigned long wSubRelease = utfStrtoul<utf8_t>(wPtr1,nullptr,10);
-  if (errno)
-    return wVersion;
-  wVersion+=wSubRelease;
+  utf8_t* wPtr= pVersion.Data;
+  int wi=0;
+
+  /* skip separators till next valid digit */
+  while (!std::isdigit( int(wPtr[wi])) && (wi < wLen))
+    wi++;
+
+  while ((wPtr[wi]>='0')&&(wPtr[wi]<='9')&& (wi < wLen)) {
+    int wDigit = wPtr[wi]-'0';
+    wNumber = wNumber * 10;
+    wNumber += wDigit;
+    wi++;
+  }
+  wVersion = wNumber*1000000;
+
+  /* skip separators till next valid digit */
+  while (!std::isdigit( int(wPtr[wi])) && (wi < wLen))
+    wi++;
+
+  /* get Release number */
+  wNumber=0;
+  while ((wPtr[wi]>='0')&&(wPtr[wi]<='9')&& (wi < wLen)) {
+    int wDigit = wPtr[wi]-'0';
+    wNumber = wNumber * 10;
+    wNumber += wDigit;
+    wi++;
+  }
+  wVersion += wNumber*1000;
+
+  /* skip separators till next valid digit */
+  while (!std::isdigit( int(wPtr[wi])) && (wi < wLen))
+    wi++;
+
+  /* get Sub-Release number */
+  wNumber=0;
+  while ((wPtr[wi]>='0')&&(wPtr[wi]<='9')&& (wi < wLen)) {
+    int wDigit = wPtr[wi]-'0';
+    wNumber = wNumber * 10;
+    wNumber += wDigit;
+    wi++;
+  }
+  wVersion += wNumber;
+
   return wVersion;
+
 } //getVersionNum
 
 

@@ -124,7 +124,7 @@ utfStrcpy(_Utf *pStr1, const _Utf *pStr2)
     return pStr1;
   _Utf *s = pStr1;
   while ((*s++ = *pStr2++) != 0) ;
-  *s=0;
+//  *s=0;
   return (pStr1);
 }
 template <class _Utf>
@@ -331,6 +331,10 @@ int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
 
     if (!pString)
             return 0;
+
+    _Utf* wPtr= utfStrdup<_Utf>(pString);
+    _Utf* wPtrToFree=wPtr;
+
     ZNumBase_type wBase ;
     switch (pBase)
     {
@@ -367,7 +371,7 @@ int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
     }// switch
 
 
-    _Utf* wPtr=utfSkipSpaces<_Utf>(pString);  // get rid of leading spaces (and non breaking spaces)
+    wPtr=utfSkipSpaces<_Utf>(wPtr);  // get rid of leading spaces (and non breaking spaces)
 
     _Utf*wPtr1=wPtr;
     if (wPtr1[0]==(_Utf)'-')                // if minus sign leading
@@ -438,8 +442,11 @@ int utfStrtoi(_Utf*pString,_Utf**pEndPtr,int pBase=10)
         *pEndPtr=wPtr1;
         }
 
+
+    zfree(wPtrToFree);
     return wRes;
 utfStrtoi_Incorrect:
+    zfree(wPtrToFree);
     errno=EINVAL;       // set errno
     return INT_MIN;     // and return invalid value
 }//utfStrtoi
@@ -469,6 +476,7 @@ ZNumBase_type wBase;
             return 0;
     bool wHexa=false ;
     _Utf* wPtr= utfStrdup<_Utf>(pString);
+    _Utf* wPtrToFree=wPtr;
 
     long wRes;
     _Utf wUtf;
@@ -568,6 +576,9 @@ ZNumBase_type wBase;
         wRes = -wRes;
     if (pPtrend != 0)
         *pPtrend = (_Utf *)(wAny ? wPtr - 1 : pString);
+
+    zfree(wPtrToFree);
+
     return (wRes);
 }//utfStrtol
 
@@ -964,40 +975,37 @@ template <class _Utf>
  int
 utfStrncmp(const _Utf* pString1,const  _Utf* pString2,int pCountMax)
 {
-    if (pString1==pString2)
+  assert (pCountMax > 0);
+
+  if (pString1==pString2)
                 return 0;
-    if (pString1==nullptr)
+  if (pString1==nullptr)
                 return -1;
-    if (pString2==nullptr)
+  if (pString2==nullptr)
                 return 1;
 
-    if (pCountMax<1)
-                pCountMax=0;
-    int wCount = pCountMax>0?0:-1;
-    int wComp = (int)(*pString1 - *pString2);
-    while ((!wComp)&&(*pString1)&&(*pString2)&&(wCount<pCountMax))
-        {
-        pString1++;
-        pString2++;
-        if (pCountMax)
-                    wCount++;
-        wComp=(int)(*pString1 - *pString2);
-        }
-    if (wComp)
-            return wCount;
-    if (wCount==pCountMax)
-            return wComp;
+  int wi=0;
+  int wComp = (int)(pString1[wi] - pString2[wi]);
+  wi++;
+
+  for (;(!wComp) && pString1[wi] && pString2[wi] && (wi < pCountMax); wi++ ) {
+    wComp = (int)(pString1[wi] - pString2[wi]);
+  }
+  if (wComp)
+    return wComp;
+  if (wi==pCountMax)
+    return wComp;
     // up to here wComp==0 (equality)
     //    test string lengths
-    if (*pString1==0) // string 1 exhausted
-            {
-            if (*pString2==0)   // so is string2
-                        return 0;   // perfect equality
-            return -1; // string 2 is greater than string1 (because more characters)
-            }
-    // up to here wComp==0 but string1 is not exhausted
-    //
-    return 1; // string 1 is longer
+  if (pString1[wi]==0) { // string 1 exhausted
+    if (pString2[wi]==0)   // so is string2
+      return 0;   // same content and lengths are equal
+    return -1; // string 2 is greater than string1 (because more characters)
+  }
+
+// up to here wComp==0 but string1 is not exhausted
+
+  return 1; // string 1 is longer
 
 }//utfStrncmp
 
@@ -1031,24 +1039,27 @@ utfStrncasecmp(const _Utf* pString1, const _Utf* pString2,int pCountMax)
 
 //    _Utf wComp1,wComp2;
 
-    int wComp = (int)(utfUpper<_Utf>(*pString1) - utfUpper<_Utf>(*pString2));
-
-//    wComp1 = utfUpper<_Utf>(*pString1);
-    while ((!wComp)&&(*pString1)&&(*pString2)&&(pCountMax--))
+//    utf8_t w1,w2;
+//    w1=utfUpper<_Utf>(*pString1);
+//    w2=utfUpper<_Utf>(*pString2);
+    int wi=0;
+    int wComp = (int)(utfUpper<_Utf>(pString1[wi]) - utfUpper<_Utf>(pString2[wi]));
+    wi++;
+    for (;(!wComp) && pString1[wi] && pString2[wi] && (wi < pCountMax);wi++)
         {
-        pString1++;
-        pString2++;
-        wComp = (int)(utfUpper<_Utf>(*pString1) - utfUpper<_Utf>(*pString2));
+//        w1=utfUpper<_Utf>(pString1[wi]);
+//        w2=utfUpper<_Utf>(pString2[wi]);
+        wComp = (int)(utfUpper<_Utf>(pString1[wi]) - utfUpper<_Utf>(pString2[wi]));
         }
     if (wComp)
             return wComp;
-    if (!pCountMax)
+    if (wi==pCountMax)
             return wComp;
     // up to here wComp==0 (equality)
     //    test string lengths
-    if (*pString1==0) // string 1 exhausted
+    if (pString1[wi]==0) // string 1 exhausted
             {
-            if (*pString2==0)   // so is string2
+            if (pString2[wi]==0)   // so is string2
                         return 0;   // same content and lengths are equal
             return -1; // string 2 is greater than string1 (because more characters)
             }
@@ -1152,13 +1163,13 @@ template <class _Utf>
  _Utf *
 utfStrchr(const _Utf *wStr,_Utf wChar)
 {
-  if (!wStr)
+  if (wStr==nullptr)
     return nullptr;
 
   while (*wStr != wChar)
-        if (!*wStr++)
-                    return nullptr;
-    return ( _Utf *)wStr;
+    if (!*wStr++)
+      return nullptr;
+  return ( _Utf *)wStr;
 }
 /**
  *  utfStrrchr returns the last occurrence of _Utf character wChar within _Utf string wStr.
@@ -1168,16 +1179,16 @@ template <class _Utf>
  _Utf *
 utfStrrchr(_Utf* wStr,_Utf wChar)
 {
-  if (!wStr)
+  if (wStr==nullptr)
     return nullptr;
 
-    _Utf* wD=wStr+utfStrlen(wStr);
-    while (*wD != wChar)
-        {
-        if (wD--==wStr)
-                    return nullptr;
-        }
-    return wD;
+  _Utf* wD=wStr+utfStrlen(wStr);
+  while (*wD != wChar) {
+    if (wD==wStr)
+      return nullptr;
+    wD--;
+  }
+  return wD;
 }
 
  template <class _Utf>

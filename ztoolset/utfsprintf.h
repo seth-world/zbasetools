@@ -138,7 +138,7 @@
 //#define __F_NUM_GENERIC__
 
 /* uncomment herebelow if you need to suppress inline clauses  and therefore to make code more compact  */
-#define __COMPACT_CODE__
+//#define __COMPACT_CODE__
 
 #define __INIT_INTEGER_DIGITS__     25
 

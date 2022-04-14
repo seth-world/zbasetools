@@ -53,6 +53,7 @@ XMLhasNamedChild(zxmlNode* pTopNode, const utf8VaryingString &pName)
   return false;
 }//XMLsearchForChildTag
 
+
 utf8VaryingString fmtXMLdeclaration(const utf8VaryingString& pEncoding)
 {
   utf8VaryingString wBuffer;
@@ -396,8 +397,8 @@ XMLgetChildBool (zxmlElement*pElement,const utf8VaryingString &pChildName,bool &
   if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
     return wSt;
 
-  wValue.toUpper();
-  if (wValue=="TRUE")
+//  wValue.toUpper();
+  if (wValue.toUpper() == (const utf8_t*)"TRUE")
         pBool=true;
     else
         pBool=false;

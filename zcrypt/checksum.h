@@ -56,8 +56,10 @@ public:
 //    template <class _Utf>
 //    checkSum& compute (utfVaryingString<_Utf> &pDataBuffer);
 
-    ZDataBuffer *_exportURF(ZDataBuffer *pUniversal) const;
-    ZStatus _importURF(const unsigned char *&pUniversal);
+    ZDataBuffer*  _exportURF(ZDataBuffer *pUniversal) const;
+    size_t        _exportURF_Ptr(unsigned char* &pURF) const;
+    size_t        getURFSize() const;
+    ZStatus       _importURF(const unsigned char *&pUniversal);
     static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr);
 
     ZDataBuffer _export() const;

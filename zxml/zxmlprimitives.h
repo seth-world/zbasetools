@@ -33,9 +33,10 @@ bool XMLhasNamedChild(zxmlNode* pTopNode, const utf8VaryingString &pName);
  * Indeed this must be the first content of xml text file, and indeed there is no level to that declaration.
  * NB: must not be ended by any declaration.
  * @param pEncoding xml text file encoding. Defaulted to UTF-8. No check is made on encoding code string validity.
- * @return a utf8VaryingString
+ * @return an utf8VaryingString with xml declaration
  */
 utf8VaryingString fmtXMLdeclaration(const utf8VaryingString& pEncoding="UTF-8");
+
 
 /**
  * @brief fmtXMLversion generates an Xml root declaration with Main root name and version number

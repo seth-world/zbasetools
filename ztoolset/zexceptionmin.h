@@ -169,7 +169,7 @@ public:
     void setComplement (const char *pFormat,...);
     void setComplement (const char *pFormat,va_list arglist);
     void setComplementToStatus();
-
+    void setComplement (const utf8String& pComplement);
 
 
     static ZExceptionBase create(const char *pModule, ZStatus pStatus, Severity_type pSeverity,
@@ -216,7 +216,7 @@ public:
 
 //    void printExceptionContent(FILE *pOutput=stderr);
 
-    utf8String formatFullUserMessage (void);
+    utf8String formatFullUserMessage (bool pEndNL=true);
 
 //    void setFromZNetException(const char *pModule, const ZNetException* pZException);
 
@@ -322,7 +322,7 @@ public:
 
     void toStack(ZExceptionBase *pException);
     void addToLast(const char *pFormat,...);
-    void printLastUserMessage (FILE *pOutput=stderr);
+    void printLastUserMessage (FILE *pOutput=stderr, bool pKeep=false);
 
     bool stackIsEmpty(void) {return ZExceptionStack::isEmpty();}
 
@@ -381,6 +381,7 @@ public:
     void setMessage (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
     void setMessageCplt (const char *pModule,ZStatus pStatus,Severity_type pSeverity,const char *pFormat,...);
     void setComplement (const char *pFormat,...);
+    void setComplement (const utf8VaryingString& pComplement);
     void setComplementToZStatus();
 //    void setFromZNetException(const char *pModule,const ZNetException *pZException);
     void exit_abort(void);

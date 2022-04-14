@@ -1942,7 +1942,7 @@ int8_t getXMLEncodingFromZCharset(ZCharset_type pZCharCode);
  * @brief guessZCharset tries to guess what is the ZCharset_type corresponding to given string pString with byte length plen
  * @return
  */
-ZCharset_type guessZCharset (uint8_t *pString, size_t pLen);
+ZCharset_type guessZCharset (const uint8_t *pString, size_t pLen);
 
 const char* decode_XMLCharEncoding(int8_t pEncoding);
 

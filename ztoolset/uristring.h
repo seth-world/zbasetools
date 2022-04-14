@@ -4,7 +4,7 @@
 #include <zconfig.h>
 #include <ztoolset/zlimit.h>
 
-#include <ztoolset/utffixedstring.h>
+//#include <ztoolset/utffixedstring.h>
 
 #include <zcrypt/checksum.h>
 #include <ztoolset/zdate.h>
@@ -98,6 +98,7 @@ public:
     uriString(void) : utf8VaryingString(ZType_URIString) {}
     uriString(const uriString &pIn) : _Base(pIn) {ZType=ZType_URIString;}
     uriString(const uriString &&pIn) : _Base(pIn) {ZType=ZType_URIString;}
+    uriString(const utf8VaryingString &pIn) : _Base(pIn) {ZType=ZType_URIString;}
     uriString(const char* pIn) : _Base(pIn) {ZType=ZType_URIString;}
 #ifdef QT_CORE_LIB
     uriString(const QString pIn)
@@ -128,19 +129,8 @@ public:
     }
 
     uriString& operator = (const utfdescString &pSource);
-/*    uriString& operator += (utfdescString &pSource);
-
-    uriString& operator = (utfcodeString &pCode) ;
-    uriString& operator += (utfcodeString &pCode);
-*/
     ZStatus operator <<(ZDataBuffer& pDBS);
 
-/*    bool operator == (utfdescString& pCompare) ;
-    bool operator != (utfdescString &pCompare);
-    bool operator > (utfdescString& pCompare) ;
-    bool operator < (utfdescString &pCompare);
-*/
- //   uriString& fromURI(const uriString& pURI) ;
     uriString &fromURI(const uriString* pURI) ;
     uriString &fromURI(const uriString& pURI) ;
 
@@ -151,18 +141,18 @@ public:
 //Nota Bene descString must have been defined ( __DESCSTRING__ pre-proc parameter must be set)
 
 //------file and directory operations--------------
-
-    static uriString getHomeDir(void) ;
-
     /*
      *    /ddddddd/dddddddd/dddddddddd/<rootname>.<extension>
      *    |                |          |                     |
      *    |                +-last dir-+                     |
      *    +---directory path----------+---base name---------+
      */
+    static uriString getHomeDir(void) ;
+
+    /** @brief getFileExtension give the part of base name located after '.' sign     */
     utf8String getFileExtension() const;
     /** @brief uriString::getDirectoryPath Returns a descString containing the file's directory path
-     * i. e. </directory path/><root base name>.<extension>
+     * i. e. </directory path/><root name>.<extension>
      * @return an utf8String with the file's directory path including
      */
     utf8String getDirectoryPath() const;
@@ -170,9 +160,12 @@ public:
     utf8String getBasename() const ;
     utf8String getRootname() const;
 
-    /** @brief getUrl() gets an url from local file path definition */
+    void changeFileExtension(const utf8VaryingString& pExt);
+    void changeBasename(const utf8VaryingString& pBasename);
+
+    /** @brief getUrl() gets an url from local file path definition @see getLocal() */
     utf8String getUrl() const;
-    /** @brief getLocal () gets an uriString certified to be a local file name */
+    /** @brief getLocal () gets an uriString certified to be a local file name (as opposed to url) @see getUrl() */
     uriString getLocal () const;
 
     uriString &setDirectoryPath(uriString &pDirectoryPath);
@@ -185,6 +178,18 @@ public:
 
     bool        isDirectory (void);
     bool        isRegularFile(void);
+
+    /**
+     * @brief remove removes the file from file system.
+     * @return a ZStatus :
+     *  ZS_SUCCESS file has been successfully removed.
+     *  ZS_FILERROR  file cannot be removed. Low level explainations are set in ZException.
+     *  ZS_ACCESSRIGHTS : if file exists but cannot be suppressed due to accesrights limitation
+     *  ZS_LOCKED : the file exists but cannot be suppressed due to lock by another process/user
+     *  ZS_FILENOTEXIST : the file does not exist
+     *  ZS_FILERROR : other error
+     */
+    ZStatus remove();
 
     /**
      * @brief renameBck renames file with a special extension suffix given by pBckExt plus a incremental 2 digit value as follows :\n
@@ -239,8 +244,8 @@ public:
 
     ZStatus loadContentZTerm(ZDataBuffer &pDBS) ; /* same as loadContent but forces Zero termination */
 
-    ZStatus writeContent (ZDataBuffer &pDBS) ;
-    ZStatus appendContent (ZDataBuffer &pDBS) ;
+    ZStatus writeContent (ZDataBuffer &pDBS) const ;
+    ZStatus appendContent (ZDataBuffer &pDBS) const ;
 
     ZStatus writeAES256(ZDataBuffer &pDBS,const ZCryptKeyAES256& pKey,const ZCryptVectorAES256& pVector) ;
     /**
@@ -249,8 +254,8 @@ public:
      * @param pStr utf8 string to wrtie
      * @return  a ZStatus
      */
-    ZStatus writeContent (utf8VaryingString &pStr) ;
-    ZStatus appendContent (utf8VaryingString &pStr) ;
+    ZStatus writeContent (utf8VaryingString &pStr) const;
+    ZStatus appendContent (utf8VaryingString &pStr) const ;
 //    ZStatus writeText (varyingCString &pDBS) ;
 
     bool    exists(void) const  ;

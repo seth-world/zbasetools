@@ -855,35 +855,22 @@ void setXMLZException (const char*pModule,
 {
 va_list args;
     va_start (args, pFormat);
-    ZException.setMessageCplt(pModule,pStatus,pSeverity,pFormat, args); // set message but do not throw or exit_abort
+    ZException.setMessage(pModule,pStatus,pSeverity,pFormat, args); // set message but do not throw or exit_abort
     ZException.setComplement(getXMLLastError().toCChar());
     va_end(args);
     return;
 }
-utfexceptionString
+utf8VaryingString
 getXMLLastError(void)
 {
-utfexceptionString wException;
+utf8VaryingString wException;
     xmlErrorPtr wErr = xmlGetLastError();
-
-/*    wException.sprintf("Symbol <%s> domain <%s> level <%s> line <%d><%d> col<%d> <%s> <%s> <%s> <%s>",
-                        decodeXMLErrorSymbol(wErr->code),
-                       decodeXMLDomainSymbol(wErr->domain),
-                       decodeXMLLevel(wErr->level),
-                       wErr->line,
-                       wErr->int1,  // extra number information
-                       wErr->int2,  // col number
-                       wErr->message,
-                       wErr->str1, // additional info 1
-                       wErr->str2, // additional info 2
-                       wErr->str3);// additional info 3*/
-
     if (wErr==nullptr)
         {
-        wException="no XML error";
+        wException = "no XML error";
         return wException;
         }
-    wException.sprintf("%s-%s-%s line %d col %d ",
+    wException.sprintf("level:%s domain:%s code:%s  at (line %d col %d) ",
                        decodeXMLLevel(wErr->level),
                        decodeXMLDomainSymbol(wErr->domain),
                        decodeXMLErrorSymbol(wErr->code),
@@ -891,64 +878,67 @@ utfexceptionString wException;
                        wErr->int2  // col number
                        );
     if (wErr->int1 > 0)
-        wException.addsprintf("add.l %d ",
+        wException.addsprintf("\nadditional %d ",
                        wErr->int1);  // extra number information
     if (wErr->node!=nullptr)
         {
         xmlNodePtr wNode = static_cast<xmlNodePtr> (wErr->node);
         if (wNode->name==nullptr)
-            wException.addsprintf("node name <Unknown> ");
+            wException.addsprintf("\nnode name <Unknown> ");
          else
-            wException.addsprintf("node <%s> ",
+            wException.addsprintf("\nnode <%s> ",
                            wNode->name);
         }
 
     wException.addsprintf( wErr->message);
     if (wErr->str1!=nullptr)
-            wException.addsprintf(" %s", wErr->str1);
+            wException.addsprintf("\n %s", wErr->str1);
     if (wErr->str2!=nullptr)
-            wException.addsprintf(" %s", wErr->str2);
+            wException.addsprintf("\n %s", wErr->str2);
     if (wErr->str3!=nullptr)
-            wException.addsprintf(" %s", wErr->str3);
+            wException.addsprintf("\n %s", wErr->str3);
 
     return wException;
 }// getXMLLastParserError
 
-utfexceptionString
+utf8VaryingString
 getXMLLastParserNodeError(xmlParserCtxtPtr pContext)
 {
-utfexceptionString wException;
+utf8VaryingString wException;
     xmlErrorPtr wErr = xmlCtxtGetLastError(pContext);
 
-/*    wException.sprintf("Symbol <%s> domain <%s> level <%s> line <%d><%d> col<%d> <%s> <%s> <%s> <%s>",
-                        decodeXMLErrorSymbol(wErr->code),
-                       decodeXMLDomainSymbol(wErr->domain),
-                       decodeXMLLevel(wErr->level),
-                       wErr->line,
-                       wErr->int1,  // extra number information
-                       wErr->int2,  // col number
-                       wErr->message,
-                       wErr->str1, // additional info 1
-                       wErr->str2, // additional info 2
-                       wErr->str3);// additional info 3*/
+    if (wErr==nullptr)
+    {
+      wException = "no XML error";
+      return wException;
+    }
+    wException.sprintf("level:%s domain:%s code:%s  at (line %d col %d) ",
+        decodeXMLLevel(wErr->level),
+        decodeXMLDomainSymbol(wErr->domain),
+        decodeXMLErrorSymbol(wErr->code),
+        wErr->line,
+        wErr->int2  // col number
+        );
+    if (wErr->int1 > 0)
+      wException.addsprintf("\nadditional %d ",
+          wErr->int1);  // extra number information
+    if (wErr->node!=nullptr)
+    {
+      xmlNodePtr wNode = static_cast<xmlNodePtr> (wErr->node);
+      if (wNode->name==nullptr)
+        wException.addsprintf("\nnode name <Unknown> ");
+      else
+        wException.addsprintf("\nnode <%s> ",
+            wNode->name);
+    }
 
-    wException.sprintf("%s-%s-%s line %d col %d ",
-                       decodeXMLLevel(wErr->level),
-                       decodeXMLDomainSymbol(wErr->domain),
-                       decodeXMLErrorSymbol(wErr->code),
-                       wErr->line,
-                       wErr->int2  // col number
-                       );
-    if (wErr->int1)
-        wException.addsprintf("add.l %d ",
-                       wErr->int1);  // extra number information
-    wException.addV<char>(wErr->message);
+    wException.addsprintf( wErr->message);
     if (wErr->str1!=nullptr)
-            wException.addsprintf(" %s", wErr->str1);
+      wException.addsprintf("\n %s", wErr->str1);
     if (wErr->str2!=nullptr)
-            wException.addsprintf(" %s", wErr->str2);
+      wException.addsprintf("\n %s", wErr->str2);
     if (wErr->str3!=nullptr)
-            wException.addsprintf(" %s", wErr->str3);
+      wException.addsprintf("\n %s", wErr->str3);
 
     return wException;
 }// getXMLLastParserNodeError

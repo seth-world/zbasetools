@@ -93,10 +93,7 @@ utf8VString::fromUtf32(const utf32_t* pString)
     setData(pConvertedString);
     return wSt;
 }
-
-
 */
-
 
 /** @endcond */ //Development
 

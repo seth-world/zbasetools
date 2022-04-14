@@ -44,6 +44,10 @@ public:
             {
              delete(RegisteredNameSpaces.popR());
             }
+        while (RegisteredDoc.size())
+            {
+              delete(RegisteredDoc.popR());
+            }
         xmlCleanupCharEncodingHandlers();
         xmlCleanupParser();
     }
@@ -51,8 +55,8 @@ public:
 
 
     void onAbort() {
-                    if (ZXML_Init)
-                        this->~zxmlGlobal();
+        if (ZXML_Init)
+            this->~zxmlGlobal();
     }
 
     void deregister(zxmlNode *&pNode)
@@ -88,9 +92,21 @@ public:
                 RegisteredNameSpaces.erase(wi);
             }
     }
-    ZArray<zxmlNode*> RegisteredNodes;
-    ZArray<zxmlAttribute*> RegisteredAttributes;
-    ZArray<zxmlNameSpace*> RegisteredNameSpaces;
+    void deregister(zxmlDoc *&Doc)
+    {
+      if (Doc==nullptr)
+        return;
+      for (long wi = 0; wi < RegisteredDoc.count(); wi++)
+        if (RegisteredDoc[wi] == Doc) {
+          delete(RegisteredDoc[wi]);
+          Doc = nullptr;
+          RegisteredDoc.erase(wi);
+        }
+    }
+    ZArray<zxmlDoc*>        RegisteredDoc;
+    ZArray<zxmlNode*>       RegisteredNodes;
+    ZArray<zxmlAttribute*>  RegisteredAttributes;
+    ZArray<zxmlNameSpace*>  RegisteredNameSpaces;
 
     bool ZXML_Init=false;
 } _xmlGlobal;
@@ -111,11 +127,25 @@ void XMLderegister(zxmlNameSpace *&pNode)
 {
     _xmlGlobal.deregister(pNode);
 }
-
+void XMLderegister(zxmlDoc *&pDoc)
+{
+  _xmlGlobal.deregister(pDoc);
+}
 void cleanupXML(void)
 {
     _xmlGlobal.~zxmlGlobal();
 }
+
+zxmlDoc::zxmlDoc() {
+  _xmlGlobal.RegisteredDoc.push(this);
+}
+
+zxmlDoc::~zxmlDoc() {
+  if (DocParser) delete DocParser;
+  if (RootElement) XMLderegister( RootElement);
+  if (_xmlInternalDoc) xmlFreeDoc(_xmlInternalDoc);
+}
+
 /**
  * @brief createNode  zxmlNode creation
  * @param pxmlNode
@@ -123,21 +153,12 @@ void cleanupXML(void)
  */
 zxmlNode* zxmlcreateNode(xmlNodePtr pxmlNode)
 {
-/*    zxmlNode* wNode=zxmlsearchNodeByInternal(pxmlNode);
-    if (wNode==nullptr)
-            {
-            wNode=new zxmlNode(pxmlNode);
-            _xmlGlobal.RegisteredNodes.push(wNode);
-            }
-    return wNode;
-  */
   zxmlNode* wNode=new zxmlNode(pxmlNode);
   _xmlGlobal.RegisteredNodes.push(wNode);
   return wNode;
 }
 zxmlElement* zxmlcreateElement(const utf8VaryingString& pxmlNodeName)
 {
-
     zxmlElement* wNode=new zxmlElement(pxmlNodeName);
     _xmlGlobal.RegisteredNodes.push((zxmlNode*)wNode);
     return wNode;

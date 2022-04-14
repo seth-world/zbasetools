@@ -9,7 +9,7 @@ const char* decodeXMLErrorSymbol (int pXMLErrNum);
 const char* decodeXMLDomainSymbol (int pXMLDomainNum);
 const char* decodeXMLDomainDesc (int pXMLDomainNum);
 //class exceptionString;
-utfexceptionString getXMLLastError(void);
+utf8VaryingString getXMLLastError(void);
 
 void setXMLZException (const char*pModule,
                        ZStatus pStatus,

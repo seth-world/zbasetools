@@ -528,6 +528,12 @@ void ZExceptionBase::setComplement (const char *pFormat,va_list arglist)
 //        va_end(args);
 return;
 }
+
+void ZExceptionBase::setComplement (const utf8String& pComplement)
+{
+  Complement=pComplement;
+  return;
+}
 void ZExceptionBase::setComplementToStatus()
 {
     Complement.sprintf("Status is <%s>", decode_ZStatus(Status));
@@ -563,6 +569,24 @@ va_start (args, pFormat);
     if (ZExceptionStack::last()->Severity >= AbortOnSeverity)
                                 exit_abort();
 return;
+}
+
+void ZExceptionMin::setComplement (const utf8VaryingString& pComplement)
+{
+#if __USE_ZTHREAD__
+  _Mtx.lock();
+#endif
+
+  ZExceptionStack::last()->setComplement (pComplement);
+
+#if __USE_ZTHREAD__
+  _Mtx.unlock();
+#endif
+  if (ZExceptionStack::last()->Severity >= ThrowOnSeverity)
+    zthrow (ZExceptionStack::last());
+  if (ZExceptionStack::last()->Severity >= AbortOnSeverity)
+    exit_abort();
+  return;
 }
 
 
@@ -700,7 +724,7 @@ ZExceptionMin::printUserMessage (FILE *pOutput,bool pDelete)
  */
 
 void
-ZExceptionMin::printLastUserMessage (FILE *pOutput)
+ZExceptionMin::printLastUserMessage (FILE *pOutput,bool pKeep)
 {
 #if __USE_ZTHREAD__
     _Mtx.lock();
@@ -721,7 +745,8 @@ ZExceptionMin::printLastUserMessage (FILE *pOutput)
     fprintf (pOutput,
              "__________________________________________________________\n");
 
-    ZExceptionStack::pop();
+    if (!pKeep)
+      ZExceptionStack::pop();
 
 #if __USE_ZTHREAD__
     _Mtx.unlock();
@@ -729,7 +754,7 @@ ZExceptionMin::printLastUserMessage (FILE *pOutput)
 }//ZExceptionMin::printLastUserMessage
 
 utf8String
-ZExceptionBase::formatFullUserMessage (void)
+ZExceptionBase::formatFullUserMessage (bool pEndNL)
 {   utf8String wReturn;
     wReturn.sprintf("_____________ZException content_____________\n");
     wReturn.addsprintf(
@@ -738,7 +763,7 @@ ZExceptionBase::formatFullUserMessage (void)
                  "System error code...%d\n"
                  "POSIX error code....%s\n"
                  "Status..............%s\n"
-                 "Severity............%s\n",
+                 "Severity............%s",
                  Message.toCChar(),
                  Module.toCChar(),
                  Error,
@@ -746,12 +771,13 @@ ZExceptionBase::formatFullUserMessage (void)
                  decode_ZStatus(Status),
                  decode_Severity(Severity));
     if (Complement.isEmpty())
-        wReturn += "No additional information.\n";
+        wReturn += "\nNo additional information.";
     else {
-        wReturn += "Additional information follows:\n";
+        wReturn += "\nAdditional information follows:";
         wReturn += Complement;
-        wReturn += "\n";
     }
+    if (pEndNL)
+      wReturn += "\n";
     return wReturn;
 }
 

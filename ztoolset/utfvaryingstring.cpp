@@ -185,7 +185,10 @@ const char*
 utf8VaryingString::toCChar() const
 {
   if (Data==nullptr)
-            return "<null>";
+    return "<null>";
+  if (UnitCount==0)
+    return "";
+
     return (const char*)Data ;
 }// utf8VaryingString::toCChar
 
@@ -3248,6 +3251,7 @@ ZArray<utf8VaryingString> utf8VaryingString::strtok(const utf8_t* pSeparator)
   return wReturn;
 }//strtok
 
+
  //===============Varying strings========================================
 //#include <ztoolset/zwstrings.h>
 #include <wchar.h>
@@ -3438,25 +3442,34 @@ ZArray<utf8VaryingString> utf8VaryingString::strtok(const utf8_t* pSeparator)
 
 #endif // __COMMENT__
 
+
  utf8VaryingString operator +(const utf8VaryingString& pOne,const utf8VaryingString& pTwo)
  {
-   utf8VaryingString wResult = pOne;
-
-   wResult += pTwo;
+   utf8VaryingString wResult;
+   wResult = pOne;
+   wResult.add(pTwo);
    return wResult;
  }
- utf8VaryingString operator +(const utf8VaryingString& pOne,const char* pTwo)
+ utf8VaryingString operator +(utf8VaryingString& pOne,utf8VaryingString& pTwo)
  {
-   utf8VaryingString wResult = pOne;
-
-   wResult += pTwo;
+   utf8VaryingString wResult;
+   wResult = pOne;
+   wResult.add(pTwo);
    return wResult;
+ }
+
+utf8VaryingString operator +(const utf8VaryingString& pOne,const char* pTwo)
+{
+  utf8VaryingString wResult;
+  wResult = pOne;
+  wResult.add(pTwo);
+ return wResult;
  }
  utf8VaryingString operator +(const char* pOne,const utf8VaryingString& pTwo)
  {
-   utf8VaryingString wResult = pOne;
-
-   wResult += pTwo;
+   utf8VaryingString wResult;
+   wResult = pOne;
+  wResult.add(pTwo);
    return wResult;
  }
 #endif // UTFVARYINGSTRING_CPP

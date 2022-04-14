@@ -1,6 +1,8 @@
 #ifndef ZARRAY_H
 #define ZARRAY_H
 
+//#define __USE_NEW_STD_ALLOCATOR__
+
 #include <zconfig.h>
 #include <ztoolset/zlimit.h>
 #include <ztoolset/zmem.h>  // for zfree()
@@ -171,20 +173,12 @@ template <typename _Tp>
 class ZArray
 {
 
-private: allocator_traits<_Tp> Allocator;
-
+private: allocator<_Tp> Allocator;
 /*
  *  Data Attributes
  */
-
 public :
-/*  union ZUData { char *zptr_char;
-    void *zptr_void;
-    _Tp *Tab ;
-  } Data ;
-*/
   _Tp * Tab=nullptr ;
-//  _Tp * Tab=nullptr  ;
 
   ssize_t ZCurrentNb=0 ;        // current number of elements : 0 if ZArray is empty lastIdx() returns -1
   const size_t ZElementSize=sizeof(_Tp); // for Qt debug interface purpose
@@ -206,12 +200,13 @@ private :
 #endif
 public:
 
-   ZArray():_Mutex() {_mInit(_cst_default_allocation,_cst_realloc_quota);}
+   ZArray():_Mutex() {
+     _mInit(_cst_default_allocation,_cst_realloc_quota);
+   }
    ZArray (size_t pInitialAlloc,
-       size_t pReallocQuota) : _Mutex()
-                {_mInit(pInitialAlloc,pReallocQuota);}
-
-//   ZArray(size_t pCount,_Tp pInitValue);
+       size_t pReallocQuota) : _Mutex() {
+     _mInit(pInitialAlloc,pReallocQuota);
+   }
 
    ~ZArray();
 
@@ -221,7 +216,6 @@ public:
 
    ZArray(ZArray& pIn):_Mutex()
    {
-//       _mInit(); /* init with default allocation values */
         _mInit(_cst_default_allocation,_cst_realloc_quota);
        _copyFrom(pIn);
        return;
@@ -320,14 +314,19 @@ public:
     * @brief operator [] gives direct access to ZArray row data using its index rank. \n
     *                   this operator is overloaded for some child to return a constant reference in order to prevent modifying ZArray content by this mean.
     */
-  _Tp & operator [] (const long pIndex)
-            {
-            if (pIndex<ZCurrentNb)
-                    return (Tab[pIndex]);
-            fprintf(stderr,"ZArray-E-IVIDXVAL invalid index value out of array boundary.\n");
-            }// we must be able to access to this operator function from the inherited class
+  _Tp & operator [] (const long pIndex) {
+      if (pIndex<ZCurrentNb)
+        return (Tab[pIndex]);
+      fprintf(stderr,"ZArray-E-IVIDXVAL invalid index value out of array boundary.\n");
+      abort();
+  }
 
-  const _Tp & operator []  (const long pIndex) const { return (Tab[pIndex]);}   // we must be able to access to this operator function from the inherited class
+  const _Tp & operator []  (const long pIndex) const {
+    if (pIndex<ZCurrentNb)
+      return (Tab[pIndex]);
+    fprintf(stderr,"ZArray-E-IVIDXVAL invalid index value out of array boundary.\n");
+    abort();
+  }
 
   /**
     * @brief operator << pops the ZArray and returns a reference to the result within the field of type _Tp mentionned as left argument
@@ -625,10 +624,11 @@ public:
     long insert (_Tp *pElement, size_t pIdx, size_t pNumber);
     long erase(size_t pIdx,size_t pNumber=1);
 
+    long _insertNoLock(_Tp &pElement, size_t pIdx);
     long _insertNoLock(_Tp *pElement, size_t pIdx, size_t pNumber=1);
     long _eraseNoLock(size_t pIdx,size_t pNumber=1);
 
-    void trim (void);       //!< @brief trim adjusts the memory size of the ZArray to the current contained elements + realloc quota
+           //!< @brief trim adjusts the memory size of the ZArray to the current contained elements + realloc quota
     /** ! @brief last returns the ZArray content of the last element of the ZArray. If ZArray is empty, it issues a fatal error and terminates.
      */
     _Tp &last(void) { if (size()>0)
@@ -665,7 +665,7 @@ public:
 
     bool isEmpty(void) {return (ZCurrentNb==0);}
 
-    _Tp & assign (_Tp &pValue, const long pIdx);
+
     /* for class  objects */
 #ifdef __COMMENT__
     _Tp & assign (typename std::enable_if<(std::is_class<_Tp>::value),_Tp> &pValue, const long pIdx)
@@ -697,7 +697,7 @@ public:
 
 #endif // __COMMENT__
 
-    _Tp & assignReturn ( const long pIdx);
+
 //    void clearValue (const long pIdx);
 
     _Tp & reverse (long pIdx);
@@ -798,20 +798,118 @@ public:
     void unlock(void)   {_Mutex.unlock();}
 #endif  //__USE_ZTHREAD__
 
+/** ==================== memory allocation management ====================== */
+
 protected :
     void addCheck(long pAdd);
-    void allocate(long pAlloc);
-    _Tp* allocateNew(long pAlloc);
-    _Tp* extendNew(long pExtent);
-
-    _Tp& assignNew (_Tp &pValue, const long pIdx);
 
 
+    _Tp* _baseAllocate(long pAlloc) {
+    Tab=Allocator.allocate(pAlloc);
+    ZAllocation = pAlloc;
+    ZAllocatedSize = sizeof(_Tp)*pAlloc;
+    memset(Tab,0,ZAllocatedSize);
+    return Tab;
+    }
+
+    void _deallocate() {
+      if (Tab==nullptr)
+        return;
+      Allocator.deallocate(Tab,ZAllocation);
+      Tab=nullptr;
+    }
+    void _deallocate(_Tp* pPtr,size_t pAllocation) {
+      if (Tab==nullptr)
+        return;
+      Allocator.deallocate(pPtr,pAllocation);
+      Tab=nullptr;
+    }
+
+
+    void allocate(long pAlloc)
+    {
+#if __DEBUG_LEVEL__  > 4
+      if (ZAllocation >= pAlloc )
+      {
+        fprintf (stderr,"ZArray::allocate-W-Warning requested new allocation <%ld> not greater than existing allocation <%ld> \n",pAlloc,ZAllocation);
+      }
+#endif // _DEBUG_LEVEL
+
+      if (pAlloc < ZCurrentNb) {
+#if __DEBUG_LEVEL__  > 1
+        fprintf (stderr,"ZArray::allocate-W-ERRALLOC requested new allocation <%ld> not greater than existing number of elements within ZArray <%ld> .\n"
+                        "You should suppress elements from the ZArray and use trim/resize facility to reduce the memory allocated (ZArray::trim).\n",
+            pAlloc,ZCurrentNb);
+        //        pTab=Tab;
+        return ;
+#endif // _DEBUG_LEVEL
+      }
+
+      if (Tab==nullptr) {
+        Tab=_baseAllocate(pAlloc);
+        return;
+      }
+      /* Must trim ? */
+      if (pAlloc < ZAllocation) {
+        if (pAlloc < ZCurrentNb) {
+          pAlloc = ZCurrentNb;
+        }
+        resize(pAlloc);
+        return;
+      }
+
+      Tab=extend(pAlloc-ZAllocation);
+      return ;
+    }// allocate
+
+
+
+    _Tp* _baseRealloc(size_t pSize){
+      _Tp* wTab_old=Tab;
+      size_t wAllocation_old = ZAllocation;
+      Tab=_baseAllocate(pSize);
+      for (long wi=0;wi < ZCurrentNb ; wi++) {
+        //        Tab[wi] = std::move<_Tp>(wSvData[wi]);
+        Tab[wi] = wTab_old[wi];
+      }
+      Allocator.deallocate(wTab_old,wAllocation_old);
+      return Tab;
+    }
+
+    _Tp* extend(long pExtent) {
+      if (Tab==nullptr) {
+        return _baseAllocate(pExtent);
+      }
+      return _baseRealloc(ZAllocation + pExtent);
+    } // extend
+
+
+    _Tp & assign (_Tp &pValue, const long pIdx)
+    {
+      if (Tab==nullptr)
+        _mInit(cst_ZRF_default_allocation,cst_ZRF_default_extentquota);
+      if ((size_t)pIdx >= ZAllocation) {
+        fprintf (stderr,"ZArray::assign-F-OVERFLW Index <%ld> bypasses allocation <%ld>\n",pIdx,ZAllocation);
+        abort();
+      }
+      Allocator.construct(&Tab[pIdx],pValue);
+      return Tab[pIdx];
+    }//assign
+
+
+    _Tp & assignReturn ( const long pIdx);
+
+    _Tp *trim(ssize_t pReallocQuota=-1);
+    _Tp *resize(ssize_t pNewAllocation);
+
+#ifdef __DEPRECATED__
     void _sizeAllocate(size_t pSizeAlloc);
+#endif
     void _setContent (void *pContent,size_t pSize) {memmove(Tab,pContent,pSize); return;}
 
 
-    unsigned int Check=0xFFFFFFFF;
+
+    unsigned int Check=cst_ZCHECK;
 
 }; // class ZArray
 
@@ -854,53 +952,17 @@ void ZArray<_Tp>::addValues(size_t pCount,_Tp pInitValue)
     return;
 }
 
-#ifdef __COMMENT__
-template <typename _Tp>
-ZArray<_Tp>::ZArray(size_t pInitialAlloc, size_t pReallocQuota)
-{
-    _mInit(pInitialAlloc,pReallocQuota);
-/*    ZPtr=NULL ;
-    Data.zptr_void = NULL;
-    Tab = NULL;
-    ZAllocation = 0;
-
-    ZInitialAllocation=pInitialAlloc ;
-    ZReallocQuota = pReallocQuota ;
-    ZCurrentNb = 0 ;  // Empty ZArray : size() == 0
-
-    allocate (ZInitialAllocation);
-    memset (Tab,0,ZAllocatedSize);
-
-    ZIdx=0;*/
-/*
-#ifdef __USE_ZTHREAD__  //   in any case (__ZTHREAD_AUTOMATIC__ or not) we have to define a ZMutex
-    _Mtx = new ZMutex;
-#endif
-*/
-    return ;
-}
-#endif // __COMMENT__
-
 template <typename _Tp>
 void ZArray<_Tp>::_mInit(size_t pInitialAlloc,
                          size_t pReallocQuota)
 {
-
-    zfree(Tab);
-
-//    _hasChanged=false;
-
-//    ZPtr=nullptr ;
-//    Data.zptr_void = nullptr;
-    Tab = nullptr;
+    _deallocate();
     ZAllocation = 0;
-
     ZInitialAllocation=pInitialAlloc ;
     ZReallocQuota = pReallocQuota ;
     ZCurrentNb = 0 ;  // Empty ZArray : size() == 0
-
     allocate (ZInitialAllocation);
-    memset (Tab,0,ZAllocatedSize);
+//    memset (Tab,0,ZAllocatedSize);
 
     ZIdx=0;
 /*
@@ -912,19 +974,11 @@ void ZArray<_Tp>::_mInit(size_t pInitialAlloc,
 
 template <typename _Tp> ZArray<_Tp>::~ZArray()
 {
-//#ifdef __USE_ZTHREAD__  //   in any case (__ZTHREAD_AUTOMATIC__ or not) we have to define a ZMutex
-//   _Mutex.lock();  // cannot do that : mutex object already deleted
-//    delete _Mtx;
-//#endif
-    if (Tab!=NULL)
-            {
-            zfree (Tab);
-            }
+  if (Tab!=nullptr) {
+      erase(0,ZCurrentNb);
+      Allocator.deallocate(Tab,ZAllocation);
+  }
 
-// #ifdef __USE_ZTHREAD__  //   in any case (__ZTHREAD_AUTOMATIC__ or not) we have to define a ZMutex
-//    _Mutex.unlockBesttry();
-//    delete _Mtx;
-//#endif
 }//DTOR
 
 
@@ -936,10 +990,6 @@ template <typename _Tp>
 ZArray<_Tp>*
 ZArray<_Tp>::clone(void)
 {
-//    ZArray<_Tp> *wRet= new ZArray<_Tp>(ZAllocation,ZReallocQuota);
-//    memmove (wRet->Data.zptr_void,Data.zptr_void,ZAllocatedSize);
-//    wRet->ZCurrentNb = ZCurrentNb;
-//    wRet->ZIdx=ZIdx;
     ZArray<_Tp> *wRet= new ZArray<_Tp>(*this);
     return (wRet);
 }// clone
@@ -961,59 +1011,18 @@ ZArray<_Tp>::_copyFrom (ZArray<_Tp> &pIn)
     pIn.lock();
 #endif
 
-    this->clear(false);
-    this->setQuota(pIn.ZReallocQuota);
-    this->allocate(pIn.ZAllocation);
-    this->ZCurrentNb = pIn.ZCurrentNb ;
-//    memmove (Tab,pCopied.Tab,ZAllocatedSize);
-    memset (Tab,0,ZAllocatedSize);
+//    this->clear(false);
+    setQuota(pIn.ZReallocQuota);
+    allocate(pIn.ZAllocation);
+    ZCurrentNb = pIn.ZCurrentNb ;
     for (long wi=0;wi<pIn.ZCurrentNb;wi++)
-                      assign (pIn.Tab[wi],wi);
-//    memmove (Tab,pCopied.Tab,(pCopied.ZCurrentNb*sizeof(_Tp)));
-
-//  //  _hasChanged=true;
-
+      assign (pIn.Tab[wi],wi);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-//        pCopied.unlock();
-//        const_cast<ZArray<_Tp>*>(wC)->unlock();
     pIn.unlock();
 #endif
     return *this;
 }
-/**
- *  --------Allocation of a new element onto the stack from pValue-----------
- */
 
-template<class _Tp>
-_Tp & ZArray<_Tp>::assign (_Tp &pValue, const long pIdx)
-{
-  if ((size_t)pIdx >= ZAllocation)
-    {
-    fprintf (stderr,"ZArray::assign-F-OVERFLW Index <%ld> bypasses allocation <%ld>\n",pIdx,ZAllocation);
-    abort();
-    }
-  memset(&Tab[pIdx],0,sizeof(_Tp)); /* cannot invoke constructor but can set memory surface to zero */
-  Tab[pIdx] = pValue;               /* copy constructor and operator = must be defined if class */
-//  _hasChanged=true;
-  return Tab[pIdx];
-}
-
-
-template<class _Tp>
-inline _Tp & ZArray<_Tp>::assignReturn (const long pIdx)
-{
-  ZReturn= Tab[pIdx];
-  return ZReturn;
-}
-/*
-template<class _Tp>
-inline void ZArray<_Tp>::clearValue (const long pIdx)
-{
-  memset(&Tab[pIdx],0,sizeof(_Tp));
-////  _hasChanged=true;
-  return ;
-}
-*/
 
 template <typename _Tp>
 /**
@@ -1056,7 +1065,6 @@ long wRet=0;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-//  //  _hasChanged=true;
     wRet=_move(pDest,pOrig,pNumber);
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
     _Mutex.unlock();
@@ -1067,45 +1075,39 @@ long wRet=0;
 template <typename _Tp>
 long ZArray<_Tp>::_move (size_t pDest, size_t pOrig, ssize_t pNumber)
 {
-    if (pDest==pOrig)
-            {
-            ZIdx = pDest;
-            return (pDest);
-            }
-    if (pNumber<0)
-            {
-              ZIdx = pDest;
-              return (-1);
-            }
-    if (pNumber==0)
-            {
-              ZIdx = pDest;
-              return (pDest);
-            }
+  if (pDest==pOrig) {
+    ZIdx = pDest;
+    return (pDest);
+  }
+  if (pNumber<0){
+    ZIdx = pDest;
+    return (-1);
+  }
+  if (pNumber==0) {
+    ZIdx = pDest;
+    return (pDest);
+  }
 
-    if (pOrig >= ZCurrentNb)
+  if (pOrig >= ZCurrentNb)
       return -1; // pOrig is out of boundaries
 
-    if (pOrig+pNumber >= ZCurrentNb)
+  if (pOrig+pNumber >= ZCurrentNb)
       return -1 ; // source is out of boundaries
 
+  if ((pDest+pNumber) >= ZCurrentNb){
+    long wA=(pDest+pNumber+1) - ZCurrentNb ;
+    addCheck(wA);                       // make room for moving elements if necessary
+  }
 
-//  //  _hasChanged=true;
-    if ((pDest+pNumber) >= ZCurrentNb)
-                {
-                long wA=(pDest+pNumber+1) - ZCurrentNb ;
-                addCheck(wA);                       // make room for moving elements if necessary
-                }
+  for (long wi=0;wi < pNumber;wi++) {
+    memmove(&Tab[pDest+wi],&Tab[pOrig+wi],sizeof(_Tp));
+//    Tab[pDest+wi]=Tab[pOrig+wi];
+//      assign(Tab[pOrig+wi],pDest+wi);
+  }
 
+  ZIdx = pDest ;
 
-    for (long wi=0;wi < pNumber;wi++)
-      {
-      assign(Tab[pOrig+wi],pDest+wi);
-      }
-
-    ZIdx = pDest ;
-
-    return pDest ;
+  return pDest ;
 }// _move
 
 
@@ -1127,48 +1129,56 @@ long ZArray<_Tp>::_move (size_t pDest, size_t pOrig, ssize_t pNumber)
 template <typename _Tp>
 long ZArray<_Tp>::swap (size_t pDest, size_t pOrig,size_t pNumber)
 {
-    if (pDest==pOrig)
-            {
-            return pDest;
-            }
+  if (pDest==pOrig) {
+    return pDest;
+  }
 //    if (((pOrig+pNumber)>lastIdx())||(pOrig<0)||(pDest<0)||(pDest>lastIdx()))
-        if (((pOrig+pNumber)>lastIdx())||(pDest>lastIdx())) // pOrig & pDest are unsigned longs so a negative longs will produce an outofboundaries error nevertheless
-                            {
-                            #if __DEBUG_LEVEL__ > 0
-                                fprintf (stderr, "ZArray::swap-E-OUTBOUND Error, given index <%ld> plus number of elements to insert <%ld> are out of ZArray boundaries. Last index is <%ld>\n"
-                                                 "                        OR destination index <%ld> is out of ZArray boundaries.\n",
-                                         pOrig,
-                                         pNumber,
-                                         lastIdx(),
-                                         pDest
-                                         );
-                            #endif
-                            #if __CRASH_ON_FATAL__
-                                    _ABORT__ ;
-                            #endif
-                            return -1 ; // out of boundaries for
-                            }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
+  if (((pOrig+pNumber)>lastIdx())||(pDest>lastIdx())) {// pOrig & pDest are unsigned longs so a negative longs will produce an outofboundaries error nevertheless
+#if __DEBUG_LEVEL__ > 0
+      fprintf (stderr, "ZArray::swap-E-OUTBOUND Error, given index <%ld> plus number of elements to insert <%ld> are out of ZArray boundaries. Last index is <%ld>\n"
+                        "                        OR destination index <%ld> is out of ZArray boundaries.\n",
+                pOrig,
+                pNumber,
+                lastIdx(),
+                pDest );
 #endif
-//  //  _hasChanged=true;
-    if ((pDest+pNumber)>ZCurrentNb)
-                {
-                addCheck((pDest+pNumber)-ZCurrentNb);
-                memset (&Tab[ZCurrentNb],0,(size_t)(pNumber-(ZAllocation-ZCurrentNb)));
-                }
-
-    _Tp *wPt=(_Tp*) malloc (pNumber*(sizeof(_Tp)));
-    memmove(wPt,&Tab[pOrig],(size_t)(pNumber*(sizeof(_Tp))));
-    memmove(&Tab[pOrig],&Tab[pDest],(size_t)(pNumber*(sizeof(_Tp))));
-    memmove(&Tab[pDest],wPt,(size_t)(pNumber*(sizeof(_Tp))));
-    zfree(wPt);
-
-    ZIdx = pDest ;
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-    _Mutex.unlock();
+#if __CRASH_ON_FATAL__
+        __ABORT__ ;
 #endif
-    return pDest ;
+      return -1 ; // out of boundaries for
+  }
+#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+  _Mutex.lock();
+#endif
+
+  if ((pDest+pNumber)>ZCurrentNb) {
+    addCheck((pDest+pNumber)-ZCurrentNb);
+//    memset (&Tab[ZCurrentNb],0,(size_t)(pNumber-(ZAllocation-ZCurrentNb)));
+  }
+
+  _Tp *wTemporary=Allocator.allocate(pNumber);
+  for (long wi=0;wi < pNumber;wi++) {
+    wTemporary[wi]=std::move(Tab[pOrig+wi]);
+  }
+  for (long wi=0;wi < pNumber;wi++) {
+    Tab[pOrig+wi]=std::move(Tab[pDest+wi]);
+  }
+  for (long wi=0;wi < pNumber;wi++) {
+    Tab[pDest+wi]=std::move(wTemporary[wi]);
+  }
+  Allocator.deallocate(wTemporary,pNumber);
+/*
+  _Tp *wPt=(_Tp*) malloc (pNumber*(sizeof(_Tp)));
+  memmove(wPt,&Tab[pOrig],(size_t)(pNumber*(sizeof(_Tp))));
+  memmove(&Tab[pOrig],&Tab[pDest],(size_t)(pNumber*(sizeof(_Tp))));
+  memmove(&Tab[pDest],wPt,(size_t)(pNumber*(sizeof(_Tp))));
+  zfree(wPt);
+*/
+  ZIdx = pDest ;
+#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+  _Mutex.unlock();
+#endif
+  return pDest ;
 }// swap
 
 template <typename _Tp>
@@ -1181,30 +1191,36 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::insert(_Tp &pElement, size_t pIdx)
 {
-    if (pIdx>ZCurrentNb)
-                {
-                return (-1);
-                }
+  if (pIdx>ZCurrentNb) {
+    return (-1);
+  }
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-//  //  _hasChanged=true;
-    addCheck(1);
-    if (ZCurrentNb>0)
-            {
-            move((pIdx+1),pIdx,(ZCurrentNb-pIdx)); // make room for element
-            }
 
-    ZCurrentNb=ZCurrentNb + 1;
-//    memmove(&Data[pIdx],&pElement,(sizeof(_Tp)));
-
-    assign(pElement,pIdx);
-
-    ZIdx=pIdx;
+  ZIdx=_insertNoLock(pElement,  pIdx);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-    _Mutex.unlock();
+  _Mutex.unlock();
 #endif
-    return (pIdx);
+  return (ZIdx);
+}// insert
+
+template <typename _Tp>
+long ZArray<_Tp>::_insertNoLock(_Tp &pElement, size_t pIdx)
+{
+  if (pIdx>ZCurrentNb) {
+    return (-1);
+  }
+
+  addCheck(1);
+  if (ZCurrentNb>0){
+    _move((pIdx+1),pIdx,(ZCurrentNb-pIdx)); // make room for element (no lock)
+  }
+
+  assign(pElement,pIdx);
+  ZCurrentNb++;
+  ZIdx=pIdx;
+  return (pIdx);
 }// insert
 
 template <typename _Tp>
@@ -1223,21 +1239,13 @@ long ZArray<_Tp>::insert(_Tp *pElement, size_t pIdx,size_t pNumber)
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
-////  _hasChanged=true;
-  ZIdx = pIdx ;
-  addCheck(pNumber);
-  if (ZCurrentNb > 0)
-  move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
-
-  ZCurrentNb = ZCurrentNb + pNumber;
-  for (long wi=0;wi<pNumber;wi++)
-            assign(pElement[wi],pIdx + wi);
-  ZIdx=pIdx;
+  pIdx = _insertNoLock(pElement,pIdx,pNumber);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (pIdx);
 }// insert
+
 template <typename _Tp>
 /**
  * @brief ZArray<_Tp>::insert inserts pNumber elements pointed by pElements at index pIdx after having shifted appropriately the ZArray elements
@@ -1250,19 +1258,19 @@ long ZArray<_Tp>::_insertNoLock(_Tp *pElement, size_t pIdx,size_t pNumber)
 {
   if (pIdx>ZCurrentNb)
     return (-1);
-////  _hasChanged=true;
+
   ZIdx = pIdx ;
   addCheck(pNumber);
   if (ZCurrentNb > 0)
-    move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
+    _move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
 
   ZCurrentNb = ZCurrentNb + pNumber;
-//    memmove(&Data[pIdx],pElement,(sizeof(_Tp)*pNumber));
-    for (long wi=0;wi<pNumber;wi++)
-      assign(pElement[wi],pIdx + wi);
-    ZIdx=pIdx;
-    return (pIdx);
+  for (long wi=0;wi<pNumber;wi++)
+    assign(pElement[wi],pIdx + wi);
+  ZIdx=pIdx;
+  return (pIdx);
 }// insertNoLock
+
 /** @brief erase  suppresses the pNumber elements of the dynamic array starting at and including pIdx index.
  *
  * @return the erased index position if successful
@@ -1270,59 +1278,58 @@ long ZArray<_Tp>::_insertNoLock(_Tp *pElement, size_t pIdx,size_t pNumber)
  *
  *
  */
+
 template <typename _Tp>
 long ZArray<_Tp>::erase(size_t pIdx,size_t pNumber)
 {
-
   if (pIdx==lastIdx())
     return pop();
   if ((long)(pIdx+pNumber)>ZCurrentNb)
     return -1;
 
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
+  _Mutex.lock();
 #endif
-//  //  _hasChanged=true;
-    ZIdx = pIdx ;
-//    _move(pIdx,pIdx+pNumber,(ZCurrentNb-pIdx-pNumber));
 
-_Tp* wPtrDest = &Tab[pIdx];
-_Tp* wPtrOrig = &Tab[pIdx + pNumber];
+  pIdx=_eraseNoLock(pIdx,pNumber);
 
-size_t wNbMove = ZCurrentNb - pIdx - pNumber ;
-  memmove(wPtrDest,wPtrOrig,wNbMove*sizeof(_Tp)); // restructure space to delete
-
-_Tp* wPtr = &Tab[ZCurrentNb - pNumber ];
-    memset(wPtr,0,sizeof(_Tp)*pNumber);// set available space to zero in the End of ZArray (recuperated space)
-
-    ZCurrentNb = ZCurrentNb -pNumber ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+  _Mutex.unlock();
 #endif
-    return (pIdx);
-}// insert
+  return (pIdx);
+}// erase
 
 template <typename _Tp>
 long ZArray<_Tp>::_eraseNoLock(size_t pIdx,size_t pNumber)
 {
-  if (pIdx==lastIdx())
-    return pop();
-  if ((long)(pIdx+pNumber)>ZCurrentNb)
+  if (pIdx==ZCurrentNb-1)
+    return _pop_nolock();
+  if ((long)(pIdx+pNumber)>(ZCurrentNb-1))
     return -1;
 
-    ZIdx = pIdx ;
-    _Tp* wPtrDest = &Tab[pIdx];
-    _Tp* wPtrOrig = &Tab[pIdx + pNumber];
+  /* destroy elements to be erased */
+  for (long wi=pIdx;(wi < wi+pNumber)&&(wi < ZCurrentNb-1);wi++)
+    Allocator.destroy(Tab+wi);
 
-    size_t wNbMove = ZCurrentNb - pIdx - pNumber ;
-    memmove(wPtrDest,wPtrOrig,wNbMove*sizeof(_Tp)); // restructure space to delete
+  ZIdx = pIdx ;
 
-    _Tp* wPtr = &Tab[ZCurrentNb - pNumber ];
-    memset(wPtr,0,sizeof(_Tp)*pNumber);// set available space to zero in the End of ZArray (recuperated space)
+ _Tp* wPtrDest = &Tab[pIdx];
+ _Tp* wPtrOrig = &Tab[pIdx + pNumber];
 
-    ZCurrentNb = ZCurrentNb -pNumber ;
-    return (pIdx);
+  size_t wNbMove = ZCurrentNb - pIdx - pNumber ;
+
+  memmove(wPtrDest,wPtrOrig,wNbMove*sizeof(_Tp)); // restructure space to delete
+//  for (long wi = 0; wi < wNbMove ; wi++)
+//    Tab[pIdx+wi]=std::move(Tab[pIdx + pNumber + wi]);
+
+  _Tp* wPtr = &Tab[ZCurrentNb - pNumber ];
+  memset(wPtr,0,sizeof(_Tp)*pNumber);// set available space to zero in the End of ZArray (recuperated space)
+
+  ZCurrentNb = ZCurrentNb - pNumber ;
+  return (pIdx);
 }
+
+
 
 template <typename _Tp>
 /**
@@ -1367,9 +1374,10 @@ void ZArray<_Tp>::clear(bool pLock)
     if (pLock)
         _Mutex.lock();
 #endif
+    _eraseNoLock(0,ZCurrentNb);
     ZCurrentNb=0 ;
     ZIdx = 0;
-    allocate (ZInitialAllocation);
+    resize (ZInitialAllocation);
 //    memset (ZPtr,0,ZAllocatedSize);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
     if (pLock)
@@ -1447,6 +1455,9 @@ inline long ZArray<_Tp>::count(void) const
  *   - if remaining not used elements are sufficient : nothing
  *   - allocate ZReallocateQuota elements if Quota is sufficient
  *   - allocate the appropriate number of elements + 1 in other case
+ *
+ *  This is allocator type neutral.
+ *
  */
 template <typename _Tp>
 void ZArray<_Tp>::addCheck(long pAdd)
@@ -1468,148 +1479,106 @@ long wReallocValue = ZReallocQuota;
   while ((wFreeSlots + wReallocValue) <= pAdd)
     wReallocValue += ZReallocQuota;
 
-    allocate (ZAllocation+wReallocValue) ;
+  extend (wReallocValue) ;
 
     return ;
 } // ZSizeCheck
 
-/** @brief allocate  dynamic memory allocation / reallocation
- *                  pAlloc is the rough total overall number of array element to be allocated before a reallocQuota memory extension.\n
- *                  And NOT a number of element to add to existing allocation.\n
- *                  Nota Bene: pAlloc CANNOT be less than the existing number of element within the ZArray
+
+
+
+/**
+ * @brief allocateCurrentElements  modifies the number of allocated Elements to the given number of Elements
+ *  - Enlarge the number of current contained elements to the given number of Elements
+ *  - Initialize the allocated space to binary 0
+ *  - If the ZArray already contains elements :
+ *   + Allocates the difference,
+ *   + initialize the allocated elements (and not the existing ones) to binary 0.
+ *  - Returns the actual newly allocated (and initialized) number of elements.
+ *  - Checks if given allocation is compatible with current ZArray content.
+ *
+ * @param[in] pAlloc the new number of elements that the ZArray could contain.
  */
 template <typename _Tp>
-_Tp* ZArray<_Tp>::allocateNew(long pAlloc)
+long ZArray<_Tp>::allocateCurrentElements (const ssize_t pAlloc)
 {
-#if __DEBUG_LEVEL__  > 4
-    if (ZAllocation >= pAlloc )
-                {
-                fprintf (stderr,"ZArray::allocate-W-Warning requested new allocation <%ld> not greater than existing allocation <%ld> \n",pAlloc,ZAllocation);
-                }
-#endif // _DEBUG_LEVEL
-
-    if (pAlloc < ZCurrentNb) {
-#if __DEBUG_LEVEL__  > 1
-                fprintf (stderr,"ZArray::allocate-W-ERRALLOC requested new allocation <%ld> not greater than existing number of elements within ZArray <%ld> .\n"
-                         "You should suppress elements from the ZArray and use trimming facility to reduce the memory allocated (ZArray::trim).\n",
-                         pAlloc,ZCurrentNb);
-                return;
-#endif // _DEBUG_LEVEL
-      }
-
-    if (Tab==nullptr)
-      Tab=Allocator.allocate(pAlloc);
-
-    ZAllocatedSize = sizeof(_Tp)*pAlloc;
-    ZAllocation = pAlloc;
-
-    _Tp * wPtr;
-    char* wPtrChar;
-
-//    Tab =zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
-
-    Allocator.
-
-    wPtrChar = (char*) Tab;
-    wPtrChar[ZAllocatedSize] = _HighValue ;
-
-  return Tab;
-}// allocateNew
-
-template <typename _Tp>
-_Tp* ZArray<_Tp>::extendNew(long pExtent)
-{
-  if (Tab==nullptr)
-    return allocateNew(pExtent);
-
-  _Tp* wSvData=Tab;
-
-  Tab = allocateNew(ZAllocation + pExtent);
-
-  for (long wi=0;wi < ZCurrentNb ; wi++) {
-    Tab[wi] = std::move<_Tp>(wSvData[wi]);
+  if (pAlloc<1)
+  {
+    fprintf(stderr,"ZArray::allocateCurrentElements-E-INVPAR Error : Invalid requested allocation <%ld>. Must be greater than 0.\n",
+        pAlloc);
+    return (-1);
   }
-  free (wSvData);
-  return Tab;
-}
+  if (pAlloc <= ZCurrentNb)
+  {
+    fprintf(stderr,"ZArray::allocateCurrentElements-E-CURGTALLOC Error current number of elements <%ld> is greater than request <%ld>\n",
+        ZCurrentNb,
+        pAlloc);
+    return (-1);
+  }
+
+#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+  _Mutex.lock();
+#endif
+  setAllocation(pAlloc,false);  // setAllocation has its own Mx lock
+  long wI = (ZCurrentNb<0)?0:ZCurrentNb;
+  memset(&Tab[wI],0,pAlloc*sizeof(_Tp));
+  ZCurrentNb=pAlloc;
+#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+  _Mutex.unlock();
+#endif
+  return (wI);
+}  // allocateCurrentElements
+
+
 
 template<class _Tp>
-_Tp & ZArray<_Tp>::assignNew (_Tp &pValue, const long pIdx)
+inline _Tp & ZArray<_Tp>::assignReturn (const long pIdx)
 {
-  if ((size_t)pIdx >= ZAllocation)
-  {
-    fprintf (stderr,"ZArray::assign-F-OVERFLW Index <%ld> bypasses allocation <%ld>\n",pIdx,ZAllocation);
-    abort();
-  }
+  return ZReturn = Tab[pIdx];
+}
 
-  Allocator.construct(&Tab[pIdx],pValue);
-//  memset(&Tab[pIdx],0,sizeof(_Tp)); /* cannot invoke constructor but can set memory surface to zero */
-//  Tab[pIdx] = pValue;               /* copy constructor and operator = must be defined if class */
-  //  _hasChanged=true;
-  return Tab[pIdx];
+/**
+ * @brief ZArray<_Tp>::trim resizes ZArray allocated memory to the current number of elements plus one reallocation quota elements
+ *  memory allocator neutral
+ */
+template <typename _Tp>
+_Tp* ZArray<_Tp>::trim(ssize_t pReallocQuota)
+{
+  if (pReallocQuota < 0)
+    ZAllocation = ZCurrentNb + ZReallocQuota ;
+  else
+    ZAllocation = ZCurrentNb + pReallocQuota ;
+
+  return allocate (ZAllocation);
 }
 
 
 
-
-
-template <typename _Tp>
-void ZArray<_Tp>::allocate(long pAlloc)
-{
-#if __DEBUG_LEVEL__  > 4
-  if (ZAllocation >= pAlloc )
-  {
-    fprintf (stderr,"ZArray::allocate-W-Warning requested new allocation <%ld> not greater than existing allocation <%ld> \n",pAlloc,ZAllocation);
-  }
-#endif // _DEBUG_LEVEL
-
-  if (pAlloc < ZCurrentNb)
-  {
-#if __DEBUG_LEVEL__  > 1
-    fprintf (stderr,"ZArray::allocate-W-ERRALLOC requested new allocation <%ld> not greater than existing number of elements within ZArray <%ld> .\n"
-                    "You should suppress elements from the ZArray and use trimming facility to reduce the memory allocated (ZArray::trim).\n",
-        pAlloc,ZCurrentNb);
-    return;
-#endif // _DEBUG_LEVEL
-  }
-  ZAllocatedSize = sizeof(_Tp)*pAlloc;
-  ZAllocation = pAlloc;
-
-  _Tp * wPtr;
-  char* wPtrChar;
-
-  Tab =zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
-
-  Allocator.
-
-      wPtrChar = (char*) Tab;
-  wPtrChar[ZAllocatedSize] = _HighValue ;
-
-}// ZAllocate
-
-
-
-
-/** @brief allocate  dynamic memory allocation / reallocation allocates memory with a size in bytes given by pSizeAlloc (in place of a number of elements)
- *                  pSizeAlloc is the rough total size in bytes to be allocated before a reallocQuota memory extension.\n
+/**
+ * @brief resize resizes ZArray allocated memory to at least current number of elements.
  *
- * @note Number of allocated elements (ZAllocation) is computed to be the truncated value of size to allocate/ size of one element.
+ *  pNewAllocation :
+ *    - is < 0 : allocated space is set to current number of elements plus one reallocation quota
+ *    - is less than current number of elements : allocated space is set to current number of elements
+ *    - is greater than current number of elements :  allocated space is set to pNewAllocation
+ *
+ *  memory allocator neutral
+ *
  */
 template <typename _Tp>
-void ZArray<_Tp>::_sizeAllocate(size_t pSizeAlloc)
+_Tp* ZArray<_Tp>::resize(ssize_t pNewAllocation)
 {
+  if (pNewAllocation < 0) {
+    return _baseRealloc (ZCurrentNb + ZReallocQuota);
+  }
+  if (pNewAllocation < ZCurrentNb) {
+    return _baseRealloc (ZCurrentNb);
+  }
+  return _baseRealloc (pNewAllocation);
+}
 
-    ZAllocatedSize = pSizeAlloc;
-    ZAllocation = pSizeAlloc/sizeof(_Tp);
 
-    Tab=zrealloc(Tab,(ZAllocatedSize+sizeof(_HighValue)+1));
-
-    char* wPtrChar= (char*)Tab;
-    wPtrChar[ZAllocatedSize] = _HighValue ;
-
-    Tab = Tab ;
-
-}// ZAllocate
+/* ========================== End memory allocation =================== */
 
 template<typename _Tp>
 long ZArray<_Tp>::bsearch (const void *pKey, size_t pSize, size_t pOffset)
@@ -1738,62 +1707,6 @@ return (bsearchCurrentIdx) ;
 
 
 
-template <typename _Tp>
-/**
- * @brief ZArray<_Tp>::trim resizes ZArray allocated memory to the current number of elements plus one reallocation quota elements
- */
-void ZArray<_Tp>::trim(void)
-{
-    ZAllocation = ZCurrentNb + ZReallocQuota ;
-    allocate (ZAllocation);
-    return ;
-}
-
-template <typename _Tp>
-/**
- * @brief allocateCurrentElements  modifies the number of allocated Elements to the given number of Elements
- *  - Enlarge the number of current contained elements to the given number of Elements
- *  - Initialize the allocated space to binary 0
- *  - If the ZArray already contains elements :
- *   + Allocates the difference,
- *   + initialize the allocated elements (and not the existing ones) to binary 0.
- *  - Returns the actual newly allocated (and initialized) number of elements.
- *  - Checks if given allocation is compatible with current ZArray content.
- *
- * @param[in] pAlloc the new number of elements that the ZArray could contain.
- */
-long ZArray<_Tp>::allocateCurrentElements (const ssize_t pAlloc)
-{
-    if (pAlloc<1)
-                {
-                fprintf(stderr,"ZArray::allocateCurrentElements-E-INVPAR Error : Invalid requested allocation <%ld>. Must be greater than 0.\n",
-                        pAlloc);
-                return (-1);
-                }
-    if (pAlloc <= ZCurrentNb)
-                {
-                fprintf(stderr,"ZArray::allocateCurrentElements-E-CURGTALLOC Error current number of elements <%ld> is greater than request <%ld>\n",
-                        ZCurrentNb,
-                        pAlloc);
-                return (-1);
-                }
-
-
-
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
-#endif
-    setAllocation(pAlloc,false);  // setAllocation has its own Mx lock
-    long wI = (ZCurrentNb<0)?0:ZCurrentNb;
-    memset(&Tab[wI],0,pAlloc*sizeof(_Tp));
-    ZCurrentNb=pAlloc;
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
-#endif
-                 return (wI);
-}  // allocateCurrentElements
-
-
 
 template <typename _Tp>
 /**
@@ -1808,32 +1721,28 @@ template <typename _Tp>
 void ZArray<_Tp>::setAllocation (size_t pAlloc,bool pLock)
 {
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-    if (pLock)
-        _Mutex.lock();
+  if (pLock)
+      _Mutex.lock();
 #endif
-    if (pAlloc<(size()+ZReallocQuota))
-                    {
-
-//    #if __DEBUG_LEVEL__ >0
-            if (ZVerbose)
-                fprintf(stderr,"ZArray::setAllocation-W-BADALLOC Warning allocation given <%ld> is less than current number of elements <%ld> + allocation quota <%ld>. Trimming the ZArray...\n",
+  if (pAlloc<(size()+ZReallocQuota)) {
+    if (ZVerbose)
+      fprintf(stderr,"ZArray::setAllocation-W-BADALLOC Warning allocation given <%ld> is less than current number of elements <%ld> + allocation quota <%ld>. Trimming the ZArray...\n",
                         pAlloc,
                         ZCurrentNb,
                         ZReallocQuota);
-//    #endif
+    resize(pAlloc) ;
 
-                trim() ;
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-                if (pLock)
-                    _Mutex.unlock();
-#endif
-                return ;
-                    }
-
-                allocate(pAlloc);
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
     if (pLock)
-        _Mutex.unlock();
+      _Mutex.unlock();
+#endif
+    return ;
+  }//if (pAlloc<(size()+ZReallocQuota
+
+  allocate(pAlloc);
+#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+  if (pLock)
+    _Mutex.unlock();
 #endif
                 return;
 }  // setAllocation
@@ -1913,9 +1822,7 @@ long ZArray<_Tp>::_pushNoLock( _Tp &pElement)
   addCheck(1) ;
   if (ZCurrentNb<0)
     ZCurrentNb=0;
-  //    Data[ZCurrentNb]=pElement;
   assign(pElement,ZCurrentNb);
-  //    memmove(&Data[ZCurrentNb],&pElement,sizeof(_Tp));
   size_t wR =ZCurrentNb;
   ZCurrentNb ++ ;
   return(wR) ;
@@ -1925,22 +1832,7 @@ long ZArray<_Tp>::_pushNoLock( _Tp &pElement)
  * @brief ZArray<_Tp>::push pushes pElement at the top of ZArray. pElement becomes the ZArray last element. Returns the new number of elements.
  * @param pElement
  */
-/*long ZArray<_Tp>::push(_Tp& pElement)
-{
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
-#endif
-    addCheck(1) ;
-    if (ZCurrentNb<0)
-            ZCurrentNb=0;
-    memmove(&Data[ZCurrentNb],&pElement,sizeof(_Tp));
-    size_t wR =ZCurrentNb;
-    ZCurrentNb ++ ;
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
-#endif
-    return(wR) ;
-} // push with reference*/
+
 template <typename _Tp>
 /**
  * @brief ZArray<_Tp>::push pushes pElement at the top of ZArray. pElement becomes the ZArray last element. Returns the new number of elements.
@@ -1948,17 +1840,13 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::push(_Tp &&pElement)
 {
-////  _hasChanged=true;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
     addCheck(1) ;
     if (ZCurrentNb<0)
             ZCurrentNb=0;
-
-//    Data[ZCurrentNb]=pElement;
     assign(pElement,ZCurrentNb);
-//    memmove(&Data[ZCurrentNb],&pElement,sizeof(_Tp));
     size_t wR =ZCurrentNb;
     ZCurrentNb ++ ;
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
@@ -1973,14 +1861,13 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::push_front(_Tp pElement)
 {
-////  _hasChanged=true;
-
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
     addCheck(1) ;
     ZCurrentNb ++ ;
     move (1,0,(ZCurrentNb-1));
+
 
     memmove(Tab,&pElement,sizeof(_Tp));
 
@@ -2048,7 +1935,6 @@ _Tp & ZArray<_Tp>::_popR_nolock(void)
 template <typename _Tp>
 _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
 {
-////  _hasChanged=true;
   if (ZCurrentNb<1)
             {
         fprintf(stderr,"popRP-F-NOELEMENTS Fatal error no elements within ZArray while pop method has been invoked.\n"  );
@@ -2058,7 +1944,6 @@ _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
         _Mutex.lock();
 #endif
     ZCurrentNb -- ;
-//    memmove (pReturn,   &Data[ZCurrentNb],sizeof(_Tp));
     *pReturn = Tab[ZCurrentNb];
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
@@ -2078,7 +1963,7 @@ _Tp &ZArray<_Tp>::_popRP_nolock(_Tp* pReturn)
         fprintf(stderr,"popRP-F-NOELEMENTS Fatal error no elements within ZArray while pop method has been invoked.\n"  );
         exit (EXIT_FAILURE);
             }
-////  _hasChanged=true;
+
     ZCurrentNb -- ;
 //    memmove (pReturn,   &Data[ZCurrentNb],sizeof(_Tp));
     *pReturn = Tab[ZCurrentNb];
@@ -2094,38 +1979,34 @@ _Tp &ZArray<_Tp>::_popRP_nolock(_Tp* pReturn)
 template <typename _Tp>
 long ZArray<_Tp>::pop(void)
 {
-  if (ZCurrentNb<1)
-                {
-                return -1;
-                }
-////  _hasChanged=true;
+  if (ZCurrentNb < 1) {
+    return -1;
+  }
 #if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
+  _Mutex.lock();
 #endif
-    memset (&last(),0,sizeof(_Tp)); // set poped space to zero
 
-    ZCurrentNb -- ;
+  _pop_nolock();
 
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+  _Mutex.unlock();
 #endif
-    return (ZCurrentNb);
+  return (ZCurrentNb);
 } // pop
 
 /** @brief ZArray<_Tp>::_pop_nolock same as pop() but with no mutex lock */
 template <typename _Tp>
 long ZArray<_Tp>::_pop_nolock(void)
 {
-    if (ZCurrentNb<1)
-                {
-                return -1;
-                }
+  if (ZCurrentNb<1) {
+    return -1;
+  }
 
-    memset (&last(),0,sizeof(_Tp)); // set poped space to zero
+  Allocator.destroy(&last());
+  memset (&last(),0,sizeof(_Tp)); // set poped space to zero
+  ZCurrentNb -- ;
 
-    ZCurrentNb -- ;
-
-    return (ZCurrentNb);
+  return (ZCurrentNb);
 } // _pop_nolock
 
 
@@ -2136,42 +2017,32 @@ long ZArray<_Tp>::_pop_nolock(void)
 template <typename _Tp>
 long ZArray<_Tp>::pop_front(void)
 {
-    if (ZCurrentNb<1)
-            {
-            return -1;
-            }
-////  _hasChanged=true;
+    if (ZCurrentNb<1) {
+      return -1;
+    }
 
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
+  _Mutex.lock();
 #endif
 
-    //memmove (&ZPtr[0],&ZPtr[1],size_t (ZCurrentNb*sizeof(_Tp)));
-//    memmove (&Data[0],   &Data[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
+  _pop_front_nolock();
 
-    for (long wi=0;wi < ZCurrentNb-1;wi++)
-        assign(Tab[wi+1],wi);
-
-    memset(&last(),0,sizeof(_Tp));  // set available space to zero
-    ZCurrentNb -- ;
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+  _Mutex.unlock();
 #endif
-    return (ZCurrentNb);
+  return (ZCurrentNb);
 } // pop_front
 
 template <typename _Tp>
 long ZArray<_Tp>::_pop_front_nolock(void)
 {
-  if (ZCurrentNb<1)
-  {
+  if (ZCurrentNb<1) {
     return -1;
   }
-////  _hasChanged=true;
 
+  Allocator.destroy(Tab); /* invoke destructor for first element to delete */
   for (long wi=0;wi < ZCurrentNb-1;wi++)
-    assign(Tab[wi+1],wi);
-
+    memmove(&Tab[wi+1],&Tab[wi],sizeof(_Tp));   /* simple move of other elements */
   memset(&last(),0,sizeof(_Tp));  // set available space to zero
   ZCurrentNb -- ;
 
@@ -2197,19 +2068,14 @@ _Tp &ZArray<_Tp>::popR_front(void)
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
-//    memmove (&ZReturn,   &Data[0],sizeof(_Tp));
-//    ZReturn=Tab[0];
-    assignReturn(0);
-//    memmove (&Data[0], &Data[1],size_t(sizeof(_Tp)*(ZCurrentNb-1)));
-    for (long wi=0;wi < ZCurrentNb-1;wi++)
-      assign(Tab[wi],wi+1);
-    memset(&last(),0,sizeof(_Tp));  // set available space to zero
 
-    ZCurrentNb -- ;
+  assignReturn(0);
+  _pop_front_nolock();
+
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+  _Mutex.unlock();
 #endif
-    return (ZReturn); // bad thing when being used with ZThreads
+  return (ZReturn); // bad thing when being used with ZThreads
 } // popR_front
 
 template <typename _Tp>
@@ -2221,14 +2087,9 @@ _Tp &ZArray<_Tp>::_popR_front_nolock(void)
     fprintf (stderr,"ZArray<_Tp>::popR_front-F-IVPOPFRNT  Invalid popR_front operation ; no elements within ZArray.\n");
     abort();
   }
-////  _hasChanged=true;
+
   assignReturn(0);
-
-  for (long wi=0;wi < ZCurrentNb-1;wi++)
-    assign(Tab[wi],wi+1);
-  memset(&last(),0,sizeof(_Tp));  // set available space to zero
-
-  ZCurrentNb -- ;
+  _pop_front_nolock();
 
   return (ZReturn); // bad thing when being used with ZThreads
 } // _popR_front_nolock
@@ -2242,25 +2103,17 @@ _Tp &ZArray<_Tp>::_popR_front_nolock(void)
 template <typename _Tp>
 _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
 {
-    if (ZCurrentNb<1)
-            {
-            fprintf(stderr,"popRP_front-F-NOELEMENTS Fatal error no elements within ZArray while popRP_front method has been invoked.\n" );
-            abort();
-            }
-//  _hasChanged=true;
+  if (ZCurrentNb<1) {
+    fprintf(stderr,"popRP_front-F-NOELEMENTS Fatal error no elements within ZArray while popRP_front method has been invoked.\n" );
+    abort();
+  }
+
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
-        _Mutex.lock();
+  _Mutex.lock();
 #endif
-    assignReturn(0);
-    for (long wi=0;wi < ZCurrentNb-1;wi++)
-      assign(Tab[wi],wi+1);
-    clearValue(lastIdx());
-//    memmove (pReturn,   &Data[0],size_t (sizeof(_Tp)));
-//    memmove (&Data[0], &Data[1],size_t(sizeof(_Tp)*ZCurrentNb));
-//    memset(&last(),0,sizeof(_Tp));  // set available space to zero
-    ZCurrentNb -- ;
+  _popRP_front_nolock();
 #if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
-        _Mutex.unlock();
+  _Mutex.unlock();
 #endif
     return (*pReturn);
 } // popRP_front
@@ -2268,36 +2121,31 @@ _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
 template <typename _Tp>
 _Tp &ZArray<_Tp>::_popRP_front_nolock(_Tp*pReturn)
 {
-  if (ZCurrentNb<1)
-  {
+  if (ZCurrentNb<1) {
     fprintf(stderr,"popRP_front-F-NOELEMENTS Fatal error no elements within ZArray while popRP_front method has been invoked.\n" );
     abort();
   }
 //  _hasChanged=true;
-  assignReturn(0);
-  for (long wi=0;wi < ZCurrentNb-1;wi++)
-    assign(Tab[wi],wi+1);
-  clearValue(lastIdx());
-  //    memmove (pReturn,   &Data[0],size_t (sizeof(_Tp)));
-  //    memmove (&Data[0], &Data[1],size_t(sizeof(_Tp)*ZCurrentNb));
-  //    memset(&last(),0,sizeof(_Tp));  // set available space to zero
-  ZCurrentNb -- ;
+  memset(pReturn,0,sizeof(_Tp));
+  Allocator.construct(pReturn);
+  pReturn[0]=Tab[0];
+  _pop_front_nolock();
+
   return (*pReturn);
 } // popRP_front
 template <typename _Tp>
 long
 ZArray<_Tp>::searchforValue (long pOffset, long pSize, const void *pValue) //! sequential search (costly) for a value
 {
-    const unsigned char* wPtrArray;
-    const unsigned char* wPtrValue = static_cast<const unsigned char*>(pValue);
-    for (long wi=0;wi<size();wi++)
-            {
-            wPtrArray=(const unsigned char *)(&Tab[wi]);
-            wPtrArray += pOffset;
-            if (memcmp(wPtrArray,wPtrValue,pSize)==0)
-                                    return(wi);
-            }
-    return (-1);
+  const unsigned char* wPtrArray;
+  const unsigned char* wPtrValue = static_cast<const unsigned char*>(pValue);
+  for (long wi=0;wi<size();wi++) {
+      wPtrArray=(const unsigned char *)(&Tab[wi]);
+      wPtrArray += pOffset;
+      if (memcmp(wPtrArray,wPtrValue,pSize)==0)
+                              return(wi);
+  }
+  return (-1);
 }// _searchforValue
 
 
@@ -2341,12 +2189,10 @@ ZAexport(ZArray<_TpIn>* pZArray,
     pOutBuffer = (unsigned char*)malloc(wZAE.FullSize);
     memset (pOutBuffer,0,wZAE.FullSize);
 
-    if (pOutBuffer==nullptr)
-                {
-                fprintf(stderr,
-                        "ZArray::_export> ******Memory allocation error****\n");
-                abort();
-                }
+    if (pOutBuffer==nullptr){
+      fprintf(stderr,"ZArray::_export> ******Memory allocation error****\n");
+      abort();
+    }
 
     wZAE.serialize();
     memmove(pOutBuffer,&wZAE,sizeof(ZAExport));

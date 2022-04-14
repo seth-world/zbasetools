@@ -440,11 +440,12 @@ ZNodeCollection zxmlNode::getAllChildren(const utf8VaryingString &pName)
 {
   ZNodeCollection wCollection;
   xmlNodePtr wChild=_xmlInternalNode->children;
-
+  const char* wName;
   while (wChild!=nullptr)
   {
     if (wChild->name)
     {
+      wName = (const char*)wChild->name; /* debug */
       if (xmlStrcmp (wChild->name,(xmlChar*)pName.toCChar())==0)
       {
         wCollection.push(zxmlcreateNode(wChild));

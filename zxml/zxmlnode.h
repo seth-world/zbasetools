@@ -59,11 +59,13 @@ protected:
 
 
     ~zxmlNode() {
-                // free node resource only if not part of a document.
-                // if part of a doc, will be freed by xmlFreeDoc
-                if (!_xmlInternalNode->doc)
-                        xmlFreeNode(_xmlInternalNode);
-                }
+      // free node resource only if not part of a document.
+      // if part of a doc, will be freed by xmlFreeDoc
+      if (!_xmlInternalNode->doc) {
+              xmlFreeNode(_xmlInternalNode);
+              _xmlInternalNode=nullptr;
+      }
+    }
 public:
     friend class zxmlGlobal;
     friend class zxmlDoc;
@@ -174,7 +176,6 @@ private:
     zxmlElement(xmlNodePtr pEltPtr):zxmlNode(pEltPtr) {}
 public:
     zxmlElement(const utf8VaryingString &pName, zxmlNameSpace*pNameSpace=nullptr);
-
 
     ~zxmlElement() {}
 

@@ -236,6 +236,7 @@ public:
 };
 
 #include <ztoolset/utfvaryingstring.h>
+/** @brief The utf8String class Alias to utf8VaryingString : ZString object unicode utf8 encoded with varying length. */
 typedef utf8VaryingString utf8String;
 typedef utf16VaryingString utf16String;
 typedef utf32VaryingString utf32String;

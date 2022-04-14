@@ -31,7 +31,7 @@ protected:
           {
           ZType=pType;
           Charset=ZCHARSET_UTF8;
-          Check=0xFFFFFFFF;
+          Check=cst_ZCHECK;
           }
 public:
 
@@ -81,8 +81,6 @@ public:
 
     ZArray<utf8VaryingString> strtok(const utf8_t* pSeparator);
 
-
-
     ZDataBuffer*    getEncrypted(uint8_t* pKey,uint8_t* pVector);
     UST_Status_type getByChunk(const utf8_t *pInString,
                                 const size_t pChunkSize);
@@ -121,7 +119,6 @@ public:
 
 
 
-
 /**
  * @brief utfVaryingString::encodeB64 Encode the utfVaryingString content with Base 64 encoding method (OpenSSL)
  *  Encode the exact content length of utfVaryingString EXCLUDING termination character ('\0').
@@ -148,20 +145,41 @@ public:
 
 
 //    utf8_t operator [] (const size_t pIdx) const  { if(pIdx>getUnitCount()) return 0; return (Data[pIdx]);}
-    utf8VaryingString & operator = (const char* pString) { Check=0xFFFFFFFF; return fromChar(pString);}
-    utf8VaryingString & operator = (const utf8VaryingString& pString) { Check=0xFFFFFFFF; _Base::_copyFrom(pString); return *this;}
-    utf8VaryingString & operator = (const utf8VaryingString&& pString) { Check=0xFFFFFFFF; _Base::_copyFrom(pString); return *this;}
-    utf8VaryingString & operator = (std::string&  pString) {Check=0xFFFFFFFF; return fromStdString(pString);}
-    utf8VaryingString & operator += (const char* pString)
-    {
+    utf8VaryingString & operator = (const char* pString) {
+      Check=cst_ZCHECK;
+      return fromChar(pString);
+    }
+    utf8VaryingString & operator = (const utf8VaryingString& pString) {
+      Check=cst_ZCHECK;
+      _Base::_copyFrom(pString);
+      return *this;
+    }
+    utf8VaryingString & operator = (const utf8VaryingString&& pString) {
+      Check=cst_ZCHECK;
+      _Base::_copyFrom(pString);
+      return *this;
+    }
+    utf8VaryingString & operator = (std::string&  pString) {
+      Check=cst_ZCHECK;
+      return fromStdString(pString);
+    }
+    utf8VaryingString & operator += (const char* pString) {
         utf8VaryingString wIn(pString);
         add(wIn);
         return *this;
     }
 
 
-    utf8VaryingString& operator += (const utf8VaryingString& pIn) {  add(pIn); return *this;}
-    utf8VaryingString& operator += (const utf8VaryingString&& pIn) {  add(pIn); return *this;}
+    utf8VaryingString& operator += (const utf8VaryingString& pIn) {
+      pIn._check();
+      add(pIn);
+      return *this;
+    }
+    utf8VaryingString& operator += (const utf8VaryingString&& pIn) {
+      pIn._check();
+      add(pIn);
+      return *this;
+    }
 /*    utf8VaryingString operator + (const utf8VaryingString& pIn)
     {
       utf8VaryingString wD;
@@ -177,7 +195,7 @@ public:
       return wD;
     }
 */
-    const utf8VaryingString operator +(const utf8VaryingString& pOne)
+/*    const utf8VaryingString operator +(const utf8VaryingString& pOne)
     {
       add(pOne)  ;
       return *this;
@@ -187,7 +205,7 @@ public:
       add(pOne)  ;
       return *this;
     }
-
+*/
 
 
     bool operator == (const char* pIn) const { return compareV<char>(pIn)==0; }
@@ -433,9 +451,8 @@ typedef utf32_t                  _UtfBase;
     bool operator != (const char* pIn) { return !compareV<char>(pIn); }
 };
 
-
-
 utf8VaryingString operator +(const utf8VaryingString& pOne,const utf8VaryingString& pTwo);
+utf8VaryingString operator +( utf8VaryingString& pOne,utf8VaryingString& pTwo);
 utf8VaryingString operator +(const utf8VaryingString& pOne,const char* pTwo);
 utf8VaryingString operator +(const char* pOne,const utf8VaryingString& pTwo);
 

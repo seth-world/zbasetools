@@ -447,19 +447,7 @@ ZDataBuffer::truncate(size_t pLen)
  }
 
 
-/**
- * @brief ZDataBuffer::bsearch   Binary search
- *
- *  searches in a binary mode for a Key contained in pKey with pKeySize length
- *  in ZDataBuffer::Data Content of Size length.
- *
- *  Returns the offset of pKey if it has been found. -1 if nothing has been found
- *
- * @param[in] pKey   a void* pointer to byte sequence to search for
- * @param[in] pKeySize  length of byte sequence
- * @param[in] pOffset   starting offset for search in ZDataBuffer::Data
- * @return the offset of pKey if it has been found. -1 if nothing has been found
- */
+
 ssize_t
 ZDataBuffer::bsearch (void *pKey,
                       const size_t pKeySize,

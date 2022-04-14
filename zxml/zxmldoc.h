@@ -62,16 +62,12 @@ class zxmlDoc
 {
 public:
     zxmlDoc(const char* pVersion);  // for Dom document creation
-    zxmlDoc() {}                    // for Dom document parsing
+    zxmlDoc() ;                     // for Dom document parsing
 
     zxmlDoc(const zxmlDoc&)=delete;
     zxmlDoc& operator=(const zxmlDoc&) = delete;  // no copy
 
-    ~zxmlDoc() {
-               if (DocParser) delete DocParser;
-               if (RootElement) delete RootElement;
-               if (_xmlInternalDoc) xmlFreeDoc(_xmlInternalDoc);
-               }
+    ~zxmlDoc() ;
 
     friend class zxmlNameSpace;
     friend class zxmlNode;

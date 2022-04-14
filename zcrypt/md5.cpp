@@ -9,6 +9,8 @@
 #include <ztoolset/zerror.h>
 #include <ztoolset/utfvaryingstring.h>
 
+#include <ztoolset/zdatabuffer.h>
+
 md5& md5::_copyFrom(const md5 &pIn)
 {
   for (size_t wi=0;wi<sizeof(content);wi++)
@@ -63,6 +65,59 @@ CharMan wHexa;
          ::sprintf(&wHexa.content[wi*2],"%02X", (unsigned int)content[wi]);
     return(wHexa);
 }
+
+ZDataBuffer*
+md5::_exportURF(ZDataBuffer*pUniversal) const
+{
+  ZTypeBase wType=ZType_MD5;
+  size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
+
+  pUniversal->extend(wUniversalSize);
+  // URF Header is
+  wType=reverseByteOrder_Conditional<ZTypeBase>(wType);    // ZTypeBase in reverseOrder if LE (if little endian)
+
+  memmove(pUniversal->Data,&wType,sizeof(ZTypeBase));
+  memmove((pUniversal->Data+sizeof(wType)),content,cst_md5); // no reverse : checksum is Endian free
+  return pUniversal;
+}
+
+size_t
+md5::_exportURF_Ptr(unsigned char*& pURF) const
+{
+  size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
+  _exportAtomicPtr<ZTypeBase>(ZType_MD5,pURF);
+  memmove((pURF),content,cst_md5); // no reverse : checksum is Endian free
+  return wUniversalSize;
+}
+
+size_t
+md5::getURFSize() const {
+  return sizeof(ZTypeBase) + cst_md5 ;
+}
+
+
+ZStatus
+md5::_importURF(const unsigned char* &pUniversal)
+{
+  ZTypeBase   wType;
+
+
+  memmove(&wType,pUniversal,sizeof(ZTypeBase));
+  wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
+  if (wType!=ZType_MD5)
+  {
+    fprintf(stderr,
+        "%s-S-INVTYPE Severe Error : Error requesting to import URF data to checkSum while URF Header type is <%X> <%s>.\n",
+        _GET_FUNCTION_NAME_,
+        wType,
+        decode_ZType(wType));
+
+    return ZS_INVTYPE;
+  }
+  memmove(content,(pUniversal+sizeof(ZTypeBase)),cst_md5);
+
+  return ZS_SUCCESS;
+}// _importURF
 
 
 #endif // MD5_CPP

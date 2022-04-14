@@ -173,7 +173,7 @@ ZDate::_toInternal(void)
 } // _fromInternal
 
 uint32_t
-ZDate::_export(void)
+ZDate::_export(void) const
 {
 #pragma pack(push)
 #pragma pack(1)
@@ -193,8 +193,9 @@ ZDate::_export(void)
     wuExport.In.Day = Day;
     return wuExport.Out;
 }// _export
+
 ZDataBuffer *
-ZDate::_exportURF(ZDataBuffer*pZDB)
+ZDate::_exportURF(ZDataBuffer*pZDB) const
 {
     uint32_t wD = _export();
     ZTypeBase wType = ZType_ZDate;
@@ -202,7 +203,29 @@ ZDate::_exportURF(ZDataBuffer*pZDB)
     pZDB->setData(&wType,sizeof(wType));
     pZDB->appendData(&wD,sizeof(wD));
     return pZDB;
-}// _export
+}// _exportURF
+
+size_t
+ZDate::_exportURF_Ptr(unsigned char* &pURF) const
+{
+  uint32_t wD = _export();
+  _exportAtomicPtr<ZTypeBase>(ZType_ZDate,pURF);
+  _exportAtomicPtr<uint32_t>(wD,pURF);
+  return sizeof(ZTypeBase) + sizeof(uint32_t);
+}// _exportURF_Ptr
+
+size_t
+ZDate::getURFSize() const
+{
+  return sizeof(ZTypeBase) + sizeof(uint32_t);
+}
+
+
+size_t
+ZDate::getUniversal_Ptr(unsigned char *&pUniversalPtr) const {
+  uint32_t wD=_export();
+  _exportAtomicPtr<uint32_t>(wD,pUniversalPtr);
+}
 
 void
 ZDate::_import(uint32_t pIDate)
@@ -229,7 +252,7 @@ ZDate::_import(uint32_t pIDate)
 }// _import
 
 ZStatus
-ZDate::_importURF(const unsigned char* pZDB)
+ZDate::_importURF(const unsigned char* &pZDB)
 {
     uint32_t wD ;
     ZTypeBase wType;
@@ -319,7 +342,7 @@ ZDateFull::_export(void) const
 
 
 ZDataBuffer*
-ZDateFull::_exportURF(ZDataBuffer *pZDB)
+ZDateFull::_exportURF(ZDataBuffer *pZDB) const
 {
     uint64_t wD = _export();
     ZTypeBase wType = ZType_ZDateFull;
@@ -328,6 +351,21 @@ ZDateFull::_exportURF(ZDataBuffer *pZDB)
     pZDB->appendData(&wD,sizeof(wD));
     return pZDB;
 }// _export
+
+size_t
+ZDateFull::_exportURF_Ptr(unsigned char* &pURF) const
+{
+  uint64_t wD = _export();
+  _exportAtomicPtr<ZTypeBase>(ZType_ZDateFull,pURF);
+  _exportAtomicPtr<uint64_t>(wD,pURF);
+  return sizeof(ZTypeBase) + sizeof(uint64_t);
+}// _exportURF_Ptr
+
+size_t
+ZDateFull::getURFSize() const
+{
+  return sizeof(ZTypeBase) + sizeof(uint64_t);
+}
 
 void
 ZDateFull::_import(uint64_t pIDate)
@@ -358,12 +396,13 @@ ZDateFull::_import(uint64_t pIDate)
     return;
 }// _import
 
-ZStatus ZDateFull::_importURF(const unsigned char* pZDB)
+ZStatus ZDateFull::_importURF(const unsigned char *&pZDB)
 {
     uint64_t wD ;
     ZTypeBase wType;
 
     memmove(&wType,pZDB,sizeof(wType));
+    pZDB += sizeof(ZTypeBase);
     wType =reverseByteOrder_Conditional<ZTypeBase>(wType);
     if (wType!=ZType_ZDateFull)
         {
@@ -374,16 +413,21 @@ ZStatus ZDateFull::_importURF(const unsigned char* pZDB)
                 decode_ZType(ZType_ZDateFull));
         return ZS_INVTYPE;
         }
-    memmove(&wD,(pZDB+sizeof(ZTypeBase)),sizeof(uint64_t));
+    memmove(&wD,pZDB,sizeof(uint64_t));
+    pZDB += sizeof(uint64_t);
     _import(wD);
 
     return ZS_SUCCESS;
 }// _import
+size_t
+ZDateFull::getUniversal_Ptr(unsigned char *&pUniversalPtr) const {
+  uint64_t wD = _export();
+  _exportAtomicPtr<uint64_t>(wD,pUniversalPtr);
+}
 
 ZStatus
 ZDateFull::getUniversalFromURF(const unsigned char* pURFDataPtr,ZDataBuffer& pUniversal,const unsigned char** pURFDataPtrOut)
 {
- uint64_t wEffectiveUSize ;
  ZTypeBase wType;
  const unsigned char* wURFDataPtr = pURFDataPtr;
 
@@ -470,6 +514,7 @@ ZDateFull::fromTimespec(timespec &pTimespec)
     tm_mon=wTm->tm_mon;
     tm_year=wTm->tm_year ;
 
+    _fromInternal();
     return (*this) ;
 }
 
@@ -847,7 +892,7 @@ ZDate *wDate =(ZDate*) this;
 
 
 
-#ifdef QT_CORE_LIB
+#ifdef __DEPRECATED__
 
 QDateTime ZDateFull::toQDateTime(void)
 {
@@ -893,7 +938,7 @@ QTime ZDateFull::toQTime(void)
     return wQD ;
 }
 
-#endif //#ifdef QT_CORE_LIB
+#endif //#ifdef __DEPRECATED__
 
 
 

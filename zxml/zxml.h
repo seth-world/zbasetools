@@ -17,6 +17,7 @@ void XMLderegister(zxmlElement *&pNode);
 
 void XMLderegister(zxmlAttribute *&pNode);
 void XMLderegister(zxmlNameSpace *&pNode);
+void XMLderegister(zxmlDoc *&Doc);
 
 
 #endif // ZXML_H

@@ -2,7 +2,6 @@
 #define ZTYPETYPE_H
 #include <stdint.h>
 #include <ztoolset/zerror.h>
-
 #include <ztoolset/charman.h>
 
 /**
@@ -30,6 +29,7 @@
 */
 extern "C"
 {
+
 typedef uint32_t ZTypeBase;
 
 enum ZType_type : ZTypeBase
@@ -59,8 +59,8 @@ enum ZType_type : ZTypeBase
 
     ZType_String         = 0x40000000, //!< generic string type
 
-    ZType_StdString      = 0x40101FF1,  //!< Field is a std::string class varying length : not used for storage, only for conversion
-    ZType_StdWString     = 0x40101FF8,  //!< Field is a std::wstring class varying length : not used for storage, only for conversion
+    ZType_StdString      = 0x42101FF1,  //!< Field is a std::string class varying length : not used for storage, only for conversion
+    ZType_StdWString     = 0x42101FF8,  //!< Field is a std::wstring class varying length : not used for storage, only for conversion
 
     ZType_Blob           = 0x10001000, //! blob : a varying sized content of bytes : See ByteSeq. Corresponds to ZDataBuffer
 //   ZType_LBlob          = 0x10001800, //! Long blob : corresponds to ZDataBuffer_long
@@ -68,7 +68,7 @@ enum ZType_type : ZTypeBase
 // atomic data types - is combined (ored) with other attributes to give the full data type
 //
     ZType_UChar          = 0x00000002,    //!< unsigned char - mostly used for encoding/decoding
-    ZType_Char           = 0x00000001,    //!< char - a single ascii character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
+    ZType_Char           = 0x00010001,    //!< char - a single ascii character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
 
     ZType_U8             = 0x00000004,    //!< arithmetic byte
     ZType_S8             = 0x00010004,    //!< arithmetic signed byte
@@ -91,7 +91,7 @@ enum ZType_type : ZTypeBase
 // Fully qualified data types : for usefulness purpose
 //
     ZType_AtomicUChar    = 0x01000002,    //!< unsigned char - mostly used for encoding/decoding
-    ZType_AtomicChar     = 0x01000001,    //!< char - a single ascii character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
+    ZType_AtomicChar     = 0x01010001,    //!< char - a single ascii character - NOT SUBJECT to leading byte despite its signed status- use int8_t if a one byte numeric value is required
 
 /*  not to be used anymore
     ZType_AtomicWUChar   = 0x0110000A,    //!< unsigned wchar_t (is a char and an uint16_t
@@ -111,19 +111,25 @@ enum ZType_type : ZTypeBase
     ZType_AtomicFloat    = 0x01110040,    //!< floating point (therefore signed)
     ZType_AtomicDouble   = 0x01110080,    //!< floating point double (therefore signed)
     ZType_AtomicLDouble  = 0x01110100,    //!< floating point long double (therefore signed)
-/*
+
+    ZType_Bool           = 0x01110200,     //!< bool
+
+#ifdef __DEPRECATED__
+  /**  Deprecated -- not to be used anymore
     ZType_PointerChar    = 0x02000001,    //!< this is the C string
     ZType_PointerUChar   = 0x02010002,    //!< special string specifically used by encoding
 */
+#endif // __DEPRECATED_
     ZType_ArrayChar      = 0x04000001,    //!< this is a C string stored as a key value (CString must be fixed length, with variable length content)
     ZType_ArrayUChar     = 0x04010002,    //!< and also could be used by encoding (same as above, but may be used for encoding/decoding)
-
-    /**  Deprecated -- not to be used
+#ifdef __DEPRECATED__
+    /**  Deprecated -- not to be used anymore
     ZType_EnumByte       = 0x08110004,    //!< This is enum uses a long
     ZType_EnumWord       = 0x08110008,    //!< This is enum uses a long long
     ZType_EnumLong       = 0x08110010,    //!< This is enum uses a long
     ZType_EnumLongLong   = 0x08110020,    //!< This is enum uses a long long
     */
+#endif // __DEPRECATED__
     ZType_bit            = 0x00000400,
     ZType_bitset         = 0x10000400,    //!< bitset is a ZType_ByteSeq with atomic data 'bit'
     ZType_bitsetFull     = 0x100004FF,    //!< bitset with any bit set : used by field presence
@@ -165,6 +171,7 @@ enum ZType_type : ZTypeBase
     ZType_ZDateFull      = ZType_Class | ZType_U64,    // a struct giving uint64_t  is ZDateFull (export and import)
 
     ZType_CheckSum       = ZType_Class | ZType_UChar, //!< a struct containing fixed array of unsigned char
+    ZType_MD5            = ZType_CheckSum + 1 ,
 
     ZType_Resource       =  0x20000001,
 
@@ -175,7 +182,17 @@ enum ZType_type : ZTypeBase
     ZType_Unknown        =  0xF00FFFFF     //! Unmanaged data type : generally an error
 } ;
 
+struct ZType_full {
+  ZTypeBase Type    = ZType_Nothing;
+  uint32_t  Capacity= 0; /* for any type of data : 1 except for arrays (number of elements) and fixed strings (capacity in units) */
+};
+
+
 }// extern "C"
+
+
+bool isAtomic(ZTypeBase pType);
+
 
 /**
  * @brief isKeyEligible returns true is data type pType is capable of being part of an index key and false if not
@@ -184,6 +201,14 @@ bool isKeyEligible(ZTypeBase pType);
 
 class ZDataBuffer;
 const char *decode_ZType (ZTypeBase pType) ;            // /zindexedfile/zdatatype.cpp
+ZTypeBase encode_ZType (const utf8VaryingString &pString);
+
+/*  moved to /home/gerard/Development/zbasetools/zcontent/zcontentutils/zcppgenerate.cpp
+ * Specific to cpp generation
+ * const char *ZTypeToCTypeDefinition (ZTypeBase pType, long pCapacity, const utf8VaryingString &pName);
+ */
+const char *ZTypeToCType (ZTypeBase pType, long pCapacity);
+
 ZStatus encodeZTypeFromString (ZTypeBase &pZType , ZDataBuffer &pString);// /zindexedfile/zdatatype.cpp
 
 /**
