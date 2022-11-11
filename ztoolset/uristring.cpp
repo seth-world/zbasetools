@@ -9,7 +9,10 @@
 #include <ztoolset/zutfstrings.h>
 #include <ztoolset/utfvaryingstring.h> // for utf8VaryingString utf16VaryingString and utf32VaryingString
 
+#include <fcntl.h>
+
 #include <zio/zdir.h>
+
 
 #ifdef QT_CORE_LIB
 #include <QUrl>
@@ -169,6 +172,7 @@ uriString::fromQString(const QString *pQString){memset (content,0,sizeof(content
                                             strcpy(content,pQString->toUtf8());
                                             return(*this);}
 */
+/*
 uriString&
 uriString::fromdescString(const utfdescString &pString)
 {
@@ -181,7 +185,7 @@ uriString::fromcodeString(const utfcodeString &pCode)
     return (uriString&)strset(pCode.toUtf());
 }
 
-
+*/
 
 
 
@@ -231,6 +235,12 @@ uriString uriString::getHomeDir(void)
     return wHomeDir;
 }
 
+uriString
+uriString::currentWorkingDirectory() {
+  char wB[255];
+  uriString wReturn = getcwd(wB,255);
+  return wReturn;
+}
 
 /**
  * @brief uriString::addMimeFileExtension  add to the uriString the file extension corresponding to the given Mime name.
@@ -267,12 +277,12 @@ uriString::addMimeFileExtension (utfdescString pMimeName)
 //
 //utfdescString DSBuffer;
 
-utf8String uriString::getFileExtension() const
+utf8VaryingString uriString::getFileExtension() const
 {
   if (isEmpty())
-    return utf8String ("");
+    return utf8VaryingString ("");
 
-    utf8String wExt;
+    utf8VaryingString wExt;
     utf8_t *wPtr = strchr((utf8_t)'.');
     if (wPtr==nullptr)
       return utf8String("");
@@ -281,71 +291,65 @@ utf8String uriString::getFileExtension() const
     return wExt;
 }
 
-/**
- * @brief uriString::getDirectoryPath Returns a descString containing the file's directory path
-        i. e. </directory path/><root base name>.<extension>
-
- * @return an utf8String with the file's directory path
- */
-utf8String
-uriString::getDirectoryPath () const
+    /** @brief uriString::getDirectoryPath Returns the full file's directory path
+     * i. e. </directory path/><root name>.<extension>
+     * @return an utf8VaryingString with the full file's directory path including
+     */
+utf8VaryingString uriString::getDirectoryPath() const
 {
   if (isEmpty())
-    return utf8String ("");
-  utf8String wDir(Data);
- //   utf8_t *wPtr = pExt.strrchr((utf8_t)Delimiter);
-    utf8_t *wPtr = &wDir.Data[wDir.UnitCount-1];
-    while ((wPtr > wDir.Data) && (*wPtr!=Delimiter))
-      wPtr--;
-    if (wPtr!=wDir.Data)
-      wPtr++;
-    while (wPtr < &wDir.Data[wDir.UnitCount])
-        *wPtr++=0;
-  return wDir;
-}//getDirectoryPath
-/**
- * @brief uriString::getLastDirectoryName Returns a descString containing the file's directory path
-        i. e. </directory path/><root base name>.<extension>
+    return utf8VaryingString ();
+  utf8VaryingString wDir(Data);
 
- * @return a descString with the file's directory path
+  utf8_t *wPtr = wDir.Data + wDir.strlen();
+  while ((wPtr > wDir.Data) && (*wPtr != Delimiter) && (*wPtr != '.'))
+      wPtr--;
+  if (*wPtr == '.') { /* skip '.' if found */
+    wPtr--;
+    while ((wPtr > wDir.Data) && (*wPtr != Delimiter))
+      wPtr--;
+  }
+  if (wPtr==wDir.Data)  /* no directory delimiter found */
+    return utf8VaryingString ();
+  /* here wPtr points to Delimiter */
+  *wPtr = 0;
+  return utf8VaryingString(wDir.Data);
+}//getDirectoryPath
+/** @brief getLastDirectoryName Returns the last directory mentionned in file's directory path
+        i. e. </.../last directory/><root base name>.<extension>
+ * @return an utf8VaryingString with the last file's directory within its directory path
  */
-utf8String
+utf8VaryingString
 uriString::getLastDirectoryName() const
 {
   if (isEmpty())
-    return utf8String ("");
+    return utf8VaryingString ();
 
-    utf8String wDir;
+    utf8VaryingString wDir = Data; /* duplicate the string */
 
-    const utf8_t* wPtr1=Data+(UnitCount-1);
-    while((wPtr1>Data)&&(*wPtr1!=(utf8_t)Delimiter))
-            wPtr1--;
+    utf8_t* wPtr=wDir.Data + wDir.strlen();
+    while((wPtr > wDir.Data) && (*wPtr != (utf8_t)Delimiter))
+            wPtr--;
 
-    const utf8_t *wPtr2=--wPtr1;
+    if (wPtr==Data)
+      return utf8VaryingString ();
 
-    while((wPtr2>Data)&&(*wPtr2!=(utf8_t)Delimiter))
-            wPtr2--;
-    if (wPtr2>Data)
-            wPtr2++;
+    *wPtr= 0;
+    wPtr--;
+    while((wPtr > wDir.Data) && (*wPtr != (utf8_t)Delimiter) )
+      wPtr--;
 
-    wDir = wPtr2;
-    utf8_t* wPtr3=wDir.Data;
-    while (*wPtr3 &&(*wPtr3!=(utf8_t)Delimiter))
-      *wPtr3++;
-    while (wPtr3 < &wDir.Data[wDir.UnitCount])
-        *wPtr3++=0;
-    return wDir;
+    if (wPtr!=wDir.Data)
+      wPtr++;
+    return utf8VaryingString(wPtr);
 }//getLastDirectoryName
-/**
- * @brief uriString::getBasename       returns a utf8String containing the file's full base name
 
- i. e. </directory path/><root base name>.<extension>
- Where full base name is : <root base name>.<extension> without directory path
-
- * @return a descString with the file's base name
- */
-
-utf8String
+  /** @brief uriString::getBasename       returns a utf8VaryingString containing the file's full base name\n
+    i. e. </directory path/><root base name>.<extension>\n
+        Where full base name is : <root base name>.<extension> without directory path
+    * @return an utf8VaryingString with the file's base name
+    */
+utf8VaryingString
 uriString::getBasename ()const
 {
   if (isEmpty())
@@ -365,28 +369,26 @@ utf8String wBasename;
     return wBasename;
 } // getBasename
 
-/**
- * @brief uriString::getRootname returns a utf8String containing the file's root name
- *
- *  i. e. </directory path/><root name>.<extension>
+/** @brief getRootname returns a utf8String containing the file's root name\n
+ *  i. e. </directory path/><file's root name>.<extension>
  * @return a utf8String with the file's root base name
  */
-utf8String
-uriString::getRootname () const
+utf8VaryingString uriString::getRootname() const
 {
   if (isEmpty())
-    return utf8String ("");
+    return utf8VaryingString ("");
 
-  utf8_t* wPtrEnd=nullptr;
-    utf8String wRoot=getBasename();
-    utf8_t* wPtr = utfStrchr<utf8_t>(wRoot.Data,'.');
-    if (wPtr!=nullptr)
-      {
-      wPtrEnd = &wRoot.Data[wRoot.ByteSize];
-      while (wPtr < wPtrEnd)
-            *wPtr++=0;
-      }
-    return wRoot;
+
+  utf8VaryingString wRoot=getBasename();
+  utf8_t* wPtrEnd= (utf8_t* )(wRoot.Data+wRoot.strlen());
+
+  utf8_t* wPtr= (utf8_t*)wRoot.Data;
+
+  while (*wPtr && (*wPtr != '.'))
+    wPtr++;
+  *wPtr = 0;
+
+  return utf8VaryingString(wRoot) ;
 }//getRootname
 
 void uriString::changeFileExtension(const utf8VaryingString& pExt) {
@@ -573,8 +575,11 @@ uriString::remove() {
 ZStatus
 uriString::renameBck(const char* pBckExt)
 {
-if (!exists())
-  return ZS_FILEERROR;
+  if (!exists()) {
+    ZException.setMessage("uriString::renameBck",ZS_FILENOTEXIST,Severity_Error,
+        "Source file %s does not exist.",toString());
+    return ZS_FILENOTEXIST;
+  }
 int wFormerNumber = 1;
 
   uriString wFormerURI(*this);
@@ -602,6 +607,96 @@ int wFormerNumber = 1;
         "Renamed existing file <%s> to <%s> \n",
         toCChar(),
         wFormerURI.toCChar());
+  return ZS_SUCCESS;
+}
+
+ZStatus
+uriString::backupFile(const char* pBckExt)
+{
+  if (!exists()) {
+    ZException.setMessage("uriString::backupFile",ZS_FILENOTEXIST,Severity_Error,
+        "Source file %s does not exist.",toString());
+    return ZS_FILENOTEXIST;
+  }
+  int wFormerNumber = 1;
+
+  uriString wNewFileURI(*this);
+
+  while (wNewFileURI.exists())
+  {
+    wFormerNumber ++;
+    wNewFileURI.sprintf("%s_%s%02ld",toCChar(),pBckExt,wFormerNumber);
+  }
+  ZDataBuffer wContent;
+  ZStatus wSt = loadContent(wContent);
+
+  wSt=wNewFileURI.writeContent(wContent);
+
+  if (wSt!=ZS_SUCCESS)
+  {
+    return wSt;
+  }
+
+  if (ZVerbose & ZVB_FileEngine)
+    fprintf (stdout,
+        "Copied existing file <%s> to <%s> \n",
+        toCChar(),
+        wNewFileURI.toCChar());
+  return ZS_SUCCESS;
+}
+
+
+ZStatus
+uriString::copyFile(uriString pDest, const uriString pSource,uint8_t pOption)
+{
+  if (!pSource.exists()) {
+    ZException.setMessage("uriString::copyFile",ZS_FILENOTEXIST,Severity_Error,
+        "Source file %s does not exist.",pSource.toString());
+    return ZS_FILENOTEXIST;
+  }
+
+  int wFormerNumber = 1 ;
+  bool wDestExists = false ;
+  if (pDest.exists()) {
+    if (pOption & UCO_BackUp) {
+      pDest.renameBck("bck");
+    }
+    else if (pOption & UCO_DoNotReplace) {
+      ZException.setMessage("uriString::copyFile",ZS_FILEEXIST,Severity_Error,
+          "Destination file %s already exist.",pSource.toString());
+      return ZS_FILEEXIST;
+    } else {
+      wDestExists = true;
+    }
+  } // if (pDest.exists())
+
+
+  ZDataBuffer wContent;
+  ZStatus wSt = pSource.loadContent(wContent);
+  if (wSt!=ZS_SUCCESS) {
+    return wSt;
+  }
+
+  wSt=pDest.writeContent(wContent);
+  if (wSt!=ZS_SUCCESS) {
+    return wSt;
+  }
+
+  if (wDestExists)
+  {
+    if (ZVerbose & ZVB_FileEngine)
+      fprintf (stdout,
+        "uriString::copyFile-I-REPLACED Replaced existing file <%s> to <%s> \n",
+        pSource.toCChar(),
+        pDest.toCChar());
+    return ZS_FILEREPLACED ;
+  }
+
+  if (ZVerbose & ZVB_FileEngine)
+    fprintf (stdout,
+        "uriString::copyFile-I-CPYDONE Copied existing file <%s> to <%s> \n",
+        pSource.toCChar(),
+        pDest.toCChar());
   return ZS_SUCCESS;
 }
 //
@@ -867,62 +962,52 @@ uriString::loadContent (ZDataBuffer& pDBS) const
 {
 ZStatus wSt;
 uriStat wStat;
-    if (!exists())
-            {
-            ZException.setMessage(_GET_FUNCTION_NAME_,
-                                  ZS_NOTFOUND,
-                                  Severity_Error,
-                                  "-E-FILENOTFOUND Requested file %s does not exist \n",
-                                  toCChar());
-/*    #if __DEBUG_LEVEL__ > 1
-            ZException.printUserMessage();
-    #endif
-*/
-            return ZS_NOTFOUND;
-          }
-   if ((wSt=getStatR(wStat))!=ZS_SUCCESS)
-                {
-                if (ZVerbose)
-                        ZException.printLastUserMessage(stderr);
-                return (wSt);
-                }
+    if (!exists()) {
+      ZException.setMessage(_GET_FUNCTION_NAME_,
+                            ZS_NOTFOUND,
+                            Severity_Error,
+                            "-E-FILENOTFOUND Requested file %s does not exist \n",
+                            toCChar());
+      return ZS_NOTFOUND;
+    }
+   if ((wSt=getStatR(wStat))!=ZS_SUCCESS) {
+     if (ZVerbose & ZVB_FileEngine)
+       ZException.printLastUserMessage(stderr);
+      return (wSt);
+   }
+   if (wStat.Size==0)
+     return ZS_EMPTY;
 
-
-    FILE *wFile =fopen(toCChar(),"rb");
-
-    if (wFile==nullptr)
-            {
-            ZException.getErrno(errno);
-            ZException.setMessage(_GET_FUNCTION_NAME_,
-                                  ZS_ERROPEN,
-                                  Severity_Error,
-                                  "-E-ERROPEN error on fopen file for read  <%s> \n",
-                                  toCChar());
-            if (ZVerbose)
-                ZException.printLastUserMessage(stderr);
-            return ZS_ERROPEN;
-            }
-
-    if (wStat.Size==0)
-            return ZS_EMPTY;
+   int wFd=::open(toCChar(), O_RDONLY);
+   if (wFd<0) {
+     ZException.getErrno(errno);
+     ZException.setMessage(_GET_FUNCTION_NAME_,
+         ZS_ERROPEN,
+         Severity_Error,
+         "uriString::loadContent-E-ERROPEN error opening file for reading  <%s> \n",
+         toCChar());
+     if (ZVerbose & ZVB_FileEngine)
+       ZException.printLastUserMessage(stderr);
+     ::close(wFd);
+     return ZS_ERROPEN;
+   }
     pDBS.allocateBZero(wStat.Size);
 
-    fread(pDBS.Data,pDBS.Size,1,wFile);
-
-    if (!feof(wFile))
-            if (ferror(wFile))
-                        {
-                        ZException.getFileError(wFile);
-                        ZException.setMessage(_GET_FUNCTION_NAME_,
-                                              ZS_FILEPOSERR,
-                                              Severity_Error,
-                                              "E-ERROPEN error reading file  <%s> \n %s",
-                                              toCChar());
-                        fclose(wFile);
-                        pDBS.freeData();
-                        return (ZS_FILEERROR);
-                        }
-    fclose(wFile);
+    ssize_t wS=::read(wFd,pDBS.Data,pDBS.Size);
+    if (wS < 0)
+    {
+      ZException.getErrno(errno,
+          _GET_FUNCTION_NAME_,
+          ZS_READERROR,
+          Severity_Severe,
+          "Error opening file for reading <%s> ",
+          toString());
+      if (ZVerbose & ZVB_FileEngine)
+        ZException.printLastUserMessage();
+      ::close(wFd);
+      return ZS_READERROR;
+    }
+    ::close(wFd);
     return(ZS_SUCCESS);
 }//loadContent
 
@@ -1123,75 +1208,101 @@ In case of error :returned ZStatus is appropriately set
 ZStatus
 uriString::writeContent (ZDataBuffer& pDBS) const
 {
+  int wFd = ::open(toCChar(), O_WRONLY | O_CREAT,S_IRWXU|S_IRWXG|S_IROTH);
+  if (wFd<0) {
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        ZS_ERROPEN,
+        Severity_Severe,
+        "Cannot open file %s",
+        toString());
+    return  (ZS_ERROPEN);
+  }
+  int wS = posix_fallocate(wFd,off_t(0L),off_t(pDBS.Size));
+  if (wS<0) {
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        ZS_CANTALLOCSPACE,
+        Severity_Severe,
+        " Severe error while allocating (posix_fallocate) disk space size %ld to end of file %s",
+        toString());
+    ::close(wFd);
+    return  (ZS_CANTALLOCSPACE);
+  }
 
-    FILE *wFile =fopen(toCChar(),"wb");
+  off_t wSK=lseek(wFd,off_t(0L),SEEK_SET);
+  if (wSK<0) {
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        ZS_FILEPOSERR,
+        Severity_Severe,
+        " Error positionning begining of file %s",
+        toString());
+    ::close(wFd);
+    return  (ZS_FILEPOSERR);
+  }
 
-    if (wFile==nullptr)
-            {
-            ZException.getErrno(errno);
-            ZException.setMessage(_GET_FUNCTION_NAME_,
-                                  ZS_ERROPEN,
-                                  Severity_Error,
-                                  "-E-ERROPEN error on fopen file for writing  <%s> \n",
-                                  toCChar());
-            if (ZVerbose)
-                ZException.printLastUserMessage(stderr);
-            return ZS_ERROPEN;
-            }
+  ssize_t wSS=::write(wFd,pDBS.DataChar,pDBS.Size);
+  if (wSS<0) {
+    ZException.getErrno(errno,
+                        _GET_FUNCTION_NAME_,
+                        ZS_WRITEERROR,
+                        Severity_Error,
+                        " Error writing %ld bytes to file %s",
+                        pDBS.Size,
+                        toString());
+    ::close(wFd);
+    return  (ZS_WRITEERROR);
+  }
+//  fdatasync(wFd); // better than flush
+  ::close(wFd);
+  return ZS_SUCCESS;
 
-    fwrite(pDBS.Data,pDBS.Size,1,wFile);
-
-
-    if (ferror(wFile))
-                {
-                ZException.getFileError(wFile,
-                                        _GET_FUNCTION_NAME_,
-                                      ZS_FILEERROR,
-                                      Severity_Error,
-                                      "E-ERROPEN error writing to file  <%s> ",
-                                      toCChar());
-                fclose(wFile);
-                return (ZS_FILEERROR);
-                }
-    fclose(wFile);
-    return(ZS_SUCCESS);
 }//writeContent
+
 ZStatus
 uriString::appendContent (ZDataBuffer& pDBS) const
 {
-
-  FILE *wFile =fopen(toCChar(),"ab");
-
-  if (wFile==nullptr)
-  {
-    ZException.getErrno(errno);
-    ZException.setMessage(_GET_FUNCTION_NAME_,
-        ZS_ERROPEN,
-        Severity_Error,
-        "-E-ERROPEN error on fopen file for writing  <%s> \n",
-        toCChar());
-    if (ZVerbose)
-      ZException.printLastUserMessage(stderr);
-    return ZS_ERROPEN;
-  }
-
-  fwrite(pDBS.Data,pDBS.Size,1,wFile);
-
-
-  if (ferror(wFile))
-  {
-    ZException.getFileError(wFile,
+  int wFd = ::open(toCChar(), O_APPEND );
+  if (wFd<0) {
+    ZException.getErrno(errno,
         _GET_FUNCTION_NAME_,
-        ZS_FILEERROR,
-        Severity_Error,
-        "E-ERROPEN error writing to file  <%s> ",
-        toCChar());
-    fclose(wFile);
-    return (ZS_FILEERROR);
+        ZS_ERROPEN,
+        Severity_Severe,
+        "Cannot open file %s",
+        toString());
+    return  (ZS_ERROPEN);
   }
-  fclose(wFile);
-  return(ZS_SUCCESS);
-}//writeContent
+
+  off_t wSK=lseek(wFd,off_t(0L),SEEK_END);
+  if (wSK<0) {
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        ZS_FILEPOSERR,
+        Severity_Severe,
+        " Error positionning end of file %s",
+        toString());
+    ::close(wFd);
+    return  (ZS_FILEPOSERR);
+  }
+
+  ssize_t wSS=::write(wFd,pDBS.DataChar,pDBS.Size);
+  if (wSS<0) {
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        ZS_WRITEERROR,
+        Severity_Error,
+        " Error writing %ld bytes to file %s",
+        pDBS.Size,
+        toString());
+    ::close(wFd);
+    return  (ZS_WRITEERROR);
+  }
+//  fdatasync(wFd); //! better than flush
+  ::close(wFd);
+  return ZS_SUCCESS;
+
+}//appendContent
 
 ZStatus
 uriString::writeContent (utf8VaryingString &pStr) const
@@ -1233,6 +1344,7 @@ uriString::writeContent (utf8VaryingString &pStr) const
     fclose(wFile);
     return(ZS_SUCCESS);
 }//writeContent
+
 ZStatus
 uriString::appendContent (utf8VaryingString &pStr) const
 {
@@ -1285,7 +1397,7 @@ ZStatus uriString::writeAES256(ZDataBuffer &pDBS,
  * @return a checkSum object
  */
 checkSum
-uriString::getChecksum (void)
+uriString::getChecksum (void) const
 {
 checkSum wChecksum;
     wChecksum.clear();
@@ -1306,288 +1418,6 @@ uriString operator + (const uriString pIn1,const uriString pIn2)
     return wReturn;
 }
 
-
-/*
-ZStatus
-uriString::writeText (varyingCString& pDBS)
-{
-ZStatus wSt;
-    FILE *wFile =fopen(content,"w");
-
-    if (wFile==nullptr)
-            {
-            ZException.getErrno(errno);
-            ZException.setMessage(_GET_FUNCTION_NAME_,
-                                  ZS_ERROPEN,
-                                  Severity_Error,
-                                  "-E-ERROPEN error on fopen file for writing  <%s> \n",
-                                  content);
-            if (ZVerbose)
-                ZException.printLastUserMessage(stderr);
-            return ZS_ERROPEN;
-            }
-
-    fwrite(pDBS.DataChar,pDBS.Size,1,wFile);
-
-
-    if (ferror(wFile))
-                {
-                ZException.getFileError(wFile,
-                                        _GET_FUNCTION_NAME_,
-                                      ZS_FILEERROR,
-                                      Severity_Error,
-                                      "E-ERROPEN error writing to file  <%s> ",
-                                      content);
-                fclose(wFile);
-                return (ZS_FILEERROR);
-                }
-    fclose(wFile);
-    return(ZS_SUCCESS);
-}//writeText
-*/
-
-
-#ifdef __COMMENT__
-
-/**
- * @brief _exportURF export current varying utf string into an URF format.
- *  Container used is a ZDataBuffer that may be provided by calling procedure.
- *  Universal Record Format is ALWAYS big endian regardless what platform is used.
- *
- *  URF format for an utf Varying string.
- *
- *  URF header depends on the type of object given by the first header information : ZTypeBase (ZType_type)
- *  for an utfVaryingString, header is as follows
- *
- *  URF data is converted to Universal format.
- *  Universal format is big endian with special encoding for atomic data that allows to sort on the whole data in a coherent, simple maner.
- *
- *header :
- *   - ZTypeBase : ZType_utf8VaryingString, ZType_utf16VaryingString,... Gives the Character Unit size with ZType_AtomicMask
- *   - uint64_t number of character units effectively contained within the string.
- *
- *
- *  see <ZType_Type vs Header sizes> in file <zindexedfiles/znaturalfromurf.cpp>
- *data :
- *  a suite of _Utf character unit sequense up to number of characters units.
- *  _Utf character units are converted to big endian if necessary.
- *
- * limits :
- *
- *  Maximum size is in bytes :      	18446744073709551615 (2^64-1)
- *
- * @param pURF  a ZDataBuffer that will contain URF data in return.
- * @return
- */
-ZDataBuffer
-uriString::_exportURF()
-{
-  ZDataBuffer wReturn;
-  unsigned char* wURF_Ptr;
-  URF_Varying_Size_type wByteSize=(URF_Varying_Size_type)ByteSize;
-
-  size_t wUnitCount=strlen();
-
-  wURF_Ptr=wReturn.allocateBZero(wUnitCount+sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type));
-
-  wURF_Ptr=setURFBufferValue<ZTypeBase>(wURF_Ptr,ZType);
-  wURF_Ptr=setURFBufferValue<URF_Varying_Size_type>(wURF_Ptr,wByteSize);
-
-  utfSetReverse<utf8_t>(wURF_Ptr,content,wUnitCount);
-
-  return wReturn;
-}//_exportURF
-
-
-
-/**
- * @brief utfVaryingString<_Utf>::_importURF imports URF data from pURF and feeds current utfVaryingString object.
- * @param pUniversal a pointer to URF header data
- * @return  ZStatus ZS_SUCCESS if everything went well - ZS_INVTYPE is URF data has not the appropriate ZType_type.
- */
-
-size_t
-uriString::_importURF(unsigned char* pURF)
-{
-  ZTypeBase               wType=ZType_Nothing;
-  URF_Varying_Size_type   wUniversalSize=0;
-  utf8_t*                 wOutPtr=nullptr;
-  size_t                  wUnits=0;
-  pURF=getURFBufferValue<ZTypeBase>(&wType,pURF);
-
-  /* ZType control */
-  if (wType!= getZType())
-  {
-    return ZS_INVTYPE;
-  }
-
-  pURF=getURFBufferValue<URF_Varying_Size_type>(&wUniversalSize,pURF);
-
-  wOutPtr=content;
-
-  wUnits=wUniversalSize/sizeof(utf8_t);
-
-  utfSetReverse<utf8_t>(wOutPtr,pURF,(const size_t)wUnits);
-
-  content[wUnits]='\0';
-
-  return ZS_SUCCESS;
-}// _importURF
-
-
-
-/**
- * @brief _exportVUniversal  Exports a string to a Universal Varying Format
- *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
- *  led by
- *   - uint8_t : char unit size
- *   - UVF_Size_type : number of character units of the string.
- * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
- */
-ZDataBuffer
-uriString::_exportUVF()
-{
-  ZDataBuffer wUVF;
-
-  /* Count effective char units excluding (_Utf)'\0' mark starting from end */
-  UVF_Size_type wUnitCount = 0;
-  while ((content[wUnitCount]!=0)&&(wUnitCount < cst_urilen))
-    wUnitCount++;
-
-  size_t wByteLen=wUnitCount*sizeof(utf8_t); // get number of bytes out of this
-
-  /* allocate storate for export */
-  unsigned char* wPtrTarg=wUVF.allocate((ssize_t)wByteLen+sizeof(UVF_Size_type)+1);
-
-  /* set export data with char unit size */
-  *wPtrTarg = (uint8_t)sizeof (utf8_t);
-  wPtrTarg++;
-
-  /* prepare and set unit count to export data */
-  UVF_Size_type wUnitCount_Export=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
-  memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
-  wPtrTarg += sizeof(UVF_Size_type);
-
-  /* export char units : each char unit must be reversed if necessary (big /little endian) */
-
-  utf8_t* wPtrOut=(utf8_t*)(wPtrTarg);
-  utf8_t* wPtrIn=content;
-
-  if (sizeof (utf8_t)==1)
-    while (*wPtrIn)
-      *wPtrOut++=*wPtrIn++;
-  else
-    while (*wPtrIn)
-      *wPtrOut++=reverseByteOrder_Conditional<utf8_t>(*wPtrIn++);
-
-  return wUVF;
-}// _exportUVF
-
-
-
-/** gets utf format name from char unit size */
-const char* getUnitFormat(uint8_t pSize);
-
-
-
-/**
- * @brief _importUVF Import string from Varying Universal Format
- *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
- *  led by a uint16_t mentionning the number of characters of the string that follows.
- * Important : imported string format (utf-xx) must be the same as current string
- * @param pUniversalPtr pointer to Varying Universal formatted data header
- * @return total size IN BYTES of consumed bytes in pUniversalPtr buffer (Overall size of string in UVF)
- */
-size_t
-uriString::_importUVF(unsigned char* &pUniversalPtr)
-{
-  errno=0;
-  unsigned char* wPtrSrc=pUniversalPtr;
-  /* get and control char unit size */
-  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
-  if (wUnitSize!=sizeof(utf8_t))
-  {
-    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
-        getUnitFormat(wUnitSize),
-        getUnitFormat(sizeof(utf8_t)));
-    return 0;
-  }
-
-  wPtrSrc++;
-  /* get char units to load excluding (_Utf)'\0' mark */
-  UVF_Size_type    wUnitCount;
-  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
-  if (wUnitCount > cst_urilen)
-    {
-    fprintf(stderr,"uriString::_importUVF-W-TRUNC Overflow : imported string length <%d> truncated to <%d>.\n",
-        wUnitCount, cst_urilen);
-    errno=ENOMEM;
-    }
-  /* import string per char unit */
-
-  uint8_t* wPtrOut=content ;
-  uint8_t* wPtrIn=(uint8_t*)(wPtrSrc);
-  uint8_t* wPtrEnd = &wPtrIn[wUnitCount];
-//  if (wUnitSize==1)
-    while (wPtrIn < wPtrEnd)
-      *wPtrOut++=*wPtrIn++;
-/*  else
-    while (wPtrIn < wPtrEnd)
-      *wPtrOut++=reverseByteOrder_Conditional<uint8_t>(*wPtrIn++);*/
-  //  addConditionalTermination();
-  *wPtrEnd = 0;
-  pUniversalPtr += (wUnitCount*sizeof(uint8_t))+sizeof(UVF_Size_type)+1;
-  return (wUnitCount*sizeof(uint8_t))+sizeof(UVF_Size_type)+1;
-}// _importUVF
-/**
- * @brief _getimportUVFSize() returns total size in byte of data to import, including header.
- */
-
-UVF_Size_type
-uriString::_getimportUVFSize(unsigned char* pUniversalPtr)
-{
-  unsigned char* wPtrSrc=pUniversalPtr;
-  /* get and control char unit size */
-  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
-  if (wUnitSize!=sizeof(uint8_t))
-  {
-    fprintf(stderr,"uriString::_getimportUVFSize-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
-        getUnitFormat(wUnitSize),
-        getUnitFormat(sizeof(uint8_t)));
-    return 0;
-  }
-  wPtrSrc++;
-
-  UVF_Size_type    wUnitCount;
-  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
-  if (wUnitCount > cst_urilen)
-  {
-    fprintf(stderr,"uriString::_getimportUVFSize-W-TRUNC Overflow : imported string length <%d> truncated to <%d>.\n",
-        wUnitCount, cst_urilen);
-    errno=ENOMEM;
-  }
-  wUnitCount *= wUnitSize ;
-  wUnitCount += sizeof(UVF_Size_type) + 1 ;
-  return wUnitCount;
-}//_getimportUVFSize
-
-/**
- * @brief _getexportUVFSize() compute the requested export size IN BYTES for current string
- */
-UVF_Size_type
-uriString::_getexportUVFSize()
-{
-  /* Count char units excluding (_Utf)'\0' mark starting from end */
-  size_t wUnitCount = 0;
-  while ((content[wUnitCount]!=0)&&(wUnitCount < cst_urilen))
-    wUnitCount++;
-
-  UVF_Size_type wByteLen=wUnitCount +sizeof(UVF_Size_type)+ 1;
-  return wByteLen;
-
-}//_getimportUVFSize
-
-#endif // __COMMENT__
 
 
 #endif // URISTRING_CPP

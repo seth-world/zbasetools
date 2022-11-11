@@ -8,6 +8,8 @@
 #include <openssl/sha.h>  // required for checksum MD5_DIGEST_LENGTH & SHA256_DIGEST_LENGTH
 #include <openssl/md5.h> // required for md5
 
+#include <ztoolset/zmem.h>
+
 #include <ztoolset/zatomicconvert.h> // for reverseByteOrder_Conditional
 
 #define __INVALID_INDEX__  133000L
@@ -19,17 +21,6 @@
 /* for exported control blocks */
 const uint16_t cst_EndianCheck_Normal=2;
 const uint16_t cst_EndianCheck_Reversed=reverseByteOrder_Conditional<uint16_t>(cst_EndianCheck_Normal);
-
-const uint32_t     cst_ZFILEBLOCKSTART = 0xF9F9F9F9;  //!< Begin marker of a file block structure on file it is a palyndroma
-
-const uint32_t     cst_ZBLOCKSTART = 0xF5F5F5F5;  //!< Begin marker of a data structure on file it is a palyndroma
-const uint32_t     cst_ZBLOCKEND   = 0xFCFCFCFC;  //!< End marker of a data structure on file : it is a palyndroma
-
-const uint32_t     cst_ZFIELDSTART = 0xF4F4F4F4;  //!< Begin marker of a field data structure on file it is a palyndroma
-
-const uint8_t      cst_ZSTART_BYTE = 0xF5;
-
-const uint8_t      cst_ZFILESTART_BYTE = 0xF9;
 
 const long        cst_ZRF_default_allocation=10;
 const long        cst_ZRF_default_extentquota=5;
@@ -57,8 +48,8 @@ const int cst_upperization = 32;        // conversion value from lowercase to up
 const char cst_spaceChar = 0x20;
 
 
-static constexpr int cst_checksum = SHA256_DIGEST_LENGTH;// could be SHA512_DIGEST_LENGTH
-static constexpr int cst_checksumHexa   = cst_checksum*2 ;
+static constexpr size_t cst_checksum = SHA256_DIGEST_LENGTH;// could be SHA512_DIGEST_LENGTH
+static constexpr size_t cst_checksumHexa   = cst_checksum*2 ;
 
 const size_t cst_md5 = MD5_DIGEST_LENGTH;
 const size_t cst_md5Hexa = cst_md5*2;
@@ -78,12 +69,12 @@ const size_t _cst_history_reallocquota = 5 ;
 
 typedef uint16_t UVF_Size_type;             /* Universal Varying Format content size type */
 /* Fixed Strings */
-typedef uint16_t URF_Fixed_Size_type;      /* Universal Record Format content effective size type (fixed strings): Effective content size */
+typedef uint16_t URF_UnitCount_type;      /* Universal Record Format content effective size type (fixed strings): Effective content size */
 typedef uint16_t URF_Capacity_type;       /* Universal Record Format canonical size */
 /* Arrays */
 typedef uint16_t URF_Array_Count_type;      /* Universal Record Format array count : number of array occurrences */
 /* Varying strings */
-typedef uint64_t URF_Varying_Size_type;     /* Universal Record Format Varying string content size */
+//typedef uint64_t URF_Varying_Size_type;     /* Universal Record Format Varying string content size */
 /* icu::Collator sort key size type */
 typedef uint32_t SortKey_Size_type;          /* Collation key content size type */
 typedef uint32_t URF_Date_Size_type;         /* Date size type */
@@ -106,5 +97,7 @@ static const ZBool ZTrue=true;
 typedef utf8_t      utfFmt;     /* utfSprintf  format argument data type */
 
 
+#define cst_OverflowChar8 (const utf8_t*)"◊"
+#define cst_OverflowChar16 0x25CA
+#define cst_OverflowChar32 0x000025CA
 #endif // ZLIMIT_H
-

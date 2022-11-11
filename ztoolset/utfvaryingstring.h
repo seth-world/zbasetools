@@ -73,6 +73,7 @@ public:
       return *this;
     }
 
+
     const char* toCString_Strait(void) {return (const char*)Data;}
 
     utf8VaryingString* fromLatin1(const char* pInString);
@@ -84,7 +85,7 @@ public:
     ZDataBuffer*    getEncrypted(uint8_t* pKey,uint8_t* pVector);
     UST_Status_type getByChunk(const utf8_t *pInString,
                                 const size_t pChunkSize);
-    UST_Status_type fromUtf8(const utf8_t *pInString);
+    UST_Status_type fromUtf8(const utf8_t* pInString);
 
     utf8VaryingString& fromChar(const char* pInString) {_Base::strset((const utf8_t*)pInString); CheckData(); return *this;}
     utf8VaryingString& fromnChar(const char* pInString,size_t pSize){_Base::strnset((const utf8_t*)pInString,pSize); CheckData(); return *this;}
@@ -105,8 +106,12 @@ public:
     UST_Status_type fromUtf16(const utf16_t* pInString,
                                  ZBool *plittleEndian=nullptr);
 
+    UST_Status_type fromUtf16(const utf16VaryingString& pInString);
+
     UST_Status_type fromUtf32(const utf32_t* pInString,
                                  ZBool *plittleEndian=nullptr);
+
+    UST_Status_type fromUtf32(const utf32VaryingString& pInString);
 
     UST_Status_type toUtf16(utf16VaryingString &pUtf16, ZBool *pEndian=nullptr);
     UST_Status_type toUtf32(utf32VaryingString &pUtf32,ZBool *pEndian=nullptr);
@@ -117,6 +122,12 @@ public:
 
     utf8VaryingString&  fromStdString(std::string& pIn) {strset((const utf8_t*)pIn.c_str()); return *this;}
 
+
+    int compare(const utf8VaryingString& pIn) const  { return utfVaryingString<utf8_t>::compare(pIn.Data);}
+    utf8_t* strstr(const utf8VaryingString& pIn) const { return utfVaryingString<utf8_t>::strstr(pIn.Data);}
+
+    utf8VaryingString&  addConditionalOR(const utf8VaryingString& pIn)
+                      {utfVaryingString<utf8_t>::addConditionalOR(pIn.Data); return *this;}
 
 
 /**
@@ -170,6 +181,8 @@ public:
     }
 
 
+
+
     utf8VaryingString& operator += (const utf8VaryingString& pIn) {
       pIn._check();
       add(pIn);
@@ -180,33 +193,6 @@ public:
       add(pIn);
       return *this;
     }
-/*    utf8VaryingString operator + (const utf8VaryingString& pIn)
-    {
-      utf8VaryingString wD;
-      wD.strset(toUtf());
-      wD.add(pIn);
-      return wD;
-    }
-    utf8VaryingString operator + (const utf8VaryingString&& pIn)
-    {
-      utf8VaryingString wD;
-      wD.strset(toUtf());
-      wD.add(pIn);
-      return wD;
-    }
-*/
-/*    const utf8VaryingString operator +(const utf8VaryingString& pOne)
-    {
-      add(pOne)  ;
-      return *this;
-    }
-    const utf8VaryingString operator +(const char* pOne)
-    {
-      add(pOne)  ;
-      return *this;
-    }
-*/
-
 
     bool operator == (const char* pIn) const { return compareV<char>(pIn)==0; }
 
@@ -275,7 +261,7 @@ typedef utf16_t                  _UtfBase;
 
     ZDataBuffer& toCString(ZDataBuffer& pZDB);
 
-    utf16VaryingString* fromLatin1(const char* pInString);
+    utf16VaryingString& fromLatin1(const char* pInString);
     /**
      * @brief utf16VaryingString::fromUtf8 converts an utf8 string pInString to utf16 and sets current object content with it.
      *In case of error, conversion context is set up with a detailed status : utfStrCtx::Status, an UST_Status_type
@@ -301,8 +287,8 @@ typedef utf16_t                  _UtfBase;
     UST_Status_type fromUtf16(const utf16_t *pInString, ZBool *plittleEndian=nullptr);
     UST_Status_type fromUtf32(const utf32_t* pInString, ZBool *plittleEndian=nullptr);
     UST_Status_type fromEncoding(const char* pInString,const char*pEncoding);
-    utf8VaryingString *toUtf8(utf8VaryingString &pUtf8);
-    utf32VaryingString *toUtf32(utf32VaryingString &pUtf32);
+    utf8VaryingString toUtf8();
+    utf32VaryingString toUtf32();
 
     utf16VaryingString getLittleEndian();
     utf16VaryingString getBigEndian();
@@ -359,6 +345,7 @@ typedef utf32_t                  _UtfBase;
      utf32VaryingString(const utf32VaryingString&& pIn):_Base(pIn) {setToUtf32(); strset(pIn.Data);}
 
      utf32VaryingString(const char* pIn) {setToUtf32() ; fromLatin1(pIn);}
+     utf32VaryingString(const utf8_t* pIn) {setToUtf32() ; fromUtf8(pIn);}
      utf32VaryingString(const utf32_t* pIn) {setToUtf32() ; strset(pIn);}
 
      utf32VaryingString(std::string& pIn) {setToUtf32() ; fromStdString(pIn);}
@@ -391,8 +378,8 @@ typedef utf32_t                  _UtfBase;
     UST_Status_type fromUtf32(const utf32_t* pInString, ZBool *pEndian=nullptr);
     UST_Status_type fromUtf16(const utf16_t* pInString, ZBool *pEndian=nullptr);
 
-    utf8VaryingString*  toUtf8(utf8VaryingString &pUtf8);
-    utf16VaryingString* toUtf16(utf16VaryingString &pUtf16, ZBool *pEndian=nullptr);
+    utf8VaryingString toUtf8();
+    utf16VaryingString toUtf16( ZBool *pEndian=nullptr);
 
     utf8VaryingString*  toUtf8withBOM(utf8VaryingString &pUtf8);
     utf16VaryingString* toUtf16WithBOM(utf16VaryingString &pUtf16, ZBool *pEndian=nullptr);

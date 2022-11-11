@@ -20,6 +20,13 @@ int clock_gettime(int X, struct timespec *tv);
 #endif //  __USE_STD_CHRONO__
 
 #include <ztoolset/charman.h>
+//class utf8VaryingString;  // Cannot use utf8VaryingString in this object
+
+//#include <ztoolset/utfvaryingstring.h>
+
+const long cst_nanoconvert=1000000000;
+
+
 
 enum ZDelayPrecision_type
 {
@@ -38,7 +45,7 @@ class ZTime : public timespec
 {
 public:
     ZTime () {clear();}
-    ZTime (long pT) {tv_sec=pT/1000000000; tv_nsec= pT-(tv_sec*1000000000);}
+    ZTime (long pT) {tv_sec=pT/cst_nanoconvert; tv_nsec= pT-(tv_sec*cst_nanoconvert);}
 
     ZTime (const ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; }
     ZTime (const timespec& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; }
@@ -51,69 +58,43 @@ public:
     ZTime operator = (timespec pTi){return _copyFrom(pTi);}
     ZTime operator = (timeval pTi){tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_usec*1000; return *this;} // micro to nanoseconds
 
-    ZTime operator +=  (ZTime pTime)
-    {
-             tv_sec = tv_sec+pTime.tv_sec;
-             tv_nsec = tv_nsec+pTime.tv_nsec;
-             if (tv_nsec>1000000000)
-                     {
-                      tv_sec++;
-                      tv_nsec = tv_nsec-1000000000;
-                     }
-             return *this;
-    }
+    ZTime operator +=  (ZTime pTime);
+    ZTime operator -=  (ZTime pTime);
 
-    ZTime operator -=  (ZTime pTime) {
-    tv_sec = tv_sec - pTime.tv_sec;
+    ZTime operator -  (ZTime &pTime);
+    ZTime operator +  (ZTime &pTi);
 
-    tv_nsec = tv_nsec - pTime.tv_nsec;
-    if (tv_nsec<0)
-        {
-       tv_sec --;
-       tv_nsec =1000000000-pTime.tv_nsec;
-       tv_nsec +=tv_nsec;
-        }
-    return *this;
-    }
+    ZTime operator *  (int pMult);
+    ZTime operator *  (double pMult);
+    ZTime operator /  (int pDiv);
+    ZTime operator /  (double pDiv);
+
     /**
      * @brief getTimeVal converts and returns current ZTime content to a timeval time structure
      */
     timeval getTimeVal (void) {timeval wTv; wTv.tv_sec = tv_sec; wTv.tv_usec = tv_nsec/1000 ; return wTv;}
 
+    /**
+     * @brief getDelta gets a ZTime with difference between current time and pDelta
+     */
+    ZTime getDelta(ZTime&& pDelta);
 
-    ZTime operator -  (ZTime &pTime)
-    {
-        ZTime wDelta;
-        wDelta.tv_sec = tv_sec - pTime.tv_sec;
-
-        wDelta.tv_nsec = tv_nsec - pTime.tv_nsec;
-        if (wDelta.tv_nsec<0)
-            {
-           wDelta.tv_sec --;
-           wDelta.tv_nsec =1000000000-pTime.tv_nsec;
-           wDelta.tv_nsec +=tv_nsec;
-            }
-        return wDelta;
-    }
-    ZTime operator +  (ZTime &pTi)
-    {
-        ZTime wDelta;
-        wDelta.tv_sec = tv_sec+pTi.tv_sec;
-        wDelta.tv_nsec = tv_nsec+pTi.tv_nsec;
-        if (wDelta.tv_nsec>1000000000)
-                {
-                 wDelta.tv_sec++;
-                 wDelta.tv_nsec = wDelta.tv_nsec-1000000000;
-                }
-        return wDelta;
-    }
+    /**
+     * @brief getElapsed returns a ZTime containing difference between current clock time and time of this object
+     */
+    ZTime getElapsed() { return getCurrentTime() - *this;}
 
     /**
      * @brief getCurrentTime set ZTime to current time using clock_realtime
      */
-    ZTime& getCurrentTime(void) {clock_gettime(CLOCK_REALTIME,this); return *this;}
+    static ZTime getCurrentTime(void) {
+      ZTime wRet;
+      clock_gettime(CLOCK_REALTIME,&wRet);
+      return wRet;
+    }
 
     static ZTime currentTime(void) {ZTime wTi;clock_gettime(CLOCK_REALTIME,&wTi); return wTi;}
+
 
     /**
      * @brief absoluteFromDelay computes an absolute time from now + pDelay according pDelayType (seconds, milli, micro, nano)
@@ -124,42 +105,16 @@ public:
      //! @brief Seconds returns the current ZTime object set to pTime seconds
     ZTime& Seconds      (long long pTime) { memset(this,0,sizeof(ZTime)); tv_sec=pTime; return *this;}
 
-    long long toMilliseconds (void)
-    {long long wT;
-        wT=(long long)(tv_nsec/1000000);
-        wT+=(long long)(tv_sec*1000);
-        return wT;
-    }
-    long long toMicroseconds (void)
-    {long long wT=(long long)(tv_sec*1000000);
-        wT+=(long long)(tv_nsec/1000);
-        return wT;
-    }
-    long long toNanoseconds (void)
-    {long long wT=tv_sec;
-        wT= wT*(long long)1000000000;
-        wT+=tv_nsec;
-        return wT;
-    }
 
-    ZTime & fromNanoseconds(long long pNanos)
-    {
-        tv_sec=pNanos/(long long)1000000000;
-        tv_nsec=pNanos-(tv_sec*(long long)1000000000);
-        return *this;
-    }
-    ZTime & fromMicroseconds(long long pMicros)
-    {
-        tv_sec=pMicros/(long long)1000000;
-        tv_nsec=pMicros-(long long)(tv_sec*1000);
-        return *this;
-    }
-    ZTime & fromMilliseconds(long long pMillis)
-    {
-        tv_sec=pMillis/(long long)1000;
-        tv_nsec=pMillis-(tv_sec*1000000);
-        return *this;
-    }
+    long long toMilliseconds (void);
+    long long toMicroseconds (void);
+    long long toNanoseconds (void);
+
+
+    ZTime & fromNanoseconds(long long pNanos);
+    ZTime & fromMicroseconds(long long pMicros);
+    ZTime & fromMilliseconds(long long pMillis);
+
 
 
     ZTime& operator / (long pDividor)
@@ -173,9 +128,10 @@ public:
     ZTime Average(long pTimes) {
         if (pTimes<1)
                 pTimes=1;
-        return fromNanoseconds(toNanoseconds()/(long long)pTimes);}
+        return fromNanoseconds(toNanoseconds()/(long long)pTimes);
+    }
 
-    char* toString(char* pBuf,unsigned int pLen, const char* pFormat=nullptr,ZDelayPrecision_type pDelayType=ZDPT_Seconds) ;
+    char* toString(char* pBuf, size_t pLen, const char* pFormat=nullptr, ZDelayPrecision_type pDelayType=ZDPT_Seconds) ;
 
     CharMan toString(const char* pFormat=nullptr,ZDelayPrecision_type pDelayType=ZDPT_Seconds);
 

@@ -24,7 +24,7 @@
 
 #define _KEY_BUFFER_MAXSIZE 150
 
-#define _DBGPRINT(...) fprintf (stdout, __VA_ARGS__); std::cout.flush();
+#define _DBGPRINT(...) { fprintf (stdout, __VA_ARGS__); std::cout.flush(); }
 
 
 struct ZData_Type_struct

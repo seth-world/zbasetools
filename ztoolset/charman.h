@@ -25,8 +25,7 @@ public:
 
     CharMan& _copyFrom (CharMan& pIn)
         {
-        memset(content,0,sizeof(content));
-        strcpy(content,pIn.content);
+        strncpy(content,pIn.content,sizeof(content));
         return *this;
         }
     CharMan& operator= (CharMan& pIn) {return _copyFrom(pIn);}
@@ -61,11 +60,13 @@ public:
     {
       ::strncpy(content,(char*)pPtr,pSize>(sizeof(content)-1)?sizeof(content)-1:pSize);
     }
-    void trunc(const char*pPtr,int pSize)
+    void trunc(const char*pPtr,size_t pSize)
     {
       ::strncpy(content,pPtr,pSize>(sizeof(content)-1)?sizeof(content)-1:pSize);
     }
-    int Maxlen() {return sizeof(content);}
+    size_t Maxlen() {return sizeof(content);}
+
+    size_t getUnitCount() {return sizeof(content);}
 
     char* toChar() {return content;}
     char content[250];

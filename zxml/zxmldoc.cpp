@@ -803,7 +803,7 @@ zxmlDoc::ParseXMLDocFromMemory(const char* pMemory,int pSize,const char* pEncodi
         ZException.setMessage(_GET_FUNCTION_NAME_,
                               ZS_INVOP,
                               Severity_Severe,
-                              "Cannot parse an existing DOM document (active)");
+                              "zxmlDoc::ParseXMLDocFromMemory Cannot parse an existing DOM document (active)");
         return  ZS_INVOP;
         }
     pOptions += XML_PARSE_NOBLANKS ; // by default remove blank nodes
@@ -812,13 +812,16 @@ zxmlDoc::ParseXMLDocFromMemory(const char* pMemory,int pSize,const char* pEncodi
     _xmlInternalDoc= xmlReadMemory(pMemory,pSize,"memory.xml",pEncoding,pOptions);
     if (_xmlInternalDoc==nullptr)
         {
-        setXMLZException(_GET_FUNCTION_NAME_,
-                         ZS_XMLERROR,
-                         Severity_Error,
-                         " Error while parsing xml document from memory : requested encoding <%s> requested parsing options <%s>",
-                         pEncoding?pEncoding:"default",
-                         decode_XMLParseOptions(pOptions).toCChar()
+      utf8VaryingString wComplement;
+
+        ZException.setMessage(_GET_FUNCTION_NAME_,ZS_XMLERROR,Severity_Error,
+          "zxmlDoc::ParseXMLDocFromMemory Error while parsing xml document from memory : requested encoding <%s> requested parsing options <%s>.\n"
+          "%s",
+          pEncoding?pEncoding:"default",
+          decode_XMLParseOptions(pOptions).toCChar(),
+          getXMLLastError().toString()
                          );
+
         return  ZS_XMLERROR;
         }
 

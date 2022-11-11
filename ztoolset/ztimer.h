@@ -24,12 +24,14 @@ public:
     void end (void);
     ZTime getDeltaTime(void) ;
 
+    ZTime getElapsed();
+
     void addDeltaTime (ZTimer &pTimer1);
-    utfdescString reportDeltaTime(void) ;
-    utfdescString reportBeginTime(void) ;
-    utfdescString reportEndTime(void) ;
+    utf8VaryingString reportDeltaTime(void) ;
+    utf8VaryingString reportBeginTime(void) ;
+    utf8VaryingString reportEndTime(void) ;
     static
-    utfdescString reportZTime(ZTime & pTime); // generic static function
+    utf8VaryingString reportZTime(ZTime & pTime); // generic static function
 
     ZTimer operator = (ZTimer pTi) {BeginTime=pTi.BeginTime;
                                     EndTime=pTi.EndTime;

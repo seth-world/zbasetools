@@ -613,8 +613,16 @@ public:
                     return(push_front(wElement)); };
 */
     long move (size_t pDest, size_t pOrig,size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
+    long moveLeft (size_t pDest, size_t pOrig,size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
+    long moveRight (size_t pDest, size_t pOrig,size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
 private:
     long _move (size_t pDest, size_t pOrig, ssize_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
+    /** @brief _shiftRight shift array right from one element starting at pOrig- Element at pOrig is duplicated to pOrig + 1 */
+    long _shiftRight(long pOrig);
+    /** @brief _shiftLeft shift array left from one element starting at pOrig. Element at pOrig - 1 is lost. */
+    long _shiftLeft(long pOrig);
+    long _moveRight(long pDest, long pOrig, long pNumber=1);
+    long _moveLeft(long pDest, long pOrig, long pNumber=1);
 public:
 
     long swap (size_t pDest, size_t pOrig,  size_t pNumber=1);  // forbidden if ZKeyArray (because of possible Joins)
@@ -808,7 +816,7 @@ protected :
     Tab=Allocator.allocate(pAlloc);
     ZAllocation = pAlloc;
     ZAllocatedSize = sizeof(_Tp)*pAlloc;
-    memset(Tab,0,ZAllocatedSize);
+//    memset(Tab,0,ZAllocatedSize); // No there are not only atomic / trivial objects managed
     return Tab;
     }
 
@@ -867,10 +875,12 @@ protected :
     _Tp* _baseRealloc(size_t pSize){
       _Tp* wTab_old=Tab;
       size_t wAllocation_old = ZAllocation;
-      Tab=_baseAllocate(pSize);
+      Tab =_baseAllocate(pSize);
       for (long wi=0;wi < ZCurrentNb ; wi++) {
-        //        Tab[wi] = std::move<_Tp>(wSvData[wi]);
-        Tab[wi] = wTab_old[wi];
+        Allocator.construct(&Tab[wi],wTab_old[wi]);
+        Allocator.destroy(&wTab_old[wi]);
+//        Tab[wi] = std::move<_Tp>(wTab_old[wi]);
+        //Tab[wi] = wTab_old[wi];
       }
       Allocator.deallocate(wTab_old,wAllocation_old);
       return Tab;
@@ -975,8 +985,10 @@ void ZArray<_Tp>::_mInit(size_t pInitialAlloc,
 template <typename _Tp> ZArray<_Tp>::~ZArray()
 {
   if (Tab!=nullptr) {
-      erase(0,ZCurrentNb);
-      Allocator.deallocate(Tab,ZAllocation);
+    if ( ZCurrentNb > 0)
+        erase(0,ZCurrentNb);
+    _deallocate(Tab,ZAllocation);
+//      Allocator.deallocate(Tab,ZAllocation);
   }
 
 }//DTOR
@@ -1073,43 +1085,164 @@ long wRet=0;
 }// move
 
 template <typename _Tp>
+long ZArray<_Tp>::moveRight (size_t pDest, size_t pOrig, size_t pNumber)
+{
+  long wRet=0;
+
+#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+  _Mutex.lock();
+#endif
+  wRet=_moveRight(pDest,pOrig,pNumber);
+#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+  _Mutex.unlock();
+#endif
+  return wRet ;
+}// moveRight
+
+
+template <typename _Tp>
+long ZArray<_Tp>::moveLeft (size_t pDest, size_t pOrig, size_t pNumber)
+{
+  long wRet=0;
+
+#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+  _Mutex.lock();
+#endif
+  wRet=_moveLeft(pDest,pOrig,pNumber);
+#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+  _Mutex.unlock();
+#endif
+  return wRet ;
+}// moveLeft
+template <typename _Tp>
 long ZArray<_Tp>::_move (size_t pDest, size_t pOrig, ssize_t pNumber)
 {
-  if (pDest==pOrig) {
+  if (pDest > pOrig)
+    return _moveRight(pDest,pOrig,pNumber);
+  return _moveLeft(pDest,pOrig,pNumber);
+}// _move
+
+template <typename _Tp>
+/**
+ * @brief ZArray<_Tp>::_moveRight moves pNumber Elements right from position pOrig to pPosition pDest
+ */
+long ZArray<_Tp>::_moveRight (long pDest, long pOrig, long pNumber)
+{
+  if ((pDest==pOrig) || (pNumber==0)) {
     ZIdx = pDest;
     return (pDest);
   }
-  if (pNumber<0){
-    ZIdx = pDest;
-    return (-1);
-  }
-  if (pNumber==0) {
-    ZIdx = pDest;
-    return (pDest);
+  if (pNumber < 0) {
+    fprintf(stderr,"ZArray::_moveRight-F-INVVALUE Invalid value <%ld>",pNumber );
+    abort();
   }
 
-  if (pOrig >= ZCurrentNb)
-      return -1; // pOrig is out of boundaries
-
-  if (pOrig+pNumber >= ZCurrentNb)
-      return -1 ; // source is out of boundaries
-
-  if ((pDest+pNumber) >= ZCurrentNb){
-    long wA=(pDest+pNumber+1) - ZCurrentNb ;
-    addCheck(wA);                       // make room for moving elements if necessary
+  if (pOrig >= ZCurrentNb) {
+    fprintf(stderr,"ZArray::_moveRight-F-OUTBOUND error moving array zone from <%ld> while max number of element is <%ld>",pOrig,ZCurrentNb );
+    abort(); // pOrig is out of boundaries
+  }
+  if (pDest < pOrig) {
+    fprintf(stderr,"ZArray::_moveRight-F-INVVALUE Impossible to move data RIGHT from source <%ld> to destination <%ld>\n",pDest,pOrig );
+    abort();
   }
 
-  for (long wi=0;wi < pNumber;wi++) {
-    memmove(&Tab[pDest+wi],&Tab[pOrig+wi],sizeof(_Tp));
-//    Tab[pDest+wi]=Tab[pOrig+wi];
-//      assign(Tab[pOrig+wi],pDest+wi);
-  }
+  addCheck(pNumber);                       // make room for moving elements if necessary
 
+
+  /* duplicate memory zone */
+
+  _Tp* wDupB=(_Tp*)malloc ((ZCurrentNb-pOrig)*sizeof(_Tp));
+  _Tp* wDup=wDupB;
+  long wD=pOrig;
+  for (long wi=0;wi <ZCurrentNb-pOrig;wi++) {
+    memmove(&wDupB[wi],&Tab[wD++],sizeof(_Tp));
+  }
+  /* effective copy */
+  long wi=0;
+  for (long wDest=pDest ; wDest < ZCurrentNb+pNumber ; wDest++) {
+    memmove(&Tab[pDest],&wDupB[wi++],sizeof(_Tp));
+  }
+  free(wDupB);
   ZIdx = pDest ;
 
   return pDest ;
-}// _move
+}// _moveRight
 
+template <typename _Tp>
+long ZArray<_Tp>::_shiftRight (long pOrig)
+{
+
+  if (pOrig >= ZCurrentNb) {
+    fprintf(stderr,"ZArray::_shiftRight-F-OUTBOUND error moving array zone from <%ld> while max number of element is <%ld>",pOrig,ZCurrentNb );
+    abort(); // pOrig is out of boundaries
+  }
+
+  addCheck(ZCurrentNb + 1 );
+
+  long wDest = ZCurrentNb + 1;
+  long wOrig = ZCurrentNb;
+  while ( wOrig >= pOrig ) {
+    memmove(&Tab[wDest--],&Tab[wOrig--],sizeof(_Tp));
+  }
+  memset(&Tab[pOrig],0,sizeof(_Tp));
+  return ZIdx = pOrig ;
+}// _shiftRight
+
+template <typename _Tp>
+long ZArray<_Tp>::_shiftLeft (long pOrig)
+{
+
+  if (pOrig  < 1) {
+    fprintf(stderr,"ZArray::_shiftLeft-F-OUTBOUND Error shifting left array zone from <%ld> \n", pOrig );
+    abort(); // pOrig is out of boundaries
+  }
+
+  if (pOrig >= ZCurrentNb) {
+    fprintf(stderr,"ZArray::_shiftLeft-F-OUTBOUND Error shifting left array zone from <%ld> while current number of element is <%ld> \n", pOrig, ZCurrentNb );
+    return (0);
+  }
+  if (ZCurrentNb < 2) {
+    fprintf(stderr,"ZArray::_shiftLeft-F-OUTBOUND Error shifting left array zone from <%ld> \n", pOrig );
+    return 0;
+  }
+
+  long wDest = pOrig - 1;
+  long wOrig = pOrig ;
+  while ( wOrig < ZCurrentNb ) {
+    memmove(&Tab[wDest++],&Tab[wOrig++],sizeof(_Tp));
+  }
+  memset(&Tab[wOrig],0,sizeof(_Tp));
+  ZCurrentNb --;
+  return ZIdx = wOrig ;
+}// _shiftLeft
+
+template <typename _Tp>
+long ZArray<_Tp>::_moveLeft (long pDest, long pOrig, long pNumber)
+{
+  if ((pDest==pOrig) || (pNumber==0)) {
+    ZIdx = pDest;
+    return (pDest);
+  }
+  if (pNumber < 0) {
+    fprintf(stderr,"ZArray::_moveRight-F-INVVALUE Invalid value <%ld>",pNumber );
+    abort();
+  }
+  if (pDest > pOrig) {
+    fprintf(stderr,"ZArray::_moveLeft-F-INVVALUE Impossible to move data LEFT from source <%ld> to destination <%ld>\n",pDest,pOrig );
+    abort();
+  }
+
+  if ((pDest - pNumber) < 0) {
+    fprintf(stderr,"ZArray::_moveLeft-F-OUTBOUND error moving array left zone from <%ld> of number of elements <%ld>",pDest,pNumber );
+    abort();
+  }
+
+  for (long wi=0 ; wi < pNumber  ; wi++) {
+    memmove(&Tab[pDest+wi],&Tab[pOrig+wi],sizeof(_Tp));
+  }
+
+  return ZIdx = pDest ;
+}// _moveLeft
 
 /** @brief swap  exchange the pNumber elements of the dynamic array from pOrig index to pDest index.
  *          pOrig content remains unchanged except if there is an overlap between destination and origin
@@ -1213,12 +1346,14 @@ long ZArray<_Tp>::_insertNoLock(_Tp &pElement, size_t pIdx)
   }
 
   addCheck(1);
-  if (ZCurrentNb>0){
-    _move((pIdx+1),pIdx,(ZCurrentNb-pIdx)); // make room for element (no lock)
+  ZCurrentNb++;
+
+  if (ZCurrentNb > 0){
+    _shiftRight(pIdx); // make room for element (no lock)
   }
 
   assign(pElement,pIdx);
-  ZCurrentNb++;
+
   ZIdx=pIdx;
   return (pIdx);
 }// insert
@@ -1262,10 +1397,10 @@ long ZArray<_Tp>::_insertNoLock(_Tp *pElement, size_t pIdx,size_t pNumber)
   ZIdx = pIdx ;
   addCheck(pNumber);
   if (ZCurrentNb > 0)
-    _move((pIdx+pNumber),pIdx,(ZCurrentNb-pIdx)); // make room for element
+    _moveRight((pIdx + pNumber),pIdx,pNumber); // make room for element
 
   ZCurrentNb = ZCurrentNb + pNumber;
-  for (long wi=0;wi<pNumber;wi++)
+  for (long wi=0;wi < pNumber;wi++)
     assign(pElement[wi],pIdx + wi);
   ZIdx=pIdx;
   return (pIdx);
@@ -1278,7 +1413,6 @@ long ZArray<_Tp>::_insertNoLock(_Tp *pElement, size_t pIdx,size_t pNumber)
  *
  *
  */
-
 template <typename _Tp>
 long ZArray<_Tp>::erase(size_t pIdx,size_t pNumber)
 {
@@ -1326,7 +1460,7 @@ long ZArray<_Tp>::_eraseNoLock(size_t pIdx,size_t pNumber)
   memset(wPtr,0,sizeof(_Tp)*pNumber);// set available space to zero in the End of ZArray (recuperated space)
 
   ZCurrentNb = ZCurrentNb - pNumber ;
-  return (pIdx);
+  return (ZIdx=pIdx);
 }
 
 
@@ -1464,12 +1598,13 @@ void ZArray<_Tp>::addCheck(long pAdd)
 {
   /* following is necessary when assign() applies to a ZArray itself and it has been zeroed */
   if (ZAllocation == 0){
-    if (ZReallocQuota == 0)
-      ZReallocQuota=_cst_realloc_quota;
+    fprintf(stderr,"ZArray::addCheck-W-ALLOCNULL ZAllocation is zero. Forced to _cst_default_allocation.\n");
     allocate (_cst_default_allocation) ;
   }
-
-
+  if (ZReallocQuota == 0) {
+    fprintf(stderr,"ZArray::addCheck-W-QUOTANULL ZReallocQuota is zero. Forced to _cst_realloc_quota.\n");
+    ZReallocQuota=_cst_realloc_quota;
+  }
 long wFreeSlots = ZAllocation-ZCurrentNb  ;  // size remaining to fill
   if (wFreeSlots > pAdd)
             return ;

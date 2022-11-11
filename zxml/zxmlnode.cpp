@@ -261,9 +261,9 @@ zxmlNode::getFirstChildText(zxmlNode* &pNode)
     return ZS_SUCCESS;
 }// getFirstChildText
 
-utf8String zxmlNode::getNodePath(void) const
+utf8VaryingString zxmlNode::getNodePath(void) const
 {
-    utf8String wPath;
+    utf8VaryingString wPath;
     xmlChar* wBuf=xmlGetNodePath(_xmlInternalNode);
     wPath=wBuf;
     xmlFree(wBuf);
@@ -482,13 +482,13 @@ zxmlNode::isCData(void) const
 
 }
 
-utf8String zxmlNode::getName(void) const
+utf8VaryingString zxmlNode::getName(void) const
 {
 
     if (_xmlInternalNode==nullptr)
-                            return utf8String();
+                            return utf8VaryingString();
 
-    return utf8String((const utf8_t*)_xmlInternalNode->name);
+    return utf8VaryingString((const utf8_t*)_xmlInternalNode->name);
 }
 int
 zxmlNode::getLine(void) const
@@ -920,7 +920,7 @@ zxmlElement::getPreviousElementSibling(zxmlElement *&pElement)
  *                   ZS_NOTFOUND in no attribute of this name has been found
  */
 ZStatus
-zxmlElement::getAttributeValue(const utf8_t *pAttrName, utf8String &pValue)
+zxmlElement::getAttributeValue(const utf8_t *pAttrName, utf8VaryingString &pValue)
 {
     pValue.clear();
     if (_xmlInternalNode==nullptr)
@@ -943,7 +943,7 @@ xmlChar* wValue;
  *                   ZException complement is set with xml internal error if any available.
  */
 ZStatus
-zxmlElement::getFirstCData(zxmlNode* &pCDataNode,utf8String& pCData)
+zxmlElement::getFirstCData(zxmlNode* &pCDataNode,utf8VaryingString& pCData)
     {
     ZStatus wSt=getFirstChildCData(pCDataNode);
     if (wSt!=ZS_SUCCESS)
@@ -963,12 +963,12 @@ zxmlElement::getFirstCData(zxmlNode* &pCDataNode,utf8String& pCData)
  *                   ZException complement is set with xml internal error if any available.
  */
 ZStatus
-zxmlElement::getFirstText(zxmlNode* &pTextNode,utf8String& pText)
+zxmlElement::getFirstText(zxmlNode* &pTextNode,utf8VaryingString& pOutText)
     {
     ZStatus wSt=getFirstChildText(pTextNode);
     if (wSt!=ZS_SUCCESS)
                 return wSt;
-    return pTextNode->getNodeText(pText);
+    return pTextNode->getNodeText(pOutText);
     }
 /**
  * @brief zxmlElement::getFirstComment for current node, gets the fist text child.
@@ -982,7 +982,7 @@ zxmlElement::getFirstText(zxmlNode* &pTextNode,utf8String& pText)
  *                   ZException complement is set with xml internal error if any available.
  */
 ZStatus
-zxmlElement::getFirstComment(zxmlNode* &pTextNode,utf8String& pText)
+zxmlElement::getFirstComment(zxmlNode* &pTextNode,utf8VaryingString& pText)
     {
     ZStatus wSt=getFirstChildComment(pTextNode);
     if (wSt!=ZS_SUCCESS)

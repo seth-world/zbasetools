@@ -173,22 +173,6 @@ public:
 };
 
 
-class utfmessageString : public utf8FixedString<cst_messagelen+1>
-{
-public:
-    typedef utf8FixedString<cst_messagelen+1> _Base;
-    utfmessageString () {}
-    utfmessageString(utfmessageString &pIn):_Base(pIn) {}
-    utfmessageString(utfmessageString &&pIn):_Base(pIn) { }
-    using  _Base::operator =;
-    using _Base::operator += ;
-    utfmessageString & operator = (const utfmessageString& pIn ) {return (utfmessageString&)_copyFrom(pIn);}
-    utfmessageString & operator = (const utfmessageString&& pIn ) {return (utfmessageString&)_copyFrom(pIn);}
-
-//    const char* toCString_Strait(void) {return (const char*)content;}
-
-};
-
 class utfkeywordString : public utf8FixedString<cst_keywordlen+1>
 {
 public:

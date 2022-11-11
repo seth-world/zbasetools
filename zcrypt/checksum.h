@@ -25,7 +25,7 @@ class checkSum
 {
 public:
   unsigned char content[cst_checksum];
-  char StrHexa[cst_checksumHexa+3];
+  //  char StrHexa[cst_checksumHexa+3];
 
   checkSum(void) {clear();}
   checkSum& _copyFrom(const checkSum& pIn);
@@ -35,10 +35,7 @@ public:
 
   checkSum& operator = (const checkSum& pIn) {return _copyFrom(pIn);}
 
-
-
   checkSum(const unsigned char *pInBuffer,size_t pLen) {compute(pInBuffer,pLen);}
-
 
   checkSum& setContent(const unsigned char *pInBuffer,size_t pLen) {memmove (content,pInBuffer,pLen); return *this;}
 
@@ -56,10 +53,12 @@ public:
 //    template <class _Utf>
 //    checkSum& compute (utfVaryingString<_Utf> &pDataBuffer);
 
-    ZDataBuffer*  _exportURF(ZDataBuffer *pUniversal) const;
+    size_t        _exportURF(ZDataBuffer &pUniversal) const;
     size_t        _exportURF_Ptr(unsigned char* &pURF) const;
     size_t        getURFSize() const;
-    ZStatus       _importURF(const unsigned char *&pUniversal);
+    size_t        getURFHeaderSize() const;
+    size_t        getUniversalSize() const;
+    ssize_t       _importURF(const unsigned char *&pUniversal);
     static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr);
 
     ZDataBuffer _export() const;
@@ -78,7 +77,7 @@ public:
     void fromCheckSum(checkSum& pChecksum) { memmove(content,pChecksum.content,sizeof(content)); return ;}
 //    checkSum &  fromHex(QDataBuffer_struct &pQDB) ;
     /** @brief toHexa() delivers checkSum content as a string containing hexadecimal printable values */
-    CharMan toHexa(void) const;
+    utf8VaryingString toHexa(void) const;
     /** @brief toBinary() delivers the content of checkSum in its binary format */
     unsigned char * toBinary(void) {return(content);}
 //    ZDataBuffer& toZDataBuffer (ZDataBuffer &pQDB) { pQDB.setData( content, size()); return(pQDB);}
@@ -90,8 +89,8 @@ public:
 
     bool operator == (const checkSum *pChecksum) {return (memcmp(content,pChecksum->content,sizeof(content))==0);}
     bool operator == (const checkSum &pChecksum) {return (memcmp(content,pChecksum.content,sizeof(content))==0);}
-    bool operator != (const checkSum &pChecksum) {return !(memcmp(content,pChecksum.content,sizeof(content))==0);}
-    bool operator == (const char* pInput)        {return(::strncmp(toHexa().toChar(),pInput,cst_checksumHexa));}
+    bool operator != (const checkSum &pChecksum) {return !(memcmp(content,pChecksum.content,sizeof(content)));}
+    bool operator == (const char* pInput)   ;
 };
 
 

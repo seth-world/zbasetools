@@ -61,10 +61,12 @@ protected:
     ~zxmlNode() {
       // free node resource only if not part of a document.
       // if part of a doc, will be freed by xmlFreeDoc
-      if (!_xmlInternalNode->doc) {
+ /*     if ((_xmlInternalNode) && (!_xmlInternalNode->doc) && (_xmlInternalNode->line)) {
               xmlFreeNode(_xmlInternalNode);
               _xmlInternalNode=nullptr;
+
       }
+*/
     }
 public:
     friend class zxmlGlobal;
@@ -80,9 +82,9 @@ public:
     zxmlNode(const zxmlNode&)=delete;
     zxmlNode& operator=(const zxmlNode&) = delete;  // no copy
 
-    utf8String getName(void) const;
+    utf8VaryingString getName(void) const;
     int getLine(void) const;
-    utf8String getNodePath(void) const;
+    utf8VaryingString getNodePath(void) const;
 
     /**
      * @brief zxmlNode::getFirstChild gets the first node as child of current element
@@ -107,14 +109,33 @@ public:
  */
     ZStatus getChildByName(zxmlNode* &pNode, const utf8VaryingString &pName);
 
-    /** @brief getAllChildren() find all children nodes with name pName and returns ZNodeCollection, a ZArray with node pointers */
+    /** @brief getAllChildren() find all children nodes with name pName and returns ZNodeCollection,
+     * i.e. a ZArray with node pointers */
     ZNodeCollection getAllChildren(const utf8VaryingString &pName);
 //---------------Extract data from current node----------------------------
-    ZStatus getNodeContent(utf8VaryingString &pCData) const; // extract content from current node whatever it is
-    ZStatus getCData(ZDataBuffer& pCData) const;             // extracts CData content from current node
-
-    ZStatus getText(ZDataBuffer& pText) const;  // extracts text from current node (comment or text from text node)
-
+    /**
+     * @brief getNodeContentextract content from current node whatever it is
+     * @param pCData
+     * @return
+     */
+    ZStatus getNodeContent(utf8VaryingString &pCData) const;
+    /**
+     * @brief getCData extracts CData content from current node
+     * @param pCData
+     * @return
+     */
+    ZStatus getCData(ZDataBuffer& pCData) const;
+    /**
+     * @brief getText extracts text from current node (comment or text from text node)
+     * @param pText
+     * @return
+     */
+    ZStatus getText(ZDataBuffer& pText) const;
+    /**
+     * @brief getText extracts text from current node (comment or text from text node)
+     * @param pText
+     * @return
+     */
     ZStatus getText(utf8VaryingString& pText) const;
 
     ZStatus getNodeText(utf8VaryingString &pText);
@@ -189,12 +210,15 @@ public:
     ZStatus getPreviousElementSibling(zxmlElement* &pElement);
     ZStatus getLastChildElement(zxmlElement* &pElement);
 
-    ZStatus getAttributeValue(const utf8_t* pAttrName, utf8String &pValue);
+    ZStatus getAttributeValue(const utf8_t* pAttrName, utf8VaryingString &pValue);
 /*    ZStatus getFirstAttribute(zxmlAttribute* &pAttribute);
 */
-    ZStatus getFirstText(zxmlNode* &pTextNode, utf8String &pText);
-    ZStatus getFirstComment(zxmlNode* &pCommentNode, utf8String &pComment);
-    ZStatus getFirstCData(zxmlNode* &pCDataNode, utf8String &pCData);
+    /** @brief zxmlElement::getFirstText for current node, gets the fist text child.
+     *          Returns Text content. Entities may be substituted.
+     */
+    ZStatus getFirstText(zxmlNode* &pTextNode, utf8VaryingString &pOutText);
+    ZStatus getFirstComment(zxmlNode* &pCommentNode, utf8VaryingString &pComment);
+    ZStatus getFirstCData(zxmlNode* &pCDataNode, utf8VaryingString &pCData);
 
     // for next CData node see zxmlNode::getNextCData(zxmlNodeZDataBuffer& pCData);
 

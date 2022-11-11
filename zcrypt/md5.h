@@ -17,8 +17,6 @@ class utf8VaryingString;
 struct md5 {
     unsigned char content[cst_md5];
 
-    char StrHexa[cst_md5Hexa+1];
-
     md5(void) {clear();}
     md5& _copyFrom(const md5& pIn);
 
@@ -31,7 +29,7 @@ struct md5 {
 
 //    md5(ZDataBuffer &pZDBData) {compute(pZDBData.Data,pZDBData.Size); return;}
     md5& compute(unsigned char* pData, const size_t pSize);
-    CharMan toHexa() const ; /** converts md5 expressed in a hexadecimal string to its value. string must be allocated with cst_md5Hex+1 */
+    utf8VaryingString toHexa() const ; /** converts md5 expressed in a hexadecimal string to its value. string must be allocated with cst_md5Hex+1 */
 //    ZStatus fromHexa(const char* pInput) ;
     ZStatus fromHexa(const utf8VaryingString& pInput);
     void clear(void) {memset(content,0,cst_md5); return;}
@@ -60,17 +58,19 @@ struct md5 {
         *wPtrIn++ = *pPtrIn++;
     }
 
-    ZDataBuffer*  _exportURF(ZDataBuffer*pUniversal) const;
+    size_t        _exportURF(ZDataBuffer &pUniversal) const;
     size_t        _exportURF_Ptr(unsigned char*& pURF) const;
 
     size_t        getURFSize() const;
+    size_t        getURFHeaderSize() const;
+    size_t        getUniversalSize() const;
 
-    ZStatus       _importURF(const unsigned char* &pUniversal);
+    ssize_t _importURF(const unsigned char* &pUniversal);
 
     bool operator == (const md5 *pChecksum) const {return (memcmp(content,pChecksum->content,sizeof(content))==0);}
     bool operator == (const md5 &pChecksum) const {return (memcmp(content,pChecksum.content,sizeof(content))==0);}
     bool operator != (const md5 &pChecksum) const {return !(memcmp(content,pChecksum.content,sizeof(content))==0);}
-    bool operator == (const char* pInput)   const {return(::strncmp(toHexa().toChar(),pInput,cst_md5Hexa));}
+    bool operator == (const char* pInput) ;
 };
 
 

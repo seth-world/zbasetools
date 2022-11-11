@@ -916,7 +916,7 @@ template <class _Utf>
  * @param pDataIn       Input _Utf data to copy
  * @param pInSize       Maximum number of character units to copy from pDataIn
  */
-void utfSetReverse(_Utf*pStringOut,const _Utf*pDataIn,const size_t pInCount)
+void utfSetReverse(_Utf*&pStringOut,const _Utf*&pDataIn,const size_t pInCount)
 {
     size_t wi=0;
     if (!pStringOut)

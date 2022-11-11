@@ -44,6 +44,10 @@ ZTime ZTimer::getDeltaTime(void)
 {
         return EndTime-BeginTime;
 }
+ZTime ZTimer::getElapsed(void)
+{
+  return EndTime-BeginTime;
+}
 void
 ZTimer::addDeltaTime (ZTimer &pTimer1)
 {
@@ -55,7 +59,7 @@ ZTimer::addDeltaTime (ZTimer &pTimer1)
  * Delta time is reported under format "hh:mm:ss-ms.mms"
  * @return
  */
-utfdescString
+utf8VaryingString
 ZTimer::reportDeltaTime (void)
 {
     return reportZTime(DeltaTime);
@@ -67,8 +71,7 @@ ZTimer::reportDeltaTime (void)
  * Time is reported under format "hh:mm:ss-ms.mms"
  * @return
  */
-utfdescString
-ZTimer::reportBeginTime (void)
+utf8VaryingString ZTimer::reportBeginTime(void)
 {
     return reportZTime(BeginTime) ;
 } //reportBeginTime
@@ -77,7 +80,7 @@ ZTimer::reportBeginTime (void)
  * Time is reported under format "hh:mm:ss-ms.mms"
  * @return
  */
-utfdescString
+utf8VaryingString
 ZTimer::reportEndTime (void)
 {
     return reportZTime(EndTime) ;
@@ -89,7 +92,7 @@ ZTimer::reportEndTime (void)
  *
  * @return
  */
-utfdescString
+utf8VaryingString
 ZTimer::reportZTime (ZTime & pTime)
 {
 double wDelta , wDeltams,wDeltamms, wDeltans , wRemain ;
@@ -127,13 +130,10 @@ short int whh , wmm, wss, wms , wmms , wns;
 //    wmms = (short int) ((wDeltans/1000.0)-(wms*1000000.0)); // microseconds
 //    wns = (short int) (wDeltans-(wms*1000000.0)-(wmms*1000.0)); // nanoseconds
 
-    utfdescString pReport;
+    utf8VaryingString wReport;
+    wReport.sprintf("%02d:%02d:%02d-%03d.%03d.%03d", whh,wmm,wss,wms,wmms,wns);
 
-    sprintf((char*)pReport.content,"%02d:%02d:%02d-%03d.%03d.%03d",
-            whh,wmm,wss,wms,wmms,wns);
-//    pReport.sprintf ("%02d:%02d:%02d-%03d.%03d.%03d",
-//                                         whh,wmm,wss,wms,wmms,wns);
-    return pReport;
+    return wReport;
 } //reportZTime
 
 

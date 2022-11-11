@@ -299,7 +299,9 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/zhtmlreport.h \
     $$TOOLSET_BASE/ztoolset/zstatus.h \
     $$TOOLSET_BASE/zxml/zxmlprimitives.h \
-    ../ztoolset/utfvstrings.h
+    ../ztoolset/utfvstrings.h \
+    ../ztoolset/zdatefull.h \
+    ../ztoolset/ztoolset_release.h
 
 
 
@@ -320,6 +322,7 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/zxml/zxmlprimitives.cpp \
     ../zthread/zarglist.cpp \
     ../ztoolset/zarray.cpp \
+    ../ztoolset/zdatefull.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
     $$TOOLSET_BASE/zthread/zmutex.cpp \

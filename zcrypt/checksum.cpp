@@ -2,14 +2,8 @@
 #define CHECKSUM_CPP
 
 #include <zcrypt/checksum.h>
-//#include <ztoolset/uristring.h>
-//#include <ztoolset/zexceptionmin.h>
 #include <cstdio>
-//#include <ztoolset/utfvtemplatestring.h>
-//#include <ztoolset/zutfstrings.h>
 #include <stdint.h>
-
-#include <openssl/sha.h>  // required for checksum
 
 #include <ztoolset/zdatabuffer.h>
 #include <ztoolset/zerror.h>
@@ -96,16 +90,25 @@ checkSum::compareHexa(const char* pDesc)
 }
 
 
-CharMan checkSum::toHexa(void) const
+utf8VaryingString checkSum::toHexa(void) const
 {
-  CharMan wH;
-int wi;
-    for(wi = 0; wi < cst_checksum; wi++)
+  utf8VaryingString wH;
+    wH.allocateUnitsBZero((cst_checksum*2)+1);
+  int wi=cst_checksum;
+  utf8_t* wPtr=wH.Data;
+  while (wi--) {
+    utfSprintf(ZCHARSET_UTF8,wPtr,(const utf8_t*)"%02X",(unsigned int)content[wi]);
+    wPtr += 2 ;
+  }
+/*    for(wi = 0; wi < cst_checksum; wi++)
         std::sprintf(&wH.content[wi*2],"%02X", (unsigned int)content[wi]);
-    return(wH);
+*/
+  return(wH);
 }
 
-
+bool checkSum::operator == (const char* pInput) {
+  return(::strncmp(toHexa().toCChar(),pInput,cst_checksumHexa));
+}
 
 checkSum& checkSum::_copyFrom(const checkSum &pIn)
 {
@@ -124,28 +127,28 @@ checkSum& checkSum::_copyFrom(const checkSum &pIn)
  * @param pUniversal
  * @return
  */
-ZDataBuffer*
-checkSum::_exportURF(ZDataBuffer*pUniversal) const
+size_t
+checkSum::_exportURF(ZDataBuffer& pUniversal) const
 {
-ZTypeBase wType=ZType_CheckSum;
-size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
 
-    pUniversal->extend(wUniversalSize);
-                                                    // URF Header is
-    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);    // ZTypeBase in reverseOrder if LE (if little endian)
+size_t wUniversalSize=cst_checksum+sizeof(ZTypeBase);
 
-    memmove(pUniversal->Data,&wType,sizeof(ZTypeBase));
-    memmove((pUniversal->Data+sizeof(wType)),content,cst_checksum); // no reverse : checksum is Endian free
-    return pUniversal;
+unsigned char* wPtr=pUniversal.extend(wUniversalSize);
+
+    _exportAtomicPtr<ZTypeBase>(ZType_CheckSum,wPtr);
+    pUniversal.extend(wUniversalSize);
+
+    memmove(wPtr,content,cst_checksum); // no reverse : checksum is Endian free
+    return wUniversalSize;
 }
 size_t
 checkSum::_exportURF_Ptr(unsigned char*& pURF) const
 {
-  ZTypeBase wType=ZType_CheckSum;
   size_t wUniversalSize=sizeof(content)+sizeof(ZTypeBase);
 
   _exportAtomicPtr<ZTypeBase>(ZType_CheckSum,pURF);
   memmove((pURF),content,cst_checksum); // no reverse : checksum is Endian free
+  pURF += cst_checksum;
   return wUniversalSize;
 }
 
@@ -153,8 +156,15 @@ size_t
 checkSum::getURFSize() const {
   return sizeof(ZTypeBase) + cst_checksum ;
 }
-
-ZStatus
+size_t
+checkSum::getURFHeaderSize() const {
+  return sizeof(ZTypeBase) ;
+}
+size_t
+checkSum::getUniversalSize() const {
+  return cst_checksum ;
+}
+ssize_t
 checkSum::_importURF(const unsigned char* &pUniversal)
 {
 ZTypeBase   wType;
@@ -173,8 +183,8 @@ ZTypeBase   wType;
         return ZS_INVTYPE;
         }
     memmove(content,(pUniversal+sizeof(ZTypeBase)),cst_checksum);
-
-    return ZS_SUCCESS;
+    pUniversal += cst_checksum + sizeof(ZTypeBase);
+    return ssize_t(cst_checksum + sizeof(ZTypeBase));
 }// _importURF
 
 ZStatus

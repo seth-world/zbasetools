@@ -216,13 +216,13 @@ public:
 
 //    void printExceptionContent(FILE *pOutput=stderr);
 
-    utf8String formatFullUserMessage (bool pEndNL=true);
+    utf8VaryingString formatFullUserMessage (bool pEndNL=true);
 
 //    void setFromZNetException(const char *pModule, const ZNetException* pZException);
 
 //    ZExceptionBase &operator = (const ZExceptionBase &pZException) {memmove (this,&pZException,sizeof(ZExceptionBase)); return(*this);}
 
-    utf8String formatUtf8 (void);
+    utf8VaryingString formatUtf8 (void);
 
 #ifdef __COMMENT__
 #ifdef QT_CORE_LIB

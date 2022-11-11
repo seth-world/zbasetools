@@ -280,6 +280,15 @@ void ZaiErrors::_print(const char* pFormat,...)
   }
   _displayCallback(wOut);
 }
+void ZaiErrors::popContext() {
+  if (Context.count()>0) {
+    Context.pop();
+    if (Context.count()==0)
+      textLog("            Restoring context to <top>");
+    else
+      textLog("            Restoring context to <%s>",Context.last().toCChar());
+  }
+}
 
 void ZaiErrors::_print(const utf8VaryingString& pOut)
 {
@@ -316,7 +325,7 @@ void ZaiErrors::textLog(const char* pFormat,...)
   va_start (args, pFormat);
   push(new ZaiError(ZAIES_Text,pFormat,args));
 
-  if (ZAIES_Text >= AutoPrint)
+  if (AutoPrint <= ZAIES_Text )
     _print("%s",last()->Message());
 
   va_end(args);

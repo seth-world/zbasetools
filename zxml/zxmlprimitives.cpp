@@ -3,6 +3,7 @@
 
 #include <zxml/zxmlprimitives.h>
 #include <ztoolset/utfvaryingstring.h>
+#include <ztoolset/zdate.h>
 
 using namespace zbs;
 
@@ -344,6 +345,27 @@ utf8VaryingString fmtXMLbool(const utf8VaryingString &pVarName,const bool pVarCo
     return utf8VaryingString(wBuffer);
 }
 
+utf8VaryingString fmtXMLdate(const utf8VaryingString &pVarName,const ZDate pVarContent, const int pLevel)
+{
+  int wIndent=pLevel*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+  sprintf (wBuffer,
+      "%*c<%s>%s</%s>\n",
+      wIndent,' ',pVarName.toCChar(),pVarContent.toUTC().toString(),pVarName.toCChar());
+  return utf8VaryingString(wBuffer);
+}
+utf8VaryingString fmtXMLdatefull(const utf8VaryingString &pVarName,const ZDateFull pVarContent, const int pLevel)
+{
+  int wIndent=pLevel*cst_XMLIndent;
+  char wBuffer[500];
+  memset (wBuffer,0,sizeof(wBuffer));
+  sprintf (wBuffer,
+      "%*c<%s>%s</%s>\n",
+      wIndent,' ',pVarName.toCChar(),pVarContent.toUTC().toString(),pVarName.toCChar());
+  return utf8VaryingString(wBuffer);
+}
+
 ZStatus
 XMLgetChildText (zxmlElement*pElement,const utf8VaryingString& pChildName,utf8String& pTextValue,ZaiErrors* pErrorlog,ZaiE_Severity pSeverity)
 {
@@ -466,7 +488,34 @@ XMLgetChildVersion (zxmlElement*pElement,const utf8VaryingString& pChildName,uns
 
   pVersion=getVersionNum(wValue);
   return ZS_SUCCESS;
-} //XMLgetChildULong
+} //XMLgetChildVersion
+
+
+ZStatus
+XMLgetChildZDate(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDate &pDate, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity)
+{
+  ZStatus wSt;
+  utf8VaryingString wValue;
+
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
+
+  pDate.fromUTC (wValue);
+  return ZS_SUCCESS;
+} //XMLgetChildZDate
+
+ZStatus
+XMLgetChildZDateFull(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDateFull &pDateFull, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity)
+{
+  ZStatus wSt;
+  utf8VaryingString wValue;
+
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
+
+  pDateFull.fromUTC (wValue);
+  return ZS_SUCCESS;
+} //XMLgetChildZDate
 
 ZStatus
 XMLgetChildIntHexa (zxmlElement*pElement,const utf8VaryingString & pChildName,int &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
@@ -596,7 +645,7 @@ utf8VaryingString fmtXMLmd5(const utf8VaryingString &pVarName, const md5& pVarCo
 
   sprintf (wBuffer,
       "%*c<md5>%s</md5>\n",
-      wIndent,' ',pVarContent.toHexa().toChar());
+      wIndent,' ',pVarContent.toHexa().toCChar());
 
   wReturn += wBuffer;
 
@@ -614,7 +663,7 @@ utf8VaryingString fmtXMLcheckSum(const utf8VaryingString &pVarName, const checkS
 
   sprintf (wBuffer,
       "%*c<checksum>%s</checksum>\n",
-      wIndent,' ',pVarContent.toHexa().toChar());
+      wIndent,' ',pVarContent.toHexa().toCChar());
 
   wReturn += wBuffer;
 

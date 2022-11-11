@@ -155,7 +155,7 @@ typedef     utfKeyContent       _BaseKey;
     inline utfKey* fromLatin1(char *pInString)
                         {
 // need to import from various ZCharset (Latin1,...)
-                        if (_BaseString::fromLatin1(pInString)==nullptr)
+                        if (_BaseString::fromLatin1(pInString).isEmpty())
                                                             {return  nullptr;}
                         return this;
                         }

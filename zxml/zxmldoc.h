@@ -85,7 +85,7 @@ public:
      */
     ZStatus logicalDump(FILE*pOutput,int pSpaceIndent=4);
 
-    void setURI (const char* pFileName) {URIDocFile=(const utf8_t*)pFileName;}
+    void setURI (const char* pFileName) {URIDocFile=pFileName;}
 
     /** Nota bene :
      * encoding parameter is defined by a string "utf8","utf16",...

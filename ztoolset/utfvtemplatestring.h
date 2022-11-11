@@ -140,6 +140,8 @@ public:
       CheckData();
     }
 
+//    ZBool getLittleEndian() const { return littleEndian;}
+
     friend class ZDBiterator ;
     //
     // \brief setData
@@ -413,6 +415,51 @@ public:
     return *this;
   }//eliminateChar
 
+  utfVaryingString& shiftRight(size_t pOffset,size_t pCount) {
+
+    size_t wInitLen = strlen();
+    if (UnitCount < (wInitLen + pCount + 1) ) {
+        extendUnits((wInitLen + pCount + 1) - UnitCount);
+    }
+    /* effective shift to destination */
+    _Utf* wLimit = Data + pOffset;
+    _Utf* wPtrSrc = Data + wInitLen;
+    _Utf* wPtrDest = Data + wInitLen + pCount;
+    while (wPtrSrc > wLimit) {
+      *wPtrDest-- = *wPtrSrc--;
+    }
+    /* then fill freed space with blank */
+    while (wPtrDest > wLimit) {
+      *wPtrDest-- = _Utf(' ');
+    }
+  } // shiftRight
+  utfVaryingString& move(const utfVaryingString& pToInsert,size_t pOffset) {
+
+    size_t wInitLen = strlen();
+    size_t wMoveLen = pToInsert.strlen();
+    if (UnitCount < (pOffset + wMoveLen + 1) ) {
+      extendUnits((pOffset + wMoveLen + 1) );
+    }
+    /* effective move to destination */
+    _Utf* wPtrSrc = pToInsert.Data ;
+    _Utf* wPtrDest = Data + pOffset ;
+    while (*wPtrSrc) {
+      *wPtrDest++ = *wPtrSrc++ ;
+    }
+    return *this;
+  } // move
+
+  utfVaryingString& insert(const utfVaryingString& pToInsert,size_t pOffset)
+  {
+    size_t wInitLen = strlen();
+    if (pOffset >= wInitLen) {
+      add(pToInsert) ;
+      return *this;
+    }
+    shiftRight(pOffset,pToInsert.strlen());
+    return move(pToInsert,pOffset);
+  } // insert
+
 /** @brief replace() replaces all occurrences of string pToBeReplaced by string pReplace */
 
   utfVaryingString& replace(const _Utf* pToBeReplaced, const _Utf* pToReplace)
@@ -654,6 +701,10 @@ public:
 //    int ncompare(const _Utf* pString2,size_t pCount) {return utfStrncmp<_Utf>(Data,pString2,pCount);}/** corresponds to strncmp */
     int compare(const _Utf* pString2) const ;                      /* corresponds to strcmp */
 
+    int compare(const utfVaryingString<_Utf> & pString2) const {
+      return compare(pString2.Data);
+    }
+
     /* following is set to able to compare any utf varying string with a char string : it will be set within derived classes */
     template <class _Utf1>
     int compareV(const _Utf1* pString2) const
@@ -679,6 +730,8 @@ public:
     int ncompare(const utfVaryingString<_Utf> & pString2,size_t pCount) const {
       return ncompare(pString2.Data,pCount);
     }
+
+
     ssize_t strlen() const {return (utfStrlen<_Utf>(Data));}
 
     const _Utf* toString() const ;
@@ -842,6 +895,7 @@ public:
         return nullptr;
       return utfStrstr<_Utf>(Data,pSubstring);
     }
+
     /** @brief strstr_o() finds first _Utf substring within current string.
     *  returns the offset to char position,  -1 if not found or if string is empty */
     long strstr_o(const _Utf *pSubstring) const
@@ -926,7 +980,7 @@ public:
 
 //------------------ operator overloads  ------------------------------------------------
 
-    _Utf operator [] (const size_t pIdx) const  { if(pIdx>getUnitCount()) abort(); return (Data[pIdx]);}
+    _Utf& operator [] (const size_t pIdx) const  { if(pIdx>getUnitCount()) abort(); return (Data[pIdx]);}
 
     void setCharacter(size_t pIdx,_Utf pChar) {if(pIdx>getUnitCount()) abort(); Data[pIdx]=pChar; }
 
@@ -975,11 +1029,51 @@ public:
      {
          return utfStrtoul<_Utf>(Data,nullptr,pBase);
      }
-
-    ZDataBuffer*  _exportURF(ZDataBuffer *pURF) const;
+     /**
+ * @brief _exportURF export current varying utf string into an URF format.
+ *  Container used is a ZDataBuffer that may be provided by calling procedure.
+ *  Universal Record Format is ALWAYS big endian regardless what platform is used.
+ *
+ *  URF format for an utf Varying string.
+ *  URF header depends on the type of object given by the first header information : ZTypeBase (ZType_type)
+ *  for an utfVaryingString, header is as follows
+ *
+ *  URF data is converted to Universal format.
+ *  Universal format is big endian with special encoding for atomic data that allows to sort on the whole data in a coherent, simple maner.
+ *
+ *header :
+ *   - ZTypeBase : ZType_utf8VaryingString, ZType_utf16VaryingString,... Gives the Character Unit size with ZType_AtomicMask
+ *   - URF_Capacity_type (uint16_t) capacity of fixed string in character units
+ *   - URF_Varying_Size_type (uint16_t) number of character units effectively contained within the string (and not number of bytes)
+ *
+ *  see <ZType_Type vs Header sizes> in file <zindexedfiles/znaturalfromurf.cpp>
+ *data :
+ *  a suite of _Utf character unit sequense up to number of characters units.
+ *  _Utf character units are converted to big endian if necessary.
+ *
+ * limits :
+ *
+ *  Maximum size is in bytes :      	18446744073709551615 (2^64-1)
+ *
+ * @param pURF  a ZDataBuffer that will contain URF data in return.
+ * @return full size of exported data
+ */
+    size_t        _exportURF(ZDataBuffer& pURF) const;
+    /**
+     * @brief _exportURF_Ptr same as _exportURF but pURF must point onto a validly allocated buffer with enough space - see getURFSize().
+     *        space is not controlled.
+     *        pURF is updated to point the end of exported data.
+     * @param pURF
+     * @return  full size of exported data
+     */
     size_t        _exportURF_Ptr(unsigned char* &pURF) const;
+    /**
+     * @brief getURFSize returns the full byte size requested for exporting current string including its URF header.
+     */
     size_t        getURFSize() const ;
-    size_t        _importURF(const unsigned char *&pURF);
+    static size_t getURFHeaderSize() ;
+    size_t        getUniversalSize() const;
+    ssize_t        _importURF(const unsigned char *&pURF);
 
      /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
      *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
@@ -1352,9 +1446,11 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
 protected:
     utfStrCtx   Context;
     ZBool       WarningSignal=false;
-    ZBool       littleEndian=false;  // RFFU:this induce we might have native strings with endianness different from system default
 
     utfKey*     SortKey=nullptr;
+//public:
+//    ZBool       littleEndian=false;  // RFFU:this induce we might have native strings with endianness different from system default
+
 }; // utfVaryingString
 
 template <class _Utf>
@@ -1492,10 +1588,15 @@ utfVaryingString<_Utf>&
 utfVaryingString<_Utf>::strset ( const _Utf *wSrc)
 {
 
-  ssize_t wCount=utfStrlen<_Utf>(wSrc);
-  if (!wCount)
+  if (!wSrc) {
+    clear();
     return *this;
-
+  }
+  ssize_t wCount=utfStrlen<_Utf>(wSrc);
+  if (!wCount) {
+    clear();
+    return *this;
+  }
   _Utf* wPtr=allocateUnits(wCount+1);
   while (*wSrc)
       {
@@ -2659,54 +2760,64 @@ template <class _Utf>
  *  Maximum size is in bytes :      	18446744073709551615 (2^64-1)
  *
  * @param pURF  a ZDataBuffer that will contain URF data in return.
- * @return
+ * @return full size of exported data
  */
-ZDataBuffer*
-utfVaryingString<_Utf>::_exportURF(ZDataBuffer *pURF) const
+size_t
+utfVaryingString<_Utf>::_exportURF(ZDataBuffer &pURF) const
 {
 unsigned char* wURF_Ptr;
-    URF_Varying_Size_type wByteSize=(URF_Varying_Size_type)ByteSize;
+//URF_Varying_Size_type wByteSize=URF_Varying_Size_type(strlen());
+  size_t wUnitCount=strlen();
+  size_t wByteSize = wUnitCount*sizeof(_Utf);
+  wURF_Ptr=pURF.extendBZero(wByteSize+sizeof(ZTypeBase)+sizeof(URF_UnitCount_type));
 
-    wURF_Ptr=pURF->allocateBZero(wByteSize+sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type));
+  wURF_Ptr=setURFBufferValue<ZTypeBase>(wURF_Ptr,ZType);
+  wURF_Ptr=setURFBufferValue<URF_UnitCount_type>(wURF_Ptr,URF_UnitCount_type(wUnitCount));
+  _Utf* wPtr=(_Utf*)wURF_Ptr;
+  const _Utf* wPtrIn=(_Utf*)DataByte;
+  utfSetReverse<_Utf>(wPtr,wPtrIn,(const size_t)wUnitCount);// string length in character units
 
-    wURF_Ptr=setURFBufferValue<ZTypeBase>(wURF_Ptr,ZType);
-    wURF_Ptr=setURFBufferValue<URF_Varying_Size_type>(wURF_Ptr,wByteSize);
-
-   utfSetReverse<_Utf>((_Utf*)wURF_Ptr,
-                           (_Utf*) DataByte,
-                           (const size_t)getUnitCount());// character units count
-
-   return pURF;
+   return wByteSize+sizeof(ZTypeBase)+sizeof(URF_UnitCount_type);
 }//_exportURF
 
 template <class _Utf>
 size_t
 utfVaryingString<_Utf>::_exportURF_Ptr(unsigned char* &pURF) const
 {
-  unsigned char* wURF_Ptr;
-  URF_Varying_Size_type wByteSize=(URF_Varying_Size_type)ByteSize;
-
-//  wURF_Ptr=pURF->allocateBZero(wByteSize+sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type));
+  size_t wEffectiveUnitCount=strlen();
+  size_t wByteSize = wEffectiveUnitCount*sizeof(_Utf);
+  URF_UnitCount_type wUnitsCount = URF_UnitCount_type(wEffectiveUnitCount);
 
   _exportAtomicPtr<ZTypeBase>(ZType,pURF);
-  _exportAtomicPtr<URF_Varying_Size_type>(wByteSize,pURF);
+  _exportAtomicPtr<URF_UnitCount_type>(URF_UnitCount_type(wUnitsCount),pURF);
 
-  utfSetReverse<_Utf>((_Utf*)pURF,
-      (_Utf*) Data,
-      (const size_t)getUnitCount());// character units count
+  _Utf* wPtr=(_Utf*)pURF;
+  const _Utf* wPtrIn=(_Utf*)DataByte;
+  utfSetReverse<_Utf>(wPtr,wPtrIn,wEffectiveUnitCount);// string length in character units
 
-  pURF += getByteSize();
+  pURF = (unsigned char*)wPtr ;
 
-  return sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type)+getByteSize();
+  return wByteSize+sizeof(ZTypeBase)+sizeof(URF_UnitCount_type);
 }//_exportURF
+
 
 template <class _Utf>
 size_t
 utfVaryingString<_Utf>::getURFSize() const {
-  return sizeof(ZTypeBase)+sizeof(URF_Varying_Size_type) + ByteSize ;
+  return sizeof(ZTypeBase)+sizeof(URF_UnitCount_type) + (strlen()*sizeof(_Utf)) ;
 }
 
+template <class _Utf>
+size_t
+utfVaryingString<_Utf>::getURFHeaderSize()  {
+  return sizeof(ZTypeBase)+sizeof(URF_UnitCount_type) ;
+}
 
+template <class _Utf>
+size_t
+utfVaryingString<_Utf>::getUniversalSize() const {
+  return (strlen()*sizeof(_Utf)) ;
+}
 /**
  * @brief utfVaryingString<_Utf>::_importURF imports URF data from pURF and feeds current utfVaryingString object.
  * @param pUniversal a pointer to URF header data
@@ -2714,48 +2825,48 @@ utfVaryingString<_Utf>::getURFSize() const {
  */
 
 template <class _Utf>
-size_t utfVaryingString<_Utf>::_importURF(const unsigned char* &pURF)
+ssize_t utfVaryingString<_Utf>::_importURF(const unsigned char* &pURF)
 {
 ZTypeBase               wType=ZType_Nothing;
-URF_Varying_Size_type   wUniversalSize=0;
+URF_UnitCount_type      wUnitCount=0;
 _Utf*                   wPtrOut=nullptr;
 size_t                  wUnits=0;
 size_t                  wTotalSize=0;
 
   errno=0;
-//    pURF=getURFBufferValue<ZTypeBase>(&wType,pURF);
 
     wTotalSize += _importAtomic<ZTypeBase>(wType,pURF);
 
 /* ZType control */
   if (wType!= getZType())
       {
-      fprintf (stderr,"utfVaryingString::_importURF-E-IVTYP Invalid URF type <%s> while expecting <%s>.\n",
-                          decode_ZType(wType),
-                          decode_ZType(getZType()));
+      fprintf (stderr,"utfVaryingString::_importURF-E-IVTYP Invalid URF type %X <%s> while expecting %X <%s>.\n",
+              wType,
+              decode_ZType(wType),
+              getZType(),
+              decode_ZType(getZType()));
       errno=EPERM;
-      return 0;
+      return -1;
       }
 
-  wTotalSize += _importAtomic<URF_Varying_Size_type>(wUniversalSize,pURF);
-//    pURF=getURFBufferValue<URF_Varying_Size_type>(&wUniversalSize,pURF);
+  wTotalSize += _importAtomic<URF_UnitCount_type>(wUnitCount,pURF);
 
-
-  wPtrOut=allocateBytes(wUniversalSize+sizeof(_Utf));
+  wPtrOut=allocateBytes(wUnitCount+sizeof(_Utf));
   _Utf* wPtrIn=(_Utf*)pURF;
-  wUnits=wUniversalSize/sizeof(_Utf);
+  wUnits = wUnitCount ;
   int wi=0;
   if (sizeof(_Utf)==1)
-    while (wi++ < wUnits)
+    while (wi++ < wUnitCount)
       *wPtrOut++=*wPtrIn++;
   else
     while (wi++ < wUnits)
       *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
 
   *wPtrOut=0;
-  wTotalSize += wUniversalSize;
+  wTotalSize += wUnitCount * sizeof(_Utf) ;
 
-  return wTotalSize;
+  pURF = (const unsigned char*)wPtrIn;
+  return ssize_t(wTotalSize);
 }// _importURF
 
 
@@ -2997,7 +3108,7 @@ ZStatus
 utfVaryingString<_Utf>::getUniversalFromURF(ZTypeBase pType, const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut)
 {
 
- URF_Varying_Size_type wEffectiveUSize ;
+ URF_UnitCount_type wEffectiveUSize ;
  ZTypeBase wType;
  const unsigned char* wURFDataPtr = pURFDataPtr;
 
@@ -3015,9 +3126,9 @@ utfVaryingString<_Utf>::getUniversalFromURF(ZTypeBase pType, const unsigned char
          return  ZS_INVTYPE;
          }
 
-    memmove (&wEffectiveUSize,wURFDataPtr,sizeof(URF_Varying_Size_type));        // first is URF byte size (excluding URF header size)
-    wEffectiveUSize=reverseByteOrder_Conditional<URF_Varying_Size_type>(wEffectiveUSize);
-    wURFDataPtr += sizeof (URF_Varying_Size_type);
+    memmove (&wEffectiveUSize,wURFDataPtr,sizeof(URF_UnitCount_type));        // first is URF byte size (excluding URF header size)
+    wEffectiveUSize=reverseByteOrder_Conditional<URF_UnitCount_type>(wEffectiveUSize);
+    wURFDataPtr += sizeof (URF_UnitCount_type);
 
     pUniversal.allocateBZero((wEffectiveUSize)); // string must have characters count allocated
 

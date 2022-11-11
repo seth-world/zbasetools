@@ -216,16 +216,30 @@ public:
 
     template <class _Utf>
     ZDataBuffer&
-    setUtfString(const _Utf* pIn)
-    {
+    setUtfString(const _Utf* pIn) {
       size_t wLen=0;
       while (pIn[wLen])
         wLen++;
-      allocate(wLen*sizeof(_Utf));
+      allocate((wLen+1)*sizeof(_Utf));
       _Utf* wPtr=(_Utf*)DataChar;
       size_t wL=0;
       while (wL<wLen)
         *wPtr++=pIn[wL++];
+      *wPtr=0;
+      return *this;
+    }
+
+    ZDataBuffer&
+    setUtf8String(const utf8_t* pIn) {
+      size_t wLen=0;
+      while (pIn[wLen])
+        wLen++;
+      allocateBZero(wLen+1);
+      utf8_t* wPtr=(utf8_t*)DataChar;
+      size_t wL=0;
+      while (wL<wLen)
+        *wPtr++=pIn[wL++];
+      *wPtr=0;
       return *this;
     }
 
@@ -721,6 +735,12 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
 
     void Dump(const char*pFilePath,const int pColumn=16,ssize_t pLimit=-1);
 
+    size_t        _exportURF(ZDataBuffer &pURF) const;
+    size_t        _exportURF_Ptr(unsigned char* &pURF) const;
+    ssize_t       _importURF(const unsigned char *&pURF) ;
+    size_t        getURFSize() const ;
+    size_t        getURFHeaderSize() const;
+
 }; // ZDataBuffer
 
 
@@ -728,17 +748,6 @@ int rulerSetup (ZDataBuffer &pRulerHexa, ZDataBuffer &pRulerAscii,int pColumn);
 
 template <typename _Tp>
 zbs::ZArray<_Tp>& ZDataBufferToZArray (ZDataBuffer &pDataBuffer,zbs::ZArray<_Tp> &pZArray);
-
-class ZBlob :public ZDataBuffer
-{
-public:
-    ZBlob(){}
-    ZBlob (const ZBlob&) = delete;                  // cannot copy
-    ZDataBuffer *_exportURF(ZDataBuffer *pUniversal);
-    ZStatus _importURF(const unsigned char *pUniversal);
-    static ZStatus getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const unsigned char **pURFDataPtrOut=nullptr);
-
-};//ZBlob
 
 
 template <class _TpIn , class _TpOut>

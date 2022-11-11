@@ -1,11 +1,19 @@
 #ifndef ZTIME_CPP
 #define ZTIME_CPP
-#include "string.h"
-#include <ztoolset/ztime.h>
-#include <cstdio>
-#include <ztoolset/zerror.h>
 
+#include "ztime.h"
+
+#ifndef __USE_WINDOWS__
+#include <unistd.h>
+#endif
+
+#include <string.h>
+#include <cstdio>
+
+#include <ztoolset/zerror.h>
 #include <ztoolset/zdatabuffer.h>
+
+#include <ztoolset/utfvaryingstring.h>
 
 /**
  * @brief ZTime::absoluteFromDelay
@@ -21,9 +29,7 @@ ZTime::absoluteFromDelay(ZTime pDelay)
 }//ZTimeFromDelay
 
 
-#ifndef __USE_WINDOWS__
-#include <unistd.h>
-#endif
+
 
 void zsleep (unsigned long pMilliseconds)
 {
@@ -105,7 +111,7 @@ clock_gettime(int X, struct timespec *tv)
 
 #endif // __USE_WINDOWS__
 
-char* ZTime::toString(char* pBuf,unsigned int pLen, const char* pFormat,ZDelayPrecision_type pDelayType) {
+char* ZTime::toString(char* pBuf,size_t pLen, const char* pFormat,ZDelayPrecision_type pDelayType) {
 //        int timespec2str(char *buf, uint len, struct timespec *ts) {
         int wRet;
         struct tm t;
@@ -136,13 +142,13 @@ char* ZTime::toString(char* pBuf,unsigned int pLen, const char* pFormat,ZDelayPr
 
         if (pDelayType>ZDPT_Seconds)
         {
-        wRet = snprintf(&pBuf[strlen(pBuf)], pLen, ".%03ld", wMilli);
+        wRet = snprintf(&pBuf[strlen(pBuf)], pLen, ".%03d", wMilli);
         if (pDelayType>ZDPT_Milliseconds)
         {
-        wRet = snprintf(&pBuf[strlen(pBuf)], pLen, ".%03ld", wMicro );
+        wRet = snprintf(&pBuf[strlen(pBuf)], pLen, ".%03d", wMicro );
         if (pDelayType>ZDPT_Microseconds)
         {
-        wRet = snprintf(&pBuf[strlen(pBuf)], pLen, ".%03ld", wNano );
+        wRet = snprintf(&pBuf[strlen(pBuf)], pLen, ".%03d", wNano );
         }
         }
         }
@@ -153,13 +159,66 @@ char* ZTime::toString(char* pBuf,unsigned int pLen, const char* pFormat,ZDelayPr
 
 }
 
+long long
+ZTime::toMilliseconds (void)
+{long long wT;
+  wT=(long long)(tv_nsec/1000000);
+  wT+=(long long)(tv_sec*1000);
+  return wT;
+}
+
+long long
+ZTime::toMicroseconds (void)
+{long long wT=(long long)(tv_sec*cst_nanoconvert);
+  wT+=(long long)(tv_nsec/1000);
+  return wT;
+}
+long long
+ZTime::toNanoseconds (void)
+{long long wT=tv_sec;
+  wT= wT*(long long)cst_nanoconvert;
+  wT+=tv_nsec;
+  return wT;
+}
+
+
+
+ZTime & ZTime::fromNanoseconds(long long pNanos)
+{
+  tv_sec=pNanos/(long long)cst_nanoconvert;
+  tv_nsec=pNanos-(tv_sec*(long long)cst_nanoconvert);
+  return *this;
+}
+ZTime & ZTime::fromMicroseconds(long long pMicros)
+{
+  tv_sec=pMicros/(long long)1000000;
+  tv_nsec=pMicros-(long long)(tv_sec*1000);
+  return *this;
+}
+ZTime & ZTime::fromMilliseconds(long long pMillis)
+{
+  tv_sec=pMillis/(long long)1000;
+  tv_nsec=pMillis-(tv_sec*1000000);
+  return *this;
+}
+
+/*
+utf8VaryingString
+ ZTime::toString(const char* pFormat,ZDelayPrecision_type pDelayType)
+{
+  utf8VaryingString wReturn;
+  wReturn.allocateUnitsBZero(150);
+  toString((char*)wReturn.Data,wReturn.getUnitCount(),pFormat,pDelayType);
+  return wReturn;
+}
+*/
+
 CharMan ZTime::toString(const char* pFormat,ZDelayPrecision_type pDelayType)
 {
   CharMan wReturn;
-  toString(wReturn.content,wReturn.Maxlen(),pFormat,pDelayType);
+  toString(wReturn.content,wReturn.getUnitCount(),pFormat,pDelayType);
   return wReturn;
 }
-
 
 char* ZTime::delaytoString(char* pBuf,unsigned int pLen,ZDelayPrecision_type pDelayType)
 {
@@ -251,6 +310,161 @@ const unsigned char *ZTime::_import(const unsigned char *&pPtrIn)
 
 
 
+ZTime ZTime::operator -  (ZTime &pTime)
+{
+  ZTime wDelta;
+  wDelta.tv_sec = tv_sec - pTime.tv_sec;
+
+  wDelta.tv_nsec = tv_nsec - pTime.tv_nsec;
+  if (wDelta.tv_nsec < 0)
+  {
+    wDelta.tv_sec --;
+    wDelta.tv_nsec = tv_nsec + cst_nanoconvert - pTime.tv_nsec;
+  }
+  return wDelta;
+}
+
+ZTime ZTime::getDelta(ZTime &&pDelta) {
+    ZTime wDelta;
+    wDelta.tv_sec = tv_sec - pDelta.tv_sec;
+
+    wDelta.tv_nsec = tv_nsec - pDelta.tv_nsec;
+    if (wDelta.tv_nsec < 0)
+    {
+      wDelta.tv_sec --;
+      wDelta.tv_nsec =cst_nanoconvert-pDelta.tv_nsec;
+      wDelta.tv_nsec +=tv_nsec;
+    }
+    return wDelta;
+}
+
+
+ZTime ZTime::operator+  (ZTime &pTi)
+{
+  ZTime wDelta;
+  wDelta.tv_sec = tv_sec+pTi.tv_sec;
+  wDelta.tv_nsec = tv_nsec+pTi.tv_nsec;
+  if (wDelta.tv_nsec>1000000000)
+  {
+    wDelta.tv_sec++;
+    wDelta.tv_nsec = wDelta.tv_nsec-cst_nanoconvert;
+  }
+  return wDelta;
+}
+
+
+
+
+
+
+ZTime ZTime::operator +=  (ZTime pTime)
+{
+  tv_sec = tv_sec+pTime.tv_sec;
+  tv_nsec = tv_nsec+pTime.tv_nsec;
+  if (tv_nsec > cst_nanoconvert)
+  {
+    tv_sec++;
+    tv_nsec = tv_nsec-cst_nanoconvert;
+  }
+  return *this;
+}
+
+ZTime ZTime::operator -=  (ZTime pTime) {
+  tv_sec = tv_sec - pTime.tv_sec;
+
+  if ((tv_nsec - pTime.tv_nsec) < 0)
+  {
+    tv_sec --;
+    tv_nsec = tv_nsec + cst_nanoconvert - pTime.tv_nsec;
+    tv_nsec += tv_nsec;
+  }
+  else
+    tv_nsec = tv_nsec - pTime.tv_nsec;
+  return *this;
+}
+
+ZTime ZTime::operator*  (int pMult)
+{
+  ZTime wResult;
+  double wmult = double(pMult);
+  double wsec = double(tv_sec);
+  double wnsec = double (tv_nsec);
+  wsec = wsec * wmult;
+
+  wResult.tv_sec = long(wsec);
+
+  wnsec = wnsec * wmult;
+  if (wnsec > 1000000000.0) {
+    long wS = long (wnsec / 1000000000.0) ;
+    wnsec = wnsec - (double(wS) * 1000000000.0);
+
+    wResult.tv_sec += wS ;
+  }
+  wResult.tv_nsec = long(wnsec);
+
+  return wResult;
+}
+
+ZTime ZTime::operator*  (double pMult)
+{
+  ZTime wResult;
+
+  double wsec = double(tv_sec);
+  double wnsec = double (tv_nsec);
+  wsec = wsec * pMult;
+
+  wResult.tv_sec = long(wsec);
+
+  wnsec = wnsec * pMult;
+  if (wnsec > 1000000000.0) {
+    long wS = long (wnsec / 1000000000.0) ;
+    wnsec = wnsec - (double(wS) * 1000000000.0);
+
+    wResult.tv_sec += wS ;
+  }
+  wResult.tv_nsec = long(wnsec);
+
+  return wResult;
+}
+
+ZTime ZTime::operator/  (int pDiv)
+{
+  ZTime wResult;
+  double wdiv = double(pDiv);
+  double wsec = double(tv_sec);
+  double wnsec = double (tv_nsec);
+
+  wsec = wsec / wdiv;
+
+  wResult.tv_sec = long(wsec);
+
+  wnsec = wnsec / wdiv;
+  wnsec = wnsec +(wsec - (double (long(wsec)) * 1000000000.0)) ;
+
+  wResult.tv_nsec = long(wnsec);
+
+  return wResult;
+}
+
+ZTime ZTime::operator/  (double pDiv)
+{
+  ZTime wResult;
+
+  double wsec = double(tv_sec);
+  double wnsec = double (tv_nsec);
+
+  wsec = wsec / pDiv;
+
+  wResult.tv_sec = long(wsec);
+
+  wnsec = wnsec / pDiv;
+  wnsec = wnsec +(wsec - ( double (long(wsec)) * 1000000000.0)) ;
+
+  wResult.tv_nsec = long(wnsec);
+
+  return wResult;
+}
+
 
 timeval setTimevalFromMicroSeconds(long pMicroseconds)
 {
@@ -278,5 +492,9 @@ long getMicroSecondsFromTimeval(timeval pTime)
 {
     return (long) ((pTime.tv_sec*1000000)+(pTime.tv_usec/1000));
 }
+
+
+
+
 
 #endif // ZTIME_CPP

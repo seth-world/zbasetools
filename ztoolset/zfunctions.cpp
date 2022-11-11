@@ -84,6 +84,9 @@ const char * decode_ZStatus (ZStatus ZS)
           return ("ZS_WARNING");
         case ZS_INVALIDSTATUS :
           return ("ZS_INVALIDSTATUS");
+        case ZS_TOBEDONE :
+          return ("ZS_TOBEDONE");
+
 
         case ZS_REJECTED :
           return ("ZS_REJECTED");
@@ -251,6 +254,9 @@ const char * decode_ZStatus (ZStatus ZS)
                     return ("ZS_FILENOTEXIST");
                 }
 
+        case ZS_FILEREPLACED : /* NOT AN ERROR: file has been replaced */
+          return ("ZS_FILEREPLACED");
+
         case ZS_EMPTYFILE :
                 {
                     return ("ZS_EMPTYFILE");
@@ -264,8 +270,14 @@ const char * decode_ZStatus (ZStatus ZS)
             {
                 return ("ZS_FILEPOSERR");
             }
+    case ZS_INVOPENMODE:
+      return ("ZS_INVOPENMODE");
+
     case ZS_INVBLOCKADDR:
       return ("ZS_INVBLOCKADDR");
+    case ZS_INVBLOCK:
+      return ("ZS_INVBLOCK");
+
     case ZS_CANTALLOCSPACE:
       return ("ZS_CANTALLOCSPACE");
 
@@ -322,9 +334,9 @@ const char * decode_ZStatus (ZStatus ZS)
             }
 
     case ZS_CORRUPTED :
-            {
                 return ("ZS_CORRUPTED");
-            }
+    case ZS_ENDIAN :
+      return ("ZS_ENDIAN");
 
     case ZS_CRYPTERROR :
             {

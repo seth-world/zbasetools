@@ -104,15 +104,20 @@ class utfStringHeader: public utfStringDescriptor
 public:
 
     using utfStringDescriptor::getUnitCount;
+#ifdef __DEPRECATED__
+    size_t _getURFSizeGeneric() ;
+    size_t _getURFHeaderSizeGeneric() ;
+    ssize_t _importURFGeneric(const unsigned char *&pURFDataPtr) ;
+    ssize_t _exportURFGeneric(ZDataBuffer& pURF) ;
+//    size_t _exportURFAnyGeneric(ZDataBuffer& pTargetURF, ZTypeBase   pTargetType,URF_Capacity_type pTargetCapacity);
 
-
-    ZStatus _importURFGeneric(const unsigned char *pURFDataPtr) ;
-    ZStatus _exportURFGeneric(ZDataBuffer* pURF) ;
-    ZStatus _exportURFAnyGeneric(ZDataBuffer* pTargetURF, ZTypeBase   pTargetType,URF_Capacity_type pTargetCapacity);
     static ZStatus getUniversalFromURF(ZType_type pType, const unsigned char *pURFDataPtr, ZDataBuffer &pUniversal, const  unsigned char **pURFDataPtrOut=nullptr);
+#endif // #ifdef __DEPRECATED__
     template <class _Utf>
     _Utf* allocateChars(ssize_t pCharCount);
 };
+
+
 typedef utfStringHeader* utfStringHeaderPtr;
 
 
@@ -148,19 +153,6 @@ utfStringHeader::allocateChars(ssize_t pCharCount)
         {
         DataByte=zrealloc(DataByte,(size_t)wByteSize);
         }
-/*    if (DataByte==nullptr)
-    { // ZException not defined yet
-        fprintf(stderr,
-                "Module   %s\n"
-                "Status   %s\n"
-                "Severity %s\n"
-                "-F-ERRMALLOC  Cannot allocate/reallocate memory of size %ld for buffer\n",
-                _GET_FUNCTION_NAME_,
-                decode_ZStatus( ZS_MEMERROR),
-                decode_Severity( Severity_Fatal),
-                wByteSize);
-        _ABORT_;
-    }*/
 
     ByteSize=wByteSize;
     UnitCount = pCharCount;

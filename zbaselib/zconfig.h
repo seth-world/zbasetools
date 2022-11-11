@@ -3,9 +3,9 @@
 
 #include <zconfig_general.h>
 
-#define ZBS_BEGIN namespace zbs {
+//#define ZBS_BEGIN namespace zbs {
 
-#define ZBS_END }
+//#define ZBS_END }
 
 //! ****************** configuration file  for zrandomfile tests ************
 //!

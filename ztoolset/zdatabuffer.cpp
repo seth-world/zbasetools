@@ -1221,99 +1221,6 @@ dumpHexa (void *pPtr,long pSize,ZDataBuffer &pLineHexa,ZDataBuffer &pLineChar)
     return;
 } // dumpHexa
 
-//====================ZBlob : Export Import methods =================
-ZDataBuffer*
-ZBlob::_exportURF(ZDataBuffer*pUniversal)
-{
-
-    uint64_t wSize=getByteSize()+sizeof(ZTypeBase)+sizeof(uint64_t);
-    ZTypeBase wType=ZType_Blob;
-    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
-    pUniversal->setData(&wType,sizeof(ZTypeBase));
-
-    wSize=reverseByteOrder_Conditional<uint64_t>(wSize);
-    pUniversal->appendData(&wSize, sizeof(wSize));
-
-    pUniversal->appendData(Data,Size);
-    return pUniversal;
-}
-
-
-/**
- * @brief ZBlob::_importURF import data from data in URF format.
- *                                      pSize contains the available space in bytes.
- * @param pUniversal a pointer to flat URF data to import and set ZBlob with
- * @param pSize size IN BYTES available for import (and not in number or characters -sizeof(wchar_t) )
- * @return
- */
-ZStatus
-ZBlob::_importURF(const unsigned char* pUniversal)
-{
-
-    ZTypeBase wType;
-    uint64_t wSize;
-    size_t wOffset=0;
-    memmove(&wType,Data,sizeof(ZTypeBase));
-    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
-    // control wType
-    if (wType!=ZType_Blob)
-    {
-        ZException.setMessage(_GET_FUNCTION_NAME_,
-                              ZS_INVTYPE,
-                              Severity_Severe,
-                              "Invalid type : expected <%s> while given type is <%lX> <%s>\n",
-                              decode_ZType(ZType_Blob),
-                              wType,
-                              decode_ZType(wType));
-        return  ZS_INVTYPE;
-    }
-    wOffset+= sizeof(ZTypeBase);
-
-    memmove(&wSize,Data+wOffset,sizeof(wSize));
-    wSize=reverseByteOrder_Conditional<uint64_t>(wSize);
-    wOffset+= sizeof(wSize);
-    setData(pUniversal+wOffset,(size_t)wSize);
-    return  ZS_SUCCESS;
-
-}// _importURF
-
-ZStatus
-ZBlob::getUniversalFromURF(const unsigned char* pURFDataPtr, ZDataBuffer& pUniversal,const  unsigned char **pURFDataPtrOut)
-{
-    uint64_t wEffectiveUSize ;
-    ZTypeBase wType;
-    const unsigned char* wURFDataPtr = pURFDataPtr;
-
-    memmove(&wType,wURFDataPtr,sizeof(ZTypeBase));
-    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
-    wURFDataPtr += sizeof (ZTypeBase);
-    if (wType!=ZType_Blob)
-    {
-        fprintf (stderr,
-                 "%s>> Error invalid URF data type <%X> <%s> while getting universal value of <%s> ",
-                 _GET_FUNCTION_NAME_,
-                 wType,
-                 decode_ZType(wType),
-                 decode_ZType(ZType_Blob));
-        return ZS_INVTYPE;
-    }
-
-    memmove (&wEffectiveUSize,wURFDataPtr,sizeof(uint64_t));        // first is URF byte size (including URF header size)
-    wEffectiveUSize=reverseByteOrder_Conditional<uint64_t>(wEffectiveUSize);
-    wURFDataPtr += sizeof (uint64_t);
-
-    wEffectiveUSize = wEffectiveUSize - (uint32_t)(sizeof(ZTypeBase) + (sizeof(uint32_t)*2)); // compute net Universal size
-    pUniversal.allocateBZero((wEffectiveUSize)); // fixed string must have canonical characters count allocated
-
-    memmove(pUniversal.Data,wURFDataPtr,wEffectiveUSize);
-    if (pURFDataPtrOut)
-    {
-      *pURFDataPtrOut = wURFDataPtr + wEffectiveUSize;
-    }
-    return ZS_SUCCESS;
-}//getUniversalFromURF
-
-
 ZStatus _importZStatus(const unsigned char*pPtrIn)
 {
   ZStatusBase wSt1;
@@ -1327,6 +1234,60 @@ ZDataBuffer& _exportZStatus(ZStatus pValue,ZDataBuffer& pZDB)
   wSt1 = reverseByteOrder_Conditional<ZStatusBase>(wSt1);
   pZDB.appendData(&wSt1,sizeof(ZStatusBase));
   return pZDB;
+}
+
+size_t
+ZDataBuffer::_exportURF(ZDataBuffer &pURF) const
+{
+  unsigned char* wURF_Ptr,*wPtrIn=Data;
+  uint64_t wByteSize=Size;
+
+  wURF_Ptr=pURF.extend(Size+sizeof(ZTypeBase)+sizeof(uint64_t));
+  _exportAtomicPtr<ZTypeBase>(ZType_Blob,wURF_Ptr);
+  _exportAtomicPtr<uint64_t>(wByteSize,wURF_Ptr);
+  while (wByteSize--)
+    *wURF_Ptr++=*wPtrIn++;
+
+  return Size+sizeof(ZTypeBase)+sizeof(uint64_t);
+}
+
+size_t
+ZDataBuffer::getURFSize() const {
+  return Size+sizeof(ZTypeBase)+sizeof(uint64_t);
+}
+size_t
+ZDataBuffer::getURFHeaderSize() const {
+  return sizeof(ZTypeBase)+sizeof(uint64_t);
+}
+
+size_t
+ZDataBuffer::_exportURF_Ptr(unsigned char* &pURF) const
+{
+  unsigned char* wPtrIn=Data;
+  uint64_t wByteSize=Size;
+
+  _exportAtomicPtr<ZTypeBase>(ZType_Blob,pURF);
+  _exportAtomicPtr<uint64_t>(wByteSize,pURF);
+  while (wByteSize--)
+    *pURF++=*wPtrIn++;
+
+  return Size+sizeof(ZTypeBase)+sizeof(uint64_t);
+}
+
+ssize_t
+ZDataBuffer::_importURF(const unsigned char* &pURF)
+{
+  uint64_t wByteSize=Size;
+  ZTypeBase wType;
+  _importAtomic<ZTypeBase>(wType,pURF);
+  if (wType!=ZType_Blob)
+    return 0;
+  _importAtomic<uint64_t>(wByteSize,pURF);
+  unsigned char* wPtrIn=allocate(wByteSize);
+  while (wByteSize--)
+    *wPtrIn++=*pURF++;
+
+  return ssize_t(Size+sizeof(ZTypeBase)+sizeof(uint64_t));
 }
 
 /** @endcond */ //Development

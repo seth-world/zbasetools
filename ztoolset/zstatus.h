@@ -15,6 +15,7 @@ enum ZStatus: ZStatusBase
                 ZS_ERROR            =   -0x01 ,     //< Generic error
                 ZS_WARNING          =   +0x02 ,     // Generic warning (not negative)
                 ZS_INVALIDSTATUS    = 0xFFFFFFFF,   //this status is invalid
+                ZS_TOBEDONE         = 0x0FFFFFFF,   // this has not yet been implemented
 
                 ZS_REJECTED         =   -0x10,
 
@@ -107,14 +108,19 @@ enum ZStatus: ZStatusBase
                 ZS_FILENOTEXIST       =   -0x003801,        //< file must exist but no file with this name has been found
                 ZS_NOTDIRECTORY       =   -0x003802,        //< given path is NOT a Directory while directory was requested
                 ZS_FILENOTOPEN        =   -0x003803,        //< file is not open as it must be
+                ZS_INVOPENMODE        =   -0x003804,        //< file is not open with appropriate mod
                 ZS_FILEEXIST          =   -0x009001,        //< file must not exist but a file with this name has been found
+                ZS_FILEREPLACED       =    0x009001,        //< NOT AN ERROR : file has been replaced
                 ZS_EMPTYFILE          =    0x005000,        //< not an error : just a fact. File is empty
                 ZS_FILEERROR          =   -0x001000,        //< general file error
                 ZS_FILEPOSERR         =   -0x001010,        //< file positionning error : a fsetpos or fgetpos or fseek operation ended with error
 
                 ZS_INVBLOCKADDR       =   -0x001011,        //< Invalid block address : given address does not correspond to a beginning of a block
+                ZS_INVBLOCK           =   -0x001012,        //< Invalid block
 
-                ZS_CORRUPTED          =   -0x001012,        //< read data is corrupted
+                ZS_CORRUPTED          =   -0x001013,        //< Data is corrupted
+
+                ZS_ENDIAN             =   -0x001014,        //< data is not reversed/serialized as expected
 
                 ZS_CANTALLOCSPACE     =   -0x001020,        //< Cannot allocate more free space in Free pool
 

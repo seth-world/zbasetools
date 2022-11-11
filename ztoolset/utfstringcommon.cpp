@@ -3,12 +3,8 @@
 #include <ztoolset/zsymbols.h>
 
 #include <ztoolset/zexceptionmin.h>
-
-/** @defgroup ZStringGroup Using fixed strings
-  *
-  *
-  */
-
+#include <ztoolset/zdatabuffer.h>
+#ifdef __DEPRECATED__
 /**
  * @brief utfStringHeader::_importURFGeneric imports a ZString content, either fixed or varying, from a stream with URF format.<br>
  * Strings as Source and Target may be of any kind : char, utf8, utf16 or utf32.<br>
@@ -38,13 +34,13 @@
  * @param pURFDataPtr a pointer to a stream of unsigned char bytes containing the URF string content
  * @return a ZStatus
  */
-ZStatus
-utfStringHeader::_importURFGeneric(const unsigned char *pURFDataPtr)
+ssize_t
+utfStringHeader::_importURFGeneric(const unsigned char *&pURFDataPtr)
 {
 ZTypeBase               wSourceType;
 URF_Capacity_type       wCapacity;
-URF_Fixed_Size_type     wFUniversalSize;
-URF_Varying_Size_type   wVUniversalSize;
+URF_UnitCount_type      wUnitCount;
+//URF_Varying_Size_type   wVUniversalSize;
 ssize_t                  wUGenericSize;
 ssize_t                  wUnits;
 
@@ -61,7 +57,7 @@ ZStatus         wFinalSt=ZS_SUCCESS;
                               " Invalid class type. Found %X <%s> while expecting a ZType_String",
                               wSourceType,
                               decode_ZType(wSourceType));
-        return ZS_INVTYPE;
+        return 0;
         }
 
     ZTypeBase wTargetType= getZType();
@@ -76,19 +72,20 @@ ZStatus         wFinalSt=ZS_SUCCESS;
                               decode_ZType(wTargetType),
                               wSourceType,
                               decode_ZType(wSourceType));
-        return ZS_INVTYPE;
+        return 0;
         }
 
     if (wSourceType&ZType_VaryingLength) // source is varying string
             {
-            pURFDataPtr=getURFBufferValue<URF_Varying_Size_type>(&wVUniversalSize,pURFDataPtr);
-            wCapacity=wFUniversalSize=wUGenericSize=(uint64_t)wVUniversalSize;
+            pURFDataPtr=getURFBufferValue<URF_UnitCount_type>(&wUnitCount,pURFDataPtr);
+            wCapacity = wUnits = wUnitCount;
+            wUGenericSize=(uint64_t)wUnitCount * getUnitSize(ZType) ;
             }
         else // Source is fixed string
             {
             pURFDataPtr=getURFBufferValue<URF_Capacity_type>(&wCapacity,pURFDataPtr);
-            pURFDataPtr=getURFBufferValue<URF_Fixed_Size_type>(&wFUniversalSize,pURFDataPtr);
-            wUGenericSize=(uint64_t)wFUniversalSize;
+            pURFDataPtr=getURFBufferValue<URF_UnitCount_type>(&wUnitCount,pURFDataPtr);
+            wUGenericSize=(uint64_t) size_t(wUnitCount) * getUnitSize(ZType) ;
             }
 
     if (wTargetType & ZType_VaryingLength)  /* if target is Varying then go to varying */
@@ -103,7 +100,7 @@ ZStatus         wFinalSt=ZS_SUCCESS;
                                       ZS_TRUNCATED,
                                       Severity_Warning,
                                       " Capacity of utftemplateString overflow: requested %d while capacity in bytes is %ld . String truncated.",
-                                      wFUniversalSize,
+                                      wUGenericSize,
                                       getByteSize());
                 wUGenericSize=getByteSize()-1 ; // yes : but will be appropriately truncated when dividing by sizeof(_Utf) of utf16 and utf32
                 wFinalSt=ZS_TRUNCATED;
@@ -118,7 +115,7 @@ ZStatus         wFinalSt=ZS_SUCCESS;
                              (const char*)pURFDataPtr,
                              wUnits,
                              wCapacity);
-        return wFinalSt;
+        return wUGenericSize;
         }
         case ZType_U8:
         {
@@ -127,7 +124,7 @@ ZStatus         wFinalSt=ZS_SUCCESS;
                            (const utf8_t*)pURFDataPtr,
                            wUnits,
                            wCapacity);
-        return wFinalSt;
+        return wUGenericSize;
         }
         case ZType_U16:
         {
@@ -136,7 +133,7 @@ ZStatus         wFinalSt=ZS_SUCCESS;
                                 (const utf16_t*)pURFDataPtr,
                                 wUnits,// character units count
                                 (const size_t)wCapacity);   // max units
-        return wFinalSt;
+        return wUGenericSize;
         }
         case ZType_U32:
         {
@@ -145,15 +142,15 @@ ZStatus         wFinalSt=ZS_SUCCESS;
                                 (const utf32_t*)pURFDataPtr,
                                 wUnits, // character units count
                                 (const size_t)wCapacity);
-        return wFinalSt;
+        return wUGenericSize;
         }
     default:
            {
-            return ZS_INVTYPE ;
+            return 0 ;
             }
     }// switch
 
-    return wFinalSt;  // of no use but...
+    return wUGenericSize;  // of no use but...
 
 //---------------_Varying string--------------------------------------
 
@@ -166,40 +163,49 @@ _importURF_Varying:
         {
         wUnits = wUGenericSize/sizeof(char);
         allocateChars<char>(wUGenericSize+1);
-        utfSetReverse<char>((char*)DataByte,(const char*)pURFDataPtr,wUnits);
-        break;
+        char* wPtr=(char*)DataByte;
+        while (wUnits--)
+          *wPtr++= *pURFDataPtr++;
+//        utfSetReverse<char>(wPtr,(const char*&)pURFDataPtr,wUnits);
+        return wUGenericSize;
         }
         case ZType_U8:
         {
         wUnits = wUGenericSize/sizeof(utf8_t);
+        utf8_t* wPtr=(utf8_t*)DataByte;
         allocateChars<utf8_t>(wUGenericSize+1);
-        utfStrnset<utf8_t>((utf8_t*)DataByte,(const utf8_t*)pURFDataPtr,getUnitCount(),wUnits);
-        break;
+        while (wUnits--)
+          *wPtr++= *pURFDataPtr++;
+//        utfStrnset<utf8_t>((utf8_t*)wPtr,(const utf8_t*)pURFDataPtr,getUnitCount(),wUnits);
+        return wUGenericSize;
         }
         case ZType_U16:
         {
+        utf16_t* wPtr=(utf16_t*)DataByte;
         wUnits = wUGenericSize/sizeof(utf16_t);
         allocateChars<utf16_t>(wUGenericSize+1);
-        utfSetReverse<utf16_t>((utf16_t*)DataByte,(const utf16_t*)pURFDataPtr,wUnits);
-        break;
+        utfSetReverse<utf16_t>(wPtr,(const utf16_t*&)pURFDataPtr,wUnits);
+        return wUGenericSize;
         }
         case ZType_U32:
         {
+        utf32_t* wPtr=(utf32_t*)DataByte;
         wUnits = wUGenericSize/sizeof(utf32_t);
         allocateChars<utf32_t>(wUGenericSize+1);
-        utfSetReverse<utf32_t>((utf32_t*)DataByte,(const utf32_t*)pURFDataPtr,wUnits);
-        break;
+        utfSetReverse<utf32_t>(wPtr,(const utf32_t*&)pURFDataPtr,wUnits);
+        return wUGenericSize;
         }
     default:
            {
-            return ZS_INVTYPE;
+            return 0;
             }
     }// switch
 
-    return wFinalSt;
-}// _importURF
+    return wUGenericSize;
+}// _importURFGeneric
 
-#include <ztoolset/zdatabuffer.h>
+
+
 
 
 /**
@@ -222,16 +228,15 @@ _importURF_Varying:
  * @param pURF  a ZDataBuffer that will contain URF formatted string
  * @return a ZStatus : ZS_SUCCESS if everything went OK, ZS_INVTYPE if an incoherence raised
  */
-ZStatus
-utfStringHeader::_exportURFGeneric(ZDataBuffer* pURF)
+ssize_t
+utfStringHeader::_exportURFGeneric(ZDataBuffer& pURF)
 {
 ZTypeBase   wType;
 URF_Capacity_type      wCapacityUnits;
-URF_Fixed_Size_type     wFUniversalSize;
-URF_Varying_Size_type   wVUniversalSize;
+URF_UnitCount_type     wFUniversalSize;
 
 unsigned char* wURFPtr,*wDataPtr=(unsigned char*)DataByte;
-size_t wByteSize;
+ssize_t wByteSize;
 size_t wUnitsCount ;
 
 
@@ -239,7 +244,7 @@ size_t wUnitsCount ;
                         goto _exportURF_Varying;
 // ------------Fixed strings---------------------------
 
-    wByteSize=sizeof(ZTypeBase)+sizeof(URF_Capacity_type)+sizeof(URF_Fixed_Size_type);
+    wByteSize=sizeof(ZTypeBase)+sizeof(URF_Capacity_type)+sizeof(URF_UnitCount_type);
 
     switch (getZType()&ZType_AtomicMask)
     {
@@ -274,28 +279,17 @@ size_t wUnitsCount ;
                           getZType(),
                           decode_ZType(getZType()));
 
-     return ZS_INVTYPE;
+     return 0;
      }
     }//switch
 
 
 
-    wURFPtr=pURF->allocate(wByteSize); // allocate header size plus used string characters unit.
+    wURFPtr=pURF.extendBZero(wByteSize); // allocate header size plus used string characters unit.
 
-    wType=getZType();
-    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
-
-    memmove(wURFPtr,&wType,sizeof(ZTypeBase));
-    wURFPtr+=sizeof(ZTypeBase);
-
-
-    wCapacityUnits=reverseByteOrder_Conditional<URF_Capacity_type>((URF_Capacity_type)getUnitCount());
-    memmove(wURFPtr,&wCapacityUnits,sizeof(URF_Capacity_type));
-    wURFPtr+= sizeof(URF_Capacity_type);
-
-    wFUniversalSize=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wFUniversalSize);
-    memmove(wURFPtr,&wFUniversalSize,sizeof(URF_Fixed_Size_type));
-    wURFPtr+= sizeof(URF_Fixed_Size_type);
+    _exportAtomicPtr<ZTypeBase>(getZType(),wURFPtr);
+    _exportAtomicPtr<URF_Capacity_type>((URF_Capacity_type)getUnitCount(),wURFPtr);
+    _exportAtomicPtr<URF_UnitCount_type>((URF_UnitCount_type)wFUniversalSize,wURFPtr);
 
 // Nb : Universal size is effective string data size in bytes and does not take into account header size.
 //    wUniversalSize -= (sizeof(ZTypeBase)+sizeof(uint16_t)+sizeof(uint16_t)) ;  // get the length of string data in bytes
@@ -307,28 +301,30 @@ size_t wUnitsCount ;
         while (*wDataPtr)
                 *wURFPtr++=*wDataPtr++;
 //        utfStrnset<char>((char*)wURFPtr,wUniversalSize,(const char*)DataByte,wCanonical);
-        return ZS_SUCCESS;
+        return wByteSize;
         }
         case ZType_U8:
         {
         while (*wDataPtr)
                 *wURFPtr++=*wDataPtr++;
 //        utfStrnset<utf8_t>((utf8_t*)wURFPtr,wUniversalSize,(const utf8_t*)DataByte,wCanonical);
-        return ZS_SUCCESS;
+        return wByteSize;
         }
         case ZType_U16:
         {
-        utfSetReverse<utf16_t>((utf16_t*)wURFPtr,
-                                (const utf16_t*)DataByte,
+          utf16_t* wPtr=(utf16_t*)wURFPtr;
+          const utf16_t* wPtrIn=(const utf16_t*)DataByte;
+        utfSetReverse<utf16_t>(wPtr, wPtrIn,
                                 (const size_t)wUnitsCount);// character units count
-        return ZS_SUCCESS;
+        return wByteSize;
         }
         case ZType_U32:
         {
-        utfSetReverse<utf32_t>((utf32_t*)wURFPtr,
-                                (const utf32_t*)DataByte,
+          utf32_t* wPtr=(utf32_t*)wURFPtr;
+          const utf32_t* wPtrIn=(const utf32_t*)DataByte;
+        utfSetReverse<utf32_t>(wPtr,wPtrIn,
                                (const size_t)wUnitsCount);// character units count
-        return ZS_SUCCESS;
+        return wByteSize;
         }
     default:
            {
@@ -338,30 +334,24 @@ size_t wUnitsCount ;
                                   " Incoherent atomic character unit for type %X <%s> : invalid for _exportURFGeneric operation",
                                   getZType(),
                                   decode_ZType(getZType()));
-            return ZS_INVTYPE ;
+            return 0 ;
             }
     }// switch
 
-    return ZS_SUCCESS;  // of no use but...
+    return wByteSize;  // of no use but...
 
 //---------------_Varying string--------------------------------------
 
 _exportURF_Varying:
 
+
     wUnitsCount=getUnitCount();
-    wVUniversalSize = getByteSize();
-    wByteSize=sizeof(ZTypeBase)+sizeof(uint64_t)+wVUniversalSize;
-    wURFPtr=pURF->allocate(wByteSize); // allocate header size plus used string characters unit.
+    wByteSize=sizeof(ZTypeBase)+sizeof(uint64_t)+getByteSize();
+    wURFPtr=pURF.extendBZero(wByteSize); // allocate header size plus used string characters unit.
 
-    wType=getZType();
-    wType=reverseByteOrder_Conditional<ZTypeBase>(wType);
 
-    memmove(wURFPtr,&wType,sizeof(ZTypeBase));
-    wURFPtr+=sizeof(ZTypeBase);
-
-    wVUniversalSize=reverseByteOrder_Conditional<URF_Varying_Size_type>(wVUniversalSize);
-    memmove(wURFPtr,&wVUniversalSize,sizeof(wVUniversalSize));
-    wURFPtr+= sizeof(URF_Varying_Size_type);
+    _exportAtomicPtr<ZTypeBase>(getZType(),wURFPtr);
+    _exportAtomicPtr<URF_UnitCount_type>((URF_UnitCount_type)wUnitsCount,wURFPtr);
 
 
     switch (getZType()&ZType_AtomicMask)
@@ -378,16 +368,18 @@ _exportURF_Varying:
         }
         case ZType_U16:
         {
-        utfSetReverse<utf16_t>((utf16_t*)wURFPtr,
-                                (const utf16_t*)DataByte,
+          utf16_t* wPtr=(utf16_t*)wURFPtr;
+          const utf16_t* wPtrIn=(const utf16_t*)DataByte;
+        utfSetReverse<utf16_t>(wPtr,wPtrIn,
                                (const size_t)wUnitsCount);// character units count
         break;
         }
         case ZType_U32:
         {
-        utfSetReverse<utf32_t>((utf32_t*)wURFPtr,
-                                (const utf32_t*)DataByte,
-                               (const size_t)wUnitsCount);// character units count
+          utf32_t* wPtr=(utf32_t*)wURFPtr;
+          const utf32_t* wPtrIn=(const utf32_t*)DataByte;
+          utfSetReverse<utf32_t>(wPtr,wPtrIn,
+              (const size_t)wUnitsCount);// character units count
         break;
         }
     default:
@@ -398,315 +390,12 @@ _exportURF_Varying:
                                   " Incoherent atomic character unit for type %X <%s> : invalid for _exportURFGeneric operation",
                                   getZType(),
                                   decode_ZType(getZType()));
-            return ZS_INVTYPE;
+            return 0;
             }
     }// switch
 
-    return ZS_SUCCESS;
+    return wByteSize;
 }// _exportURFGeneric
-
-/**
- * @brief utfStringHeader::_exportURFOtherGeneric
- * @param pURF
- * @return
- */
-/**
- * @brief utfStringHeader::_exportURFOtherGeneric exports a string to another different target string definition.<br>
- * Both strings, Source and Target, must have the same utf signature : both must utf8_t or utf16_t or utf32_t.<br>
- * But other components could be different.<br>
- *
- * a fixed string is defined by<br>
- * ZType (gives the utf signature)<br>
- * Canonical capacity (char units count)<br>
- *
- * a Varying string is defined by<br>
- * ZType (gives the utf signature)<br>
- *
- * @param pTargetURF        output URF content with appropriate header
- * @param pTargetZType      ZTypeBase of target string to create URF data for, from existing string
- * @param pTargetCapacity   fixed string capacity. Set to zero if varying size string (field not used).
- * @return
- */
-ZStatus
-utfStringHeader::_exportURFAnyGeneric(ZDataBuffer* pTargetURF,
-                                        ZTypeBase   pTargetType,
-                                        URF_Capacity_type pTargetCapacity) /* if fixed string capacity of fixed string. Set to zero if varying size string */
-                                    /* all other values : for fixed string : effective size (URF_Fixed_Size_type)
-                                     *                    or for varying string effective size (URF_Varying_Size_type) are set by this routine*/
-{
-URF_Capacity_type       wSourceCapacity;            /* if fixed : capacity in char units */
-URF_Fixed_Size_type     wSourceFUniversalSize,wTargetFUniversalSize;    /* if fixed : effective bytes size */
-size_t                  wSourceUnitsCount,wTargetUnitsCount;            /* if fixed : effective units count */
-URF_Varying_Size_type   wSourceVUniversalSize,wTargetVUniversalSize;    /* if varying : effective bytes size */
-uint64_t                wUGenericSize, wUGenericOriginSize;             /* string bytes size */
-uint64_t                wUBytesCapacity;                                /* work area */
-ZStatus                 wFinalSt=ZS_SUCCESS;                            /* final status stored to be returned */
-
-
-unsigned char* wTargetURFPtr,*wSourceDataPtr=(unsigned char*)DataByte;
-size_t wByteSize;
-
-
-    if (!(pTargetType&ZType_String))    /* must be ZString */
-        {
-        ZException.setMessage(_GET_FUNCTION_NAME_,
-                              ZS_INVTYPE,
-                              Severity_Error,
-                              "Invalid target class type. Found %X <%s> while expecting ZType_String",
-                              pTargetType,
-                              decode_ZType(pTargetType));
-        return ZS_INVTYPE;
-        }
-
-    ZTypeBase wSourceType= getZType();
-
-    if ((wSourceType&ZType_AtomicMask)!=(pTargetType&ZType_AtomicMask)) // if _Utf (character unit type) is not the same
-        {
-        ZException.setMessage(_GET_FUNCTION_NAME_,
-                              ZS_INVTYPE,
-                              Severity_Error,
-                              "Error: target character unit type 0x%X <%s> has not the same atomic mask as source 0x%X <%s>.",
-                              pTargetType,
-                              decode_ZType(pTargetType),
-                              wSourceType,
-                              decode_ZType(wSourceType));
-        return ZS_INVTYPE;
-        }
-
-    if (wSourceType&ZType_VaryingLength)
-            {                                                               /* source is varying string  */
-            wSourceVUniversalSize=(URF_Varying_Size_type) getByteSize();    /* get the whole content size as generic size */
-            wUGenericSize = (uint64_t)wSourceVUniversalSize;
-            wSourceCapacity=0;                                              /* no capacity */
-            switch (getZType()&ZType_AtomicMask)                            /* compute units count vs size of atomic */
-            {
-            case ZType_Char:
-            case ZType_UChar:
-                wSourceUnitsCount = wUGenericSize/sizeof(char);
-                break;
-            case ZType_U8:
-            case ZType_S8:
-                wSourceUnitsCount = wUGenericSize/sizeof(uint8_t);
-                break;
-            case ZType_S16:
-            case ZType_U16:
-                wSourceUnitsCount = wUGenericSize/sizeof(uint16_t);
-                break;
-            case ZType_S32:
-            case ZType_U32:
-                wSourceUnitsCount = wUGenericSize/sizeof(uint32_t);
-                break;
-            default:
-                return ZS_INVTYPE;
-            }
-            }// if (wSourceType&ZType_VaryingLength)
-
-        else                                    /* Source is fixed string */
-            {                                   /* get effective string size as wSourceUnitsCount, get capacity, get effective byte size */
-            switch (getZType()&ZType_AtomicMask)
-            {
-            case ZType_Char:
-            case ZType_UChar:
-                wSourceCapacity = getByteSize()/sizeof(uint8_t);
-                wSourceUnitsCount = utfStrlen<char>((char*)DataByte);
-                wSourceFUniversalSize =wSourceUnitsCount * sizeof(char);
-                wUGenericSize = (uint64_t) wSourceFUniversalSize;
-                break;
-            case ZType_U8:
-            case ZType_S8:
-                wSourceCapacity = getByteSize()/sizeof(uint8_t);
-                wSourceUnitsCount = utfStrlen<utf8_t>((utf8_t*)DataByte);
-                wSourceFUniversalSize =wSourceUnitsCount * sizeof(utf8_t);
-                wUGenericSize = (uint64_t) wSourceFUniversalSize;
-                break;
-            case ZType_S16:
-            case ZType_U16:
-                wSourceCapacity = getByteSize()/sizeof(uint16_t);
-                wSourceUnitsCount = utfStrlen<utf16_t>((utf16_t*)DataByte);
-                wSourceFUniversalSize = wSourceUnitsCount*sizeof(utf16_t);
-                wUGenericSize = (uint64_t) wSourceFUniversalSize;
-                break;
-            case ZType_S32:
-            case ZType_U32:
-                wSourceCapacity = getByteSize()/sizeof(uint32_t);
-                wSourceUnitsCount = utfStrlen<utf32_t>((utf32_t*)DataByte);
-                wSourceFUniversalSize = wSourceUnitsCount * sizeof(uint32_t);
-                wUGenericSize = (uint64_t) wSourceFUniversalSize;
-                break;
-            default:
-                return ZS_INVTYPE;
-            }
-
-            }// else
-
-    if (pTargetType&ZType_VaryingLength) /* target type is varying ? */
-                        goto _exportURFOther_TargetVarying;
-
-// ------------target is fixed string---------------------------
-
-/* compute target capacity in bytes */
-    switch (pTargetType&ZType_AtomicMask)
-    {
-    case ZType_Char:
-    case ZType_UChar:
-        wUBytesCapacity = pTargetCapacity * sizeof(char);
-        if (wUGenericSize > wUBytesCapacity)
-                {
-                wTargetUnitsCount= pTargetCapacity-1;
-                wTargetFUniversalSize=wTargetUnitsCount*sizeof(char);
-                wFinalSt=ZS_TRUNCATED;
-                break;
-                }
-        wTargetUnitsCount=(URF_Fixed_Size_type)(wTargetFUniversalSize/sizeof(char));
-        wTargetFUniversalSize=(URF_Fixed_Size_type)wUGenericSize;
-        break;
-    case ZType_U8:
-    case ZType_S8:
-        wUBytesCapacity = pTargetCapacity * sizeof(uint8_t);
-        if (wUGenericSize > wUBytesCapacity)
-                {
-                wTargetUnitsCount= pTargetCapacity-1;
-                wTargetFUniversalSize=wTargetUnitsCount*sizeof(uint8_t);
-                wFinalSt=ZS_TRUNCATED;
-                break;
-                }
-        wTargetUnitsCount=(URF_Fixed_Size_type)(wUGenericSize/sizeof(uint8_t));
-        wTargetFUniversalSize=(URF_Fixed_Size_type)wUGenericSize;
-        break;
-    case ZType_S16:
-    case ZType_U16:
-        wUBytesCapacity = (pTargetCapacity-1) *sizeof(uint16_t);
-        if (wUGenericSize > wUBytesCapacity)
-                {
-                wTargetUnitsCount= pTargetCapacity-1;
-                wTargetFUniversalSize=wUBytesCapacity;
-                wFinalSt=ZS_TRUNCATED;
-                break;
-                }
-
-        wTargetUnitsCount=(URF_Fixed_Size_type)(wUGenericSize/sizeof(uint16_t));
-        wTargetFUniversalSize=(URF_Fixed_Size_type)wUGenericSize;
-        break;
-    case ZType_S32:
-    case ZType_U32:
-        wUBytesCapacity = (pTargetCapacity-1) * sizeof(uint32_t);
-        if (wUGenericSize > wUBytesCapacity)
-                {
-                wTargetUnitsCount= pTargetCapacity-1;
-                wTargetFUniversalSize=wUBytesCapacity;
-                wFinalSt=ZS_TRUNCATED;
-                break;
-                }
-        wTargetUnitsCount=(URF_Fixed_Size_type)(wUGenericSize/sizeof(uint32_t));
-        wTargetFUniversalSize=(URF_Fixed_Size_type)wUGenericSize;
-        break;
-    default:
-        return ZS_INVTYPE;
-    }
-
-    wByteSize=wUGenericSize + sizeof(ZTypeBase)+sizeof(URF_Capacity_type)+sizeof(URF_Fixed_Size_type);
-
-    wTargetURFPtr= pTargetURF->allocateBZero(wByteSize);
-
-    wTargetURFPtr=setURFBufferValue<ZTypeBase>(wTargetURFPtr,pTargetType);
-    wTargetURFPtr=setURFBufferValue<URF_Capacity_type>(wTargetURFPtr,pTargetCapacity);
-    wTargetURFPtr=setURFBufferValue<URF_Fixed_Size_type>(wTargetURFPtr,wTargetFUniversalSize);
-
-    if (wFinalSt==ZS_TRUNCATED)
-        {
-        ZException.setMessage(_GET_FUNCTION_NAME_,
-                              ZS_TRUNCATED,
-                              Severity_Warning,
-                              " Target capacity is <%d> bytes while requested string bytes size is <%ld>. String is being truncated.",
-                              wTargetFUniversalSize,
-                              wUGenericSize);
-        }
-
-    switch (getZType()&ZType_AtomicMask)
-    {
-        case ZType_Char:
-        case ZType_UChar:
-        {
-        utfSetReverse<char>((char*)wTargetURFPtr,
-                                (const char*)DataByte,
-                                (const size_t)wTargetUnitsCount);// character units count
-        return wFinalSt;
-        }
-        case ZType_U8:
-        case ZType_S8:
-        {
-        while (wTargetUnitsCount--)
-                *wTargetURFPtr++=*wSourceDataPtr++;
-        return wFinalSt;
-        }
-        case ZType_U16:
-        {
-        utfSetReverse<utf16_t>((utf16_t*)wTargetURFPtr,
-                                (const utf16_t*)DataByte,
-                                (const size_t)wTargetUnitsCount);// character units count
-        return wFinalSt;
-        }
-        case ZType_U32:
-        {
-        utfSetReverse<utf32_t>((utf32_t*)wTargetURFPtr,
-                                (const utf32_t*)DataByte,
-                               (const size_t)wTargetUnitsCount);// character units count
-        return wFinalSt;
-        }
-    default:
-        break;
-    }// switch
-
-    return wFinalSt;  // of no use but...
-
-//---------------Target is varying string--------------------------------------
-
-_exportURFOther_TargetVarying:
-
-    /* up to here : wUGenericSize has source string length in bytes - wSourceUnitsCount has units count */
-    wTargetVUniversalSize = (URF_Varying_Size_type)wUGenericSize;
-
-    wTargetURFPtr= pTargetURF->allocateBZero(getByteSize()+sizeof(URF_Varying_Size_type)+ sizeof(ZTypeBase));
-    wTargetURFPtr=setURFBufferValue<ZTypeBase>(wTargetURFPtr,wSourceType);
-    wTargetURFPtr=setURFBufferValue<URF_Varying_Size_type>(wTargetURFPtr,wTargetVUniversalSize);
-
-    switch (pTargetType&ZType_AtomicMask)
-    {
-        case ZType_Char:
-        {
-        utfSetReverse<char>((char*)wTargetURFPtr,
-                            (const char*)DataByte,
-                            (const size_t)wSourceUnitsCount);
-
-        break;
-        }
-        case ZType_U8:
-        {
-        utfSetReverse<utf8_t>((utf8_t*)wTargetURFPtr,
-                            (const utf8_t*)DataByte,
-                            (const size_t)wSourceUnitsCount);
-        break;
-        }
-        case ZType_U16:
-        {
-        utfSetReverse<utf16_t>((utf16_t*)wTargetURFPtr,
-                            (const utf16_t*)DataByte,
-                            (const size_t)wSourceUnitsCount);
-        break;
-        }
-        case ZType_U32:
-        {
-        utfSetReverse<utf32_t>((utf32_t*)wTargetURFPtr,
-                               (const utf32_t*)DataByte,
-                               (const size_t)wSourceUnitsCount);// character units count
-        break;
-        }
-    default:
-        break;
-    }// switch
-
-    return wFinalSt;
-}// _exportURFAnyGeneric
 
 /**
  * @brief utfStringHeader::getUniversalFromURF Static function that extracts universal content (__END_OF_STRING__ mark excluded) from an URF content.
@@ -720,8 +409,8 @@ utfStringHeader::getUniversalFromURF(ZType_type pType,const unsigned char* pURFD
 {
 URF_Capacity_type       wCapacity;
 size_t                  wUnits;
-URF_Fixed_Size_type     wFUniversalSize;
-URF_Varying_Size_type   wVUniversalSize;
+URF_UnitCount_type    wFUniversalSize;
+URF_UnitCount_type    wUnitsCount ;
 
 const unsigned char*wDataPtr=pURFDataPtr;
 
@@ -756,9 +445,9 @@ const utf32_t*wU32PtrIn= nullptr;
     wCapacity=reverseByteOrder_Conditional<URF_Capacity_type>(wCapacity);
     wDataPtr += sizeof (URF_Capacity_type);
 
-    memmove (&wFUniversalSize,wDataPtr,sizeof(wFUniversalSize));
-    wFUniversalSize=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wFUniversalSize);
-    wDataPtr += sizeof (URF_Fixed_Size_type);
+    memmove (&wUnitsCount,wDataPtr,sizeof(wUnitsCount));
+    wFUniversalSize=reverseByteOrder_Conditional<URF_UnitCount_type>(wUnitsCount);
+    wDataPtr += sizeof (URF_UnitCount_type);
     pUniversal.allocateBZero((size_t)wFUniversalSize); /* allocate size without endofstring mark */
 
     if (pURFDataPtrOut)
@@ -807,11 +496,11 @@ _getUniversal_Varying:
 
     /* for a varying string no canonical size, and string size fits into a uint64_t */
 
-    memmove (&wVUniversalSize,wDataPtr,sizeof(wVUniversalSize));
-    wVUniversalSize=reverseByteOrder_Conditional<URF_Varying_Size_type>(wVUniversalSize);
+    memmove (&wUnitsCount,wDataPtr,sizeof(wUnitsCount));
+    wUnitsCount=reverseByteOrder_Conditional<URF_Varying_Size_type>(wUnitsCount);
     wDataPtr += sizeof (URF_Varying_Size_type);
 //    pUniversal.allocateBZero((size_t)wEffectiveUSize+sizeof(_Utf)); /* allocate size + endofstring mark */
-    pUniversal.allocateBZero((size_t)wVUniversalSize); /* allocate size without endofstring mark */
+    pUniversal.allocateBZero((size_t)wUnitsCount*); /* allocate size without endofstring mark */
     if (pURFDataPtrOut)
       {
       *pURFDataPtrOut = wDataPtr + wVUniversalSize;
@@ -820,6 +509,7 @@ _getUniversal_Varying:
     wUnits=0;
     switch (pType&ZType_AtomicMask)
     {
+    case ZType_UChar:
     case ZType_Char:
     case ZType_U8:
         wU8Ptr=(utf8_t*)pUniversal.Data;
@@ -855,3 +545,4 @@ _getUniversal_Varying:
     return ZS_SUCCESS;
 
 }//getUniversalFromURF_Truncated
+#endif // __DEPRECATED__

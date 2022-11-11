@@ -7,16 +7,13 @@
 //#include <ztoolset/utffixedstring.h>
 
 #include <zcrypt/checksum.h>
-#include <ztoolset/zdate.h>
+#include <ztoolset/zdatefull.h>
 #include <ztoolset/userid.h>
 
 
 #ifdef QT_CORE_LIB
 #include <QUrl>
 #endif // QT_CORE_LIB
-
-
-
 
 
 
@@ -83,6 +80,13 @@ public:
 };
 
 
+enum URICopyOptions : uint8_t {
+  UCO_Nothing = 0,
+  UCO_BackUp  = 1 , /* if set then backs up file using renameBck rules using backup extension "bck" */
+  UCO_DoNotReplace = 2 /* if set and if destination file exists, it will not be replaced. error ZS_FILEEXISTS will be issued */
+} ;
+
+
 #define __URISTRING__
 /**
  * @brief The uriString class Expand templateString template capabilities to file and directories management.
@@ -100,6 +104,7 @@ public:
     uriString(const uriString &&pIn) : _Base(pIn) {ZType=ZType_URIString;}
     uriString(const utf8VaryingString &pIn) : _Base(pIn) {ZType=ZType_URIString;}
     uriString(const char* pIn) : _Base(pIn) {ZType=ZType_URIString;}
+    uriString(const utf8_t* pIn) : _Base(pIn) {ZType=ZType_URIString;}
 #ifdef QT_CORE_LIB
     uriString(const QString pIn)
     {
@@ -111,7 +116,7 @@ public:
     uriString &operator=(const uriString &pIn) { return fromURI(pIn);}
     uriString &operator=(const uriString &&pIn) { return fromURI(pIn); }
 
-
+/*
     using _Base::operator =;
     using _Base::operator +=;
     using _Base::operator ==;
@@ -120,7 +125,7 @@ public:
     using _Base::operator <;
     using _Base::fromUtf;
 
-
+*/
 
     uriString& operator + (const utf8_t*pChar)
     {
@@ -128,15 +133,16 @@ public:
         return *this;
     }
 
-    uriString& operator = (const utfdescString &pSource);
-    ZStatus operator <<(ZDataBuffer& pDBS);
+//    uriString& operator = (const utfdescString &pSource);
+
+    ZStatus operator << (ZDataBuffer& pDBS);
 
     uriString &fromURI(const uriString* pURI) ;
     uriString &fromURI(const uriString& pURI) ;
-
+/*
     uriString& fromdescString(const utfdescString &pString);
     uriString & fromcodeString(const utfcodeString &pURI) ;
-
+*/
 //----------------URISTRING Section-------------------
 //Nota Bene descString must have been defined ( __DESCSTRING__ pre-proc parameter must be set)
 
@@ -150,15 +156,30 @@ public:
     static uriString getHomeDir(void) ;
 
     /** @brief getFileExtension give the part of base name located after '.' sign     */
-    utf8String getFileExtension() const;
-    /** @brief uriString::getDirectoryPath Returns a descString containing the file's directory path
+    utf8VaryingString getFileExtension() const;
+    /** @brief uriString::getDirectoryPath Returns the full file's directory path
      * i. e. </directory path/><root name>.<extension>
-     * @return an utf8String with the file's directory path including
+     * @return an utf8VaryingString with the full file's directory path including
      */
-    utf8String getDirectoryPath() const;
-    utf8String getLastDirectoryName() const;
-    utf8String getBasename() const ;
-    utf8String getRootname() const;
+    utf8VaryingString getDirectoryPath() const;
+    /** @brief getLastDirectoryName Returns the last directory mentionned in file's directory path
+        i. e. </.../last directory/><root name>.<extension>
+     * @return utf8VaryingString with the last file's directory within its directory path or an empty string if uriString is empty.
+     */
+    utf8VaryingString getLastDirectoryName() const;
+
+    /** @brief uriString::getBasename       returns a utf8VaryingString containing the file's base name\n
+    i. e. </directory path/><root name>.<extension>\n
+        Where base name is : <root name>.<extension> without any directory path
+    * @return utf8VaryingString with the file's base name or an empty string if uriString is empty.
+    */
+    utf8VaryingString getBasename() const ;
+
+    /** @brief getRootname returns a utf8String containing the file's root name\n
+     *  i. e. </directory path/><file's root name>.<extension>
+     * @return utf8VaryingString with the file's root name (base name without extension) or an empty string if uriString is empty.
+     */
+    utf8VaryingString getRootname() const;
 
     void changeFileExtension(const utf8VaryingString& pExt);
     void changeBasename(const utf8VaryingString& pBasename);
@@ -209,11 +230,29 @@ public:
      */
     ZStatus renameBck(const char* pBckExt="bck");
 
+    /** @brief backupFile makes a backup copy of current file
+     * with given pBckExt extension (defaulted to "bck")
+     * according renameBck naming rules.
+      */
+    ZStatus backupFile(const char* pBckExt="bck");
+
+
+    /** @brief copyFile copies pSource file to pDest file according pOption
+     *  UCO_BackUp : if pDest file exists, then it is renamed using renameBck("bck") rules.
+     *  UCO_DoNotReplace : if pDest file exists, then it is renamed using renameBck("bck") rules.
+     *  if none of the above options are set :
+     *  and if destination file exists, it is replaced and ZS_FILEREPLACED status is returned
+     *  in all other case of normal termination, ZS_SUCCESS is returned.
+     */
+    static ZStatus copyFile(uriString pDest, const uriString pSource, uint8_t pOption);
+
     uriString& addConditionalDirectoryDelimiter(void);
     uriString& addDirectoryDelimiter(void);
     /** @brief changeAccessRights() change the access right of current file with pMode, linux mode
      *                              this routine resets errno, and errno will be set to internal error code if any.*/
     ZStatus changeAccessRights(mode_t pMode);
+
+    static uriString currentWorkingDirectory();
 
 #ifdef QT_CORE_LIB
 
@@ -232,7 +271,7 @@ public:
 
     long long getFileSize(void) const  ;
 
-    checkSum getChecksum(void);
+    checkSum getChecksum(void) const;
 
     ZStatus loadContent(ZDataBuffer &pDBS) const;
     ZStatus loadUtf8(utf8VaryingString &pUtf8) const ;
@@ -284,36 +323,9 @@ public:
     ZStatus list(ZArray<uriString>* pList=nullptr, ZDir_File_type pZDFT=ZDFT_All);
     ZStatus subDir(ZArray<uriString>* pList=nullptr);
 
- //----------------END URISTRING Section-------------------
-#ifdef __COMMENT__
-    ZDataBuffer _exportURF();
-    size_t _importURF(unsigned char* pURF);
 
-    /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
-     *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
-     *  led by
-     *   - uint8_t : char unit size
-     *   - UVF_Size_type : number of character units of the string.
-     * @return a ZDataBuffer with string content in Varying Universal Format set to big endian
-     */
-    ZDataBuffer _exportUVF();
-    /** @brief _importUVF Import string from Varying Universal Format (dedicated format for strings)
-     *  Varying Universal Format stores string data into a varying length string container excluding '\0' character terminator
-     *  led by
-     *   - uint8_t : char unit size
-     *   - UVF_Size_type : number of character units of the string.
-     * Important : imported string format (utf-xx) must be the same as current string
-     * @param[in,out] pUniversalPtr pointer to Varying Universal formatted data header.
-     *                this pointer is updated to point on the first byte after imported data.
-     * @return total size IN BYTES of  bytes used from pUniversalPtr buffer (Overall used size including header)
-     */
-    size_t _importUVF(unsigned char *&pUniversalPtr);
+/* export - import functions are located within base utf8VaryingString class */
 
-    /** @brief _getexportUVFSize() compute the requested export size in bytes for current string, including header */
-    UVF_Size_type _getexportUVFSize();
-
-    UVF_Size_type _getimportUVFSize(unsigned char* pUniversalPtr);
-#endif // __COMMENT__
 };// uriString---------------------------------------------
 
 uriString operator + (const uriString pIn1,const uriString pIn2);

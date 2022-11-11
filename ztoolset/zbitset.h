@@ -12,6 +12,15 @@
 namespace zbs{
 #pragma pack(push)
 #pragma pack(1)
+
+/**
+ * @brief The ZBitset class
+ * Full bitset:
+ * A full bitset has a no storage (bit==nullptr).
+ * - getbitSize() getEffectivebitsNumber() return 0
+ * - test(xxx), returns true whatever given rank is
+ */
+
 class ZBitset
 {
 public:
@@ -24,17 +33,20 @@ public:
     const size_t UnitBitSize=UnitByteSize*8;    // size in bits of one ZBitsetType
 
     ZBitset() {}
-    ZBitset(const uint16_t pBitsToAllocate)
-    {
+    ZBitset(const uint16_t pBitsToAllocate) {
       _allocate(pBitsToAllocate);
       clear();
     }
-    ~ZBitset() {if (bit) free (bit);}
+    ~ZBitset() {if (bit) zfree (bit);}
 
     /**
      * @brief getbitSize returns the capacity of bitset in bits.
      */
-    size_t getbitSize() {return BitCapacity;}
+    size_t getbitSize() const {return BitCapacity;}
+    /**
+     * @brief getEffectivebitsNumber returns the effective number of bits.
+     */
+    size_t getEffectivebitsNumber() const {return EffectiveBitSize;}
     /**
      * @brief _allocate allocates memory space enough for managing pBitsToAllocate slots (bits) within bitmap
      *                  memory is set/reset to binary zero
@@ -45,10 +57,12 @@ public:
      * @brief setNull sets the object as null bitmap with a BitSize of 0
      */
     void setNull() { zfree(bit); BitCapacity=0;}
+    void setFullBitset() { zfree(bit); BitCapacity=0;}
     /**
      * @brief isNull returns true if bitset is a null bitmap.
      */
-    bool isNull() {  return (bit==nullptr);}
+    bool isNull() const {  return (bit==nullptr);}
+    bool isFullBitset() const {  return (bit==nullptr);}
     /**
      * @brief set sets the bit pointed by pBitRank (to 1)
      * @return ZS_SUCCESS if operation is successfull
@@ -75,29 +89,31 @@ public:
      * 2- if ZBitset is NOT a null bitmap, and pBitRank points out of bitmap capacity, then test() will return false
      * and an error message is issued on stderr.
      */
-    bool test(const size_t pBitRank);
+    bool test(const size_t pBitRank) const;
 
-    inline uint16_t getByteSize(void)  {return (uint16_t)(Size*sizeof(ZBitsetType));}
-    inline uint16_t getURFSize(void)
-    {
-      if (bit==nullptr)
-        return (uint16_t)sizeof(ZTypeBase);
-      return (uint16_t) (sizeof(ZTypeBase)+sizeof(uint16_t)+sizeof(uint16_t)+(size_t)getByteSize());
-    }
-    uint16_t getEffectiveBitSize(void) {return((uint16_t)EffectiveBitSize);}
-    ZDataBuffer&  _exportAppendURF(ZDataBuffer& pBitsetExport);
-    size_t        _exportURF_Ptr(unsigned char*& pURF);
+    inline uint16_t     getByteSize(void) const  {return (uint16_t)(Size*sizeof(ZBitsetType));}
+    size_t              getURFSize(void) const;
+    static size_t       getURFHeaderSize() ;
+    size_t              getUniversalSize(void) const ;
+
+    uint16_t getEffectiveBitSize(void) const {return((uint16_t)EffectiveBitSize);}
+    ssize_t _exportURF(ZDataBuffer& pBitsetExport) const;
+    ssize_t _exportURF_Ptr(unsigned char*& pURF) const;
+
+    utf8VaryingString toString() ;
+
 /**
  * @brief ZBitset::_importURF imports a ZBitset structure from an URF
  * @param pPtrIn pointer to begining of URF data to import (pointing to beginning of URF header).
  * This pointer is updated to point next to imported bitset
  * @return a ZStatus with
- *  ZS_SUCCESS if bitset has be successfully downloaded
- *  ZS_OMITTED ZType_bitsetFull has been encountered: bitset is omitted and all bits are reputated to be set
+ *  bitset size       :  bitset has be successfully downloaded
+ *  sizeof(ZTypeBase) : ZType_bitsetFull has been encountered: bitset is omitted and all bits are reputated to be set
  *            In this case, bitset is set to null (bitset data is nullptr).
- *  ZS_INVTYPE one of ZType_bitset or ZType_bitsetFull has not been encountered.
+ *  0                 : invalid ZType_type - one of ZType_bitset or ZType_bitsetFull has not been encountered.
  */
-    ZStatus _importURF(const unsigned char *&pPtrIn);
+ssize_t _importURF(const unsigned char *&pPtrIn);
+
 }; // ZBitset
 #pragma pack(pop)
 }// zbs

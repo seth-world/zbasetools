@@ -60,6 +60,11 @@ enum ZVerbose_type : ZVerbose_Base
 
 
     ZVB_ZRF         = 0x01000000,   //< ZRandomFile
+
+    ZVB_MemEngine   = 0x00000002, /* file memory space allocation and management operations */
+    ZVB_FileEngine  = 0x00000004, /* file access operations from file engine */
+    ZVB_SearchEngine= 0x00000008, /* all search operations from search engines */
+
     ZVB_ZMF         = 0x02000000,   //< ZMasterFile
     ZVB_ZIF         = 0x04000000,   //< ZIndexFile
     ZVB_Net         = 0x08000000,   //< Sockets servers SSL & protocol
@@ -160,6 +165,7 @@ void clearVerbose (ZVerbose_Base pVerbose);
 enum Severity_type : uint8_t {
     Severity_Nothing    = 0 ,  //< Nothing to report
     Severity_Information= 1,   //< Information content
+    Severity_Question   = 3,
     Severity_Warning    = 2,   //< Exception concerns a warning
     Severity_Error      = 4,   //< Normal error
     Severity_Severe     = 8,   //< Severe error : this error is abnormal

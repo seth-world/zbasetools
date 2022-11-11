@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 
+#include <ztoolset/zmodulestack.h>
 
 typedef uint8_t         utf8_t ;
 typedef uint16_t        utf16_t ;

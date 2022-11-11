@@ -6,10 +6,19 @@
 #include <stdio.h>
 #include <errno.h>
 
-const uint32_t     cst_ZMSTART = 0xF6F6F6F6;  //!< Begin marker of a data structure on file it is a palyndroma
-const uint32_t     cst_ZSTRINGEND   = 0xFAFAFAFA;  //!< End marker of a string data memory zone
+const uint32_t     cst_ZMSTART      = 0xF6F6F6F6;  //!< Begin marker of a ZArray exported data structure on file it is a palyndroma
+const uint32_t     cst_ZSTRINGEND   = 0xFAFAFAFA;  //!< End marker of a string data memory zone (in memory)
 const uint32_t     cst_ZBUFFEREND   = 0xFBFBFBFB;  //!< End marker of a ZDataBuffer data structure in memory
-const uint32_t     cst_ZCHECK       = 0xFFFFFFFF;   //!< End of utf string
+const uint32_t     cst_ZCHECK       = 0xFFFFFFFF;   //!< End of utf string internal data structure (string header)
+
+const uint32_t     cst_ZFILEBLOCKSTART = 0xF9F9F9F9;  //!< Begin marker of a file block structure on file it is a palyndroma
+const uint32_t     cst_ZBLOCKSTART = 0xF5F5F5F5;  //!< Begin marker of a data structure on file it is a palyndroma
+const uint32_t     cst_ZBLOCKEND   = 0xFCFCFCFC;  //!< End marker of a data structure on file : it is a palyndroma
+const uint32_t     cst_ZFIELDSTART = 0xF4F4F4F4;  //!< Begin marker of a field data structure on file it is a palyndroma
+
+const uint8_t      cst_ZSTART_BYTE = 0xF5;
+const uint8_t      cst_ZFILESTART_BYTE = 0xF9;
+
 template <class _Tp>
 void zfree(_Tp *&pPtr)
 {

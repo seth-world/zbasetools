@@ -432,9 +432,11 @@ public:
 
     ZDataBuffer   _exportURF() const ;
     size_t        getURFSize() const ;
-    ZDataBuffer*  _exportURF(ZDataBuffer *pURFData) const ;
-    size_t        _exportURF_Ptr(unsigned char* &pURF) const ;
-    size_t        _importURF(const unsigned char* &pURFDataPtr);
+    static size_t getURFHeaderSize() ;
+    size_t        getUniversalSize() const;
+    ssize_t       _exportURF(ZDataBuffer& pURFData) const ;
+    ssize_t       _exportURF_Ptr(unsigned char* &pURF) const ;
+    ssize_t       _importURF(const unsigned char* &pURFDataPtr);
 
     /** @brief _exportUVF  Exports a string to a Universal Varying Format (dedicated format for strings)
      *  Universal Varying  Format stores string data into a varying length string container excluding '\0' character terminator
@@ -1420,13 +1422,11 @@ utftemplateString<_Sz,_Utf>::_exportURF() const
 }
 
 template <size_t _Sz,class _Utf>
-ZDataBuffer*
-utftemplateString<_Sz,_Utf>::_exportURF(ZDataBuffer*pURFData) const
+ssize_t
+utftemplateString<_Sz,_Utf>::_exportURF(ZDataBuffer& pURFData) const
 {
-URF_Capacity_type wCanonical=(URF_Capacity_type)getUnitCount(); /* fixed size in unit count */
-
 size_t wEffectiveUnitCount= utfStrlen<_Utf>(content);   /* effective string size in unit count '\0' excluded */
-URF_Fixed_Size_type wUniversalSize=URF_Fixed_Size_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
+URF_UnitCount_type wUniversalSize=URF_UnitCount_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
 
     if (wUniversalSize>=UINT16_MAX)
         {
@@ -1438,77 +1438,49 @@ URF_Fixed_Size_type wUniversalSize=URF_Fixed_Size_type(wEffectiveUnitCount*sizeo
         }
 
 size_t wTotalByteSize=(size_t)(wUniversalSize+
-                      sizeof(URF_Fixed_Size_type)+
+                      sizeof(URF_UnitCount_type)+
                       sizeof(URF_Capacity_type)+
                       sizeof(ZTypeBase));
 
-  pURFData->clear();
-  unsigned char* wPtrOut=pURFData->allocate((ssize_t)wTotalByteSize);
-  const _Utf* wPtrIn=content;
-
-  ZTypeBase wType=reverseByteOrder_Conditional<ZTypeBase>(ZType);        // ZTypeBase in reverseOrder if LE (if little endian)
-  memmove(wPtrOut,&wType,sizeof(wType));
-  wPtrOut+=sizeof(wType);
-
-  wCanonical=reverseByteOrder_Conditional<URF_Capacity_type>(wCanonical);             // Capacity (canonical length) in reverse order if LE
-  memmove(wPtrOut,&wCanonical,sizeof(URF_Capacity_type));
-  wPtrOut+=sizeof(URF_Capacity_type);
-
-  URF_Fixed_Size_type wUSizeReversed=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wUniversalSize);        // ZTypeBase in reverseOrder if LE (if little endian)
-  memmove(wPtrOut,&wUSizeReversed,sizeof(URF_Fixed_Size_type));
-  wPtrOut+=sizeof(URF_Fixed_Size_type);
-
-  if (sizeof(_Utf)==1)
-      while (*wPtrIn)
-        *wPtrOut++=*wPtrIn++;
-    else
-      while (*wPtrIn)
-        *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
-
-  return  pURFData;
+  unsigned char* wPtrOut=pURFData.extendBZero((ssize_t)wTotalByteSize);
+  return _exportURF_Ptr(wPtrOut);
 }// _exportURF
 
 template <size_t _Sz,class _Utf>
-size_t
-utftemplateString<_Sz,_Utf>::_exportURF_Ptr(unsigned char* &pURF) const
+ssize_t utftemplateString<_Sz, _Utf>::_exportURF_Ptr(unsigned char* &pURF) const
 {
   URF_Capacity_type wCanonical=(URF_Capacity_type)getUnitCount(); /* fixed size in unit count */
 
   size_t wEffectiveUnitCount= utfStrlen<_Utf>(content);   /* effective string size in unit count '\0' excluded */
-  URF_Fixed_Size_type wUniversalSize=URF_Fixed_Size_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
+  size_t wByteSize = wEffectiveUnitCount * sizeof(_Utf) ;
+  URF_UnitCount_type wUnitsCount= URF_UnitCount_type(wEffectiveUnitCount);
 
-  if (wUniversalSize>=UINT16_MAX)
+  if (wEffectiveUnitCount > wCanonical)
   {
-    fprintf (stderr,"%s>>Fatal error incoherent fixed string maximum capacity overflow <%d> while <%d> authorized.\n",
+    fprintf (stderr,"%s>>Fatal error incoherent fixed string maximum capacity overflow <%d>(effective) while <%d> (capacity) authorized.\n",
         _GET_FUNCTION_NAME_,
-        wUniversalSize,
-        UINT16_MAX);
+        wEffectiveUnitCount,
+        wCanonical);
     _ABORT_
   }
 
-  size_t wTotalByteSize=(size_t)(wUniversalSize+
-                                   sizeof(URF_Fixed_Size_type)+
-                                   sizeof(URF_Capacity_type)+
-                                   sizeof(ZTypeBase));
-
-//  unsigned char* pURF=pURFData->allocate((ssize_t)wTotalByteSize);
   const _Utf* wPtrIn=content;
 
   _exportAtomicPtr<ZTypeBase>(ZType,pURF);
-
   _exportAtomicPtr<URF_Capacity_type>(wCanonical,pURF);
-
-  _exportAtomicPtr<URF_Fixed_Size_type>(wUniversalSize,pURF);
-
-  int wUnitCount=0;
+  _exportAtomicPtr<URF_UnitCount_type>(wUnitsCount,pURF);
+  _Utf* wPtrOut = (_Utf*)pURF;
+  size_t wCount=0;
   if (sizeof(_Utf)==1)
-    while (*wPtrIn)
-      *pURF++=*wPtrIn++;
+    while ( *wPtrIn && (wCount++ < capacity() ))
+      *wPtrOut ++ =*wPtrIn++;
   else
     while (*wPtrIn)
-      *pURF++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
+      *wPtrOut ++= reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
 
-  return  sizeof(ZTypeBase) + sizeof(URF_Capacity_type) + sizeof(URF_Fixed_Size_type) + wUniversalSize;
+  pURF = (unsigned char*)wPtrOut;
+
+  return  ssize_t(sizeof(ZTypeBase) + sizeof(URF_Capacity_type) + sizeof(URF_UnitCount_type) + wByteSize);
 
 }// _exportURF_Ptr
 
@@ -1516,7 +1488,7 @@ template <size_t _Sz,class _Utf>
 size_t
 utftemplateString<_Sz,_Utf>::getURFSize() const {
   size_t wEffectiveUnitCount= utfStrlen<_Utf>(content);   /* effective string size in unit count '\0' excluded */
-  URF_Fixed_Size_type wUniversalSize=URF_Fixed_Size_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
+  URF_UnitCount_type wUniversalSize=URF_UnitCount_type(wEffectiveUnitCount*sizeof(_Utf)); /* effective string size in bytes '\0' excluded */
 
   if (wUniversalSize>=UINT16_MAX) {
     fprintf (stderr,"%s>>Fatal error incoherent fixed string maximum capacity overflow <%d> while <%d> authorized.\n",
@@ -1527,11 +1499,25 @@ utftemplateString<_Sz,_Utf>::getURFSize() const {
   }
 
   return (size_t)(wUniversalSize+
-         sizeof(URF_Fixed_Size_type)+
+         sizeof(URF_UnitCount_type)+
          sizeof(URF_Capacity_type)+
          sizeof(ZTypeBase));
 } // getURFSize
 
+template <size_t _Sz,class _Utf>
+size_t
+utftemplateString<_Sz,_Utf>::getURFHeaderSize()  {
+   return (size_t)(sizeof(URF_UnitCount_type)+
+                  sizeof(URF_Capacity_type)+
+                  sizeof(ZTypeBase));
+} // getURFSize
+
+template <size_t _Sz,class _Utf>
+size_t
+utftemplateString<_Sz,_Utf>::getUniversalSize() const {
+  size_t wEffectiveUnitCount= utfStrlen<_Utf>(content);
+  return wEffectiveUnitCount*sizeof(_Utf);/* effective string size in unit count '\0' excluded */
+} // getUniversalSize
 
 template <size_t _Sz,class _Utf>
 /**
@@ -1539,12 +1525,11 @@ template <size_t _Sz,class _Utf>
  * @param pUniversal pointer to URF data header
  * @return
  */
-size_t
-utftemplateString<_Sz,_Utf>::_importURF(const unsigned char *& pURFDataPtr)
+ssize_t utftemplateString<_Sz, _Utf>::_importURF(const unsigned char *& pURFDataPtr)
 {
 ZTypeBase           wType;
 URF_Capacity_type   wCanonical;
-URF_Fixed_Size_type wUniversalSize;
+URF_UnitCount_type  wUnitCount;
 size_t              wEffectiveUnitCount;
 
 //size_t      wURFByteSize;
@@ -1562,10 +1547,10 @@ size_t      wOffset=0;
         }
 
   wOffset += _importAtomic<URF_Capacity_type>(wCanonical,pURFDataPtr);   // updates pURFDataPtr
-  wOffset += _importAtomic<URF_Fixed_Size_type>(wUniversalSize,pURFDataPtr);   // updates pURFDataPtr
+  wOffset += _importAtomic<URF_UnitCount_type>(wUnitCount,pURFDataPtr);   // updates pURFDataPtr
 
-  wEffectiveUnitCount=wUniversalSize/sizeof(_Utf);
-  if (wEffectiveUnitCount > (UnitCount-1))
+  wEffectiveUnitCount=size_t(wUnitCount);
+  if (wEffectiveUnitCount > (capacity()-1))
                 {
                 fprintf(stderr,
                         "%s>> Error <%s> Capacity of utftemplateString overflow: requested %d while capacity is %ld . String truncated.\n",
@@ -1573,8 +1558,7 @@ size_t      wOffset=0;
                         decode_ZStatus(ZS_FIELDCAPAOVFLW),
                         wEffectiveUnitCount,
                         UnitCount);
-                wEffectiveUnitCount=UnitCount-1 ;
-                wUniversalSize=wEffectiveUnitCount*sizeof(_Utf);
+                wUnitCount=wEffectiveUnitCount=UnitCount-1 ;
                 errno=ENOMEM;
                 }
   int wi=0;
@@ -1592,7 +1576,7 @@ size_t      wOffset=0;
       }
     pURFDataPtr += wi * sizeof(_Utf);
     wOffset += wi * sizeof(_Utf);
-    return  wOffset;
+    return  ssize_t(wOffset);
 }// _importURF
 
 /**  Routine to get URF data header information for an utfxxFixedString or utfxxVaryingString. */
@@ -1785,7 +1769,7 @@ template <size_t _Sz,class _Utf>
 ZStatus
 utftemplateString<_Sz,_Utf>::getUniversalFromURF(ZTypeBase pType,const unsigned char* pURFDataPtr,ZDataBuffer &pUniversal,const unsigned char** pURFDataPtrOut)
 {
-URF_Fixed_Size_type wUnitSize , wEffectiveUSize;
+URF_UnitCount_type wUnitSize , wEffectiveUSize;
 ZTypeBase wType;
     const unsigned char*wDataPtr=pURFDataPtr;
     memmove(&wType,wDataPtr,sizeof(ZTypeBase));
@@ -1807,8 +1791,8 @@ ZTypeBase wType;
     wDataPtr += sizeof (URF_Capacity_type);
 
     memmove (&wEffectiveUSize,wDataPtr,sizeof(wEffectiveUSize));
-    wEffectiveUSize=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wEffectiveUSize);
-    wDataPtr += sizeof (URF_Fixed_Size_type);
+    wEffectiveUSize=reverseByteOrder_Conditional<URF_UnitCount_type>(wEffectiveUSize);
+    wDataPtr += sizeof (URF_UnitCount_type);
 
     pUniversal.allocateBZero(wUnitSize);       // fixed string must have canonical characters count allocated
     memmove(pUniversal.DataChar,wDataPtr,(size_t)wEffectiveUSize); // effective number of char is effective universal size
@@ -1826,7 +1810,7 @@ template <size_t _Sz,class _Utf>
 ZStatus
 utftemplateString<_Sz,_Utf>::getUniversalFromURF_Truncated(ZTypeBase pType, const unsigned char *pURFDataPtr, ZDataBuffer &pUniversal, const unsigned char** pURFDataPtrOut)
 {
-URF_Fixed_Size_type wUnitNb , wEffectiveUSize;
+URF_UnitCount_type wUnitNb , wEffectiveUSize;
 ZTypeBase wType;
     const unsigned char*wDataPtr=pURFDataPtr;
     memmove(&wType,wDataPtr,sizeof(ZTypeBase));
@@ -1848,8 +1832,8 @@ ZTypeBase wType;
     wDataPtr += sizeof (URF_Capacity_type);
 
     memmove (&wEffectiveUSize,wDataPtr,sizeof(wEffectiveUSize));
-    wEffectiveUSize=reverseByteOrder_Conditional<URF_Fixed_Size_type>(wEffectiveUSize);
-    wDataPtr += sizeof (URF_Fixed_Size_type);
+    wEffectiveUSize=reverseByteOrder_Conditional<URF_UnitCount_type>(wEffectiveUSize);
+    wDataPtr += sizeof (URF_UnitCount_type);
     pUniversal.allocateBZero((size_t)wEffectiveUSize+sizeof(_Utf));
     _Utf*wPtr= (_Utf*)pUniversal.Data;
     _Utf*wPtrIn= (_Utf*)wDataPtr;

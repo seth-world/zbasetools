@@ -360,6 +360,9 @@ ZTypeBase encode_ZType (const utf8VaryingString &pString)
   ZTypeBase wZType=ZType_Nothing ;
 /* atomic types */
   while (true) {
+    if (pString.strstr((const utf8_t*)"ZType_Atomic")) {
+      wZType|=ZType_Atomic; break ; }
+
     if (pString.strstr((const utf8_t*)"ZType_Char")) {
       wZType|=ZType_Char; break ; }
     if (pString.strstr((const utf8_t*)"ZType_UChar")) {

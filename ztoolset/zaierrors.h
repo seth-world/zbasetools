@@ -118,11 +118,7 @@ public:
         add(pIn);
     }
 
-    /*   void setContext(const char* pContext)
-    {
-        Context = pContext;
-    }*/
-    void setErrorLogContext(const char* pContext,...)
+    void setContext(const char* pContext,...)
     {
         va_list args;
         va_start (args, pContext);
@@ -141,15 +137,9 @@ public:
     int countErrors() {return countType(ZAIES_Error | ZAIES_Fatal);}
     int countWarnings() {return countType(ZAIES_Warning);}
 
-    void popContext()
-    {
-      if (Context.count()>0)
-        Context.pop();
-      textLog("            Restoring context to <%s>",Context.last().toCChar());
-    }
+    void popContext();
 
-    void printContext()
-    {
+    void printContext() {
       if (Context.count()>0)
           textLog("        Current context is <%s>",Context.last().toCChar());
     }
