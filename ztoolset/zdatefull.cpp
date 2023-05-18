@@ -1,10 +1,57 @@
 #include "zdatefull.h"
+#include <locale.h>
 
-#include <ztoolset/zdate.h>
+bool HasTimeZone=false;
+long int TimeZoneDiff=0;
+int DST=0;
+char TimeZoneName[20];
+
+const char* GMT="GMT";
+
+
+void getAllTimeZone() {
+  time_t wTimet ;
+  time(&wTimet);
+
+  struct tm wTm;
+  localtime_r(&wTimet,&wTm);
+
+  TimeZoneDiff = wTm.tm_gmtoff;
+  memset (TimeZoneName,0,sizeof(TimeZoneName));
+  strncpy(TimeZoneName,wTm.tm_zone,19);
+
+  DST=wTm.tm_isdst;
+
+  HasTimeZone = true;
+}
+
+
+long getTimeZoneDiff (){
+  if (!HasTimeZone){
+    getAllTimeZone();
+  }
+  return TimeZoneDiff;
+}
+
+const char* getTimeZoneName (){
+  if (!HasTimeZone){
+    getAllTimeZone();
+  }
+  return TimeZoneName;
+}
+
+int getDST (){
+  if (!HasTimeZone){
+    getAllTimeZone();
+  }
+  return DST;
+}
+
+//#include <ztoolset/zdate.h>
 
 using namespace zbs;
 
-
+#include <ztoolset/zlocale.h>
 
 ZDateFull::ZDateFull()
 {
@@ -18,13 +65,8 @@ ZDateFull::ZDateFull()
 ZDateFull &
 ZDateFull::_copyFrom(const  ZDateFull &pIn)
 {
-  memset(this, 0, sizeof(ZDateFull));
-  Year = pIn.Year;
-  Month = pIn.Month;
-  Day = pIn.Day;
-  Hour = pIn.Hour;
-  Min = pIn.Min;
-  Sec = pIn.Sec;
+  tv_sec =  pIn.tv_sec ;
+  tv_nsec = pIn.tv_nsec ;
   return *this;
 }
 
@@ -32,20 +74,42 @@ ZDateFull::_copyFrom(const  ZDateFull &pIn)
 uint64_t
 ZDateFull::_export(void) const
 {
+  struct tm wTm;
 
-    wuIn64 wuExport;
-    wuExport.Year=reverseByteOrder_Conditional<uint16_t>(Year);
-    wuExport.Month = Month;
-    wuExport.Day = Day;
-    wuExport.Hour = Hour;
-    wuExport.Min = Min;
-    wuExport.Sec = Sec;
+  if (gmtime_r(&tv_sec,&wTm)==nullptr)
+    return 0;
 
-    uint64_t wOut;
-    memmove(&wOut,&wuExport,sizeof(uint64_t));
-    return wOut;
+  wuIn64 wuExport;
+  wuExport.Year=reverseByteOrder_Conditional<uint16_t>(uint16_t(wTm.tm_year+1900));
+  wuExport.Month = uint8_t(wTm.tm_mon+1);
+  wuExport.Day = uint8_t(wTm.tm_mday);
+  wuExport.Hour = uint8_t(wTm.tm_hour);
+  wuExport.Min = uint8_t(wTm.tm_min);
+  wuExport.Sec = uint8_t(wTm.tm_sec);
+
+  uint64_t wOut;
+  memmove(&wOut,&wuExport,sizeof(uint64_t));
+  return wOut;
 }// _export
 
+void
+ZDateFull::_import(uint64_t pIDate)
+{
+  wuIn64 wX;
+  memmove(&wX,&pIDate,sizeof(uint64_t));
+  struct tm wTm;
+  wTm.tm_year = int(reverseByteOrder_Conditional<uint16_t>(wX.Year) - 1900 );
+  wTm.tm_mon = int(wX.Month)  ;
+  wTm.tm_mday = int(wX.Day)  ;
+  wTm.tm_hour = int(wX.Hour)  ;
+  wTm.tm_min = int(wX.Min)  ;
+  wTm.tm_sec = int(wX.Sec)  ;
+
+  tv_sec=mktime(&wTm); // equivalent to  tv_sec=timelocal(&wTm);
+  tv_nsec = 0;
+
+  return;
+}// _import
 
 ssize_t ZDateFull::_exportURF(ZDataBuffer &pZDB) const
 {
@@ -103,20 +167,25 @@ ZDateFull::getUniversalSize() const
 {
   return sizeof(uint64_t);
 }
-void
-ZDateFull::_import(uint64_t pIDate)
-{
-  wuIn64 wX;
-  memmove(&wX,&pIDate,sizeof(uint64_t));
 
-  Year=reverseByteOrder_Conditional<uint16_t>(wX.Year);
-  Month=wX.Month  ;
-  Day=wX.Day;
-  Hour=wX.Hour;
-  Min=wX.Min;
-  Sec=wX.Sec;
-  return;
-}// _import
+
+
+void ZDateFull::_exportPtr(unsigned char* &pPtr) const {
+  uint64_t wDE=_export();
+  memmove(pPtr,&wDE,sizeof(uint64_t));
+  pPtr += sizeof(uint64_t);
+}
+void ZDateFull::_exportAppend(ZDataBuffer& pZDB) const {
+  unsigned char* wPtr=pZDB.extend(sizeof(uint64_t));
+  _exportPtr(wPtr);
+}
+
+void ZDateFull::_import(const unsigned char* &pPtrIn) {
+  uint64_t* wPtr=(uint64_t* )pPtrIn;
+  _import(wPtr[0]);
+  pPtrIn+=sizeof(uint64_t);
+}
+
 
 size_t
 ZDateFull::getUniversal_Ptr(unsigned char *&pUniversalPtr) const {
@@ -200,52 +269,68 @@ ZDateFull
 ZDateFull::fromDMY(const utf8VaryingString &pString)
 {
   ZDateFull wD;
+  time_t wTimet=0;
+  std::time(&wTimet);
+  struct tm wTm;
+
+  localtime_r(&wTimet,&wTm);
+
   int wEnd=0;
   int wValue;
   if (pString.isEmpty())
     return ZDateFull();
 
-  wD.getCurrentDateTime();  /* initialize with current date time */
+//  wD.getCurrentDateTime();  /* initialize with current date time */
 
   const unsigned char* wPtr=pString.Data;
-  wValue = getDateValue(wPtr,wEnd,2);
-  if (wValue < 0)
+  wTm.tm_mday = getDateValue(wPtr,wEnd,2);
+  if (wTm.tm_mday < 0)
     return ZDateFull(); /* return invalid date */
-  wD.Day = uint8_t(wValue);
 
   wValue = getDateValue(wPtr,wEnd,2);
   if (wValue < 0) {
-    wD._toInternal();
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
-  wD.Month = uint8_t(wValue);
+  wTm.tm_mon = wValue - 1 ;
+
+
   wValue = getDateValue(wPtr,wEnd,4);
-  if (wValue < 0)
+  if (wValue < 0) {
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
-  wD.Year = uint16_t(wValue);
+  }
+  wTm.tm_year = wValue - 1900;
+
 
   wValue = getDateValue(wPtr,wEnd,2);
   if (wValue < 0) {
-    wD._toInternal();
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
-  wD.Hour = uint8_t(wValue);
+  wTm.tm_hour = wValue;
 
   wValue = getDateValue(wPtr,wEnd,2);
   if (wValue < 0) {
-    wD._toInternal();
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
-  wD.Min = uint8_t(wValue);
+  wTm.tm_min = wValue;
 
   wValue = getDateValue(wPtr,wEnd,2);
   if (wValue < 0) {
-    wD._toInternal();
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
-  wD.Sec = uint8_t(wValue);
+  wTm.tm_sec = wValue;
 
-  wD._toInternal();
+  wD.tv_sec = mktime(&wTm);
+  wD.tv_nsec = 0;
 
   return(wD);
 }  // fromDMY
@@ -262,42 +347,69 @@ ZDateFull
 ZDateFull::fromMDY(const utf8VaryingString &pString)
 {
   ZDateFull wD;
+  time_t wTimet=0;
+  std::time(&wTimet);
+  struct tm wTm;
+
+  localtime_r(&wTimet,&wTm);
+
   int wEnd=0;
   int wValue;
   if (pString.isEmpty())
     return ZDateFull();
 
-  wD.getCurrentDateTime();  /* initialize with current date time */
+
+  //  wD.getCurrentDateTime();  /* initialize with current date time */
 
   const unsigned char* wPtr=pString.Data;
+  wTm.tm_mon = getDateValue(wPtr,wEnd,2);
+  if (wTm.tm_mon < 0)
+    return ZDateFull(); /* return invalid date */
 
   wValue = getDateValue(wPtr,wEnd,2);
-  if (wValue < 0)
-    return ZDateFull(); /* return invalid date */
-  wD.Month = uint8_t(wValue);
-  wValue = getDateValue(wPtr,wEnd,2);
-  if (wValue < 0)
-    return ZDateFull(); /* return invalid date */
-  wD.Day = uint8_t(wValue);
+  if (wValue < 0) {
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
+    return wD; /* return partial date. other fields are filled with current date time */
+  }
+  wTm.tm_mday = wValue - 1 ;
+
+
   wValue = getDateValue(wPtr,wEnd,4);
-  if (wValue < 0)
+  if (wValue < 0) {
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
-  wD.Year = uint16_t(wValue);
+  }
+  wTm.tm_year = wValue - 1900;
+
 
   wValue = getDateValue(wPtr,wEnd,2);
-  if (wValue < 0)
+  if (wValue < 0) {
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
-  wD.Hour = uint8_t(wValue);
-  wValue = getDateValue(wPtr,wEnd,2);
-  if (wValue < 0)
-    return wD; /* return partial date. other fields are filled with current date time */
-  wD.Min = uint8_t(wValue);
-  wValue = getDateValue(wPtr,wEnd,2);
-  if (wValue < 0)
-    return wD; /* return partial date. other fields are filled with current date time */
-  wD.Sec = uint8_t(wValue);
+  }
+  wTm.tm_hour = wValue;
 
-  wD._toInternal();
+  wValue = getDateValue(wPtr,wEnd,2);
+  if (wValue < 0) {
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
+    return wD; /* return partial date. other fields are filled with current date time */
+  }
+  wTm.tm_min = wValue;
+
+  wValue = getDateValue(wPtr,wEnd,2);
+  if (wValue < 0) {
+    wD.tv_sec = mktime(&wTm);
+    wD.tv_nsec = 0;
+    return wD; /* return partial date. other fields are filled with current date time */
+  }
+  wTm.tm_sec = wValue;
+
+  wD.tv_sec = mktime(&wTm);
+  wD.tv_nsec = 0;
 
   return(wD);
 }  // fromMDY
@@ -312,13 +424,9 @@ ZDateFull::_fromMDY(const utf8VaryingString &pString)
 ZDateFull
 ZDateFull::fromTimespec(timespec &pTimespec)
 {
-    memset (this,0,sizeof(ZDateFull));
-    struct tm* wTm;
-    wTm = localtime (&pTimespec.tv_sec);
-//    memmove(&DateInternal,wTm,sizeof(tm));
-
-    _fromInternal(*wTm);
-    return (*this) ;
+  tv_sec=pTimespec.tv_sec;
+  tv_nsec = pTimespec.tv_nsec;
+  return (*this) ;
 }
 
 
@@ -326,21 +434,12 @@ timespec
 ZDateFull::toTimespec(void)
 {
     timespec wTS ;
-    wTS.tv_sec= mktime ((tm*)this);
-    wTS.tv_nsec = 0;
+    wTS.tv_sec=tv_sec;
+    wTS.tv_nsec=tv_nsec;
     return wTS;
 }
-ZDateFull
-ZDateFull::fromZDate(const ZDate& wDate)
-{
-  getCurrentDateTime();
-  Year=wDate.Year;
-  Month=wDate.Month;
-  Day=wDate.Day;
-  _toInternal();
 
-  return (*this);
-} //fromZDateString
+
 #ifdef QT_CORE_LIB
 ZDateFull
 ZDateFull::fromQDateTime (const QDateTime& pQDate)
@@ -395,9 +494,7 @@ int
 ZDateFull::weekDay() {
   if (isInvalid())
     return -1;
-  time_t wTime = _toTime_t();
-  tm* wT=localtime (&wTime);
-
+  tm* wT=localtime (&tv_sec);
   return wT->tm_wday;
 }
 
@@ -405,9 +502,7 @@ int
 ZDateFull::yearDay() {
   if (isInvalid())
     return -1;
-  time_t wTime = _toTime_t();
-  tm* wT=localtime (&wTime);
-
+  tm* wT=localtime (&tv_sec);
   return wT->tm_yday;
 }
 
@@ -415,25 +510,37 @@ ZDateFull::yearDay() {
 void
 ZDateFull::_fromTime_t(time_t pTime)
 {
-  struct tm * wTm= localtime (&pTime);
-  if(wTm==nullptr) {
-    setInvalid();
-    return;
-  }
-  _fromInternal(*wTm);
+  tv_sec = pTime;
+  tv_nsec= 0;
+  return;
+
 }// _fromTime_t
 
 time_t
 ZDateFull::_toTime_t() {
-  struct tm wT = _toInternal();
-  return mktime(&wT);
+  return tv_sec;
 }
+/*
+ZDateFull&
+ZDateFull::_fromInternal()
+{
+  struct tm wTm;
+  localtime_r(&tv_sec,&wTm);
+  Year = uint16_t(wTm.tm_year + 1900);
+  Month = uint8_t(wTm.tm_mon + 1);
+  Day = uint8_t(wTm.tm_mday) ;
 
-
+  Hour = uint8_t(wTm.tm_hour) ;
+  Min = uint8_t(wTm.tm_min) ;
+  Sec = uint8_t(wTm.tm_sec) ;
+  return *this;
+}// _fromInternal
+*/
+/*
 ZDateFull&
 ZDateFull::_fromInternal(tm & pTm)
 {
-  Year = uint16_t(pTm.tm_year + 1900);
+    Year = uint16_t(pTm.tm_year + 1900);
     Month = uint8_t(pTm.tm_mon + 1);
     Day = uint8_t(pTm.tm_mday) ;
 
@@ -441,13 +548,13 @@ ZDateFull::_fromInternal(tm & pTm)
     Min = uint8_t(pTm.tm_min) ;
     Sec = uint8_t(pTm.tm_sec) ;
     return *this;
-}// _toInternal
+}// _fromInternal
+*/
 
-
-tm
-ZDateFull::_toInternal()
+void
+ZDateFull::_toInternal(tm &pTm)
 {
-  tm pTm;
+ /* tm pTm;
     pTm.tm_year=Year - 1900;
     pTm.tm_mon = int(Month - 1);
     pTm.tm_mday = int(Day) ;
@@ -455,7 +562,10 @@ ZDateFull::_toInternal()
     pTm.tm_hour= int(Hour) ;
     pTm.tm_min = int(Min) ;
     pTm.tm_sec = int(Sec) ;
-    return pTm;
+*/
+    tv_sec = mktime(&pTm); /* store time as local time */
+    tv_nsec = 0;
+    return ;
 } // _toInternal
 
 
@@ -635,28 +745,24 @@ Between the '%' character and the
 utf8VaryingString
 ZDateFull::toFormatted(const char* pFormat)
 {
-    tm wT;
-    memset(&wT,0,sizeof(wT));
+  if (isInvalid())
+    return "<invalid full date>";
+  char wBuffer[100];
 
-    char wBuffer[100];
+  time_t wT = tv_sec;
 
-    wT.tm_year = Year-1900;
-    wT.tm_mon = Month -1 ;
-    wT.tm_mday = Day;
-    wT.tm_min = Min;
-    wT.tm_hour=Hour;
-    wT.tm_sec = Sec ;
+  strftime(wBuffer,sizeof(wBuffer),pFormat,std::localtime(&wT));
 
-    strftime(wBuffer,100,pFormat,&wT);
-
-    return utf8VaryingString(wBuffer) ;
+  return utf8VaryingString(wBuffer) ;
 }//toFormatted
 
 
 utf8VaryingString
 ZDateFull::toLocale(void)
 {
-    return toFormatted("%c");
+  if (isInvalid())
+    return "<invalid full date>";
+  return toFormatted("%c");
 
 }//toLocale
 
@@ -678,287 +784,286 @@ ZDateFull ZDateFull::fromQString(const QString& pDate)
 
 //-----------reverse conversion----------------
 
-
+/* Deprecated
 ZDate ZDateFull::toZDate(void)
 {
-ZDate *wDate =(ZDate*) this;
+  if (isInvalid())
+    return ZDate();
 
-    return  *wDate;
+  ZDate wDate ;
+  wDate.fromZDateFull(*this);
+
+  return  wDate;
 }
-
+*/
 
 
 /* UTC conversions */
 
-/* UTC ISO 8601 "2011-10-08T07:07:09.000Z" */
-utf8VaryingString ZDate::toUTC() const
+
+utf8VaryingString ZDateFull::toUTCGMT() const
 {
+  if (isInvalid())
+    return "<invalid date>";
+  struct tm wTm;
+  if (gmtime_r(&tv_sec,&wTm)==nullptr)
+    return "<invalid date>";
+
   utf8VaryingString wUTC;
-  wUTC.sprintf("%04d-%02d-%02dT%02d:%02d:%02d-%03dZ", Year, Month, Day, 0, 0, 0, 0);
+  wUTC.sprintf("%04d-%02d-%02dT%02d:%02d:%02d.%03dZ", wTm.tm_year+1900, wTm.tm_mon+1, wTm.tm_mday, wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
   return wUTC;
-}
-void ZDate::fromUTC(const utf8VaryingString &pIn)
-{
-  clear();
-
-  clear();
-  int wNumber=0;
-  utf8_t* wPtrIn=(utf8_t*)pIn.Data;
-  /* skip leading bullshit */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  int wCount=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 4)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-  Year = uint16_t(wNumber);
-  /* skip bullshit again if any */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-
-  Month = uint8_t(wNumber);
-
-  /* skip bullshit again if any */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-
-  Day = uint8_t(wNumber);
-
-
-  /* repeat for hours */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-
-  return ;
-
-  /* hereafter is deprecated
-
-  ssize_t wY = pIn.locate((const utf8_t *) "-");
-  if (wY < 0) {
-    fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
-    return;
-  }
-  Year = pIn.subString(0, wY).toInt(10);
-  wY++;
-  ssize_t wM = pIn.locate((const utf8_t *) "-", wY);
-  if (wM < 0)
-  {
-    fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
-    return;
-  }
-  Month = pIn.subString(wY, wM - wY).toInt(10);
-  wM++;
-  ssize_t wD = pIn.locate((const utf8_t *) "T", wM);
-  if (wD < 0)
-  {
-    fprintf(stderr, "ZDateFull::fromUTC-E_INVFMT Invalid UTC date format <%s>\n", pIn.toCChar());
-    return;
-  }
-  Day = pIn.subString(wM, wD - wM).toInt(10);
-*/
-
 }
 
 utf8VaryingString ZDateFull::toUTC() const
 {
-  utf8VaryingString wUTC;
-  wUTC.sprintf("%04d-%02d-%02dT%02d:%02d:%02d-%03dZ", Year, Month, Day, Hour, Min, Sec, 0);
+  if (isInvalid())
+    return "<invalid date>";
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return "<invalid date>";
+  long wGmtOffset = wTm.tm_gmtoff;
+  utf8VaryingString wUTC ,wTZTrail;
+
+  while (true) {
+    if (wGmtOffset==0){
+      wTZTrail = "Z";
+      break;
+    }
+    if (wGmtOffset<0){
+      wTZTrail = "-";
+      wGmtOffset = -wGmtOffset;
+    }
+    else {
+      wTZTrail = "+";
+    }
+    long wTZHour = wGmtOffset / 3600L;
+    long wTZMin =  wGmtOffset  - ( wTZHour * 3600L );
+    wTZMin = wTZMin / 60;
+    wTZTrail.addsprintf("%2ld.%2ld",wTZHour,wTZMin);
+    break;
+  }// while true
+  wUTC.sprintf("%04d-%02d-%02dT%02d:%02d:%02d.%03%s", wTm.tm_year+1900, wTm.tm_mon+1, wTm.tm_mday, wTm.tm_hour, wTm.tm_min, wTm.tm_sec,0,
+      wTZTrail.toString());
   return wUTC;
-}
+} //toUTC
+
+
 utf8VaryingString ZDateFull::toDMY() const
 {
-  utf8VaryingString wUTC;
-  wUTC.sprintf("%02u-%02u-%04u %02u:%02u:%02u-%03u",   Month, Day,Year,Hour, Min, Sec, 0);
-  return wUTC;
+  if (isInvalid())
+    return "<invalid full date>";
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return "<invalid date>";
+  utf8VaryingString wLocalTime;
+  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d-%03d",   wTm.tm_mon+1, wTm.tm_mday,wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  return wLocalTime;
 }
+
+
 utf8VaryingString ZDateFull::toMDY() const
 {
-  utf8VaryingString wUTC;
-  wUTC.sprintf("%02u-%02u-%04u %02u:%02u:%02u-%03u", Day,  Month, Year,Hour, Min, Sec, 0);
-  return wUTC;
+  if (isInvalid())
+    return "<invalid full date>";
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return "<invalid date>";
+  utf8VaryingString wLocalTime;
+  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d.%03d", wTm.tm_mday,  wTm.tm_mon+1, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  return wLocalTime;
 }
+
+/*  gmt "08-11-2011 07:07:09.000Z"
+   *  non gmt  "08-11-2011 07:07:09.000+02.00" or "08-11-2011 07:07:09.000+02" */
 void ZDateFull::fromUTC(const utf8VaryingString &pIn)
 {
+  ZSuperTm wSTm;
+  int wNanoSec=0;
+  int wTZHour=0;
+  int wTZMin=0;
+
+  int wTZSign = 1;
+
   clear();
+  struct tm wTm, wTm1;
+  memset(&wTm,0,sizeof(tm));
+  memset(&wTm1,0,sizeof(tm));
+  /*  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return ;
+*/
   int wNumber=0;
-  utf8_t* wPtrIn=(utf8_t*)pIn.Data;
-  /* skip leading bullshit */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
   int wCount=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 4)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
+  utf8_t* wPtrIn=(utf8_t*)pIn.Data;
+
+  while (true) {
+    /* skip leading bullshit */
+    while (*wPtrIn && !std::isdigit(*wPtrIn))
+      wPtrIn++;
+
+
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 4)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+    wSTm.tm_year = wNumber - 1900;
+
+    /* skip bullshit again if any */
+    while (*wPtrIn && !std::isdigit(*wPtrIn))
+      wPtrIn++;
+
+    wCount=0;
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+
+    wSTm.tm_mon = wNumber - 1;
+
+    /* skip bullshit again if any */
+    while (*wPtrIn && !std::isdigit(*wPtrIn))
+      wPtrIn++;
+
+    wCount=0;
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+
+    wSTm.tm_mday = wNumber ;
+
+    /* repeat for hours */
+    while (*wPtrIn && !std::isdigit(*wPtrIn))
+      wPtrIn++;
+
+    wCount=0;
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+
+    wSTm.tm_hour = wNumber;
+
+    /* repeat for minutes */
+    while (*wPtrIn && !std::isdigit(*wPtrIn))
+      wPtrIn++;
+
+    wCount=0;
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+
+    wSTm.tm_min = wNumber;
+
+    /* allowed to truncate seconds */
+    if ((!*wPtrIn) || (*wPtrIn=='Z') || (*wPtrIn=='+') || (*wPtrIn=='-'))
+      break;/* get to trailing */
+
+    /* repeat for seconds */
+    while (*wPtrIn && !std::isdigit(*wPtrIn))
+      wPtrIn++;
+
+    wCount=0;
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+    wSTm.tm_sec = wNumber;
+
+    /* allowed to truncate nano seconds */
+    if ((!*wPtrIn) || (*wPtrIn=='Z') || (*wPtrIn=='+') || (*wPtrIn=='-'))
+      break;/* get to trailing */
+
+    /* repeat for nano-seconds */
+    while (*wPtrIn && !std::isdigit(*wPtrIn)) {
+      wPtrIn++;
+    }
+    wCount=0;
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 3)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+    wNanoSec = wNumber;
+    break;
+  }// main while true
+
+
+
+//  long wTZDiff = getTimeZoneDiff();
+
+  while (*wPtrIn!=0) {
+
+    if (*wPtrIn=='Z') {
+//      wTZDiff = getTimeZoneDiff();
+      break;
+    }
+    else if (*wPtrIn=='+') {
+      wTZSign = 1;
+    }
+    else if (*wPtrIn=='-') {
+      wTZSign = -1;
+    }
+    else
+      break;
     wPtrIn++;
-  }
-  Year = uint16_t(wNumber);
-  /* skip bullshit again if any */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-
-  Month = uint8_t(wNumber);
-
-  /* skip bullshit again if any */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-
-  Day = uint8_t(wNumber);
+    /* time zone difference for hours */
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+    wTZHour=wNumber;
+    /* time zone difference for seconds */
+    wNumber=0;
+    while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+      int wDigit = int((*wPtrIn) -'0');
+      wNumber = wNumber * 10;
+      wNumber += wDigit;
+      wCount++;
+      wPtrIn++;
+    }
+    wTZMin = wNumber;
 
 
-  /* repeat for hours */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
+    break;
+  } // while (*wPtrIn!=0)
 
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
 
-  Hour = uint8_t(wNumber);
+  wSTm.tm_hour += (wTZSign * wTZHour) ;
+  wSTm.tm_min += (wTZSign * wTZMin) ;
 
-  /* repeat for minutes */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-
-  Min = uint8_t(wNumber);
-
-  /* repeat for seconds */
-  while (*wPtrIn && !std::isdigit(*wPtrIn))
-    wPtrIn++;
-
-  wCount=0;
-  wNumber=0;
-  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
-    int wDigit = int((*wPtrIn) -'0');
-    wNumber = wNumber * 10;
-    wNumber += wDigit;
-    wCount++;
-    wPtrIn++;
-  }
-
-  Sec = uint8_t(wNumber);
+  tv_sec= timegm(&wSTm);      /* get wTimet1 as gm time and format wSTm as gmt with current time */
+  tv_nsec = wNanoSec;
 
   return;
 }
-
-#ifdef __DEPRECATED__
-
-QDateTime ZDateFull::toQDateTime(void)
-{
-    QDateTime wQD ;
-    const QDate wQD1(Year,Month,Day);
-    const QTime wQT(Hour,Min,Sec);
-
-    wQD.setDate(wQD1);
-    wQD.setTime(wQT);
-    return wQD ;
-}
-
-utfdescString
-ZDateFull::toDateFormatted(const char *pFormat)
-{
-    utfdescString wRet;
-    wRet.fromQString(toQDate().toString(pFormat)); /* todo : something more clever with that stuff see icu or system built-in capabilities*/
-    return (wRet);
-}
-utfdescString
-ZDateFull::toDateTimeFormatted(const char*pFormat)
-{
-    utfdescString wRet;
-    wRet.fromQString(toQDateTime().toString(pFormat));
-    return (wRet);
-}
-utfdescString
-ZDateFull::toTimeFormatted (const char * pFormat)
-{
-    utfdescString wRet;
-    wRet.fromQString(toQTime().toString(pFormat));
-    return(wRet);
-}
-QDate ZDateFull::toQDate(void)
-{
-    QDate wQD ;
-    wQD.setDate(Year,Month,Day);
-    return wQD ;
-}
-QTime ZDateFull::toQTime(void)
-{
-    QTime wQD (Hour,Min,Sec);
-    return wQD ;
-}
-
-#endif //#ifdef __DEPRECATED__
-

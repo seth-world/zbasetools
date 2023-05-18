@@ -1,6 +1,20 @@
 #ifndef URISTRING_CPP
-#define URISTRING_CPP
-#include <zconfig.h>
+
+#include <config/zconfig.h>
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <pwd.h>
+
+#include <fcntl.h>
+
+#ifdef __USE_WINDOWS__
+
+#include <io.h>
+
+#endif //__USE_WINDOWS__
+
 
 #include <ztoolset/uristring.h>
 #include <ztoolset/zexceptionmin.h>
@@ -9,10 +23,8 @@
 #include <ztoolset/zutfstrings.h>
 #include <ztoolset/utfvaryingstring.h> // for utf8VaryingString utf16VaryingString and utf32VaryingString
 
-#include <fcntl.h>
-
 #include <zio/zdir.h>
-
+#include <zio/zioutils.h>
 
 #ifdef QT_CORE_LIB
 #include <QUrl>
@@ -104,7 +116,7 @@ uriString::fileList(ZArray<uriString>* pList)
 }//fileList
 
 ZStatus
-uriString::list(ZArray<uriString>* pList,ZDir_File_type pZDFT)
+uriString::list(ZArray<uriString>* pList,ZDirFileEn_type pZDFT)
 {
 
     if (!isDirectory())
@@ -541,32 +553,45 @@ uriString::setExtension (const char* pExtension)
 
 ZStatus
 uriString::remove() {
+  /* see https://www.gnu.org/software/libc/manual/html_node/Deleting-Files.html
+   */
   ZStatus wSt=ZS_SUCCESS;
+  errno=0;
   if (::remove(toCChar())!=0) {
-    switch (errno)
-    {
-    case (EPERM) :
-    case (EACCES) :
-      wSt = ZS_ACCESSRIGHTS;
+    int wErrno = errno;
+    wSt=ZS_ILLEGAL;
+    utf8VaryingString wErrMsg;
+    switch (wErrno) {
+    case EACCES:
+      wSt= ZS_ACCESSRIGHTS ;
+      wErrMsg.sprintf( "<EACCES> Write permission is denied for the directory from which the file is to be removed, or the directory has the sticky bit set and you do not own the file. File <%s>",toString());
       break;
-    case (EBUSY) :
-      wSt = ZS_LOCKED;
+    case EBUSY:
+      wSt= ZS_LOCKED;
+      wErrMsg.sprintf( "<EBUSY> This error indicates that the file is being used by the system in such a way that it can’t be unlinked. For example, you might see this error if the file name specifies the root directory or a mount point for a file system. File <%s>",toString());
       break;
-    case (ENOENT) :
-      wSt =ZS_FILENOTEXIST;
+    case ENOENT:
+      wSt= ZS_FILENOTEXIST;
+      wErrMsg.sprintf( "<ENOENT> The file name to be deleted doesn’t exist.");
       break;
+    case EPERM:
+      wSt= ZS_INVOP;
+      wErrMsg.sprintf( "<EPERM> On some systems unlink cannot be used to delete the name of a directory, or at least can only be used this way by a privileged user. To avoid such problems, use rmdir to delete directories. File <%s>",toString());
+      break;
+    case EROFS:
+      wSt= ZS_ACCESSRIGHTS;
+      wErrMsg.sprintf( "<EROFS> The directory containing the file name to be deleted is on a read-only file system and can’t be modified. File <%s>",toString());
+      break;
+
     default:
-      wSt = ZS_FILEERROR;
+      wErrMsg.sprintf( "Unknown error for removing file <%s>.",toString());
       break;
     }// switch
-
-
-    ZException.getErrno(errno,
+    ZException.getErrno(wErrno,
         _GET_FUNCTION_NAME_,
         wSt,
-        Severity_Severe,
-        " Cannot remove file <%s>",
-        toCChar());
+        Severity_Error,
+        wErrMsg.toCChar());
     return wSt;
   }
   return ZS_SUCCESS;
@@ -582,42 +607,156 @@ uriString::renameBck(const char* pBckExt)
   }
 int wFormerNumber = 1;
 
-  uriString wFormerURI(*this);
+  uriString wBckURI(*this);
 
-  while (wFormerURI.exists())
+  while (wBckURI.exists())
     {
     wFormerNumber ++;
-    wFormerURI.sprintf("%s_%s%02ld",toCChar(),pBckExt,wFormerNumber);
+    wBckURI.sprintf("%s_%s%02ld",toCChar(),pBckExt,wFormerNumber);
     }
-  int wRet= rename(toCChar(),wFormerURI.toCChar());
-  if (wRet!=0)
-    {
-    ZException.getErrno(errno,
-        _GET_FUNCTION_NAME_,
-        ZS_FILEERROR,
-        Severity_Severe,
-        "Error renaming existing file <%s> to <%s>\n",
-        toCChar(),
-        wFormerURI.toCChar());
-    return ZS_FILEERROR;
-    }
-
-  if (__ZRFVERBOSE__)
-    fprintf (stdout,
-        "Renamed existing file <%s> to <%s> \n",
-        toCChar(),
-        wFormerURI.toCChar());
-  return ZS_SUCCESS;
-}
+    return rename(wBckURI);
+} // renameBck
 
 ZStatus
-uriString::backupFile(const char* pBckExt)
+uriString::rename(const utf8VaryingString& pNewURI) {
+
+/* see https://pubs.opengroup.org/onlinepubs/9699919799/functions/rename.html
+Upon successful completion, the rename() function shall return 0. Otherwise, it shall return -1, errno shall be set to indicate the error,
+and neither the file named by old nor the file named by new shall be changed or created.
+*/
+  errno=0;
+  int wRet= std::rename(toCChar(),pNewURI.toCChar());
+  if (wRet<0) {
+    int wErrno=errno;
+    ZStatus wSt=ZS_ILLEGAL;
+    utf8VaryingString wErrMsg;
+    switch (wErrno) {
+    case EACCES:
+      wSt= ZS_ACCESSRIGHTS ;
+      wErrMsg.sprintf( "<EACCES> A component of either path prefix denies search permission; or one of the directories containing old or new denies write permissions; or, write permission is required and is denied for a directory pointed to by the old or new arguments."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EBUSY:
+      wSt= ZS_LOCKED;
+      wErrMsg.sprintf( "<EBUSY> The directory named by old or new is currently in use by the system or another process, and the implementation considers this an error."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EEXIST:
+    case ENOTEMPTY:
+      wSt= ZS_FILEEXIST;
+      wErrMsg.sprintf( "<EEXIST-ENOTEMPTY> The link named by new is a directory that is not an empty directory."
+                        " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EINVAL:
+      wSt= ZS_INVOP;
+      wErrMsg.sprintf( "<EINVAL> The old pathname names an ancestor directory of the new pathname, or either pathname argument contains a final component that is dot or dot-dot."
+                       " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EIO:
+      wSt= ZS_FILEERROR;
+      wErrMsg.sprintf( "<EIO> A physical I/O error has occurred."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EISDIR:
+      wSt= ZS_NOTDIRECTORY;
+      wErrMsg.sprintf( "<EISDIR> The new argument points to a directory and the old argument points to a file that is not a directory."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case ELOOP:
+      wSt= ZS_CORRUPTED;
+      wErrMsg.sprintf( "<ELOOP> A loop exists in symbolic links encountered during resolution of the path argument."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EMLINK:
+      wSt= ZS_OUTBOUNDHIGH;
+      wErrMsg.sprintf( "<EMLINK> The file named by old is a directory, and the link count of the parent directory of new would exceed {LINK_MAX}."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+
+    case ENAMETOOLONG:
+      wSt= ZS_INVNAME;
+      wErrMsg.sprintf( "<ENAMETOOLONG> The length of a component of a pathname is longer than {NAME_MAX}."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case ENOENT:
+      wSt= ZS_FILENOTEXIST;
+      wErrMsg.sprintf( "<ENOENT>  The link named by old does not name an existing file, a component of the path prefix of new does not exist, or either old or new points to an empty string."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case ENOSPC:
+      wSt= ZS_MEMOVFLW;
+      wErrMsg.sprintf( "<ENOSPC> The directory that would contain new cannot be extended."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+
+    case ENOTDIR:
+      wSt= ZS_NOTDIRECTORY;
+      wErrMsg.sprintf( "<ENOTDIR> A component of either path prefix names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names a directory and the new argument names a non-directory file; or the old argument contains at least one non- <slash> character and ends with one or more trailing <slash> characters and the last pathname component names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names an existing non-directory file and the new argument names a nonexistent file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters;"
+                      " or the new argument names an existing non-directory file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+
+    case EPERM:
+      wSt= ZS_ACCESSRIGHTS;
+      wErrMsg.sprintf( "<EPERM> he S_ISVTX flag is set on the directory containing the file referred to by old "
+                      "and the process does not satisfy the criteria specified in XBD Directory Protection with respect to old; or new refers to an existing file, the S_ISVTX flag is set on the directory containing this file, and the process does not satisfy the criteria specified in XBD Directory Protection with respect to this file."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EROFS:
+      wSt= ZS_FILEERROR;
+      wErrMsg.sprintf( "<EROFS> The requested operation requires writing in a directory on a read-only file system."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case EXDEV:
+      wSt= ZS_FILEERROR;
+      wErrMsg.sprintf( "<EXDEV> The links named by new and old are on different file systems and the implementation does not support links between file systems."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+    case ETXTBSY:
+      wSt= ZS_LOCKED;
+      wErrMsg.sprintf( "<ETXTBSY>  The file named by new exists and is the last directory entry to a pure procedure (shared text) file that is being executed."
+                      " Renaming file <%s> to <%s>",toString(),pNewURI.toString());
+      break;
+
+    default:
+      wErrMsg.sprintf( "Unknown error for renaming file <%s>.",toString());
+      break;
+    }// switch
+    ZException.getErrno(wErrno,
+                        _GET_FUNCTION_NAME_,
+                        wSt,
+                        Severity_Error,
+                        wErrMsg.toCChar());
+    return wSt;
+  }
+
+  return ZS_SUCCESS;
+} // rename
+
+
+uriString
+uriString::getBckName(const uriString &pName, const utf8VaryingString& pBckExt){
+  uriString wNewFileURI(pName);
+  int wFormerNumber = 1;
+  wNewFileURI.sprintf("%s_%s%02ld",pName.toString(),pBckExt.toString(),wFormerNumber);
+  while (wNewFileURI.exists())
+  {
+    wFormerNumber ++;
+    wNewFileURI.sprintf("%s_%s%02ld",wNewFileURI.toString(),pBckExt.toString(),wFormerNumber);
+  }
+  return wNewFileURI;
+}
+
+
+ZStatus
+uriString::backupFile(const utf8VaryingString& pBckExt)
 {
   if (!exists()) {
     ZException.setMessage("uriString::backupFile",ZS_FILENOTEXIST,Severity_Error,
         "Source file %s does not exist.",toString());
     return ZS_FILENOTEXIST;
   }
+  /*
   int wFormerNumber = 1;
 
   uriString wNewFileURI(*this);
@@ -627,6 +766,9 @@ uriString::backupFile(const char* pBckExt)
     wFormerNumber ++;
     wNewFileURI.sprintf("%s_%s%02ld",toCChar(),pBckExt,wFormerNumber);
   }
+*/
+  uriString wNewFileURI = getBckName(*this,pBckExt);
+
   ZDataBuffer wContent;
   ZStatus wSt = loadContent(wContent);
 
@@ -663,7 +805,7 @@ uriString::copyFile(uriString pDest, const uriString pSource,uint8_t pOption)
     }
     else if (pOption & UCO_DoNotReplace) {
       ZException.setMessage("uriString::copyFile",ZS_FILEEXIST,Severity_Error,
-          "Destination file %s already exist.",pSource.toString());
+          "Destination file %s already exist while option UCO_NoNotReplace has been set.",pSource.toString());
       return ZS_FILEEXIST;
     } else {
       wDestExists = true;
@@ -698,7 +840,7 @@ uriString::copyFile(uriString pDest, const uriString pSource,uint8_t pOption)
         pSource.toCChar(),
         pDest.toCChar());
   return ZS_SUCCESS;
-}
+} //uriString::copyFile
 //
 //---------String search and handling
 //
@@ -706,10 +848,7 @@ uriString::copyFile(uriString pDest, const uriString pSource,uint8_t pOption)
 
 
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <pwd.h>
+
 /**
  * @brief uriString::exists Test if current file description stored in current uriString exists as a file or a directory
  * @return true if exists, false if not
@@ -719,20 +858,30 @@ uriString::exists(void) const
 {
 struct stat wStatBuffer ;
     int wSt= stat(toCChar(),&wStatBuffer);
-    if (wSt<0)
-            {
-            return(false);
-            }
+    if (wSt<0) {
+      return(false);
+    }
     return(true);
 }
 
-void    uriString::setcwd()
+void    uriString::setToWorkingDir()
 {
   char wBuf[cst_urilen];
 
   strset((const utf8_t*)getcwd((char *)wBuf,cst_urilen));
 }
+/*
+ZStatus
+uriString::createDirectory (const uriString & pPath){
 
+  return ZDir::mkdir(pPath.toCChar());
+}
+*/
+ZStatus
+uriString::createDirectory (const uriString & pPath, __FILEACCESSRIGHTS__ pMode){
+
+  return ZDir::mkdir(pPath.toCChar(),pMode);
+}
 
 /**
  * @brief uriString::isDirectory test whether the given uri points to a directory
@@ -888,29 +1037,85 @@ return ZS_SUCCESS;
  * Return ZS_FILEERROR in case of failure and then, ZException is filled with error information
  * @param[in] pURI
  * @param[out] pZStat
+ *
+ * returned error see https://www.man7.org/linux/man-pages/man2/stat.2.html
+ *
 * @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.@see ZBSError
  */
 ZStatus
-uriString::getStatR(uriStat &pZStat)const
+uriString::getStatR(uriStat &pZStat, bool pLogZException)const
 {
 struct stat wStatBuffer ;
 passwd *wUserInfo;
-
+ZStatus wSt=ZS_SUCCESS;
+    errno= 0; /* errno is set by this function */
     pZStat.clear();
-    int wSt= stat(toCChar(),&wStatBuffer);
-    if (wSt<0)
-            {
-            ZException.setMessage (_GET_FUNCTION_NAME_,
-                                   ZS_FILEERROR,
-                                   Severity_Error,
-                                   "error calling stat for file %s",
-                                   toCChar());
-            return(ZS_FILEERROR);
-            }
+    int wRet= stat(toCChar(),&wStatBuffer);
+    if (wRet < 0) {
+      int wErrno=errno;
+      utf8VaryingString wErrMsg;
+      wSt= ZS_FILEERROR;
+      switch (wErrno) {
+        case ENOENT:
+          wSt= ZS_FILENOTEXIST;
+          wErrMsg.sprintf( "<ENOENT> A component of <%s> does not exist or is a dangling symbolic link.",toString());
+          break;
+        case EACCES:
+          wSt= ZS_USERPRIVILEGES;
+          wErrMsg.sprintf( "<EACCES> Search permission is denied for one of the directories in the path prefix of <%s>.",toString());
+          break;
+        case EBADF:
+          wSt= ZS_FILENOTOPEN;
+          wErrMsg.sprintf( "<EBADF> File descriptor is not a valid open file descriptor for file <%s>.",toString());
+          break;
+        case EFAULT:
+          wSt= ZS_CORRUPTED;
+          wErrMsg.sprintf( "<EFAULT> Bad address for file <%s>.",toString());
+          break;
+        case EINVAL:
+          wSt= ZS_INVPARAMS;
+          wErrMsg.sprintf( "<EINVAL> (fstatat()) Invalid flag specified in flags for file <%s>.",toString());
+          break;
+        case ELOOP:
+          wSt= ZS_BADFILEDESC;
+          wErrMsg.sprintf( "<ELOOP> Too many symbolic links encountered while traversing the path. for file <%s>.",toString());
+          break;
+        case ENAMETOOLONG:
+          wSt= ZS_INVNAME;
+          wErrMsg.sprintf( "<ENAMETOOLONG> pathname is too long for file <%s>.",toString());
+          break;
+        case ENOMEM:
+          wSt= ZS_MEMERROR;
+          wErrMsg.sprintf( "<ENOMEM> Out of memory (i.e., kernel memory) for file <%s>.",toString());
+          break;
+        case ENOTDIR:
+          wSt= ZS_BADFILEDESC;
+          wErrMsg.sprintf( "<ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory for file <%s>.",toString());
+          break;
+        case EOVERFLOW:
+          wSt= ZS_BADFILEDESC;
+          wErrMsg.sprintf( "<EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented for file <%s>.",toString());
+          break;
+        default:
+          wErrMsg.sprintf( "Unknown error for file <%s>.",toString());
+          break;
+      }// switch
+      if (pLogZException)
+        ZException.getErrno(  wErrno,     /* saved errno */
+                              _GET_FUNCTION_NAME_,
+                              wSt,
+                              Severity_Error,
+                              wErrMsg.toCChar());
+
+      return(wSt);
+    } // if (wRet < 0)
+
 
     pZStat.Size=wStatBuffer.st_size ;
-    pZStat.Created.fromTimespec(wStatBuffer.st_ctim);
-    pZStat.LastModified.fromTimespec((wStatBuffer.st_mtim));
+//    pZStat.Created.fromTimespec(wStatBuffer.st_ctim);
+//    pZStat.LastModified.fromTimespec((wStatBuffer.st_mtim));
+    pZStat.Created = wStatBuffer.st_ctim;
+    pZStat.LastModified = wStatBuffer.st_mtim;
     pZStat.Rights = wStatBuffer.st_mode;
 
     pZStat.Uid = wStatBuffer.st_uid;
@@ -918,8 +1123,19 @@ passwd *wUserInfo;
     wUserInfo = getpwuid(wStatBuffer.st_uid);
 
     ::strcpy(pZStat.OwnerName , wUserInfo->pw_name);
-    return(ZS_SUCCESS);
+    return(wSt);
 }// getStatR
+
+
+uriStat
+uriString::getStatR(bool pLogZException) const {
+  uriStat wRet;
+  ZStatus wSt=getStatR(wRet,pLogZException);
+  if (wSt!=ZS_SUCCESS) {
+    wRet.setInvalid();
+  }
+  return wRet;
+}
 
 
 /**
@@ -958,15 +1174,15 @@ and returns a QBuffer with a Data pointer to memory content and Size of the buff
 
 
 ZStatus
-uriString::loadContent (ZDataBuffer& pDBS) const
+uriString::_loadContent (ZDataBuffer& pDBS) const
 {
 ZStatus wSt;
 uriStat wStat;
     if (!exists()) {
       ZException.setMessage(_GET_FUNCTION_NAME_,
-                            ZS_NOTFOUND,
+                            ZS_FILENOTEXIST,
                             Severity_Error,
-                            "-E-FILENOTFOUND Requested file %s does not exist \n",
+                            "-E-FILENOTEXIST Requested file %s does not exist \n",
                             toCChar());
       return ZS_NOTFOUND;
     }
@@ -978,19 +1194,11 @@ uriStat wStat;
    if (wStat.Size==0)
      return ZS_EMPTY;
 
-   int wFd=::open(toCChar(), O_RDONLY);
-   if (wFd<0) {
-     ZException.getErrno(errno);
-     ZException.setMessage(_GET_FUNCTION_NAME_,
-         ZS_ERROPEN,
-         Severity_Error,
-         "uriString::loadContent-E-ERROPEN error opening file for reading  <%s> \n",
-         toCChar());
-     if (ZVerbose & ZVB_FileEngine)
-       ZException.printLastUserMessage(stderr);
-     ::close(wFd);
-     return ZS_ERROPEN;
-   }
+   __FILEHANDLE__ wFd;
+   wSt=rawOpen(wFd,toCChar(), O_RDONLY);
+   if (wFd<0)
+     return wSt;
+
     pDBS.allocateBZero(wStat.Size);
 
     ssize_t wS=::read(wFd,pDBS.Data,pDBS.Size);
@@ -1007,9 +1215,120 @@ uriStat wStat;
       ::close(wFd);
       return ZS_READERROR;
     }
+
+    wSt=rawRead(wFd,pDBS,wStat.Size);
+
+
     ::close(wFd);
     return(ZS_SUCCESS);
 }//loadContent
+
+
+
+ZStatus
+uriString::loadContent (ZDataBuffer& pDBS) const
+{
+  ZStatus wSt;
+//  uriStat wStat;
+  if (!exists()) {
+    ZException.setMessage(_GET_FUNCTION_NAME_,
+        ZS_FILENOTEXIST,
+        Severity_Error,
+        "-E-FILENOTEXIST Requested file %s does not exist \n",
+        toCChar());
+    return ZS_FILENOTEXIST;
+  }
+
+  __FILEHANDLE__ wFd;
+  wSt=rawOpen(wFd,toCChar(),O_RDONLY);
+  if (wSt != ZS_SUCCESS)
+    return wSt;
+
+  __off_t wSOff = 0;
+  wSt=rawSeek(wFd,wSOff,SEEK_END); /* set to end of file and get back file size in wS */
+  if (wSt!=ZS_SUCCESS)  {
+    rawClose(wFd);
+    return wSt;
+  }
+  if (wSOff==0) {
+    rawClose(wFd);
+    return ZS_EMPTY;
+  }
+  __off_t wSOff1 = 0;
+  wSt=rawSeek(wFd,wSOff1,SEEK_SET);  /* set to beginning of file with dummy offset*/
+  if (wSt!=ZS_SUCCESS) {
+    rawClose(wFd);
+    return wSt;
+  }
+  wSt=rawRead(wFd,pDBS,wSOff);
+
+  rawClose(wFd);
+  return wSt;
+
+#ifdef __COMMENT__
+  __FILEHANDLE__ wFd=::open(toCChar(), O_RDONLY);
+  if (wFd<0) {
+    ZException.getErrno(errno,_GET_FUNCTION_NAME_,
+        ZS_ERROPEN,
+        Severity_Error,
+        "uriString::loadContent-E-ERROPEN error opening file for reading  <%s> \n",
+        toCChar());
+    if (ZVerbose & ZVB_FileEngine)
+      ZException.printLastUserMessage(stderr);
+    ::close(wFd);
+    return ZS_ERROPEN;
+  }
+
+
+  __off_t wSOff =  lseek(wFd,__off_t(0),SEEK_END); /* set to end of file and get back file size in wS */
+  if (wSOff<0) {
+    ZException.getErrno(errno,_GET_FUNCTION_NAME_,
+        ZS_FILEPOSERR,
+        Severity_Error,
+        "uriString::loadContent-E-SEEKERR error seeking file for end of file. File  <%s> \n",
+        toCChar());
+    if (ZVerbose & ZVB_FileEngine)
+      ZException.printLastUserMessage(stderr);
+    ::close(wFd);
+    return ZS_FILEPOSERR;
+  }
+  if (wSOff==0) {
+    ::close(wFd);
+    return ZS_EMPTY;
+  }
+  __off_t wSOff1 =  lseek(wFd,__off_t(0),SEEK_SET);  /* set to beginning of file with dummy offset*/
+  if (wSOff1<0) {
+    ZException.getErrno(errno,_GET_FUNCTION_NAME_,
+        ZS_FILEPOSERR,
+        Severity_Error,
+        "uriString::loadContent-E-SEEKERR error seeking file for beginning of file. File  <%s> \n",
+        toCChar());
+    if (ZVerbose & ZVB_FileEngine)
+      ZException.printLastUserMessage(stderr);
+    ::close(wFd);
+    return ZS_ERROPEN;
+  }
+
+  pDBS.allocateBZero(size_t(wSOff));
+  ssize_t wS=::read(wFd,pDBS.Data,pDBS.Size);
+  if (wS < 0)
+  {
+    ZException.getErrno(errno,
+        _GET_FUNCTION_NAME_,
+        ZS_READERROR,
+        Severity_Severe,
+        "Error reading file size %ld path <%s> ",
+        wSOff,toString());
+    if (ZVerbose & ZVB_FileEngine)
+      ZException.printLastUserMessage();
+    ::close(wFd);
+    return ZS_READERROR;
+  }
+  ::close(wFd);
+  return(ZS_SUCCESS);
+#endif // __COMMENT__
+}//loadContent
+
 
 
 ZStatus
@@ -1202,194 +1521,116 @@ In case of error :returned ZStatus is appropriately set
  -# writeContent does not assess wether the file content has to be crypted or not.
  -# it is up to caller to FREE ALLOCATED MEMORY required for storing file content.
 * @param[in] pDBS a ZDataBuffer with the content to be written in file
+* @param[in] pAccessRights int with access right mask  defaulted to S_IRWXU|S_IRWXG|S_IROTH
 * @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.@see ZBSError
 */
 
 ZStatus
-uriString::writeContent (ZDataBuffer& pDBS) const
+uriString::writeContent (ZDataBuffer& pDBS,__FILEACCESSRIGHTS__ pAccessRights) const
 {
-  int wFd = ::open(toCChar(), O_WRONLY | O_CREAT,S_IRWXU|S_IRWXG|S_IROTH);
-  if (wFd<0) {
-    ZException.getErrno(errno,
-        _GET_FUNCTION_NAME_,
-        ZS_ERROPEN,
-        Severity_Severe,
-        "Cannot open file %s",
-        toString());
-    return  (ZS_ERROPEN);
-  }
-  int wS = posix_fallocate(wFd,off_t(0L),off_t(pDBS.Size));
-  if (wS<0) {
-    ZException.getErrno(errno,
-        _GET_FUNCTION_NAME_,
-        ZS_CANTALLOCSPACE,
-        Severity_Severe,
-        " Severe error while allocating (posix_fallocate) disk space size %ld to end of file %s",
-        toString());
-    ::close(wFd);
-    return  (ZS_CANTALLOCSPACE);
-  }
+  __FILEHANDLE__ wFd ;
+  ZStatus wSt= rawOpen(wFd,*this, O_WRONLY | O_CREAT,pAccessRights);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
 
-  off_t wSK=lseek(wFd,off_t(0L),SEEK_SET);
-  if (wSK<0) {
-    ZException.getErrno(errno,
-        _GET_FUNCTION_NAME_,
-        ZS_FILEPOSERR,
-        Severity_Severe,
-        " Error positionning begining of file %s",
-        toString());
-    ::close(wFd);
-    return  (ZS_FILEPOSERR);
-  }
+  wSt=rawAllocate(wFd,__off_t(0),__off_t(pDBS.Size));
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
 
-  ssize_t wSS=::write(wFd,pDBS.DataChar,pDBS.Size);
-  if (wSS<0) {
-    ZException.getErrno(errno,
-                        _GET_FUNCTION_NAME_,
-                        ZS_WRITEERROR,
-                        Severity_Error,
-                        " Error writing %ld bytes to file %s",
-                        pDBS.Size,
-                        toString());
-    ::close(wFd);
-    return  (ZS_WRITEERROR);
-  }
-//  fdatasync(wFd); // better than flush
-  ::close(wFd);
-  return ZS_SUCCESS;
+  wSt=rawSeekBegin(wFd);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
 
+  size_t wSizeWritten=0;
+  wSt=rawWrite(wFd,pDBS,wSizeWritten);
+
+  rawClose(wFd);
+  return wSt;
 }//writeContent
+
 
 ZStatus
 uriString::appendContent (ZDataBuffer& pDBS) const
 {
-  int wFd = ::open(toCChar(), O_APPEND );
-  if (wFd<0) {
-    ZException.getErrno(errno,
-        _GET_FUNCTION_NAME_,
-        ZS_ERROPEN,
-        Severity_Severe,
-        "Cannot open file %s",
-        toString());
-    return  (ZS_ERROPEN);
+  __FILEHANDLE__ wFd =-1;
+  ZStatus wSt = rawOpen(wFd,toCChar(), O_APPEND);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+  size_t wSk;
+  wSt=rawSeekEnd(wFd,(__off_t &)wSk);
+  if (wSt!=ZS_SUCCESS) {
+    goto appendContentEnd;
   }
 
-  off_t wSK=lseek(wFd,off_t(0L),SEEK_END);
-  if (wSK<0) {
-    ZException.getErrno(errno,
-        _GET_FUNCTION_NAME_,
-        ZS_FILEPOSERR,
-        Severity_Severe,
-        " Error positionning end of file %s",
-        toString());
-    ::close(wFd);
-    return  (ZS_FILEPOSERR);
-  }
-
-  ssize_t wSS=::write(wFd,pDBS.DataChar,pDBS.Size);
-  if (wSS<0) {
-    ZException.getErrno(errno,
-        _GET_FUNCTION_NAME_,
-        ZS_WRITEERROR,
-        Severity_Error,
-        " Error writing %ld bytes to file %s",
-        pDBS.Size,
-        toString());
-    ::close(wFd);
-    return  (ZS_WRITEERROR);
-  }
-//  fdatasync(wFd); //! better than flush
-  ::close(wFd);
-  return ZS_SUCCESS;
-
+  wSt=rawWrite(wFd,pDBS,wSk);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+appendContentEnd:
+  rawClose(wFd);
+  return wSt;
 }//appendContent
 
 ZStatus
-uriString::writeContent (utf8VaryingString &pStr) const
+uriString::writeContent (utf8VaryingString &pStr, __FILEACCESSRIGHTS__  pAccessRights) const
 {
+  ZDataBuffer wDBS;
+/*  __FILEHANDLE__ wFd ;
+  ZStatus wSt= rawOpen(wFd,*this, O_WRONLY | O_CREAT,pAccessRights);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+*/
+  size_t wStrLen = pStr.strlen();
+  wDBS.allocateBZero(sizeof(uint8_t)*(wStrLen+1));
+  size_t wi=0;
+  while (wi < wStrLen) {
+    wDBS.Data[wi] = pStr.Data[wi];
+    wi++;
+  }
 
-    FILE *wFile =fopen(toCChar(),"w");
+  return writeContent(wDBS,pAccessRights);
+/*
+  wSt=rawAllocate(wFd,__off_t(0),__off_t(wDBS.Size));
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
 
-    if (wFile==nullptr)
-            {
-            ZException.getErrno(errno);
-            ZException.setMessage(_GET_FUNCTION_NAME_,
-                                  ZS_ERROPEN,
-                                  Severity_Error,
-                                  "-E-ERROPEN error on fopen file for writing  <%s> \n",
-                                  toCChar());
-//            if (ZVerbose)
-//                ZException.printLastUserMessage(stderr,true);
-            return ZS_ERROPEN;
-            }
+  wSt=rawSeekBegin(wFd);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
 
 
-//    fwrite(pStr.Data,pStr.strlen()+1,1,wFile);
-    fwrite(pStr.Data,pStr.strlen(),1,wFile);
+  size_t wSizeWritten=0;
+  wSt=rawWrite(wFd,wDBS,wSizeWritten);
 
-
-    if (ferror(wFile))
-                {
-                ZException.getFileError(wFile,
-                                        _GET_FUNCTION_NAME_,
-                                      ZS_FILEERROR,
-                                      Severity_Error,
-                                      "E-ERRWRITE error writing to file  <%s> ",
-                                      toCChar());
-                if (ZVerbose)
-                    ZException.printLastUserMessage(stderr);
-                fclose(wFile);
-                return (ZS_FILEERROR);
-                }
-    fclose(wFile);
-    return(ZS_SUCCESS);
+  rawClose(wFd);
+  return wSt;
+*/
 }//writeContent
 
 ZStatus
 uriString::appendContent (utf8VaryingString &pStr) const
 {
-
-  FILE *wFile =fopen(toCChar(),"a");
-
-  if (wFile==nullptr)
-  {
-    ZException.getErrno(errno);
-    ZException.setMessage(_GET_FUNCTION_NAME_,
-        ZS_ERROPEN,
-        Severity_Error,
-        "-E-ERROPEN error on fopen file for writing  <%s> \n",
-        toCChar());
-    if (ZVerbose)
-      ZException.printLastUserMessage(stderr);
-    return ZS_ERROPEN;
+  ZDataBuffer wDBS;
+  size_t wStrLen = pStr.strlen();
+  wDBS.allocateBZero(sizeof(uint8_t)*(wStrLen+1));
+  size_t wi=0;
+  while (wi < wStrLen) {
+    wDBS.Data[wi] = pStr.Data[wi];
+    wi++;
   }
 
-
-  //    fwrite(pStr.Data,pStr.strlen()+1,1,wFile);
-  fwrite(pStr.Data,pStr.strlen(),1,wFile);
-
-
-  if (ferror(wFile))
-  {
-    ZException.getFileError(wFile,
-        _GET_FUNCTION_NAME_,
-        ZS_FILEERROR,
-        Severity_Error,
-        "E-ERRWRITE error writing to file  <%s> ",
-        toCChar());
-    if (ZVerbose)
-      ZException.printLastUserMessage(stderr);
-    fclose(wFile);
-    return (ZS_FILEERROR);
-  }
-  fclose(wFile);
-  return(ZS_SUCCESS);
+  return appendContent(wDBS);
 }//appendContent
+
 ZStatus uriString::writeAES256(ZDataBuffer &pDBS,
                                const ZCryptKeyAES256 &pKey,
-                               const ZCryptVectorAES256 &pVector)
+                               const ZCryptVectorAES256 &pVector,
+                                __FILEACCESSRIGHTS__ pAccessRights)
 {
-    return pDBS.encryptAES256toFile(toCChar(), pKey, pVector);
+  ZDataBuffer wDBS = pDBS;
+  ZStatus wSt=wDBS.encryptAES256toFile(toCChar(), pKey, pVector);
+    if (wSt!=ZS_SUCCESS)
+      return wSt;
+    return writeContent(wDBS,pAccessRights);
 }
 /**
  * @brief uriString::getChecksum gives the checksum of the file's content current uriString points to.

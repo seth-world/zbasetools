@@ -30,7 +30,8 @@ public:
     uint16_t Year;
     uint8_t  Month;
     uint8_t  Day;
-    ZDate() { memset(this, 0, sizeof(ZDate)); }
+
+    ZDate() {setInvalid();}
     ZDate(ZDate &pIn) { _copyFrom(pIn); }
     ZDate(ZDate &&pIn) { _copyFrom(pIn); }
 

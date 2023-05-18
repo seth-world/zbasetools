@@ -1,7 +1,7 @@
 #ifndef UTFVTEMPLATESTRING_H
 #define UTFVTEMPLATESTRING_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <cassert>
 
 #ifdef QT_CORE_LIB
@@ -700,6 +700,8 @@ public:
 //    int compare(const _Utf* pString2) {return utfStrcmp<_Utf>(Data,pString2);}                       /** corresponds to strcmp */
 //    int ncompare(const _Utf* pString2,size_t pCount) {return utfStrncmp<_Utf>(Data,pString2,pCount);}/** corresponds to strncmp */
     int compare(const _Utf* pString2) const ;                      /* corresponds to strcmp */
+
+    int compareCase (const utfVaryingString<_Utf> &pCompare) ;
 
     int compare(const utfVaryingString<_Utf> & pString2) const {
       return compare(pString2.Data);
@@ -3461,6 +3463,34 @@ utfVaryingString<_Utf>::isEqualCase (const utfVaryingString<_Utf>& pCompare)
   if ((*wPtr1==0) && (*wPtr2==0))
     return true;
   return false;
+}
+/*
+Returns an integral value indicating the relationship between the strings:
+return value	indicates
+<0	the first character that does not match has a lower value in ptr1 than in ptr2
+0	the contents of both strings are equal
+>0	the first character that does not match has a greater value in ptr1 than in ptr2
+*/
+template <class _Utf>
+int
+utfVaryingString<_Utf>::compareCase (const utfVaryingString<_Utf>& pCompare)
+{
+  _Utf* wPtr1=Data;
+  _Utf* wPtr2=pCompare.Data;
+
+  _Utf wComp=0;
+  while (*wPtr1 && *wPtr2){
+    wComp = utfUpper(*wPtr1)-utfUpper(*wPtr2);
+    if (wComp)
+      return int(wComp) ;
+    wPtr1++;
+    wPtr2++;
+  }
+  if ((*wPtr1==0) && (*wPtr2==0))
+    return int(wComp) ;
+  if (*wPtr1)
+    return int(*wPtr1);
+  return int(*wPtr2);
 }
 
 template <class _Utf>

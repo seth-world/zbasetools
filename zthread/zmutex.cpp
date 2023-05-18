@@ -1,7 +1,6 @@
 #ifndef ZMUTEX_CPP
 #define ZMUTEX_CPP
 
-//#include <zconfig.h>
 
 #include <zthread/zmutex.h>
 #include <ztoolset/zerror_min.h>

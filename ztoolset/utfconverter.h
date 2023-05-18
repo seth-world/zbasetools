@@ -1,6 +1,6 @@
 #ifndef UTFCONVERTER_H
 #define UTFCONVERTER_H
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zicuconverter.h>
 
 

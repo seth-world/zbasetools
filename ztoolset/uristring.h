@@ -1,29 +1,34 @@
 #ifndef URISTRING_H
 #define URISTRING_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zlimit.h>
-
+#include <sys/stat.h>
 //#include <ztoolset/utffixedstring.h>
 
 #include <zcrypt/checksum.h>
 #include <ztoolset/zdatefull.h>
 #include <ztoolset/userid.h>
 
-
+#include <ztoolset/zdatecommon.h>
+/*
 #ifdef QT_CORE_LIB
 #include <QUrl>
 #endif // QT_CORE_LIB
-
+*/
 
 
 #ifndef ZDIR_FILE_TYPE
 #define ZDIR_FILE_TYPE
-enum ZDir_File_type {
+typedef uint8_t ZDirFileEn_type;
+enum ZDirFileEn :  ZDirFileEn_type {
     ZDFT_Nothing        = 0,
     ZDFT_RegularFile    = 1,
     ZDFT_Directory      = 2,
-    ZDFT_All            = 0x0f
+    ZDFT_SymbolicLink   = 4,
+    ZDFT_Other          = 8,
+    ZDFT_Hidden         = 10,
+    ZDFT_All            = 0x0F
 };
 #endif //ZDIR_FILE_TYPE
 
@@ -52,6 +57,11 @@ public:
     uriStat(uriStat &pIn) { _copyFrom(pIn); }
     uriStat(uriStat&&pIn) { _copyFrom(pIn); }
 
+
+    void setInvalid() { clear();}
+
+    bool isInvalid() { return Size==0 && (Created.tv_sec==0)&& (LastModified.tv_sec==0);}
+
     uriStat &_copyFrom(uriStat &pIn)
     {
         clear();
@@ -70,8 +80,8 @@ public:
     void clear(void)
     {
         memset(Dev,0,sizeof(Dev));
-        Created.clear();
-        LastModified.clear();
+        memset(&Created,0,sizeof(Created));
+        memset(&LastModified,0,sizeof(LastModified));
         Rights=0;
         Size=0;
         Uid.clear();
@@ -90,7 +100,13 @@ enum URICopyOptions : uint8_t {
 #define __URISTRING__
 /**
  * @brief The uriString class Expand templateString template capabilities to file and directories management.
- * includes descString and codeString moves.
+ * Allows to perform some basic file operations
+    - file path handling
+    - load content of file (either binary or utf8)
+    - backup file using a standard naming convention for backing up individual files (not the case for master files)
+    - rename file
+    - delete file
+    - copy file to destination file
  *
  */
 class uriString : public utf8VaryingString
@@ -211,7 +227,7 @@ public:
      *  ZS_FILERROR : other error
      */
     ZStatus remove();
-
+    ZStatus rename(const utf8VaryingString& pNewURI);
     /**
      * @brief renameBck renames file with a special extension suffix given by pBckExt plus a incremental 2 digit value as follows :\n
      *  <base filename>.<extension>_<pBckExt><nn>
@@ -234,7 +250,9 @@ public:
      * with given pBckExt extension (defaulted to "bck")
      * according renameBck naming rules.
       */
-    ZStatus backupFile(const char* pBckExt="bck");
+    ZStatus backupFile(const utf8VaryingString &pBckExt="bck");
+
+    static uriString getBckName(const uriString& pName, const utf8VaryingString &pBckExt="bck");
 
 
     /** @brief copyFile copies pSource file to pDest file according pOption
@@ -244,7 +262,7 @@ public:
      *  and if destination file exists, it is replaced and ZS_FILEREPLACED status is returned
      *  in all other case of normal termination, ZS_SUCCESS is returned.
      */
-    static ZStatus copyFile(uriString pDest, const uriString pSource, uint8_t pOption);
+    static ZStatus copyFile(uriString pDest, const uriString pSource, uint8_t pOption=UCO_Nothing);
 
     uriString& addConditionalDirectoryDelimiter(void);
     uriString& addDirectoryDelimiter(void);
@@ -253,6 +271,9 @@ public:
     ZStatus changeAccessRights(mode_t pMode);
 
     static uriString currentWorkingDirectory();
+
+
+
 
 #ifdef QT_CORE_LIB
 
@@ -266,14 +287,26 @@ public:
 
 // -----Control & file operations-------
 //
+    /** @brief getStatR obtains an uriStat structure with file information from current file.
+     * if pLogZException is set to true, and when an error occurs, a ZException is set.
+     * if not, only wrong status is returned.
+     * @return returns a ZStatus set to ZS_SUCCESS if operation went well or with appropriate status if not.
+     */
+    ZStatus getStatR(uriStat &pZStat, bool pLogZException=false) const;
 
-    ZStatus getStatR(uriStat &pZStat) const;
+    /** @brief getStatR returns an uriStat structure with file information from current file if operation is successfull,
+     * or an empty uriStat structure if operation went wrong.
+     * if pLogZException is set to true and only in this case, and when an error occurs, a ZException is set.
+     * @return returns a ZStatus set to ZS_SUCCESS if operation went well or with appropriate status if not.
+     */
+    uriStat getStatR( bool pLogZException=false) const;
 
     long long getFileSize(void) const  ;
 
     checkSum getChecksum(void) const;
 
     ZStatus loadContent(ZDataBuffer &pDBS) const;
+    ZStatus _loadContent(ZDataBuffer &pDBS) const;
     ZStatus loadUtf8(utf8VaryingString &pUtf8) const ;
     ZStatus loadUtf16(utf16VaryingString &pUtf16) const ;
     ZStatus loadUtf32(utf32VaryingString &pUtf32) const ;
@@ -283,24 +316,32 @@ public:
 
     ZStatus loadContentZTerm(ZDataBuffer &pDBS) ; /* same as loadContent but forces Zero termination */
 
-    ZStatus writeContent (ZDataBuffer &pDBS) const ;
+    ZStatus writeContent (ZDataBuffer &pDBS,__FILEACCESSRIGHTS__ pAccessRights = S_IRWXU|S_IRWXG|S_IROTH) const ;
     ZStatus appendContent (ZDataBuffer &pDBS) const ;
 
-    ZStatus writeAES256(ZDataBuffer &pDBS,const ZCryptKeyAES256& pKey,const ZCryptVectorAES256& pVector) ;
+    /**
+     * @brief writeAES256  write the content of pDBS after having encoded it using AES256 algorithm according pKey and pVector.
+     * pDBS content is not modified. File is created with pAccessRights access rights defaulted to S_IRWXU|S_IRWXG|S_IROTH.
+     * @return
+     */
+    ZStatus writeAES256(ZDataBuffer &pDBS, const ZCryptKeyAES256& pKey, const ZCryptVectorAES256& pVector,__FILEACCESSRIGHTS__ pAccessRights = S_IRWXU|S_IRWXG|S_IROTH) ;
     /**
      * @brief writeContent writes utf8 string content to file pointed by uriString.
      *  NB: end mark '\0' is not written to file.
      * @param pStr utf8 string to wrtie
      * @return  a ZStatus
      */
-    ZStatus writeContent (utf8VaryingString &pStr) const;
+    ZStatus writeContent (utf8VaryingString &pStr,__FILEACCESSRIGHTS__ pAccessRights = S_IRWXU|S_IRWXG|S_IROTH) const;
     ZStatus appendContent (utf8VaryingString &pStr) const ;
 //    ZStatus writeText (varyingCString &pDBS) ;
 
     bool    exists(void) const  ;
 
-    /* set to userŝ working directory */
-    void    setcwd();
+    /* set content to user's working directory */
+    void    setToWorkingDir();
+
+//    static ZStatus createDirectory (const uriString & pPath) ;
+    static ZStatus createDirectory (const uriString & pPath, __FILEACCESSRIGHTS__ pMode=S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     /**
  * @brief uriString::suppress  suppresses the file pointed to by uriString content.
@@ -320,7 +361,7 @@ public:
 
 
     ZStatus fileList(ZArray<uriString>* pList=nullptr);
-    ZStatus list(ZArray<uriString>* pList=nullptr, ZDir_File_type pZDFT=ZDFT_All);
+    ZStatus list(ZArray<uriString>* pList=nullptr, ZDirFileEn_type pZDFT=ZDFT_All);
     ZStatus subDir(ZArray<uriString>* pList=nullptr);
 
 

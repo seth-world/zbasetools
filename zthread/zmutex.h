@@ -1,6 +1,6 @@
 #ifndef ZMUTEX_H
 #define ZMUTEX_H
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -117,7 +117,8 @@ utf8VaryingString fmtXMLint64(const utf8VaryingString &pVarName, const int64_t p
 utf8VaryingString fmtXMLuint32(const utf8VaryingString &pVarName, const uint32_t pVarContent, const int pLevel);
 utf8VaryingString fmtXMLuint64(const utf8VaryingString &pVarName, const uint64_t pVarContent, const int pLevel);
 utf8VaryingString fmtXMLbool(const utf8VaryingString &pVarName, const bool pVarContent, const int pLevel);
-utf8VaryingString fmtXMLdate(const utf8VaryingString &pVarName, const ZDate pVarContent, const int pLevel);
+// Deprecated
+//utf8VaryingString fmtXMLdate(const utf8VaryingString &pVarName, const ZDate pVarContent, const int pLevel);
 utf8VaryingString fmtXMLdatefull(const utf8VaryingString &pVarName, const ZDateFull pVarContent, const int pLevel);
 
 utf8VaryingString fmtXMLintHexa(const utf8VaryingString &pVarName, const int pVarContent, const int pLevel);
@@ -171,31 +172,68 @@ ZStatus XMLgetChildText(zxmlElement *pElement,
                         utf8String &pTextValue,
                         ZaiErrors *pErrorlog,
                         ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus XMLgetChildText(zxmlElement *pElement,
+                        const utf8VaryingString &pChildName,
+                        utf8String &pTextValue);
+
+ZStatus XMLgetChildFloat(zxmlElement *pElement,
+                        const utf8VaryingString &pChildName,
+                        float &pFloat);
+
 ZStatus XMLgetChildFloat(zxmlElement *pElement,
                      const utf8VaryingString &pChildName,
                      float &pFloat,
                      ZaiErrors *pErrorlog,
                      ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildDouble(zxmlElement *pElement,
+    const utf8VaryingString &pChildName,
+    double &pDouble);
+
+ZStatus XMLgetChildDouble(zxmlElement *pElement,
                       const utf8VaryingString &pChildName,
                       double &pDouble,
                       ZaiErrors *pErrorlog,
                       ZaiE_Severity pSeverity=ZAIES_Error);
+
+ZStatus
+XMLgetChildBool (zxmlElement*pElement,const utf8VaryingString &pChildName,bool &pBool);
+
 ZStatus XMLgetChildBool(zxmlElement *pElement,
                     const utf8VaryingString &pChildName,
                     bool &pBool,
                     ZaiErrors *pErrorlog,
                     ZaiE_Severity pSeverity=ZAIES_Error);
 
+ZStatus XMLgetChildInt (zxmlElement*pElement,const utf8VaryingString & pChildName,int &pInt);
+ZStatus XMLgetChildUInt(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned int &pUInt);
+ZStatus XMLgetChildLong(zxmlElement *pElement, const utf8VaryingString &pChildName, long &pLong);
+ZStatus XMLgetChildULong(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned long &pULong);
+
+ZStatus XMLgetChildInt64 (zxmlElement*pElement,const utf8VaryingString & pChildName,int64_t &pLong);
+ZStatus XMLgetChildInt64 (zxmlElement*pElement,const utf8VaryingString & pChildName,int64_t &pLong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity);
+
+ZStatus XMLgetChildVersion (zxmlElement*pElement,const utf8VaryingString & pChildName, unsigned long &pVersion);
+
+/* Deprecated */
+//ZStatus XMLgetChildZDate(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDate &pDate);
+ZStatus XMLgetChildZDateFull(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDateFull &pDateFull);
+
+
+ZStatus XMLgetChildIntHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, int &pLong);
+ZStatus XMLgetChildLongHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, long &pLong);
+ZStatus XMLgetChildUIntHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned int &pLong);
+ZStatus XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned long &pLong);
+
+
+
 ZStatus XMLgetChildInt(zxmlElement *pElement, const utf8VaryingString &ChildName, int &pInt, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildUInt(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned int &pUInt, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildLong(zxmlElement *pElement, const utf8VaryingString &pChildName, long &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildULong(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned long &pULong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
-
 ZStatus XMLgetChildVersion(zxmlElement *pElement, const utf8VaryingString& pChildName, unsigned long &pVersion, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 
-
-ZStatus XMLgetChildZDate(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDate &pDate, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+/* Deprecated */
+//ZStatus XMLgetChildZDate(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDate &pDate, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildZDateFull(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDateFull &pDateFull, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 
 
@@ -204,12 +242,12 @@ ZStatus XMLgetChildLongHexa(zxmlElement *pElement, const utf8VaryingString &pChi
 ZStatus XMLgetChildUIntHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned int &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned long &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 
-
+#define fmtXMLZStatus fmtXMLint64
 
 #define XMLgetChildInt32 XMLgetChildInt
 #define XMLgetChildUInt32 XMLgetChildUInt
-#define XMLgetChildInt64 XMLgetChildLong
 #define XMLgetChildUInt64 XMLgetChildULong
+#define XMLgetChildZStatus XMLgetChildInt64
 
 #define XMLgetChildInt32Hexa XMLgetChildIntHexa
 #define XMLgetChildUInt32Hexa XMLgetChildUIntHexa
@@ -221,7 +259,7 @@ ZStatus XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString &pCh
 #if (SYSTEM32)
 #define XMLgetChildInt32 XMLgetChildLong
 #define XMLgetChildUInt32 XMLgetChildULong
-#define XMLgetChildInt64 XMLgetChildLongLong
+//#define XMLgetChildInt64 XMLgetChildLongLong
 #define XMLgetChildUInt64 XMLgetChildULongLong
 
 #define XMLgetChildInt32Hexa XMLgetChildLongHexa
@@ -231,7 +269,7 @@ ZStatus XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString &pCh
 #else
 #define XMLgetChildInt32 XMLgetChildInt
 #define XMLgetChildUInt32 XMLgetChildUInt
-#define XMLgetChildInt64 XMLgetChildLong
+//#define XMLgetChildInt64 XMLgetChildLong
 #define XMLgetChildUInt64 XMLgetChildULong
 
 #define XMLgetChildInt32Hexa XMLgetChildIntHexa
@@ -241,15 +279,24 @@ ZStatus XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString &pCh
 
 #endif
 
+ZStatus XMLgetChildMd5(zxmlElement *pElement, const utf8VaryingString& pChildName,md5 &pMd5);
+
 ZStatus
 XMLgetChildMd5 (zxmlElement*pElement,const utf8VaryingString &pChildName,md5 &pMd5,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+
+ZStatus XMLgetChildCheckSum(zxmlElement *pElement, const utf8VaryingString& pChildName,checkSum &pCheckSum);
 
 ZStatus
 XMLgetChildCheckSum (zxmlElement*pElement,const utf8VaryingString &pChildName,checkSum &pCheckSum,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 
+ZStatus
+XMLgetChildSSLKeyB64 (zxmlElement*pElement, const utf8VaryingString &pChildName, zbs::ZCryptKeyAES256 &pKey);
 
 ZStatus
 XMLgetChildSSLKeyB64 (zxmlElement*pElement, const utf8VaryingString &pChildName, zbs::ZCryptKeyAES256 &pKey, ZaiErrors* pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+
+ZStatus
+XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,zbs::ZCryptVectorAES256 &pKey);
 
 ZStatus
 XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,zbs::ZCryptVectorAES256 &pKey,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);

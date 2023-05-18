@@ -1,7 +1,7 @@
 #ifndef ZCONFIG_H
 #define ZCONFIG_H
 
-#include <zconfig_general.h>
+#include <config/zconfig_general.h>
 
 //#define ZBS_BEGIN namespace zbs {
 
@@ -51,14 +51,17 @@
 //#define __FORCE_STD__
 
 #ifdef __USE_WINDOWS__
+
 #ifndef __FORCE_STD__
 #define __USE_WIN_ZTHREAD__             0x0002
 #define __USE_ZTHREAD__ (__USE_STD_ZTHREAD__ | __ZTHREAD_AUTOMATIC__)
 #define __USE_STD_CHRONO__
 #endif //__FORCE_STD_
+
 #endif // __USE_WINDOWS__
 
 #ifdef __USE_LINUX__
+
 #ifndef __FORCE_STD__
 #define __USE_POSIX_ZTHREAD__               0x0004
 #define __USE_ZTHREAD__ (__USE_POSIX_ZTHREAD__ | __ZTHREAD_AUTOMATIC__)

@@ -3,7 +3,7 @@
 /**
 
  */
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zlimit.h>
 #include <stdarg.h>
 #include <ztoolset/zatomicconvert.h>
@@ -125,6 +125,7 @@ public:
 
     int compare(const utf8VaryingString& pIn) const  { return utfVaryingString<utf8_t>::compare(pIn.Data);}
     utf8_t* strstr(const utf8VaryingString& pIn) const { return utfVaryingString<utf8_t>::strstr(pIn.Data);}
+    int compareCase(const utf8VaryingString& pIn) const  { return utfVaryingString<utf8_t>::compare(pIn.Data);}
 
     utf8VaryingString&  addConditionalOR(const utf8VaryingString& pIn)
                       {utfVaryingString<utf8_t>::addConditionalOR(pIn.Data); return *this;}

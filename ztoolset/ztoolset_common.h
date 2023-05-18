@@ -1,7 +1,7 @@
 #ifndef ZTOOLSET_COMMON_H
 #define ZTOOLSET_COMMON_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <cstdlib>
 #include <stddef.h>

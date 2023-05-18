@@ -1,7 +1,7 @@
 #ifndef ZTIMER_H
 #define ZTIMER_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zutfstrings.h>
 #include <ztoolset/ztime.h>
 

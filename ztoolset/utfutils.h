@@ -24,7 +24,7 @@
   *
   */
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <stdlib.h>
 #include <string.h>

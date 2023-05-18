@@ -390,6 +390,81 @@ ZDate::getValueFromUniversal(const unsigned char* pUniversalDataPtr)
 }//getValueFromUniversal
 
 
+/* UTC ISO 8601 "2011-10-08T07:07:09.000Z" */
+utf8VaryingString ZDate::toUTC() const
+{
+  utf8VaryingString wUTC;
+  wUTC.sprintf("%04d-%02d-%02dT%02d:%02d:%02d-%03dZ", Year, Month, Day, 0, 0, 0, 0);
+  return wUTC;
+}
+void ZDate::fromUTC(const utf8VaryingString &pIn)
+{
+
+  clear();
+  int wNumber=0;
+  utf8_t* wPtrIn=(utf8_t*)pIn.Data;
+  /* skip leading bullshit */
+  while (*wPtrIn && !std::isdigit(*wPtrIn))
+    wPtrIn++;
+
+  int wCount=0;
+  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 4)) {
+    int wDigit = int((*wPtrIn) -'0');
+    wNumber = wNumber * 10;
+    wNumber += wDigit;
+    wCount++;
+    wPtrIn++;
+  }
+  Year = uint16_t(wNumber);
+  /* skip bullshit again if any */
+  while (*wPtrIn && !std::isdigit(*wPtrIn))
+    wPtrIn++;
+
+  wCount=0;
+  wNumber=0;
+  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+    int wDigit = int((*wPtrIn) -'0');
+    wNumber = wNumber * 10;
+    wNumber += wDigit;
+    wCount++;
+    wPtrIn++;
+  }
+
+  Month = uint8_t(wNumber);
+
+  /* skip bullshit again if any */
+  while (*wPtrIn && !std::isdigit(*wPtrIn))
+    wPtrIn++;
+
+  wCount=0;
+  wNumber=0;
+  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+    int wDigit = int((*wPtrIn) -'0');
+    wNumber = wNumber * 10;
+    wNumber += wDigit;
+    wCount++;
+    wPtrIn++;
+  }
+
+  Day = uint8_t(wNumber);
+
+
+  /* repeat for hours */
+  while (*wPtrIn && !std::isdigit(*wPtrIn))
+    wPtrIn++;
+
+  wCount=0;
+  wNumber=0;
+  while (*wPtrIn && std::isdigit(*wPtrIn) && (wCount < 2)) {
+    int wDigit = int((*wPtrIn) -'0');
+    wNumber = wNumber * 10;
+    wNumber += wDigit;
+    wCount++;
+    wPtrIn++;
+  }
+
+  return ;
+}
 
 
 #endif // ZDATE_CPP

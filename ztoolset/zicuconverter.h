@@ -1,6 +1,6 @@
 #ifndef ZICUCONVERTER_H
 #define ZICUCONVERTER_H
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zlimit.h>
 #include <ztoolset/zerror.h>
 

@@ -23,7 +23,7 @@
   */
 #ifndef ZCHARSET_H
 #define ZCHARSET_H
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zerror.h>
 #include <ztoolset/zerror_min.h>
 #include <ztoolset/utfstrctx.h>

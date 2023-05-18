@@ -15,7 +15,7 @@
  */
 
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/utftemplatestring.h>
 
 template <size_t _Sz>

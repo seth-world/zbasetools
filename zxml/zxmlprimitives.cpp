@@ -5,6 +5,8 @@
 #include <ztoolset/utfvaryingstring.h>
 #include <ztoolset/zdate.h>
 
+#include <ztoolset/zexceptionmin.h>
+
 using namespace zbs;
 
 
@@ -344,7 +346,7 @@ utf8VaryingString fmtXMLbool(const utf8VaryingString &pVarName,const bool pVarCo
             wIndent,' ',pVarName.toCChar(),pVarContent?"true":"false",pVarName.toCChar());
     return utf8VaryingString(wBuffer);
 }
-
+/* Deprecated
 utf8VaryingString fmtXMLdate(const utf8VaryingString &pVarName,const ZDate pVarContent, const int pLevel)
 {
   int wIndent=pLevel*cst_XMLIndent;
@@ -355,6 +357,7 @@ utf8VaryingString fmtXMLdate(const utf8VaryingString &pVarName,const ZDate pVarC
       wIndent,' ',pVarName.toCChar(),pVarContent.toUTC().toString(),pVarName.toCChar());
   return utf8VaryingString(wBuffer);
 }
+*/
 utf8VaryingString fmtXMLdatefull(const utf8VaryingString &pVarName,const ZDateFull pVarContent, const int pLevel)
 {
   int wIndent=pLevel*cst_XMLIndent;
@@ -362,9 +365,15 @@ utf8VaryingString fmtXMLdatefull(const utf8VaryingString &pVarName,const ZDateFu
   memset (wBuffer,0,sizeof(wBuffer));
   sprintf (wBuffer,
       "%*c<%s>%s</%s>\n",
-      wIndent,' ',pVarName.toCChar(),pVarContent.toUTC().toString(),pVarName.toCChar());
+      wIndent,' ',pVarName.toCChar(),pVarContent.toUTCGMT().toString(),pVarName.toCChar());
   return utf8VaryingString(wBuffer);
 }
+
+ZStatus
+XMLgetChildText (zxmlElement*pElement,const utf8VaryingString& pChildName,utf8String& pTextValue) {
+  return XMLgetChildText(pElement,pChildName,pTextValue,nullptr,ZAIES_Error);
+}
+
 
 ZStatus
 XMLgetChildText (zxmlElement*pElement,const utf8VaryingString& pChildName,utf8String& pTextValue,ZaiErrors* pErrorlog,ZaiE_Severity pSeverity)
@@ -373,7 +382,15 @@ XMLgetChildText (zxmlElement*pElement,const utf8VaryingString& pChildName,utf8St
     ZStatus wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName.toCChar());
     if (wSt!=ZS_SUCCESS)
     {
-        pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildText-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
+
+      if (pErrorlog==nullptr) {
+        ZException.setMessage("XMLgetChildText",wSt,Severity_Error,
+            "XMLgetChildText-E-CNTFINDND Error cannot find node element with name <%s>",
+            pChildName.toCChar());
+        return wSt;
+      }
+      else
+      pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildText-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
                        pChildName.toCChar(),
                        decode_ZStatus(wSt));
         return wSt;
@@ -381,6 +398,13 @@ XMLgetChildText (zxmlElement*pElement,const utf8VaryingString& pChildName,utf8St
     wSt=wChild->getNodeText(pTextValue);
     if (wSt!=ZS_SUCCESS)
     {
+      if (pErrorlog==nullptr) {
+        ZException.setMessage("XMLgetChildText",wSt,Severity_Error,
+            "XMLgetChildText-E-CNTFINDND Error cannot find text within element <%s>",
+            wChild->getName().toCChar());
+        return wSt;
+      }
+      else
         pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildText-E-CNTFINDND Error cannot find text within element <%s> status <%s>",
                        wChild->getName().toCChar(),
                        decode_ZStatus(wSt));
@@ -388,6 +412,12 @@ XMLgetChildText (zxmlElement*pElement,const utf8VaryingString& pChildName,utf8St
     }
     return ZS_SUCCESS;
 } //XMLgetChildText
+
+ZStatus
+XMLgetChildFloat (zxmlElement*pElement,const utf8VaryingString& pChildName,float& pFloat) {
+  return XMLgetChildFloat(pElement,pChildName,pFloat,nullptr,ZAIES_Error);
+}
+
 ZStatus
 XMLgetChildFloat (zxmlElement*pElement,const utf8VaryingString &pChildName,float& pFloat,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
@@ -400,6 +430,12 @@ XMLgetChildFloat (zxmlElement*pElement,const utf8VaryingString &pChildName,float
     return ZS_SUCCESS;
 } //XMLgetChildFloat
 ZStatus
+XMLgetChildDouble (zxmlElement*pElement, const utf8VaryingString &pChildName, double& pDouble)
+{
+  return XMLgetChildDouble(pElement,pChildName,pDouble,nullptr,ZAIES_Error);
+}
+
+ZStatus
 XMLgetChildDouble (zxmlElement*pElement, const utf8VaryingString &pChildName, double& pDouble, ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
   ZStatus wSt;
@@ -410,6 +446,13 @@ XMLgetChildDouble (zxmlElement*pElement, const utf8VaryingString &pChildName, do
     pDouble=wValue.toDouble();
     return ZS_SUCCESS;
 } //XMLgetChildDouble
+
+ZStatus
+XMLgetChildBool (zxmlElement*pElement,const utf8VaryingString &pChildName,bool &pBool)
+{
+ return XMLgetChildBool(pElement,pChildName,pBool,nullptr,ZAIES_Error);
+}
+
 ZStatus
 XMLgetChildBool (zxmlElement*pElement,const utf8VaryingString &pChildName,bool &pBool,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
@@ -426,6 +469,14 @@ XMLgetChildBool (zxmlElement*pElement,const utf8VaryingString &pChildName,bool &
         pBool=false;
     return ZS_SUCCESS;
 } //XMLgetChildBool
+
+
+ZStatus
+XMLgetChildInt (zxmlElement*pElement,const utf8VaryingString & pChildName,int &pInt)
+{
+  return XMLgetChildInt(pElement,pChildName,pInt,nullptr,ZAIES_Error);
+}
+
 ZStatus
 XMLgetChildInt (zxmlElement*pElement,const utf8VaryingString & pChildName,int &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
@@ -438,6 +489,14 @@ XMLgetChildInt (zxmlElement*pElement,const utf8VaryingString & pChildName,int &p
   pInt=wValue.toInt();
   return ZS_SUCCESS;
 } //XMLgetChildInt
+
+
+ZStatus
+XMLgetChildLong (zxmlElement*pElement,const utf8VaryingString & pChildName, long &pLong)
+{
+  return XMLgetChildLong(pElement,pChildName,pLong,nullptr,ZAIES_Error);
+}
+
 ZStatus
 XMLgetChildLong (zxmlElement*pElement, const utf8VaryingString & pChildName, long &pLong, ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
@@ -452,6 +511,12 @@ XMLgetChildLong (zxmlElement*pElement, const utf8VaryingString & pChildName, lon
 } //XMLgetChildInt
 
 ZStatus
+XMLgetChildUInt (zxmlElement*pElement,const utf8VaryingString & pChildName, unsigned int &pUInt)
+{
+  return XMLgetChildUInt(pElement,pChildName,pUInt,nullptr,ZAIES_Error);
+}
+
+ZStatus
 XMLgetChildUInt (zxmlElement*pElement,const utf8VaryingString & pChildName,unsigned int &pUInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
   ZStatus wSt;
@@ -463,6 +528,13 @@ XMLgetChildUInt (zxmlElement*pElement,const utf8VaryingString & pChildName,unsig
   pUInt=wValue.toUInt(0);/* base 0 : let string content decide for base */
   return ZS_SUCCESS;
 } //XMLgetChildInt
+
+
+ZStatus
+XMLgetChildULong (zxmlElement*pElement,const utf8VaryingString & pChildName, unsigned long &pUInt)
+{
+  return XMLgetChildULong(pElement,pChildName,pUInt,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildULong (zxmlElement*pElement,const utf8VaryingString & pChildName,unsigned long &pULong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
@@ -478,6 +550,32 @@ XMLgetChildULong (zxmlElement*pElement,const utf8VaryingString & pChildName,unsi
 } //XMLgetChildULong
 
 ZStatus
+XMLgetChildInt64 (zxmlElement*pElement,const utf8VaryingString & pChildName,int64_t &pLong)
+{
+ return XMLgetChildInt64 (pElement,pChildName,pLong,nullptr, ZAIES_Error);
+}
+
+ZStatus
+XMLgetChildInt64 (zxmlElement*pElement,const utf8VaryingString & pChildName,int64_t &pLong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+  ZStatus wSt;
+  utf8String wValue;
+
+  if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+    return wSt;
+
+  pLong=wValue.toLong(0);/* base 0 : let string content decide for base */
+  return ZS_SUCCESS;
+} //XMLgetChildint64
+
+
+ZStatus
+XMLgetChildVersion (zxmlElement*pElement,const utf8VaryingString & pChildName, unsigned long &pVersion)
+{
+  return XMLgetChildVersion(pElement,pChildName,pVersion,nullptr,ZAIES_Error);
+}
+
+ZStatus
 XMLgetChildVersion (zxmlElement*pElement,const utf8VaryingString& pChildName,unsigned long &pVersion,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
   ZStatus wSt;
@@ -489,6 +587,13 @@ XMLgetChildVersion (zxmlElement*pElement,const utf8VaryingString& pChildName,uns
   pVersion=getVersionNum(wValue);
   return ZS_SUCCESS;
 } //XMLgetChildVersion
+
+/* Deprecated
+ZStatus
+XMLgetChildZDate(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDate &pDate)
+{
+  return XMLgetChildZDate(pElement,pChildName,pDate,nullptr,ZAIES_Error);
+}
 
 
 ZStatus
@@ -503,6 +608,13 @@ XMLgetChildZDate(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDa
   pDate.fromUTC (wValue);
   return ZS_SUCCESS;
 } //XMLgetChildZDate
+*/
+
+ZStatus
+XMLgetChildZDateFull(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDateFull &pDateFull)
+{
+  return XMLgetChildZDateFull(pElement,pChildName,pDateFull,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildZDateFull(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDateFull &pDateFull, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity)
@@ -516,6 +628,14 @@ XMLgetChildZDateFull(zxmlElement *pElement, const utf8VaryingString& pChildName,
   pDateFull.fromUTC (wValue);
   return ZS_SUCCESS;
 } //XMLgetChildZDate
+
+
+
+ZStatus
+XMLgetChildIntHexa(zxmlElement *pElement, const utf8VaryingString& pChildName,int &pInt)
+{
+  return XMLgetChildIntHexa(pElement,pChildName,pInt,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildIntHexa (zxmlElement*pElement,const utf8VaryingString & pChildName,int &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
@@ -531,6 +651,12 @@ XMLgetChildIntHexa (zxmlElement*pElement,const utf8VaryingString & pChildName,in
 } //XMLgetChildInt
 
 ZStatus
+XMLgetChildLongHexa(zxmlElement *pElement, const utf8VaryingString& pChildName,long &pLong)
+{
+  return XMLgetChildLongHexa(pElement,pChildName,pLong,nullptr,ZAIES_Error);
+}
+
+ZStatus
 XMLgetChildLongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,long &pLong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
   ZStatus wSt;
@@ -542,6 +668,13 @@ XMLgetChildLongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,lo
   pLong=wValue.toLong(16);/* base 16 : hexadecimal expected */
   return ZS_SUCCESS;
 } //XMLgetChildLongHexa
+
+
+ZStatus
+XMLgetChildUIntHexa(zxmlElement *pElement, const utf8VaryingString& pChildName,unsigned int &pInt)
+{
+  return XMLgetChildUIntHexa(pElement,pChildName,pInt,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildUIntHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,unsigned int &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
@@ -555,6 +688,12 @@ XMLgetChildUIntHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,un
   pInt=wValue.toUInt(16);/* base 16 : hexadecimal expected */
   return ZS_SUCCESS;
 } //XMLgetChildUIntHexa
+
+ZStatus
+XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString& pChildName,unsigned long &pULong)
+{
+  return XMLgetChildULongHexa(pElement,pChildName,pULong,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildULongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,unsigned long &pULong,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
@@ -576,6 +715,13 @@ XMLgetChildULongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,u
   </name>
 
  */
+
+
+ZStatus
+XMLgetChildMd5(zxmlElement *pElement, const utf8VaryingString& pChildName,md5 &pMd5)
+{
+  return XMLgetChildMd5(pElement,pChildName,pMd5,nullptr,ZAIES_Error);
+}
 ZStatus
 XMLgetChildMd5 (zxmlElement*pElement,const utf8VaryingString &pChildName,md5 &pMd5,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
 {
@@ -604,6 +750,12 @@ XMLgetChildMd5 (zxmlElement*pElement,const utf8VaryingString &pChildName,md5 &pM
 */
   return pMd5.fromHexa(wValue);
 } //XMLgetChildMd5
+
+ZStatus
+XMLgetChildCheckSum(zxmlElement *pElement, const utf8VaryingString& pChildName,checkSum &pCheckSum)
+{
+  return XMLgetChildCheckSum(pElement,pChildName,pCheckSum,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildCheckSum (zxmlElement*pElement,const utf8VaryingString & pChildName,checkSum &pCheckSum,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
@@ -709,6 +861,11 @@ utf8VaryingString fmtXMLSSLVectorB64(const utf8VaryingString &pVarName, const ZC
   return wReturn;
 }//fmtXMLSSLVectorB64
 
+ZStatus
+XMLgetChildSSLKeyB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,ZCryptKeyAES256 &pKey)
+{
+  return XMLgetChildSSLKeyB64 (pElement,pChildName,pKey,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildSSLKeyB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,ZCryptKeyAES256 &pKey,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
@@ -732,6 +889,12 @@ XMLgetChildSSLKeyB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,Z
   return pKey.set(wValue.decodeB64().toUtf());
 } //XMLgetChildSSLKeyB64
 
+
+ZStatus
+XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,ZCryptVectorAES256 &pKey)
+{
+  return XMLgetChildSSLVectorB64 (pElement,pChildName,pKey,nullptr,ZAIES_Error);
+}
 
 ZStatus
 XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,ZCryptVectorAES256 &pKey,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)

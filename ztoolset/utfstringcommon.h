@@ -1,7 +1,7 @@
 #ifndef UTFSTRINGCOMMON_H
 #define UTFSTRINGCOMMON_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/ztypetype.h>
 #include <ztoolset/zcharset.h>
 

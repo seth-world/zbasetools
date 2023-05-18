@@ -1,7 +1,7 @@
 #ifndef ZFUNCTIONS_H
 #define ZFUNCTIONS_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <time.h>
 #include <ztoolset/cescapedstring.h>
 #include <ztoolset/ztoolset_common.h>

@@ -1,6 +1,6 @@
 #ifndef ENCODEDSTRING_H
 #define ENCODEDSTRING_H
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/templatestring.h>
 #include <ztoolset/zerror.h>
 #include <ztoolset/zdatabuffer.h>

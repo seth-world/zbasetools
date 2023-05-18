@@ -6,11 +6,68 @@
 #include <ctime>
 #include <time.h>
 
+extern long int TimeZoneDiff;
+
 #include <ztoolset/zutfstrings.h>  //for utf8VaryingString
 
 extern const char* ZDateFormat_Standard      ;
 extern const char *ZTimeFormat_Standard       ;
 extern const char *ZDateTimeFormat_Standard   ;
+
+
+class ZSuperTm : public tm {
+public:
+  ZSuperTm(){memset (this,0,sizeof(ZSuperTm));}
+  ZSuperTm(const ZSuperTm& pIn) { _copyFrom(pIn);}
+  ZSuperTm(const struct tm& pIn) { _copyFrom(pIn);}
+
+  tm get() {return (*this);}
+
+  ZSuperTm& operator = (const ZSuperTm& pIn) {return _copyFrom(pIn);}
+  ZSuperTm& operator = (const tm& pIn) {return _copyFrom(pIn);}
+
+  ZSuperTm& _setOnlyBaseTime(const tm& pIn) {
+    memset(this,0,sizeof(ZSuperTm));
+    tm_year = pIn.tm_year;
+    tm_mon = pIn.tm_mon;
+    tm_mday = pIn.tm_mday;
+    tm_hour = pIn.tm_hour;
+    tm_min = pIn.tm_min;
+    tm_sec = pIn.tm_sec;
+  }
+
+  ZSuperTm& _copyFrom(const ZSuperTm& pIn) {
+    tm_year = pIn.tm_year;
+    tm_mon = pIn.tm_mon;
+    tm_mday = pIn.tm_mday;
+    tm_hour = pIn.tm_hour;
+    tm_min = pIn.tm_min;
+    tm_sec = pIn.tm_sec;
+    tm_wday = pIn.tm_wday;
+    tm_yday = pIn.tm_yday;
+    tm_isdst = pIn.tm_isdst;
+    tm_gmtoff = pIn.tm_gmtoff;
+    //    tm_zone = pIn.tm_zone;
+    return *this;
+  }
+
+  ZSuperTm& _copyFrom(const struct tm& pIn) {
+    tm_year = pIn.tm_year;
+    tm_mon = pIn.tm_mon;
+    tm_mday = pIn.tm_mday;
+    tm_hour = pIn.tm_hour;
+    tm_min = pIn.tm_min;
+    tm_sec = pIn.tm_sec;
+    tm_wday = pIn.tm_wday;
+    tm_yday = pIn.tm_yday;
+    tm_isdst = pIn.tm_isdst;
+    tm_gmtoff = pIn.tm_gmtoff;
+    //    tm_zone = pIn.tm_zone;
+    return *this;
+  }
+
+};
+
 
 
 struct ZDateFull_string {
@@ -38,18 +95,19 @@ public:
 } ;
 #pragma pack(pop)
 
-class ZDate;
+//class ZDate;
 
-class ZDateFull //: public tm
+class ZDateFull : public timespec
 {
 public:
+/*
   uint16_t Year;
   uint8_t Month;
   uint8_t Day;
   uint8_t Hour;
   uint8_t Min;
   uint8_t Sec;
-
+*/
  // typedef ZDateFull::tm _Base;
  //                             1   2     3   4     5   6     7   8     9   10    11  12
   const int DayMonth [12] = {  31 , 29 , 31 , 30 , 31 , 30 , 31 , 31 , 30 , 31 , 30 , 31 };
@@ -59,51 +117,13 @@ public:
   ZDateFull(const ZDateFull &&pIn) { _copyFrom(pIn); }
   ZDateFull(const utf8VaryingString& pDate) {_fromDMY(pDate);}
 
-  bool dateControl(){
-    /* day month year control */
-    if (Year<1900)
-      return false;
-    if (Month < 1)
-      return false;
-    if (Month > 12)
-      return false;
-    if (Day < 1)
-      return false;
-
-    if (Day > DayMonth[Month-1] )
-      return false;
-
-    if (Month == 2) {
-      if (Year - (int(Year/4)*4)) {
-        if (Day > 29)
-          return false;
-      }
-      else {
-        if (Day > 28)
-          return false;
-      }
-    }
-    return true;
-  }
-
-  bool timeControl(){
-    if (Hour > 24)
-      return false;
-    if (Min > 60)
-      return false;
-    if (Hour > 24)
-      return false;
-    if (Sec > 60)
-      return false;
-    return true;
-  }
-
-  bool isInvalid() {
-    return (dateControl() && timeControl());
+  bool isInvalid() const {
+    return (tv_sec <= 0);
   }
 
   void setInvalid() {
-    memset(this, 0, sizeof(ZDateFull));
+    tv_sec = -1;
+    tv_nsec = 0;
   }
 
   ZDateFull &_copyFrom(const  ZDateFull &pIn);
@@ -111,8 +131,40 @@ public:
   ZDateFull &operator=(const ZDateFull &pIn) { return _copyFrom(pIn); }
   ZDateFull &operator=(const ZDateFull &&pIn) { return _copyFrom(pIn); }
 
-  struct tm& getBase(void) {return (struct tm&)*this;}
+  ZDateFull &operator=(const timespec &pIn)  {  tv_sec=pIn.tv_sec; tv_nsec = pIn.tv_nsec;  return *this;}
 
+  bool operator == (const ZDateFull &pIn) const { return (tv_sec == pIn.tv_sec) ; }
+//  bool operator == (const ZDateFull& pDt){return compare(pDt) == 0;}
+
+  bool operator > (const ZDateFull& pDt) const {return tv_sec > pDt.tv_sec ;}
+  bool operator >= (const ZDateFull& pDt) const {return tv_sec >= pDt.tv_sec ;}
+  bool operator < (const ZDateFull& pDt) const {return tv_sec < pDt.tv_sec ;}
+  bool operator <= (const ZDateFull& pDt) const {return tv_sec <= pDt.tv_sec ;}
+
+  int nanoCompare(const ZDateFull& pDate ) const {
+    if (tv_sec == pDate.tv_sec){
+      return int(tv_nsec - pDate.tv_nsec);
+    }
+    return int(tv_sec - pDate.tv_sec);
+  }
+  int nanoIsEqual(const ZDateFull& pDate ) const { return nanoCompare(pDate)==0;}
+  int nanoIsGreater(const ZDateFull& pDate ) const { return nanoCompare(pDate)>0;}
+  int nanoIsLess(const ZDateFull& pDate ) const { return nanoCompare(pDate)<0;}
+
+
+  struct timespec getBase(void) {return (struct timespec&)*this;}
+  struct tm getUTC(void) {
+    struct tm wTm;
+
+    gmtime_r(&tv_sec, &wTm);
+    return wTm;
+  }
+  struct tm getLocalTime(void) {
+    struct tm wTm;
+
+    localtime_r(&tv_sec, &wTm);
+    return wTm;
+  }
 
   static ZDateFull fromDMY(const utf8VaryingString &pString);
   static ZDateFull fromMDY(const utf8VaryingString &pString);
@@ -125,21 +177,11 @@ public:
 
   uint64_t _export(void) const ;  // export in universal format
 
-  void _exportPtr(unsigned char* &pPtr) const {
-    uint64_t wDE=_export();
-    memmove(pPtr,&wDE,sizeof(uint64_t));
-    pPtr += sizeof(uint64_t);
-  }
-  void _exportAppend(ZDataBuffer& pZDB) const {
-    unsigned char* wPtr=pZDB.extend(sizeof(uint64_t));
-    _exportPtr(wPtr);
-  }
+  void _exportPtr(unsigned char* &pPtr) const;
+  void _exportAppend(ZDataBuffer& pZDB) const;
 
-  void _import(const unsigned char* &pPtrIn) {
-    uint64_t* wPtr=(uint64_t* )pPtrIn;
-    _import(wPtr[0]);
-    pPtrIn+=sizeof(uint64_t);
-  }
+  void _import(const unsigned char* &pPtrIn) ;
+
   void          _import(uint64_t pIDate); // import from universal format
   ssize_t       _exportURF(ZDataBuffer& pZDB) const; // export in URF format
   ssize_t       _exportURF_Ptr(unsigned char* &pURF) const;
@@ -155,14 +197,45 @@ public:
 
   ZStatus getValueFromUniversal(const unsigned char *pUniversalDataPtr);
 
-  /* UTC ISO 8601 "2011-10-08T07:07:09.000Z" */
+  /** @brief toUTCGMT() converts date value to gmt time and format it into a
+   *
+    UTC ISO 8601 "2011-10-08T07:07:09.000Z"
+
+    where .000Z represents nano-seconds (value between '.' and 'Z')
+    This is set be default to '.000Z' unless pNano is set to true.
+
+    Z indicates Zulu time zone, meaning a gmt time
+
+  */
+
+  /* UTC time format
+   *   gmt "08-11-2011 07:07:09.000Z"
+   *  non gmt  "08-11-2011 07:07:09.000+02.00" or "08-11-2011 07:07:09.000+02.00" */
+
+  /** @brief toUTC converts date content as local time in utf format with appropriate Time Zone difference trail.
+   * @see fromUTC() Trailing Time Zone secton
+ */
   utf8VaryingString toUTC() const;
-  /*  "08-11-2011 07:07:09.000Z" */
+
+  /** @brief toUTCGMT converts first internal date-time content into GMT time then format it into UTC format */
+  utf8VaryingString toUTCGMT() const;
+
   utf8VaryingString toDMY() const;
   /*  "11-08-2011 07:07:09.000Z" */
   utf8VaryingString toMDY() const;
 
+
+  /** @brief fromUTC  gets a date-time from a UTC format, GMT or other.
+   * Trailing time zone :
+   * -------------------
+   *  - if UTC time zone difference is missing then date-time is considered to be local time
+   *  - if UTC time zone is mentionned :
+   *    'Z' or +00.00 gives a pure gmt time
+   *    +99.99 or -99.99  applies to given date as plus or minus hour(2 digits).minutes(2digits) to give gmt time
+ */
   void fromUTC(const utf8VaryingString &pIn );
+
+  ZSuperTm getUTC(const utf8VaryingString &pIn );
 
   void clear() {memset(this,0,sizeof(ZDateFull));}
   ZDateFull fromTimespec(timespec &pTimespec);
@@ -174,32 +247,8 @@ public:
 
   ZDateFull& getCurrentDateTime(void) {return _copyFrom(currentDateTime());}
 
-  int compareDMY(const ZDateFull& pDate ) const {
-    if (Year - pDate.Year)
-      return Year - pDate.Year;
-    if (Month - pDate.Month)
-      return (Month - pDate.Month);
-    if (Day - pDate.Day)
-      return (Day - pDate.Day);
-    return 0;
-  }
-  int compare(const ZDateFull& pDate ) const {
-    int wC=compareDMY(pDate);
-    if (wC)
-      return wC;
-    if (Hour - pDate.Hour)
-      return Hour - pDate.Hour;
-    if (Min - pDate.Min)
-      return (Min - pDate.Min);
-    if (Sec - pDate.Sec)
-      return (Sec - pDate.Sec);
-    return 0;
-  }
 
-  bool operator == (const ZDateFull& pDt){return compare(pDt) == 0;}
 
-  bool operator > (const ZDateFull& pDt){return compare(pDt) > 0;}
-  bool operator < (const ZDateFull& pDt){return compare(pDt) < 0;}
 
 #ifdef QT_CORE_LIB
   ZDateFull fromQDateTime (const QDateTime &pQDate);
@@ -209,47 +258,22 @@ public:
 //-----------reverse conversion----------------
 
 
-#ifdef __DEPRECATED__
-
-  QDateTime toQDateTime(void);
-
-  utfdescString
-  toDateFormatted(const char *pFormat=ZDateFormat_Standard);
-
-  utfdescString
-  toDateTimeFormatted(const char*pFormat=ZDateTimeFormat_Standard);
-
-  utfdescString
-  toTimeFormatted (const char * pFormat=ZTimeFormat_Standard);
-
-
-  QDate toQDate(void);
-  QTime toQTime(void);
-
-  ZDateFull operator = (const QDateTime& pDateTime) {fromQDateTime(pDateTime);return (*this);}
-
-#endif // __DEPRECATED__
-
-  ZDate   toZDate(void);
-  ZDateFull fromZDate(const ZDate &wDate);
-
   utf8VaryingString toLocale(void);
   utf8VaryingString toFormatted(const char* pFormat="%F %T");
 
   int weekDay();
   int yearDay();
 
-  /** requested by ZMIndex (see zam.h and zmindex.h)*/
-//  int compare(ZDateFull &pDC) const { return memcmp(this, &pDC, sizeof(ZDateFull)); }
-
-
 private:
-  //    struct tm DateInternal;
-  tm _toInternal();
-  ZDateFull& _fromInternal(tm &pTm);
+  void _toInternal(tm &pTm);
+  ZDateFull& _fromInternal();
   time_t _toTime_t();
   void _fromTime_t(time_t pTime_t);
-};  // struct ZDateFull
+};  // class ZDateFull
 
+/* for gmt conversions */
+long getTimeZoneDiff();
+const char* getTimeZoneName ();
+int getDST ();
 
 #endif // ZDATEFULL_H

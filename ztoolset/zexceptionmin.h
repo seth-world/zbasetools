@@ -1,7 +1,7 @@
 #ifndef ZEXCEPTIONMIN_H
 #define ZEXCEPTIONMIN_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <exception>
 #include <ztoolset/zerror.h>
@@ -34,22 +34,19 @@
  * @{ */
 
 
+
+
 class ZExceptionBase_Data //: public std::exception
 {
 public:
     ZExceptionBase_Data()=default;
     virtual ~ZExceptionBase_Data() {}
 
-    ZExceptionBase_Data& _copyFrom(const ZExceptionBase_Data& pIn)
-    {
-        Error       = pIn.Error ;           /**< system error code corresponding to errno. This field is positionned when and only when a system error or a file error occurred. */
-        Status      = pIn.Status;   /**< ZStatus describing zbs error*/
-        Message     =pIn.Message ;     /**< Application text message. This message is created using a varying list of argument as printf uses.*/
-        Complement  =pIn.Complement;   /**<  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
-        Severity    =pIn.Severity; /**< a Severity_type that mentions the kind of error and its impact on application flow.*/
-        Module      =pIn.Module ;
-        return *this;
-    }
+    void clear(void);
+
+
+    ZExceptionBase_Data& _copyFrom(const ZExceptionBase_Data& pIn);
+
     ZExceptionBase_Data& _copyFrom(const ZExceptionBase_Data&& pIn)
     {
         return _copyFrom((const ZExceptionBase_Data&)pIn);
@@ -60,25 +57,14 @@ public:
         return _copyFrom((const ZExceptionBase_Data&)pIn);
     }
 
+
     int             Error       = 0 ;           /**< system error code corresponding to errno. This field is positionned when and only when a system error or a file error occurred. */
     ZStatus         Status      = ZS_NOTHING;   /**< ZStatus describing zbs error*/
     utf8String      Message ;     /**< Application text message. This message is created using a varying list of argument as printf uses.*/
     utf8String      Complement;   /**<  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
     Severity_type   Severity= Severity_Nothing; /**< a Severity_type that mentions the kind of error and its impact on application flow.*/
     utf8String      Module ;                    /**< a string chain mentionning the origin of the error : either method, function routine etc...*/
-
-
-    virtual void clear(void)
-    {
-    Message.clear();
-    Complement.clear();
-    Severity=Severity_Nothing;
-    Module.clear();
-    Error = 0;
-    Status=ZS_NOTHING;
-    }
-
-};
+ };
 
 class ZNetException;
 class utf8VaryingString;
@@ -322,6 +308,7 @@ public:
 
     void toStack(ZExceptionBase *pException);
     void addToLast(const char *pFormat,...);
+    void prependToLast(const char *pFormat,...);
     void printLastUserMessage (FILE *pOutput=stderr, bool pKeep=false);
 
     bool stackIsEmpty(void) {return ZExceptionStack::isEmpty();}
@@ -388,6 +375,14 @@ public:
     void zthrow(ZExceptionBase *pException);
 
 
+    void (*ZExceptionDisplayCallBack) (const utf8VaryingString& pString) = nullptr;
+    void setDisplayCallBack(void (*pCallBack) (const utf8VaryingString& )) {ZExceptionDisplayCallBack = pCallBack;}
+    FILE* Output=nullptr;
+    void setOutput(FILE* pOutput) {Output=pOutput;}
+
+    void _display (const utf8VaryingString& pString) ;
+
+
 #if __USE_ZTHREAD__
     void Thread_exit_abort(const ZStatus pStatus=ZS_NOTHING);
 #endif
@@ -439,7 +434,11 @@ private:
     uint8_t         ThrowOnSeverityOld=Severity_Fatal;
 
 private:
-    void clear() {/*_Base::clear();*/ ZExceptionStack::clear();    AbortOnSeverity=0xFF;}
+    void clear() {/*_Base::clear();*/
+      ZExceptionDisplayCallBack = nullptr;
+      ZExceptionStack::clear();
+      AbortOnSeverity=0xFF;
+    }
 };// ZExceptionMin
 
 

@@ -1462,7 +1462,7 @@ utfSubDoprintfvoid(OutEncoding_type pOutOET, /* Output buffer utf type : only Un
     //========================
     size_t          wCurrlen=0; /* current buffer offset in character units */
     //========================
-    size_t wOutCount=0;
+//    size_t wOutCount=0;
     size_t wCheckLen=0;
     wCurrlen  = 0;
 

@@ -4,7 +4,7 @@
  *  Contains error management, status error codes and information message level management
  *
  */
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <stddef.h>
 #include <iostream>

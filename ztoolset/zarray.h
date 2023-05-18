@@ -3,7 +3,7 @@
 
 //#define __USE_NEW_STD_ALLOCATOR__
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zlimit.h>
 #include <ztoolset/zmem.h>  // for zfree()
 

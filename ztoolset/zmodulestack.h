@@ -1,9 +1,10 @@
 #ifndef ZMODULESTACK_H
 #define ZMODULESTACK_H
-#include <zconfig.h>
+
+#include <config/zconfig.h>
 #include <ztoolset/zarray.h>
 
-
+// /home/gerard/Development/zbasetools/zbase/ztoolset/zmodulestack.h
 
 namespace zbs {
 
@@ -15,66 +16,15 @@ public:
 };
 
 
-#ifndef ZMODULESTACK_CPP
     extern  ZModuleStack* CurStack ;
     extern char *wMsg;
-#endif// ZMODULESTACK_CPP
 
 void zprintStack(void) ;
 
 }// namespace zbs
 
-#ifndef __ERROR_MANAGEMENT_LEVEL__
+#ifdef __ERROR_MANAGEMENT_LEVEL__
 
-#define   __MODULEINIT__ \
-    const char *_MODULENAME=_GET_FUNCTION_NAME_ ;
-
-#define __RETURN__   return
-/*
-#define _EXIT_  exit
-#define _ABORT_  {  fprintf(stderr,"...Abort called from module/function <%s>\n",_MODULENAME); \
-                    abort();}
-*/
-#define _PRINTMESSAGE_(__SEVERITY__ ,__SHORTMESSAGE__, ...)  \
- \
-sprintf(wMsg,__VA_ARGS__); \
-zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg) ;
-#ifndef __USE_ZRANDOMFILE__
-#define _ABORT_ {\
-        abort() ;}
-#else
-
-#ifndef __ZOPENZRFPOOL__
-#define __ZOPENZRFPOOL__
-namespace zbs {
-class ZRandomFile; }
-class ZOpenZRFPool: public zbs::ZArray <zbs::ZRandomFile*>
-{
-public:
-  void addOpenFile(zbs::ZRandomFile* pFileData)
-  { push(pFileData);}
-  ZStatus removeFileByObject(zbs::ZRandomFile*pZRF);
-  ZStatus removeFileByFd(int pFd);
-  void closeAll();
-
-}; //ZOpenZRFPool
-#endif// __ZOPENZRFPOOL__
-#ifndef ZRANDOMFILE_CPP
-extern ZOpenZRFPool* ZRFPool;
-#endif //ZRANDOMFILE_CPP*/
-
-#define _ABORT_ {\
-        ZRFPool->closeAll() ; \
-        abort() ;}
-#endif // __USE_ZRANDOMFILE__
-
-#define _ASSERT_(__CONDITION__,__ABORT_MESSAGE__,...) \
-{ if (__CONDITION__)  \
-        {fprintf(stderr,"%s>" __ABORT_MESSAGE__ "\n",_GET_FUNCTION_NAME_, __VA_ARGS__);\
-                        _ABORT_;} }
-
-
-#else
 /** @brief MODULEINIT this macro has to be put at the top of the function / method */
 
 #define   __MODULEINIT__ \
@@ -88,13 +38,54 @@ extern ZOpenZRFPool* ZRFPool;
 
 #define ZRETURN(pInst) { zbs::CurStack->pop(); return pInst ;}
 
-
 /** @brief replaces an 'exit' instruction and includes a dump of the logical call stack */
-
-#ifdef __USE_ZRANDOMFILE__
 #define _EXIT_ \
     zbs::CurStack->printStack(stdout) ; \
     exit
+#define _ABORT_ { zbs::CurStack->printStack(stderr) ;  abort() ;}
+
+#ifdef __USE_LIBXML2__
+  void cleanupXML(void);
+
+  #undef _ABORT_
+  #define _ABORT_ { zbs::CurStack->printStack(stderr) ;   \
+            cleanupXML(); \
+            abort() ;}
+  #undef _EXIT_
+  #define  _EXIT_ \
+    zbs::CurStack->printStack(stdout) ; \
+    cleanupXML(); \
+    exit
+
+#endif //__USE_LIBXML2__
+
+
+
+
+#else // not using __ERROR_MANAGEMENT_LEVEL__
+
+#define   __MODULEINIT__ \
+    const char *_MODULENAME=_GET_FUNCTION_NAME_ ;
+
+#define __RETURN__   return
+
+#define _EXIT_  exit
+#define _ABORT_  {  fprintf(stderr,"...Abort called from module/function <%s>\n",_MODULENAME); \
+                    abort();}
+
+#define _PRINTMESSAGE_(__SEVERITY__ ,__SHORTMESSAGE__, ...)  \
+ \
+sprintf(wMsg,__VA_ARGS__); \
+zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg) ;
+
+
+#define _ASSERT_(__CONDITION__,__ABORT_MESSAGE__,...) \
+{ if (__CONDITION__)  \
+        {fprintf(stderr,"%s>" __ABORT_MESSAGE__ "\n",_GET_FUNCTION_NAME_, __VA_ARGS__);\
+                        _ABORT_;} }
+
+#endif // __ERROR_MANAGEMENT_LEVEL__
+
 
 #ifdef __USE_LIBXML2__
     void cleanupXML(void);
@@ -103,28 +94,16 @@ extern ZOpenZRFPool* ZRFPool;
         zbs::CurStack->printStack(stderr) ;   \
         cleanupXML();\
         abort() ;}
-    #else // __USE_LIBXML2__
+#else // (not using libxml2)
     #define _ABORT_ { fprintf(stderr,"*** Abort - stack dump follows****\n");\
         zbs::CurStack->printStack(stderr) ;   \
         abort() ;}
 #endif //__USE_LIBXML2__
 
-#else // __USE_ZRANDOMFILE__  (not using ZRandomFile)
-    #define _EXIT_ zbs::CurStack->printStack(stdout) ; \
-        exit
-    #ifdef __USE_LIBXML2__
-        void cleanupXML(void);
+#ifndef __USE_ZRANDOMFILE__
 
-        #define _ABORT_ { zbs::CurStack->printStack(stderr) ;   \
-            cleanupXML(); \
-            abort() ;}
-        #else //__USE_LIBXML2__ (not using libxml2)
-        #define _ABORT_ { zbs::CurStack->printStack(stderr) ;   \
-            abort() ;}
-    #endif //__USE_LIBXML2__
-    #define _ABORT_ { zbs::CurStack->printStack(stderr) ;  abort() ;}
 
-#endif // __USE_ZRANDOMFILE__
+#endif // __USE_ZRANDOMFILE__ (not using ZRandomFile)
 
 
 #define _ASSERT_(__CONDITION__,__ABORT_MESSAGE__,...) \
@@ -142,16 +121,6 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
   sprintf(wMsg,__VA_ARGS__); \
   zprintSystemMessage (__SEVERITY__,errno, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg) ;
 
-
-#endif // __ERROR_MANAGEMENT_LEVEL__
-#ifdef __DEPRECATED_utfcodeStringMACRO__
-#define _INFORMATION_(__SHORTMESSAGE__, ...) _PRINTMESSAGE_(Severity_Information,__SHORTMESSAGE__,__VA_ARGS__)
-#define _WARNING_(__SHORTMESSAGE__, ...) _PRINTMESSAGE_(Severity_Warning,__SHORTMESSAGE__, __VA_ARGS__)
-#define _ERROR_(__SHORTMESSAGE__, ...) _PRINTMESSAGE_(Severity_Error,__SHORTMESSAGE__, __VA_ARGS__)
-#define _FATAL_(__SHORTMESSAGE__,...) _PRINTMESSAGE_(Severity_Fatal,__SHORTMESSAGE__, __VA_ARGS__)
-#define _SYSTEMERROR_ (__SHORTMESSAGE__,...) _PRINTSYSTEMMESSAGE (Severity_Error,__SHORTMESSAGE__,__VA_ARGS__)
-#define _SYSTEMFATAL_ (__SHORTMESSAGE__,...) _PRINTSYSTEMMESSAGE (Severity_Fatal,__SHORTMESSAGE__,__VA_ARGS__)
-#endif // __DEPRECATED_MACRO__
 
 
 #endif // ZMODULESTACK_H

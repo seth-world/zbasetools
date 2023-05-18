@@ -1,7 +1,7 @@
 #ifndef ZLOCALE_H
 #define ZLOCALE_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <locale>
 #include <ztoolset/zlimit.h>  /* for utf8_t etc. */
 

@@ -116,7 +116,7 @@
  *
  */
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <sys/types.h>
 

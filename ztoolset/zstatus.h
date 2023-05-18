@@ -124,6 +124,8 @@ enum ZStatus: ZStatusBase
 
                 ZS_CANTALLOCSPACE     =   -0x001020,        //< Cannot allocate more free space in Free pool
 
+                ZS_WOULDBLOCK         =   -0x001030,        //< EWOULDBLOCK encountered
+
                 ZS_BADFILEHEADER      =   -0x002000,        //< file header (FCB + ZBAT + ZFBT) is malformed or corrupted
                 ZS_BADFILEDESC        =   -0x002001,        //< file descriptor (ZFileDescriptor) is invalid malformed or corrupted
                 ZS_BADFILEVERSION     =   -0x002002,        //< file header version is not the right one
@@ -140,7 +142,6 @@ enum ZStatus: ZStatusBase
                 ZS_BADFILEATTR        =   -0x008200,        //< File attributes do not match what expected
 
                 ZS_MALFORMED        =   -0x00001111,         //< Name is malformed. Exemple : give file pathname has an invalid extension name ( equal to __HEADER_FILEEXTENSION__)
-
 
                 ZS_ACCESSRIGHTS       = -0x01000000,        //< cannot set/modify access rights for the file : accessright problem see message
 
@@ -257,12 +258,16 @@ enum ZStatus: ZStatusBase
                 ZS_MEMERROR           = -0x20000000,        //< cannot allocate memory or memory error
 
                 ZS_MEMOVFLW           = -0x20000001,        // buffer or memory overflow : memory allocated size must be increased
-                ZS_XMLERROR           = -0x40000000,       //< xml formatting or parsing error
-                ZS_XMLEMPTY           = -0x40000001,       //< xml no root element found : empty xml document
-                ZS_XMLMISSREQ         = -0x40000002,       //< xml document misses a required field
-                ZS_XMLINVROOTNAME     = -0x40000010,        //< xml invalid root element name
 
-                ZS_XMLWARNING         = +0x40000010,        //< xml formatting or parsing warning
+
+                ZS_XMLERROR           = -0x40000000,       //< xml formatting or parsing error
+                ZS_XMLCORRUPTED       = -0x40000001,       //< xml document appears to be corrupted
+                ZS_XMLEMPTY           = -0x40000002,       //< xml no root element found : empty xml document
+                ZS_XMLMISSREQ         = -0x40000003,       //< xml document misses a required field
+                ZS_XMLINVROOTNAME     = -0x40000010,       //< xml invalid root element name
+                ZS_XMLINVNODENAME     = -0x40000011,       //< xml invalid node name
+
+                ZS_XMLWARNING         = +0x40000000,        //< xml formatting or parsing warning
 
                 ZS_ENTITYERROR        = -0x80000000,        //< invalid entity
 

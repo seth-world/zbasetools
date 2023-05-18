@@ -1,7 +1,7 @@
 #ifndef ZTHREAD_H
 #define ZTHREAD_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -252,12 +252,12 @@ public:
     void setPriority(ZThread_Priority pPriority);
 
     /** @brief initPriority  initialize thread priority value in ZThread parameters (does nothing on thread itself) */
-    void initPriority(ZThread_Priority pPriority);
+    ZStatus initPriority(ZThread_Priority pPriority);
     void setType(const int pType);
     void initStackSize (const int pStackSize);
     void setStackSize (const int pStackSize);
 
-    bool _start(void* (*pFunction)(void *), void *pArgList);
+    ZStatus _start(void* (*pFunction)(void *), void *pArgList);
 
 
     void lock(void) {_Mtx.lock(); return;}
@@ -278,8 +278,8 @@ public:
 
     void exitThread(int pStatus) ;
 
-    bool join();
-    bool detach();
+    ZStatus join();
+    ZStatus detach();
 
     /**
      * @brief getId  For current running thread,

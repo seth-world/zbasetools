@@ -506,6 +506,34 @@ utf8VaryingString wBuf;
 return;
 } // addToLast
 
+void
+ZExceptionMin::prependToLast(const char *pFormat,...)
+{
+
+  if (ZExceptionStack::isEmpty())
+    return;
+#if __USE_ZTHREAD__
+  _Mtx.lock();
+#endif
+
+  va_list args;
+  va_start (args, pFormat);
+  utf8VaryingString wBuf;
+
+  wBuf.vsnprintf(cst_messagelen, pFormat, args);
+  va_end(args);
+  utf8VaryingString wNewMessage = wBuf + ZExceptionStack::last()->Message ;
+  ZExceptionStack::last()->Message = wNewMessage ;
+
+#if __USE_ZTHREAD__
+  _Mtx.unlock();
+#endif
+  if (ZExceptionStack::last()->Severity >= ThrowOnSeverity)
+    zthrow (ZExceptionStack::last());
+  if (ZExceptionStack::last()->Severity >= AbortOnSeverity)
+    exit_abort();
+  return;
+} // prependToLast
 
 
 void ZExceptionBase::setComplement (const char *pFormat,...)
@@ -794,7 +822,7 @@ utf8String ZExceptionMin::formatFullUserMessage(void)
 }
 
 /**
- * @brief CZExceptionMin::exit_abort reports the content of CZException to stderr then aborts the application.
+ * @brief ZExceptionMin::exit_abort reports the content of CZException to stderr then aborts the application.
  */
 
 void
@@ -804,8 +832,8 @@ ZExceptionMin::exit_abort(void)
         printUserMessage(stderr);
         ZExceptionStack::clear();
 //        exit(EXIT_FAILURE);
-
-        _ABORT_     /* _ABORT_ list all module stack and clean it before aborting */
+        abort();
+//        _ABORT_     /* _ABORT_ list all module stack and clean it before aborting */
 //        _EXIT_ (EXIT_FAILURE);
         }
 
@@ -1385,5 +1413,41 @@ void ZExceptionMin::getZaiError(ZaiErrors *pErrorlog)
     wExceptionBase->setComplement("from error log");
     toStack(wExceptionBase);
 }//ZExceptionMin::getZaiError
+
+
+void ZExceptionBase_Data::clear(void)
+{
+  Message.clear();
+  Complement.clear();
+  Severity=Severity_Nothing;
+  Module.clear();
+  Error = 0;
+  Status=ZS_NOTHING;
+}
+
+
+ZExceptionBase_Data&
+ZExceptionBase_Data::_copyFrom(const ZExceptionBase_Data& pIn)
+{
+  Error       = pIn.Error ;   /* system error code corresponding to errno. This field is positionned when and only when a system error or a file error occurred. */
+  Status      = pIn.Status;   /* ZStatus describing zbs error*/
+  Message     =pIn.Message ;  /* Application text message. This message is created using a varying list of argument as printf uses.*/
+  Complement  =pIn.Complement;/*  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
+  Severity    =pIn.Severity;  /* a Severity_type that mentions the kind of error and its impact on application flow.*/
+  Module      =pIn.Module ;   /* string that describes the callee */
+  return *this;
+}
+
+void ZExceptionMin::_display (const utf8VaryingString& pString) {
+  if (ZExceptionDisplayCallBack) {
+    ZExceptionDisplayCallBack(pString);
+    return;
+  }
+  if (Output == nullptr)
+    fprintf(stderr,pString.toCChar());
+  else
+    fprintf(Output,pString.toCChar());
+
+}
 
 #endif //#ifndef ZEXCEPTIONMIN_CPP

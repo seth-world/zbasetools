@@ -1,6 +1,5 @@
 #ifndef ZTHREAD_CPP
 #define ZTHREAD_CPP
-#include <zconfig.h>
 #include <zthread/zthread.h>
 #include <ztoolset/zerror.h>
 #include <ztoolset/zexceptionmin.h>
@@ -101,7 +100,7 @@ int wRet;
 
 
 
-bool ZThread_Base::_start(void*(*pFunction)(void *), void *pArgList)
+ZStatus ZThread_Base::_start(void*(*pFunction)(void *), void *pArgList)
 {
   if (State>=ZTHS_Active)
     {
@@ -124,31 +123,73 @@ int wRet;
                               pFunction,
                               pArgList);
         }
-    if (wRet!=0)
-        {
-        ZException.getErrno(wRet,
-                       _GET_FUNCTION_NAME_,
-                       ZS_SYSTEMERROR,
-                       Severity_Severe,
-                       "Cannot create ZThread");
-        return false;
-        }
+/*
+         see https://linux.die.net/man/3/pthread_create
+  NB: errno is not positionned but error is returned
+*/
+    if (wRet!=0) {
+      ZStatus wSt=ZS_ILLEGAL;
+      utf8VaryingString wErrMsg;
+      switch (wRet) {
+      case EPERM:
+        wSt= ZS_ACCESSRIGHTS;
+        wErrMsg.sprintf( "<EPERM> No permission to set the scheduling policy and parameters specified in attributes.");
+        break;
+      case EINVAL:
+        wSt= ZS_INVPARAMS;
+        wErrMsg.sprintf( "<EINVAL> Invalid settings in attributes.");
+        break;
+      case EAGAIN:
+        wSt= ZS_CANTALLOCSPACE;
+        wErrMsg.sprintf( "<EAGAIN> Insufficient resources to create another thread, or a system-imposed limit on the number of threads was encountered. The latter case may occur in two ways: the RLIMIT_NPROC soft resource limit (set via setrlimit(2)), which limits the number of process for a real user ID, was reached; or the kernel's system-wide limit on the number of threads, /proc/sys/kernel/threads-max, was reached.");
+        break;
+
+      default:
+        wErrMsg.sprintf( "Unknown error for creating thread.");
+        break;
+      }// switch
+      ZException.getErrno(wRet,
+          _GET_FUNCTION_NAME_,
+          wSt,
+          Severity_Error,
+          wErrMsg.toCChar());
+      return wSt;
+    }
+
     State=ZTHS_Active;
 
-    if (Type&ZTH_Detached)
-                {
-                wRet=pthread_detach(*ThreadId.get_IdPtr());
-                if (wRet!=0)
-                    {
-                    ZException.getErrno(wRet,
-                                   _GET_FUNCTION_NAME_,
-                                   ZS_SYSTEMERROR,
-                                   Severity_Severe,
-                                   "Cannot create ZThread");
-                    return false;
-                    }
-                }
-    return true;
+    if (Type&ZTH_Detached) {
+      wRet=pthread_detach(*ThreadId.get_IdPtr());
+      if (wRet!=0) {
+/*
+ * see https://man7.org/linux/man-pages/man3/pthread_detach.3.html
+ *   NB: errno is not positionned but error is returned
+ */
+          ZStatus wSt=ZS_ILLEGAL;
+          utf8VaryingString wErrMsg;
+          switch (wRet) {
+          case ESRCH:
+            wSt= ZS_INVVALUE;
+            wErrMsg.sprintf( "<ESRCH> No thread with the ID thread could be found.");
+            break;
+          case EINVAL:
+            wSt= ZS_INVPARAMS;
+            wErrMsg.sprintf( "<EINVAL> thread is not a joinable thread.");
+            break;
+
+          default:
+            wErrMsg.sprintf( "Unknown error for detaching thread.");
+            break;
+          }// switch
+          ZException.getErrno(wRet,
+                    _GET_FUNCTION_NAME_,
+                    wSt,
+                    Severity_Error,
+                    wErrMsg.toCChar());
+          return wSt;
+      } // if (wRet!=0)
+    }// if (Type&ZTH_Detached)
+    return ZS_SUCCESS;
 }// _start
 
 /**
@@ -156,24 +197,45 @@ int wRet;
  * @return returns a boolean set to true if operation ends successfully.
  * In case of error, false is returned and ZException is set with appropriate message and status.
  */
-bool ZThread_Base::join()
+ZStatus ZThread_Base::join()
 {
+  /* see https://www.man7.org/linux/man-pages/man3/pthread_join.3.html
+   */
     int wRet=pthread_join(ThreadId.get_Native_Handle(),nullptr);  // no return value
     if (wRet==0)
-            return true;
+            return ZS_SUCCESS;
+    ZStatus wSt=ZS_ILLEGAL;
+    utf8VaryingString wErrMsg;
+    switch (wRet) {
+    case ESRCH:
+      wSt= ZS_INVVALUE;
+      wErrMsg.sprintf( "<ESRCH> No thread with the ID thread could be found.");
+      break;
+    case EINVAL:
+      wSt= ZS_ILLEGAL;
+      wErrMsg.sprintf( "<EINVAL> Thread is not a joinable thread or another thread is already waiting to join with this thread.");
+      break;
+    case EDEADLK:
+      wSt= ZS_LOCKINTERR;
+      wErrMsg.sprintf( "<EDEADLK> A deadlock was detected (e.g., two threads tried to join with each other); or thread specifies the calling thread.");
+      break;
+    default:
+      wErrMsg.sprintf( "Unknown error for joining thread.");
+      break;
+    }// switch
     ZException.getErrno(wRet,
-                   _GET_FUNCTION_NAME_,
-                   ZS_SYSTEMERROR,
-                   Severity_Error,
-                   "Cannot join ZThread");
-    return false;
+        _GET_FUNCTION_NAME_,
+        wSt,
+        Severity_Error,
+        wErrMsg.toCChar());
+    return wSt;
 } // join
 /**
  * @brief ZThread::detach Detaches the thread from father's thread.
  * @return returns a boolean set to true if operation ends successfully.
  * In case of error, false is returned and ZException is set with appropriate message and status.
  */
-bool ZThread_Base::detach()
+ZStatus ZThread_Base::detach()
 {
     int wRet=pthread_detach (ThreadId.get_Native_Handle());
     if (wRet==0)
@@ -182,14 +244,35 @@ bool ZThread_Base::detach()
             wType &= ~ZTH_Joinable ;
             wType |= ZTH_Detached;
             Type = (ZThread_type)wType;
-            return true;
+            return ZS_SUCCESS;
             }
-    ZException.getErrno(wRet,
-                   _GET_FUNCTION_NAME_,
-                   ZS_SYSTEMERROR,
-                   Severity_Error,
-                   "Cannot detach ZThread");
-    return false;
+
+/*
+ * see https://man7.org/linux/man-pages/man3/pthread_detach.3.html
+ *   NB: errno is not positionned but error is returned
+ */
+        ZStatus wSt=ZS_ILLEGAL;
+        utf8VaryingString wErrMsg;
+        switch (wRet) {
+        case ESRCH:
+          wSt= ZS_INVVALUE;
+          wErrMsg.sprintf( "<ESRCH> No thread with the ID thread could be found.");
+          break;
+        case EINVAL:
+          wSt= ZS_INVPARAMS;
+          wErrMsg.sprintf( "<EINVAL> thread is not a joinable thread.");
+          break;
+
+        default:
+          wErrMsg.sprintf( "Unknown error for detaching thread.");
+          break;
+        }// switch
+        ZException.getErrno(wRet,
+            _GET_FUNCTION_NAME_,
+            wSt,
+            Severity_Error,
+            wErrMsg.toCChar());
+        return wSt;
 } // detach
 /**
  * @brief ZThread::initPriority initializes the priority value for Thread to be created.
@@ -197,9 +280,9 @@ bool ZThread_Base::detach()
  * @note Thread parameters are to be set BEFORE Thread is created.
  * @param pPriority
  */
-void
+ZStatus
 ZThread_Base::initPriority(ZThread_Priority pPriority)
-    {
+{
     sched_param param;
 
     /* set the priority; others are unchanged */
@@ -208,14 +291,40 @@ ZThread_Base::initPriority(ZThread_Priority pPriority)
 
     /* set the new scheduling param */
     int wRet = pthread_attr_setschedparam (&Thread_Attributes, &param);
-    if (wRet!=0)
-            {
-            fprintf(stderr,"ZThread::setPriority-F-CANTSETPRIO Cannot set ZThread priority. Most probably ZThread attributes are invalid  : %s\n",
-                    strerror(wRet));
-            abort();
-            }
-    return ;
-    Priority = pPriority;
+/*
+ * see https://man7.org/linux/man-pages/man3/pthread_attr_setschedparam.3.html
+ *      and https://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html
+ */
+    if (wRet==0) {
+      Priority = pPriority;
+      return ZS_SUCCESS ;
+    }
+
+    fprintf(stderr,"ZThread::setPriority-F-CANTSETPRIO Cannot set ZThread priority. Most probably ZThread attributes are invalid  : %s\n",
+            strerror(wRet));
+
+    ZStatus wSt=ZS_INVVALUE;
+    utf8VaryingString wErrMsg;
+    switch (wRet) {
+    case EINVAL:
+      wSt= ZS_INVVALUE;
+      wErrMsg.sprintf( "<EINVAL> The priority specified in param does not make sense for the current scheduling policy of thread attributes.");
+      break;
+    case ENOTSUP:
+      wSt= ZS_INVVALUE;
+      wErrMsg.sprintf( "<ENOTSUP> Not supported : The implementation does not support the requested feature or value.");
+      break;
+    default:
+      wSt=ZS_ILLEGAL;
+      wErrMsg.sprintf( "Unknown error for setting thread priority.");
+      break;
+    }// switch
+    ZException.getErrno(wRet,
+        _GET_FUNCTION_NAME_,
+        wSt,
+        Severity_Error,
+        wErrMsg.toCChar());
+  return wSt ;
 }// initPriority
 
 void

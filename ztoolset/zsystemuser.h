@@ -1,7 +1,7 @@
 #ifndef ZUSER_H
 #define ZUSER_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <ztoolset/userid.h>
 

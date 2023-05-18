@@ -1,7 +1,7 @@
 #ifndef UTFTEMPLATESTRING_H
 #define UTFTEMPLATESTRING_H
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 /** gets utf format name from char unit size (instantiated in ufvtemplatestring.cpp) */
 const char* getUnitFormat(uint8_t pSize);

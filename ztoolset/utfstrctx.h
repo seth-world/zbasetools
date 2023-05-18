@@ -2,7 +2,7 @@
 #define UTFSTRCTX_H
 /** @file utfstrctx.h used for string parsing processing : context,UST status, BOM types
   */
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zlimit.h>
 #include <ztoolset/zmem.h>
 

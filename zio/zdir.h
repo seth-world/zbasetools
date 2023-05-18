@@ -1,6 +1,6 @@
 #ifndef ZDIR_H
 #define ZDIR_H
-#include <zconfig.h>
+#include <config/zconfig.h>
 
 #include <stddef.h>
 #ifdef __USE_WINDOWS__
@@ -28,33 +28,14 @@ enum ZDir_File_type {
 class ZDirSortedByName;
 
 
-struct DirMap
+class DirMap
 {
-    DirMap() = default;
-    DirMap(const DirMap &pIn) { _copyFrom(pIn); }
-    DirMap(const DirMap &&pIn) { _copyFrom(pIn); }
-    DirMap(const uriString &pName, const size_t pSize, ZSystemUserId pUid)
-    {
-        clear();
-        Name = pName;
-        Size = pSize;
-        Uid = pUid;
-    }
-    DirMap(const uriString &pName,
-           const size_t pSize,
-           userid_type pUid,
-           const ZDateFull &pCreated,
-           const ZDateFull &pModified)
-    {
-        clear();
-        Name = pName;
-        Size = pSize;
-        Uid = ZSystemUserId(pUid);
-        Created = pCreated;
-        Modified = pModified;
-    }
+public:
+  DirMap() {clear();}
+  DirMap(const DirMap &pIn) { _copyFrom(pIn); }
+  DirMap(const DirMap &&pIn) { _copyFrom(pIn); }
 
-    DirMap &_copyFrom(const DirMap &pIn)
+  DirMap &_copyFrom(const DirMap &pIn)
     {
         clear();
         Name = pIn.Name;
@@ -62,6 +43,7 @@ struct DirMap
         Uid = pIn.Uid;
         Created = pIn.Created;
         Modified = pIn.Modified;
+        Type = pIn.Type;
         return *this;
     }
 
@@ -72,6 +54,7 @@ struct DirMap
         Uid = 0;
         Created.clear();
         Modified.clear();
+        Type=0;
     }
 
     DirMap &operator=(const DirMap &pIn) { _copyFrom(pIn); return *this;}
@@ -79,10 +62,11 @@ struct DirMap
 
     uriString           Name;
     size_t              Size;
+
     ZSystemUserId       Uid;
     ZDateFull           Created;
     ZDateFull           Modified;
-
+    ZDirFileEn_type     Type;
 }; // DirMap
 
 
@@ -97,9 +81,9 @@ public:
     ZDir(const ZDir &&pIn):uriString(pIn) { _copyFrom(pIn); }
 
     ZDir(const uriString &pIn) { setPath(pIn); }
-#ifdef QT_CORE_LIB
-    ZDir(const QString pIn) { setPath(pIn); }
-#endif
+//#ifdef QT_CORE_LIB
+//    ZDir(const QString pIn) { setPath(pIn); }
+//#endif
 
 
     ~ZDir()
@@ -122,43 +106,50 @@ public:
         uriString::clear();
     }
 
+/**
+ * @brief ZDir::setPath initializes ZDir object with a directory path pPath. It requires a file descriptor.
+ *  directory path object is destroyed and then, file descriptor is released, when object is destroyed.
+ * pPath must exist and be accessible by current process.
+ *
+ * for exception content see https://www.man7.org/linux/man-pages/man3/opendir.3.html
+ *
+ * @return a ZStatus ZS_SUCCESS when successfull.
+ *  if an error occurs, ZException is positionned with the appropriate message preceeded by errno symbolic value.
+ */
     ZStatus setPath (const utf8String& pPath) ;
-/*    ZStatus setPath (const uriString& pPath);
-    ZStatus setPath (const uriString&& pPath);
-*/
 
-
-    /** @brief readDir() */
-    ZStatus dir( uriString &pDirEntry, ZDir_File_type pZDFT=ZDFT_All);
+    /** @brief dir
+     *
+     * for exception content see https://www.man7.org/linux/man-pages/man3/readdir.3.html
+     * @param pDirEntry
+     * @param pZDFT
+     * @return
+     */
+    ZStatus dir(uriString &pDirEntry, ZDirFileEn_type pRequestedType=ZDFT_All);
     ZStatus dirNext(uriString &pDirEntry);
     void _closeReadDir();
 
-    static int countElements(uriString &pDirEntry,ZDir_File_type pZDFT=ZDFT_All);
+    static int countElements(uriString &pDirEntry,ZDirFileEn_type pZDFT=ZDFT_All);
 
-#ifdef QT_CORE_LIB
-    ZStatus setPath (const QString pPath);
-    static int countElements(const QString pDirEntry,ZDir_File_type pZDFT=ZDFT_All);
-//    static int count(QString &&pDirEntry,ZDir_File_type pZDFT)
-//    {
-//      return count((QString&)pDirEntry,pZDFT);
-//    }
-#endif
+    ZStatus dirAll(zbs::ZArray<uriString> &pDirArray, ZDirFileEn_type pZDFT = ZDFT_All);
 
-    ZStatus dirAll(zbs::ZArray<uriString> &pDirArray, ZDir_File_type pZDFT = ZDFT_All);
+    ZStatus fullDirAll(zbs::ZArray<DirMap> &pDirArray, ZDirFileEn_type pZDFT = ZDFT_All);
 
-    ZStatus fullDirAll(zbs::ZArray<DirMap> &pDirArray, ZDir_File_type pZDFT = ZDFT_All);
-
-    ZStatus fullDir( DirMap &pDirEntry, ZDir_File_type pZDFT=ZDFT_All);
+    ZStatus fullDir( DirMap &pDirEntry, ZDirFileEn_type pZDFT=ZDFT_All);
     ZStatus fullDirNext(DirMap &pDirEntry);
 
-    ZStatus dirApprox(uriString &pDirEntry,const utf8_t* pApprox, ZDir_File_type pZDFT);
-    ZStatus dirApproxNext(uriString &pDirEntry);
+    ZStatus dirApprox(DirMap &pDirEntry, const utf8VaryingString &pApprox, ZDirFileEn_type pZDFT);
+    ZStatus dirApproxAll(zbs::ZArray<DirMap> &pDirArray,const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT = ZDFT_All);
 
-    ZStatus dirByName(DirMap &pDirEntry, ZDir_File_type pZDFT);
+    ZStatus dirByName(DirMap &pDirEntry, ZDirFileEn_type pZDFT, ZDirSortedByName &DSBN);
+
+    ZStatus dirByName( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT);
+    ZStatus dirBySize( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT);
+
     ZStatus dirByNameNext(DirMap &pDirEntry);
-    ZStatus dirByNameAll(ZDirSortedByName *pDirEntry, ZDir_File_type pZDFT);
+    ZStatus dirByNameAll(ZDirSortedByName *pDirEntry, ZDirFileEn_type pZDFT);
 
-    ZStatus dirBySize(uriString &pDirEntry, ZDir_File_type pZDFT);
+    ZStatus dirBySize(uriString &pDirEntry, ZDirFileEn_type pZDFT);
 
     void closeDir(void);
     uriString getPath() { return uriString(*this); }
@@ -169,12 +160,16 @@ public:
     /** @brief setCurrentDirectory() this static method sets pDir as current directory without changing ZDir object content.*/
     static bool setCurrentDirectory(const char *pDir);
 
-    /** @brief mkdir() static routines that create a directory using given or defaulted access right as linux mode_t
-     *                              this routine resets errno, and errno will be set to internal error code if any.*/
-    static ZStatus mkdir(const char *pPath);
-    static ZStatus mkdir(const char *pPath, __mode_t pMode);
-    static ZStatus mkdir(const uriString& pPath, __mode_t pMode);
-    static ZStatus mkdir(const uriString& pPath);
+/**
+ * @brief ZDir::mkdir this static method creates a new directory corresponding to pPath with access rights mode pMode
+ * defaulted to S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH when pMode is omitted or set to zero.
+ *
+ *  For exception content see https://linux.die.net/man/3/mkdir
+ *
+ * @return a ZStatus ZS_SUCCESS when successfull.
+ *  if an error occurs, ZException is positionned with the appropriate message preceeded by errno symbolic value.
+ */
+    static ZStatus mkdir(const uriString&pPath, __mode_t pMode=0);
 
     using uriString::operator=;
     using uriString::operator+=;
@@ -186,7 +181,7 @@ public:
 
 private:
     DIR *_SystDir = nullptr;
-    ZDir_File_type ZDFT = ZDFT_All;
+    ZDirFileEn_type ZDFT = ZDFT_All;
     ZDirSortedByName *DSBN = nullptr;
     long  DSBNIdx = -1;
 //    utf8_t Path[cst_urilen+1];

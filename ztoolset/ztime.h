@@ -1,6 +1,6 @@
 #ifndef ZTIME_H
 #define ZTIME_H
-#include <zconfig.h>
+#include <config/zconfig.h>
 //#include <ztoolset/templatestring.h>   Do not include templatestring.h in this file
 
 

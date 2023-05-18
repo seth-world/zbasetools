@@ -226,9 +226,7 @@ INCLUDEPATH +=  /usr/include/libxml2
 #                /usr/lib/x86_64-linux-gnu/glibmm-2.4/include
 
 
-HEADERS += zconfig.h \
-    $$TOOLSET_BASE/zconfig_general.h \
-    $$TOOLSET_BASE/ztoolset/zarray.h \
+HEADERS += $$TOOLSET_BASE/ztoolset/zarray.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_common.h \
     $$TOOLSET_BASE/ztoolset/zerror.h \
     $$TOOLSET_BASE/zio/zdir.h \
@@ -239,7 +237,7 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_doc.h \
 #    $$TOOLSET_BASE/zxml/qxmlutilities.h \
     $$TOOLSET_BASE/ztoolset/zdatabuffer.h \
-    $$TOOLSET_BASE/ztoolset/zdate.h \
+#    $$TOOLSET_BASE/ztoolset/zdate.h \
     $$TOOLSET_BASE/ztoolset/uristring.h \
     $$TOOLSET_BASE/ztoolset/ztime.h \
     $$TOOLSET_BASE/ztoolset/zatomicconvert.h \
@@ -299,9 +297,13 @@ HEADERS += zconfig.h \
     $$TOOLSET_BASE/ztoolset/zhtmlreport.h \
     $$TOOLSET_BASE/ztoolset/zstatus.h \
     $$TOOLSET_BASE/zxml/zxmlprimitives.h \
-    ../ztoolset/utfvstrings.h \
-    ../ztoolset/zdatefull.h \
-    ../ztoolset/ztoolset_release.h
+    $$TOOLSET_BASE/ztoolset/utfvstrings.h \
+    $$TOOLSET_BASE/ztoolset/zdatecommon.h \
+    $$TOOLSET_BASE/ztoolset/zdatefull.h \
+    $$TOOLSET_BASE/ztoolset/ztoolset_release.h \
+    $$TOOLSET_ROOT/config/zconfig.h \
+    $$TOOLSET_ROOT/config/zconfig_general.h \
+    $$TOOLSET_BASE/zio/zioutils.h
 
 
 
@@ -313,16 +315,18 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
 #    $$TOOLSET_BASE/zxml/qxmlutilities.cpp \
     $$TOOLSET_BASE/zthread/zthread.cpp \
     $$TOOLSET_BASE/ztoolset/zdatabuffer.cpp \
-    $$TOOLSET_BASE/ztoolset/zdate.cpp \
+#    $$TOOLSET_BASE/ztoolset/zdate.cpp \
     $$TOOLSET_BASE/ztoolset/uristring.cpp \
     $$TOOLSET_BASE/ztoolset/ztime.cpp \
 #    $$TOOLSET_BASE/ztoolset/zstrings.cpp \  #renamed as zstrings_old.cpp
     $$TOOLSET_BASE/ztoolset/zaierrors.cpp \
     $$TOOLSET_BASE/ztoolset/zhtmlreport.cpp \
     $$TOOLSET_BASE/zxml/zxmlprimitives.cpp \
-    ../zthread/zarglist.cpp \
-    ../ztoolset/zarray.cpp \
-    ../ztoolset/zdatefull.cpp \
+    $$TOOLSET_BASE/zthread/zarglist.cpp \
+    $$TOOLSET_BASE/ztoolset/zarray.cpp \
+    $$TOOLSET_BASE/ztoolset/zdatecommon.cpp \
+    $$TOOLSET_BASE/ztoolset/zdatefull.cpp \
+    ../zio/zioutils.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
     $$TOOLSET_BASE/zthread/zmutex.cpp \

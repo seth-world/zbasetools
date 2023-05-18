@@ -318,6 +318,10 @@ const char * decode_ZStatus (ZStatus ZS)
             {
                 return ("ZS_BADFILETYPE");
             }
+
+    case ZS_WOULDBLOCK:
+      return ("ZS_WOULDBLOCK");
+
     case ZS_FILETYPEWARN :
             {
                 return ("ZS_FILETYPEWARN");
@@ -568,6 +572,8 @@ const char * decode_ZStatus (ZStatus ZS)
 
     case ZS_XMLERROR :
                 return ("ZS_XMLERROR");
+    case ZS_XMLCORRUPTED :
+      return ("ZS_XMLCORRUPTED");
     case ZS_XMLWARNING :
                 return ("ZS_XMLWARNING");
     case ZS_XMLEMPTY :
@@ -576,6 +582,8 @@ const char * decode_ZStatus (ZStatus ZS)
       return ("ZS_XMLMISSREQ");
     case ZS_XMLINVROOTNAME :
       return ("ZS_XMLINVROOTNAME");
+    case ZS_XMLINVNODENAME :
+      return ("ZS_XMLINVNODENAME");
 
     default :
                 return ("Unknownn ZStatus");

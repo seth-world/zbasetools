@@ -5,7 +5,7 @@
 //==========================DO NOT USE THIS FILE : to be removed ================================
 
 
-#include <zconfig.h>
+#include <config/zconfig.h>
 #include <ztoolset/zcharset.h>
 
 
