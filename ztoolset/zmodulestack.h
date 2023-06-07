@@ -42,6 +42,7 @@ void zprintStack(void) ;
 #define _EXIT_ \
     zbs::CurStack->printStack(stdout) ; \
     exit
+#undef _ABORT_
 #define _ABORT_ { zbs::CurStack->printStack(stderr) ;  abort() ;}
 
 #ifdef __USE_LIBXML2__
@@ -70,6 +71,7 @@ void zprintStack(void) ;
 #define __RETURN__   return
 
 #define _EXIT_  exit
+#undef _ABORT_
 #define _ABORT_  {  fprintf(stderr,"...Abort called from module/function <%s>\n",_MODULENAME); \
                     abort();}
 
@@ -90,11 +92,13 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
 #ifdef __USE_LIBXML2__
     void cleanupXML(void);
 
+    #undef _ABORT_
     #define _ABORT_ { fprintf(stderr,"*** Abort - stack dump follows****\n");\
         zbs::CurStack->printStack(stderr) ;   \
         cleanupXML();\
         abort() ;}
 #else // (not using libxml2)
+    #undef _ABORT_
     #define _ABORT_ { fprintf(stderr,"*** Abort - stack dump follows****\n");\
         zbs::CurStack->printStack(stderr) ;   \
         abort() ;}
@@ -108,7 +112,7 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
 
 #define _ASSERT_(__CONDITION__,__ABORT_MESSAGE__,...) \
 { if (__CONDITION__)  \
-        {fprintf(stderr,"%s>" __ABORT_MESSAGE__ "\n",_GET_FUNCTION_NAME_, __VA_ARGS__);\
+        {fprintf(stderr,"%s>"  __ABORT_MESSAGE__ "\n",_GET_FUNCTION_NAME_, __VA_ARGS__);\
                         _ABORT_;} }
 
 

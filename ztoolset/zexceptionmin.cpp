@@ -827,15 +827,27 @@ utf8String ZExceptionMin::formatFullUserMessage(void)
 
 void
 ZExceptionMin::exit_abort(void)
-        {
-        
-        printUserMessage(stderr);
-        ZExceptionStack::clear();
+{
+  fprintf (stderr,"ZExceptionMin::exit_abort  Program exited at application request.\n");
+  printUserMessage(stderr);
+  ZExceptionStack::clear();
 //        exit(EXIT_FAILURE);
-        abort();
+  abort();
 //        _ABORT_     /* _ABORT_ list all module stack and clean it before aborting */
 //        _EXIT_ (EXIT_FAILURE);
-        }
+}
+
+void
+ZExceptionMin::exit_normal(void)
+{
+  fprintf (stderr,"ZExceptionMin::exit_normal  Program normal termination.\n");
+  printUserMessage(stderr);
+  ZExceptionStack::clear();
+  //        exit(EXIT_FAILURE);
+  exit(0);
+  //        _ABORT_     /* _ABORT_ list all module stack and clean it before aborting */
+  //        _EXIT_ (EXIT_FAILURE);
+}
 
 void
 ZExceptionMin::zthrow(ZExceptionBase* pException)

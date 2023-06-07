@@ -4076,7 +4076,7 @@ size_t wSize;
                   wSt=ZS_FIELDCAPAOVFLW;
                   }
   pOutString.clear();
-  pOutString=wZDB.DataChar;
+  pOutString=wZDB.Data;
   return  wSt;
 }// _fromISOLatin1
 
@@ -4123,7 +4123,7 @@ ZDataBuffer wZDB;
                   wSt=ZS_FIELDCAPAOVFLW;
                   }
   pOutString.clear();
-  pOutString=wZDB.DataChar;
+  pOutString=wZDB.Data;
   return  pOutString;
 }// _fromGuessEncoding
 template <size_t _Sz,size_t _Sz1>
@@ -4151,7 +4151,7 @@ size_t wSize;
                   wSt=ZS_FIELDCAPAOVFLW;
                   }
   pOutString.clear();
-  pOutString=wZDB.DataChar;
+  pOutString=wZDB.Data;
   return  wSt;
 }// _fromEncoded
 
@@ -4179,7 +4179,7 @@ size_t wSize;
                   wSt=ZS_FIELDCAPAOVFLW;
                   }
   pOutString.clear();
-  strncpy(pOutString.content,wZDB.DataChar,wSize);
+  strncpy(pOutString.content,wZDB.Data,wSize);
   return  wSt;
 }// _fromZCharset
 

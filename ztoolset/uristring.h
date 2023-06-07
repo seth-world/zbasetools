@@ -266,9 +266,6 @@ public:
 
     uriString& addConditionalDirectoryDelimiter(void);
     uriString& addDirectoryDelimiter(void);
-    /** @brief changeAccessRights() change the access right of current file with pMode, linux mode
-     *                              this routine resets errno, and errno will be set to internal error code if any.*/
-    ZStatus changeAccessRights(mode_t pMode);
 
     static uriString currentWorkingDirectory();
 
@@ -301,6 +298,20 @@ public:
      */
     uriStat getStatR( bool pLogZException=false) const;
 
+    ZStatus _getStat(struct stat& pStat, bool pLogZException) const;
+
+    /** @brief changeAccessRights() change the access right of current file with pMode, linux mode
+     *                              this routine resets errno, and errno will be set to internal error code if any.*/
+    ZStatus changePermissions(__FILEACCESSRIGHTS__ pMode) const;
+
+    static ZStatus changePermissions(const uriString& pPath,__FILEACCESSRIGHTS__ pPermission);
+
+    __FILEACCESSRIGHTS__ getPermissions();
+
+    static __FILEACCESSRIGHTS__ getPermissions(const uriString& pPath);
+
+
+
     long long getFileSize(void) const  ;
 
     checkSum getChecksum(void) const;
@@ -317,7 +328,7 @@ public:
     ZStatus loadContentZTerm(ZDataBuffer &pDBS) ; /* same as loadContent but forces Zero termination */
 
     ZStatus writeContent (ZDataBuffer &pDBS,__FILEACCESSRIGHTS__ pAccessRights = S_IRWXU|S_IRWXG|S_IROTH) const ;
-    ZStatus appendContent (ZDataBuffer &pDBS) const ;
+    ZStatus appendContent (ZDataBuffer &pDBS,__FILEACCESSRIGHTS__ pAccessRights = S_IRWXU|S_IRWXG|S_IROTH) const ;
 
     /**
      * @brief writeAES256  write the content of pDBS after having encoded it using AES256 algorithm according pKey and pVector.
@@ -332,6 +343,12 @@ public:
      * @return  a ZStatus
      */
     ZStatus writeContent (utf8VaryingString &pStr,__FILEACCESSRIGHTS__ pAccessRights = S_IRWXU|S_IRWXG|S_IROTH) const;
+    /**
+     * @brief appendContent appends utf8 string content to existing content of file pointed by uriString.
+     *  NB: end mark '\0' is not written to file.
+     * @param pStr utf8 string to wrtie
+     * @return  a ZStatus
+     */
     ZStatus appendContent (utf8VaryingString &pStr) const ;
 //    ZStatus writeText (varyingCString &pDBS) ;
 

@@ -1795,7 +1795,7 @@ ZTypeBase wType;
     wDataPtr += sizeof (URF_UnitCount_type);
 
     pUniversal.allocateBZero(wUnitSize);       // fixed string must have canonical characters count allocated
-    memmove(pUniversal.DataChar,wDataPtr,(size_t)wEffectiveUSize); // effective number of char is effective universal size
+    memmove(pUniversal.Data,wDataPtr,(size_t)wEffectiveUSize); // effective number of char is effective universal size
                                                                     // without '\0' terminator
     if (pURFDataPtrOut)
     {

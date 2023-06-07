@@ -41,7 +41,7 @@ public:
 
     void tokenize( const char *pSeparatorSet=" \n\r")
     {
-        char* wPtr=DataChar;
+      char* wPtr=(char*)Data;
 
         _Base::Trim();
 

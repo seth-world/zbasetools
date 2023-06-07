@@ -363,6 +363,11 @@ utf8VaryingString fmtXMLdatefull(const utf8VaryingString &pVarName,const ZDateFu
   int wIndent=pLevel*cst_XMLIndent;
   char wBuffer[500];
   memset (wBuffer,0,sizeof(wBuffer));
+  if(pVarContent.isInvalid()){
+    sprintf(wBuffer,"%*c<%s>**invalid date**</%s>\n",
+      wIndent,' ',pVarName.toCChar(),pVarName.toCChar());
+  }
+  else
   sprintf (wBuffer,
       "%*c<%s>%s</%s>\n",
       wIndent,' ',pVarName.toCChar(),pVarContent.toUTCGMT().toString(),pVarName.toCChar());
@@ -834,7 +839,7 @@ utf8VaryingString fmtXMLSSLKeyB64(const utf8VaryingString &pVarName, const ZCryp
 
   sprintf (wBuffer,
       "%*c<sslkeyaes256b64>%s</sslkeyaes256b64>\n",
-      wIndent,' ',pVarContent.toB64().DataChar);
+      wIndent,' ',pVarContent.toB64().Data);
 
   wReturn += wBuffer;
 
@@ -853,7 +858,7 @@ utf8VaryingString fmtXMLSSLVectorB64(const utf8VaryingString &pVarName, const ZC
 
   sprintf (wBuffer,
       "%*c<sslvectoraes256b64>%s</sslvectoraes256b64>\n",
-      wIndent,' ',pVarContent.toB64().DataChar);
+      wIndent,' ',pVarContent.toB64().Data);
 
   wReturn += wBuffer;
 

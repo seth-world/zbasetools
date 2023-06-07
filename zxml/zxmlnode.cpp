@@ -1157,7 +1157,7 @@ ZStatus
 zxmlElement::newCData(zxmlNode* &pNode,ZDataBuffer &pCData)
 {
 
-    xmlNodePtr wNode=xmlNewCDataBlock(_xmlInternalNode->doc,(const xmlChar*)pCData.DataChar,(int)pCData.Size);
+    xmlNodePtr wNode=xmlNewCDataBlock(_xmlInternalNode->doc,(const xmlChar*)pCData.Data,(int)pCData.Size);
     if (!wNode)
         {
         setXMLZException(_GET_FUNCTION_NAME_,
@@ -1201,7 +1201,7 @@ zxmlElement::newCDataElement(zxmlElement* &pElement, const char *pName, ZDataBuf
                          "cannot create element name <%s>",pName);
         return  ZS_XMLERROR;
         }
-    xmlNodePtr wNode=xmlNewCDataBlock(_xmlInternalNode->doc,(const xmlChar*)pCData.DataChar,(int)pCData.Size);
+    xmlNodePtr wNode=xmlNewCDataBlock(_xmlInternalNode->doc,(const xmlChar*)pCData.Data,(int)pCData.Size);
     if (!wNode)
         {
         setXMLZException(_GET_FUNCTION_NAME_,

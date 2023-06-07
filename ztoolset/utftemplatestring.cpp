@@ -67,7 +67,7 @@ size_t wSize;
                     wSt=ZS_FIELDCAPAOVFLW;
                     }
     pOutString->clear();
-    pOutString=wZDB.DataChar;
+    pOutString=wZDB.Data;
     return wSt;
 }// fromISOLatin1
 

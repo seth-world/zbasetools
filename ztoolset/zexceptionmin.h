@@ -372,6 +372,7 @@ public:
     void setComplementToZStatus();
 //    void setFromZNetException(const char *pModule,const ZNetException *pZException);
     void exit_abort(void);
+    void exit_normal(void);
     void zthrow(ZExceptionBase *pException);
 
 

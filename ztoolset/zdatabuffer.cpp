@@ -313,11 +313,10 @@ ZDataBuffer::newcheckSum(void)
  * @return a pointer to allocated memory as unsigned char*
  */
 unsigned char*
-ZDataBuffer::allocate(ssize_t pSize)
+ZDataBuffer::allocate(size_t pSize)
 {
-  uint32_t* wP2=nullptr;
 
-    if ((pSize>__INVALID_SIZE__)||((ssize_t)pSize<0))
+    if ((pSize > __INVALID_SIZE__)||((ssize_t)pSize<0))
       {
         fprintf(stderr,
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
@@ -327,26 +326,46 @@ ZDataBuffer::allocate(ssize_t pSize)
       }
      /* allocate/reallocate enough size for requested byte size plus end sign cst_ZBUFFEREND */
     if (Data==nullptr)
-        Data=zmalloc<unsigned char>((size_t)(pSize+sizeof(uint32_t)));
+        Data=zmalloc<unsigned char>((size_t)(pSize));
       else
         {
-        wP2=(uint32_t*)&Data[Size];
-        *wP2=0;/* clear former cst_ZBUFFEREND marker before reallocating memory */
-        Data=zrealloc(Data,(size_t)(pSize)+sizeof(uint32_t));
+        Data=zrealloc(Data,(size_t)(pSize));
          }
     Size=pSize;
-    DataChar=(char *)Data;
-    VoidPtr=(void*)Data;
-    WDataChar=(wchar_t*)Data;
-
-    /* set the end of allocated / reallocated memory as cst_ZMEND */
-    wP2=(uint32_t*)&Data[Size];
-    *wP2=cst_ZBUFFEREND;
 
     return  Data;
 }//allocate
 
+unsigned char*
+ZDataBuffer::allocate_old(size_t pSize)
+{
+  uint32_t* wP2=nullptr;
 
+  if ((pSize>__INVALID_SIZE__)||((ssize_t)pSize<0))
+  {
+    fprintf(stderr,
+        "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
+        _GET_FUNCTION_NAME_,
+        pSize,pSize);
+    _ABORT_
+  }
+  /* allocate/reallocate enough size for requested byte size plus end sign cst_ZBUFFEREND */
+  if (Data==nullptr)
+    Data=zmalloc<unsigned char>((size_t)(pSize+sizeof(uint32_t)));
+  else
+  {
+    wP2=(uint32_t*)&Data[Size];
+    *wP2=0;/* clear former cst_ZBUFFEREND marker before reallocating memory */
+    Data=zrealloc(Data,(size_t)(pSize)+sizeof(uint32_t));
+  }
+  Size=pSize;
+
+  /* set the end of allocated / reallocated memory as cst_ZMEND */
+  wP2=(uint32_t*)&Data[Size];
+  *wP2=cst_ZBUFFEREND;
+
+  return  Data;
+}//allocate
 /**
  * @brief ZDataBuffer::allocateBZero allocates pSize bytes and sets it to binary zero
  * @param[in] pSize size in bytes to allocate
@@ -372,7 +391,7 @@ ZDataBuffer::allocateBZero(ssize_t pSize)
  */
 
 unsigned char*
-ZDataBuffer::extend(ssize_t pSize)
+ZDataBuffer::extend(size_t pSize)
 {
   uint32_t* wP2=nullptr;
   if ((pSize>__INVALID_SIZE__)||((ssize_t)pSize<0))
@@ -385,40 +404,57 @@ ZDataBuffer::extend(ssize_t pSize)
     }
   if (Data==nullptr)
       {
-        Data=zmalloc<unsigned char>(pSize+sizeof(uint32_t));
-
-
+        Data=zmalloc<unsigned char>(pSize);
         Size=pSize;
-        DataChar=(char *)Data;
-        VoidPtr=(char*)Data;
-        WDataChar=(wchar_t*)Data;
-
-        /* set the end of allocated / reallocated memory as cst_ZMEND */
-        wP2=(uint32_t*)&Data[Size];
-        *wP2=cst_ZBUFFEREND;
-
         return  Data;
       }// Data==nullptr
 
+    Data =zrealloc(Data,Size+pSize);
+    unsigned char* wExtentPtr=Data+Size ;
 
-    wP2=(uint32_t*)&Data[Size];
-    *wP2=0;/* clear former cst_ZBUFFEREND marker before reallocating memory */
-    Data =zrealloc(Data,Size+pSize+sizeof(uint32_t));
-
-    unsigned char* wExtentPtr=(unsigned char*)(Data + Size);
-
-
-    DataChar=(char *)Data;
     Size+=pSize;
 
-    VoidPtr=(void*)Data;
-    WDataChar=(wchar_t*)Data;
+    return  wExtentPtr;  // returns the first byte of extended memory
+}// extend
+
+unsigned char*
+ZDataBuffer::extend_old(size_t pSize)
+{
+  uint32_t* wP2=nullptr;
+  if ((pSize>__INVALID_SIZE__)||((ssize_t)pSize<0))
+  {
+    fprintf(stderr,
+        "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
+        _GET_FUNCTION_NAME_,
+        pSize,pSize);
+    _ABORT_
+  }
+  if (Data==nullptr)
+  {
+    Data=zmalloc<unsigned char>(pSize+sizeof(uint32_t));
+    Size=pSize;
 
     /* set the end of allocated / reallocated memory as cst_ZMEND */
     wP2=(uint32_t*)&Data[Size];
     *wP2=cst_ZBUFFEREND;
 
-    return  wExtentPtr;  // returns the first byte of extended memory
+    return  Data;
+  }// Data==nullptr
+
+
+  wP2=(uint32_t*)&Data[Size];
+  *wP2=0;/* clear former cst_ZBUFFEREND marker before reallocating memory */
+  Data =zrealloc(Data,Size+pSize+sizeof(uint32_t));
+
+  unsigned char* wExtentPtr=(unsigned char*)(Data + Size);
+
+  Size+=pSize;
+
+  /* set the end of allocated / reallocated memory as cst_ZMEND */
+  wP2=(uint32_t*)&Data[Size];
+  *wP2=cst_ZBUFFEREND;
+
+  return  wExtentPtr;  // returns the first byte of extended memory
 }// extend
 /**
  * @brief ZDataBuffer::extendBZero extends allocated space with pSize bytes and set the new allocated space to binary 0
@@ -427,10 +463,8 @@ ZDataBuffer::extend(ssize_t pSize)
  * @return    pointer to first available byte of extended space as a unsigned char*
  */
 unsigned char*
-ZDataBuffer::extendBZero(ssize_t pSize)
+ZDataBuffer::extendBZero(size_t pSize)
 {
-    if (!(pSize>0))
-        return Data;
     unsigned char* wData=extend(pSize);
     memset(wData,0,pSize);
     return wData;
@@ -460,7 +494,7 @@ ZDataBuffer::bsearch (void *pKey,
 
     for (long wi=pOffset; wi <wHighIdx ;wi++)
     {
-        if (wKey[widx]==DataChar[wi])
+        if (wKey[widx]==Data[wi])
         {
             if (wistart==-1)
                 wistart=wi;
@@ -515,7 +549,7 @@ ZDataBuffer::bsearchCaseRegardless (void *pKey, ssize_t pSize, ssize_t pOffset)
 
     for (ssize_t wi=pOffset; wi <wHighIdx ;wi++)
     {
-        ToCompareFromArray = DataChar[wi];
+        ToCompareFromArray = Data[wi];
         ToCompareFromKey = wKey[widx];
         if ((ToCompareFromKey >= cst_lowercase_begin)&&(ToCompareFromKey <= cst_lowercase_end))
             ToCompareFromKey -= cst_upperization ;
@@ -562,7 +596,7 @@ ZDataBuffer::bstartwithCaseRegardless (void *pKey, ssize_t pSize, ssize_t pOffse
     wistart=pOffset;
     while (wi<pSize)
     {
-        ToCompareFromArray = DataChar[wi];
+        ToCompareFromArray = Data[wi];
         ToCompareFromKey = wKey[wi];
         if ((ToCompareFromKey >=cst_lowercase_begin)&&(ToCompareFromKey <=cst_lowercase_end))
             ToCompareFromKey -= cst_upperization ;
@@ -615,7 +649,7 @@ ZDataBuffer::breverseSearchCaseRegardless(void *pKey,
 
     for (long wi=pOffset; wi >= 0 ;wi--)
     {
-        ToCompareFromArray = DataChar[wi];
+        ToCompareFromArray = Data[wi];
         ToCompareFromKey = wKey[widx];
         if ((ToCompareFromKey >=cst_lowercase_begin)&&(ToCompareFromKey <=cst_lowercase_end))
             ToCompareFromKey -= cst_upperization ;
@@ -624,7 +658,7 @@ ZDataBuffer::breverseSearchCaseRegardless(void *pKey,
             ToCompareFromArray -= cst_upperization ;
 
         if (ToCompareFromKey==ToCompareFromArray)
-            //            if (wKey[widx]==DataChar[wi])
+            //            if (wKey[widx]==Data[wi])
         {
             widx--;
             if (widx<0)
@@ -692,7 +726,7 @@ ZDataBuffer::breverseSearch (void *pKey,
 
     for (long wi=pOffset; wi >= 0 ;wi--)
     {
-        if (wKey[widx]==DataChar[wi])
+        if (wKey[widx]==Data[wi])
         {
             widx--;
             if (widx<0)
@@ -756,7 +790,7 @@ ZDataBuffer::setChar(const char pChar,size_t pStart,long pSize)
         wSize=pSize;  // get size again
     }
 
-    memset (&DataChar[pStart],pChar,wSize);
+    memset (&Data[pStart],pChar,wSize);
     return *this;
 }
 
@@ -765,7 +799,7 @@ ZDataBuffer::setString(const char* pString)
 {
     size_t wStrlen=strlen(pString)+1;
     allocate(wStrlen);
-    memmove(DataChar,pString,wStrlen);
+    memmove(Data,pString,wStrlen);
     return(*this);
 }
 
@@ -775,7 +809,7 @@ ZDataBuffer::appendString(const char* pString)
     size_t wOld=Size;
     size_t wStrlen=strlen(pString)+1;
     extend(wStrlen);
-    memmove(&DataChar[wOld],pString,wStrlen);
+    memmove(&Data[wOld],pString,wStrlen);
     return(*this);
 }
 ZDataBuffer&
@@ -786,7 +820,7 @@ ZDataBuffer::setUtf8(const utf8_t* pString)
                 return *this;
     size_t wStrlen=utfStrlen<utf8_t>(pString);
     allocate(wStrlen+1);
-    memmove(DataChar,pString,wStrlen);
+    memmove(Data,pString,wStrlen);
     return(*this);
 }
 ZDataBuffer&
@@ -797,7 +831,7 @@ ZDataBuffer::setUtf16(const utf16_t* pString)
                 return *this;
     size_t wStrlen=utfStrlen<utf16_t>(pString);
     allocate(wStrlen+1);
-    memmove(DataChar,pString,wStrlen);
+    memmove(Data,pString,wStrlen);
     return(*this);
 }
 ZDataBuffer&
@@ -808,7 +842,7 @@ ZDataBuffer::setUtf32(const utf32_t* pString)
                 return *this;
     size_t wStrlen=utfStrlen<utf32_t>(pString);
     allocate((wStrlen+1));
-    memmove(DataChar,pString,wStrlen);
+    memmove(Data,pString,wStrlen);
     return(*this);
 }
 ZDataBuffer&
@@ -819,7 +853,7 @@ ZDataBuffer::setUcs4(const ucs4_t* pString)
                 return *this;
     size_t wStrlen=utfStrlen<ucs4_t>(pString);
     allocate((wStrlen+1));
-    memmove(DataChar,pString,wStrlen);
+    memmove(Data,pString,wStrlen);
     return(*this);
 }
 //--------ZDataBuffer content tests-----------------------
@@ -911,27 +945,27 @@ ZDataBuffer::dumpHexa (const size_t pOffset,const long pSize,ZDataBuffer &pLineH
     for (size_t wi=0; wi < pSize;wi ++)
     {
         wHexa = wPtr[wi];
-        _Zsprintf(&pLineHexa.DataChar[wj],"%02X ",wHexa);
+        _Zsprintf((char*)&pLineHexa.Data[wj],"%02X ",wHexa);
         if ((wPtr[wi]>31)&&(wPtr[wi]<127))
         {
-            pLineChar.DataChar[wiUtf8]=wPtr[wi];
+            pLineChar.Data[wiUtf8]=wPtr[wi];
             wj+=3;
             wiUtf8++;
             continue;
         }
         if (((wPtr[wi]>6)&&(wPtr[wi]<14))||(wPtr[wi]==27))
         {
-            strcpy(&pLineChar.DataChar[wiUtf8],"¶");  // "¶"
+          strcpy((char*)&pLineChar.Data[wiUtf8],"¶");  // "¶"
             wj+=3;
             wiUtf8+=sizeof("¶")-1;
             continue;
         }
-        pLineChar.DataChar[wiUtf8] = '.' ;
+        pLineChar.Data[wiUtf8] = '.' ;
         wj+=3;
         wiUtf8++;
     }// for
-    pLineHexa.DataChar[pSize*3]='\0';
-    pLineChar.DataChar[wiUtf8]='\0';
+    pLineHexa.Data[pSize*3]='\0';
+    pLineChar.Data[wiUtf8]='\0';
     return ;
 } // dumpHexa
 
@@ -950,24 +984,24 @@ ZDataBuffer::dumpHexa_1 (const size_t pOffset,const long pSize,ZDataBuffer &pLin
   for (size_t wi=0; wi < pSize;wi ++)
   {
     wHexa = wPtr[wi];
-    _Zsprintf(&pLineHexa.DataChar[wj],"%02X ",wHexa);
+    _Zsprintf((char*)&pLineHexa.Data[wj],"%02X ",wHexa);
     if ((wPtr[wi]>31)&&(wPtr[wi]<127))
     {
-      pLineChar.DataChar[wi]=wPtr[wi];
+      pLineChar.Data[wi]=wPtr[wi];
       wj+=3;
       continue;
     }
     if (((wPtr[wi]>6)&&(wPtr[wi]<14))||(wPtr[wi]==27))
     {
-      pLineChar.DataChar[wi] = '@' ;  // "¶"
+      pLineChar.Data[wi] = '@' ;  // "¶"
       wj+=3;
       continue;
     }
-    pLineChar.DataChar[wi] = '.' ;
+    pLineChar.Data[wi] = '.' ;
     wj+=3;
   }// for
-  pLineHexa.DataChar[pSize*3]='\0';
-  pLineChar.DataChar[pSize]='\0';
+  pLineHexa.Data[pSize*3]='\0';
+  pLineChar.Data[pSize]='\0';
   return ;
 } // dumpHexa_1
 
@@ -992,15 +1026,15 @@ void ZDataBuffer::Dump_old(const int pColumn,FILE* pOutput)
 
     fprintf (pOutput,
              "Offset  %s  %s\n",
-             wRulerHexa.DataChar,
-             wRulerAscii.DataChar);
+             wRulerHexa.Data,
+             wRulerAscii.Data);
 
     long wOffset=0;
     int wL=0;
     while ((wOffset+pColumn)<Size)
     {
         dumpHexa(wOffset,pColumn,wLineHexa,wLineChar);
-        fprintf(pOutput,"%6d |%s |%s|\n",wL,wLineHexa.DataChar,wLineChar.DataChar);
+        fprintf(pOutput,"%6d |%s |%s|\n",wL,wLineHexa.Data,wLineChar.Data);
         wL+=pColumn;
         wOffset+=(pColumn);
     }
@@ -1016,7 +1050,7 @@ void ZDataBuffer::Dump_old(const int pColumn,FILE* pOutput)
 
     dumpHexa(wOffset,(Size-wOffset),wLineHexa,wLineChar);
 
-    fprintf(pOutput,wFormat,wL,wLineHexa.DataChar,wLineChar.DataChar);
+    fprintf(pOutput,wFormat,wL,wLineHexa.Data,wLineChar.Data);
 */
 
 }//Dump_old
@@ -1048,8 +1082,8 @@ void ZDataBuffer::Dump_old2(const int pColumn, ssize_t pLimit, FILE* pOutput)
 
     fprintf (pOutput,
              "Offset  %s  %s\n",
-             wRulerHexa.DataChar,
-             wRulerAscii.DataChar);
+             wRulerHexa.Data,
+             wRulerAscii.Data);
 
     size_t wOffset=0;
     int wL=0;
@@ -1057,7 +1091,7 @@ void ZDataBuffer::Dump_old2(const int pColumn, ssize_t pLimit, FILE* pOutput)
     while ( wReminder > (size_t)pColumn )
         {
         dumpHexa(wOffset,pColumn,wLineHexa,wLineChar);
-        fprintf(pOutput,"%6d |%s |%s|\n",wL,wLineHexa.DataChar,wLineChar.DataChar);
+        fprintf(pOutput,"%6d |%s |%s|\n",wL,wLineHexa.Data,wLineChar.Data);
         wL+=pColumn;
         wOffset+=(pColumn);
         wReminder -= pColumn;
@@ -1095,7 +1129,7 @@ void ZDataBuffer::Dump_old2(const int pColumn, ssize_t pLimit, FILE* pOutput)
 
 
 
-        fprintf(pOutput,wFormat,wL,wLineHexa.DataChar,wLineChar.DataChar);
+        fprintf(pOutput,wFormat,wL,wLineHexa.Data,wLineChar.Data);
         }
     return;
 }//Dump
@@ -1200,24 +1234,24 @@ dumpHexa (void *pPtr,long pSize,ZDataBuffer &pLineHexa,ZDataBuffer &pLineChar)
     for (size_t wi=0; wi < pSize;wi ++)
     {
         wHexa = wPtr[wi];
-        _Zsprintf(&pLineHexa.DataChar[wj],"%02X ",wHexa);
+        _Zsprintf((char*)&pLineHexa.Data[wj],"%02X ",wHexa);
         if ((wPtr[wi]>31)&&(wPtr[wi]<127))
         {
-            pLineChar.DataChar[wi]=wPtr[wi];
+            pLineChar.Data[wi]=wPtr[wi];
             wj+=3;
             continue;
         }
         if (((wPtr[wi]>6)&&(wPtr[wi]<14))||(wPtr[wi]==27))
         {
-            pLineChar.DataChar[wi] = '@' ;
+            pLineChar.Data[wi] = '@' ;
             wj+=3;
             continue;
         }
-        pLineChar.DataChar[wi] = '.' ;
+        pLineChar.Data[wi] = '.' ;
         wj+=3;
     }// for
-    pLineHexa.DataChar[pSize*3]='\0';
-    pLineChar.DataChar[pSize]='\0';
+    pLineHexa.Data[pSize*3]='\0';
+    pLineChar.Data[pSize]='\0';
     return;
 } // dumpHexa
 

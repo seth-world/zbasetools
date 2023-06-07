@@ -3,13 +3,29 @@
 #include <fcntl.h>
 #include <limits>
 
+#include <sys/stat.h> /* for fchmod */
+
 #include <ztoolset/zutfstrings.h>
 #include <ztoolset/zexceptionmin.h>
 
+#include <sys/stat.h>
 
-ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int pMode,int pPriv ) {
 
-/* see https://www.man7.org/linux/man-pages/man2/open.2.html
+
+ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode )
+{
+
+  return _rawOpen(pFd,pPath,pMode,0,false);
+}//rawOpen
+
+ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv )
+{
+  return _rawOpen(pFd,pPath,pMode,pPriv,false);
+}//rawOpen
+
+ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept ) {
+
+  /* see https://www.man7.org/linux/man-pages/man2/open.2.html
 */
 
   if (pPriv == 0)
@@ -17,186 +33,6 @@ ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int pMode,i
   else
     pFd=::open(pPath.toCChar(), pMode, pPriv);
 
-   if (pFd >= 0) {
-     return ZS_SUCCESS;
-   }
-
-   int wErrno = errno;
-   ZStatus wSt=ZS_ERROPEN;
-   utf8VaryingString wErrMsg;
-   switch (wErrno) {
-   case EACCES:
-     wSt= ZS_ILLEGAL ;
-     wErrMsg.sprintf( "<EACCES> The requested access to the file is not allowed, or search permission is denied for one of the directories in the path prefix of pathname, or the file did not exist yet and write access to the parent directory is not allowed."
-                     "\nOr Where O_CREAT is specified, the protected_fifos or protected_regular sysctl is enabled, the file already exists and is a FIFO or regular file, the owner of the file is neither the current user nor the owner of the containing directory, and the containing directory is both world- or group-writable and sticky."
-                     " file <%s>",pPath.toString());
-     break;
-   case EBADF:
-     wSt = ZS_BADFILEATTR;
-     wErrMsg.sprintf( "<EBADF>  pathname is relative but dirfd is neither AT_FDCWD nor a valid file descriptor."
-                     " file <%s>",pPath.toString());
-     break;
-   case EBUSY:
-     wSt = ZS_LOCKED;
-     wErrMsg.sprintf( "<EBUSY> O_EXCL was specified in flags and pathname refers to a block device that is in use by the system (e.g., it is mounted)."
-                      " file <%s>",pPath.toString());
-     break;
-   case EDQUOT:
-     wSt = ZS_MEMOVFLW;
-     wErrMsg.sprintf( "<EBUSY> Where O_CREAT is specified, the file does not exist, and the user's quota of disk blocks or inodes on the filesystem has been exhausted."
-                     " file <%s>",pPath.toString());
-     break;
-   case EEXIST:
-     wSt = ZS_FILEEXIST;
-     wErrMsg.sprintf( "<EEXIST> pathname already exists and O_CREAT and O_EXCL were used."
-                     " file <%s>",pPath.toString());
-     break;
-   case EFAULT:
-     wSt = ZS_INVADDRESS;
-     wErrMsg.sprintf( "<EFAULT> pathname points outside your accessible address space"
-                     " file <%s>",pPath.toString());
-     break;
-   case EFBIG:
-   case EOVERFLOW:
-     wSt = ZS_MEMOVFLW;
-     wErrMsg.sprintf( "<EOVERFLOW-EFBIG> pathname refers to a regular file that is too large to be opened. "
-                     " file <%s>",pPath.toString());
-     break;
-
-   case EINTR:
-     wSt = ZS_CANCEL;
-     wErrMsg.sprintf( "<EEXIST-ENOTEMPTY> While blocked waiting to complete an open of a slow device (e.g., a FIFO; see fifo(7)), the call was interrupted by a signal handler."
-                     " file <%s>",pPath.toString());
-     break;
-
-   case EINVAL:
-     wSt = ZS_INVOP;
-     wErrMsg.sprintf( "<EINVAL> The filesystem does not support the O_DIRECT flag.\n"
-                      "Or Invalid value in flags.\n"
-                      "Or O_TMPFILE was specified in flags, but neither O_WRONLY nor O_RDWR was specified\n"
-                      "Or O_CREAT was specified in flags and the final component (basename) of the new file's pathname is invalid (e.g., it contains characters not permitted by the underlying filesystem).\n"
-                      "Or The final component (basename) of pathname is invalid."
-                     " file <%s>",pPath.toString());
-     break;
-
-   case EISDIR:
-     wSt= ZS_FILEERROR;
-     wErrMsg.sprintf( "<EISDIR> pathname refers to an existing directory, O_TMPFILE and one of O_WRONLY or O_RDWR were specified in flags, but"
-                      "this kernel version does not provide the O_TMPFILE functionality."
-                      " file <%s>",pPath.toString());
-     break;
-   case ELOOP:
-     wSt= ZS_CORRUPTED;
-     wErrMsg.sprintf( "<ELOOP> Too many symbolic links were encountered in resolving pathname.\n"
-                      "Or pathname was a symbolic link, and flags specified O_NOFOLLOW but not O_PATH."
-                      " file <%s>",pPath.toString());
-     break;
-   case EMFILE:
-     wSt= ZS_MEMOVFLW;
-     wErrMsg.sprintf( "<EMFILE> The per-process limit on the number of open file descriptors has been reached."
-                      " file <%s>",pPath.toString());
-     break;
-   case ENFILE:
-     wSt= ZS_MEMOVFLW;
-     wErrMsg.sprintf( "<ENFILE> The system-wide limit on the number of open file descriptors has been reached."
-                     " file <%s>",pPath.toString());
-     break;
-   case ENAMETOOLONG:
-     pFd= ZS_INVNAME;
-     wErrMsg.sprintf( "<ENAMETOOLONG> The length of a component of a pathname is longer than {NAME_MAX}."
-                     "\nfile <%s>",pPath.toString());
-     break;
-
-   case ENODEV:
-     wSt= ZS_INVOP;
-     wErrMsg.sprintf( "<ENODEV>  pathname refers to a device special file and no corresponding device exists."
-                     "\nfile <%s>",pPath.toString());
-     break;
-   case ENOENT:
-     wSt= ZS_FILENOTEXIST;
-     wErrMsg.sprintf( "<ENOENT>  A directory component in pathname does not exist or is a dangling symbolic link.\n"
-                      "Or pathname refers to a nonexistent directory, O_TMPFILE and one of O_WRONLY or O_RDWR were specified in flags, but this kernel version does not provide the O_TMPFILE functionality.\n"
-                      "Or O_CREAT is not set and the named file does not exist."
-                      "\nfile <%s>",pPath.toString());
-     break;
-   case ENOMEM:
-     wSt= ZS_MEMOVFLW;
-     wErrMsg.sprintf( "<ENOMEM> Insufficient kernel memory was available.\n"
-                     "Or The named file is a FIFO, but memory for the FIFO buffer can't be allocated because the per-user hard limit on memory allocation for pipes has been reached and the caller is not privileged."
-                     "\nfile <%s>",pPath.toString());
-     break;
-
-   case ENOSPC:
-     wSt= ZS_MEMOVFLW;
-     wErrMsg.sprintf( "<ENOSPC> pathname was to be created but the device containing pathname has no room for the new file."
-                      "\nfile <%s>",pPath.toString());
-     break;
-
-   case ENOTDIR:
-     wSt= ZS_NOTDIRECTORY;
-     wErrMsg.sprintf( "<ENOTDIR> A component of either path prefix names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names a directory and the new argument names a non-directory file; or the old argument contains at least one non- <slash> character and ends with one or more trailing <slash> characters and the last pathname component names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names an existing non-directory file and the new argument names a nonexistent file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters;"
-                      "Or the new argument names an existing non-directory file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters."
-                      "\nfile <%s>",pPath.toString());
-     break;
-
-   case ENXIO:
-     wSt= ZS_INVOP;
-     wErrMsg.sprintf( "<ENXIO> The file is a device special file and no corresponding device exists.\n"
-                      "Or O_NONBLOCK | O_WRONLY is set, the named file is a FIFO, and no process has the FIFO open for reading.\n"
-                      "Or The file is a UNIX domain socket."
-                      "\nfile <%s>",pPath.toString());
-     break;
-
-   case EOPNOTSUPP:
-     wSt= ZS_INVOP;
-     wErrMsg.sprintf( "<EOPNOTSUPP> The filesystem containing pathname does not support O_TMPFILE."
-                     "\nfile <%s>",pPath.toString());
-     break;
-   case EPERM:
-     wSt= ZS_ACCESSRIGHTS;
-     wErrMsg.sprintf( "<EPERM> The O_NOATIME flag was specified, but the effective user ID of the caller did not match the owner of the file and the caller was not privileged.\n"
-                      "Or The operation was prevented by a file seal-"
-                     "\nfile <%s>",pPath.toString());
-     break;
-
-   case EROFS:
-     pFd= ZS_ACCESSRIGHTS;
-     wErrMsg.sprintf( "<EROFS> pathname refers to a file on a read-only filesystem and write access was requested."
-                     "\nfile <%s>",pPath.toString());
-     break;
-
-   case ETXTBSY:
-     wSt= ZS_ACCESSRIGHTS;
-     wErrMsg.sprintf( "<ETXTBSY> pathname refers to an executable image which is currently being executed and write access was requested.\n"
-                      "Or pathname refers to a file that is currently in use as a swap file, and the O_TRUNC flag was specified.\n"
-                      "Or pathname refers to a file that is currently being read by the kernel."
-                     "\nfile <%s>",pPath.toString());
-     break;
-
-   case EWOULDBLOCK:  /* for open operation this is an error */
-     wSt= ZS_WOULDBLOCK;
-     wErrMsg.sprintf( "<EWOULDBLOCK> The O_NONBLOCK flag was specified, and an incompatible lease was held on the file."
-                      "\nfile <%s>",pPath.toString());
-     break;
-
-   default:
-     wErrMsg.sprintf( "Unknown error code for opening file <%s>.",pPath.toString());
-     break;
-   }// switch
-   ZException.getErrno(wErrno,
-       _GET_FUNCTION_NAME_,
-       wSt,
-       Severity_Error,
-       wErrMsg.toCChar());
-
-  return wSt;
-}//rawOpen
-ZStatus rawOpenOld(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int __oflag) {
-
-  /* see https://www.man7.org/linux/man-pages/man2/open.2.html
-*/
-
-  pFd=::open(pPath.toCChar(), __oflag);
   if (pFd >= 0) {
     return ZS_SUCCESS;
   }
@@ -223,7 +59,7 @@ ZStatus rawOpenOld(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int __of
     break;
   case EDQUOT:
     wSt = ZS_MEMOVFLW;
-    wErrMsg.sprintf( "<EDQUOT> Where O_CREAT is specified, the file does not exist, and the user's quota of disk blocks or inodes on the filesystem has been exhausted."
+    wErrMsg.sprintf( "<EBUSY> Where O_CREAT is specified, the file does not exist, and the user's quota of disk blocks or inodes on the filesystem has been exhausted."
                     " file <%s>",pPath.toString());
     break;
   case EEXIST:
@@ -245,7 +81,7 @@ ZStatus rawOpenOld(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int __of
 
   case EINTR:
     wSt = ZS_CANCEL;
-    wErrMsg.sprintf( "<EINTR> While blocked waiting to complete an open of a slow device (e.g., a FIFO; see fifo(7)), the call was interrupted by a signal handler."
+    wErrMsg.sprintf( "<EEXIST-ENOTEMPTY> While blocked waiting to complete an open of a slow device (e.g., a FIFO; see fifo(7)), the call was interrupted by a signal handler."
                     " file <%s>",pPath.toString());
     break;
 
@@ -363,14 +199,15 @@ ZStatus rawOpenOld(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int __of
     wErrMsg.sprintf( "Unknown error code for opening file <%s>.",pPath.toString());
     break;
   }// switch
-  ZException.getErrno(wErrno,
-      _GET_FUNCTION_NAME_,
-      wSt,
-      Severity_Error,
-      wErrMsg.toCChar());
+  if (!pNoExcept)
+    ZException.getErrno(wErrno,
+        _GET_FUNCTION_NAME_,
+        wSt,
+        Severity_Error,
+        wErrMsg.toCChar());
 
   return wSt;
-}//rawOpen
+}//_rawOpen
 
 ZStatus
 rawWriteAt(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t &pSizeWritten, size_t pAddress) {
@@ -384,7 +221,7 @@ ZStatus rawWrite(__FILEHANDLE__ pFd, ZDataBuffer& pData, size_t &pSizeWritten)
 {
 /* see https://man7.org/linux/man-pages/man2/write.2.html */
   errno=0; /* this function uses errno */
-  ssize_t wSS=::write(pFd,pData.DataChar,pData.Size);
+  ssize_t wSS=::write(pFd,pData.Data,pData.Size);
   if (wSS >= 0) {
     pSizeWritten = wSS;
     return ZS_SUCCESS;
@@ -768,7 +605,7 @@ ZStatus rawAllocate(__FILEHANDLE__ pFd, __off_t pOffset,__off_t pBytes )
   utf8VaryingString wErrMsg;
   switch (wRet) {
   case EBADF:
-    wErrMsg.sprintf("<EBADF> File descriptor argument is not a open file descriptor. File <%s>",
+    wErrMsg.sprintf("<EBADF> File descriptor argument is not a open file descriptor or is not opened for writing. File <%s>",
         getNameFromFd(pFd).toString());
     wSt=ZS_BADFILEDESC;
     break;
@@ -822,6 +659,176 @@ ZStatus rawAllocate(__FILEHANDLE__ pFd, __off_t pOffset,__off_t pBytes )
     ZException.printLastUserMessage(stderr);
   return wSt;
 } // rawAllocate
+
+ZStatus rawChangePermissions(__FILEHANDLE__ pFd,__FILEACCESSRIGHTS__ pAccessRights)
+{
+  errno=0;
+  int wRet=fchmod(pFd,pAccessRights);
+  if (wRet==0)
+    return ZS_SUCCESS;
+
+  int wErrno=errno;
+  ZStatus wSt=ZS_ILLEGAL;
+  utf8VaryingString wErrMsg;
+  switch (wErrno) {
+    case EACCES:
+      wSt= ZS_ACCESSRIGHTS ;
+      wErrMsg.sprintf( "<EACCES> A component of either path prefix denies search permission; or one of the directories containing old or new denies write permissions; or, write permission is required and is denied for a directory pointed to by the old or new arguments."
+                      " file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case EPERM:
+      wSt= ZS_ACCESSRIGHTS;
+      wErrMsg.sprintf( "<EPERM> The effective UID does not match the owner of the file, and the process is not privileged."
+                      " Or The file is marked immutable or append-only."
+                      " file <%s>",getNameFromFd(pFd).toString());
+    case EROFS:
+      wSt= ZS_FILEERROR;
+      wErrMsg.sprintf( "<EROFS> The named file resides on a read-only filesystem."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case EBADF:
+      wSt= ZS_BADFILEDESC;
+      wErrMsg.sprintf( "<EBADF> The file descriptor is not valid."
+                      " file <%s> ",getNameFromFd(pFd).toString());
+      break;
+    case EFAULT:
+      wSt= ZS_LOCKED;
+      wErrMsg.sprintf( "<EFAULT> File's pathname points outside accessible address space."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case EINVAL:
+      wSt= ZS_INVPARAMS;
+      wErrMsg.sprintf( "<EINVAL> Invalid access rights value."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case EIO:
+      wSt= ZS_FILEERROR;
+      wErrMsg.sprintf( "<EIO> A physical I/O error has occurred."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case ELOOP:
+      wSt= ZS_CORRUPTED;
+      wErrMsg.sprintf( "<ELOOP> A loop exists in symbolic links encountered during resolution of the path argument."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case ENAMETOOLONG:
+      wSt= ZS_INVNAME;
+      wErrMsg.sprintf( "<ENAMETOOLONG> The length of a component of a pathname is longer than {NAME_MAX}."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case ENOENT:
+      wSt= ZS_FILENOTEXIST;
+      wErrMsg.sprintf( "<ENOENT>  The link named by old does not name an existing file, a component of the path prefix of new does not exist, or either old or new points to an empty string."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case ENOMEM:
+      wSt= ZS_MEMOVFLW;
+      wErrMsg.sprintf( "<ENOMEM> Insufficient kernel memory was available."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+    case ENOTDIR:
+      wSt= ZS_NOTDIRECTORY;
+      wErrMsg.sprintf( "<ENOTDIR> A component of either path prefix names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names a directory and the new argument names a non-directory file; or the old argument contains at least one non- <slash> character and ends with one or more trailing <slash> characters and the last pathname component names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names an existing non-directory file and the new argument names a nonexistent file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters;"
+                      " Or the new argument names an existing non-directory file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+
+
+    case ENOTSUP:
+      wSt= ZS_NOTDIRECTORY;
+      wErrMsg.sprintf( "<ENOTSUP> Flags specified AT_SYMLINK_NOFOLLOW, which is not supported."
+                      " file <%s>",getNameFromFd(pFd).toString());
+      break;
+
+    default:
+      wErrMsg.sprintf( "Unknown error for changing access rights for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    }// switch
+    ZException.getErrno(wErrno,
+        _GET_FUNCTION_NAME_,
+        wSt,
+        Severity_Error,
+        wErrMsg.toCChar());
+    return wSt;
+} //rawChangePermissions
+
+ZStatus rawgetPermissions(__FILEHANDLE__ pFd,__FILEACCESSRIGHTS__& pAccessRights,bool pLogZException)
+{
+  struct stat wStat;
+  ZStatus wSt=_rawStat(pFd,wStat,pLogZException);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+  pAccessRights = (wStat.st_mode & 0x777);
+  return ZS_SUCCESS;
+}
+
+ZStatus _rawStat(__FILEHANDLE__ pFd,struct stat& pStat, bool pLogZException)
+{
+  ZStatus wSt=ZS_SUCCESS;
+  memset(&pStat,0,sizeof(pStat));
+  errno= 0; /* errno is set by this function */
+  int wRet= fstat(pFd,&pStat);
+  if (wRet < 0) {
+    int wErrno=errno;
+    utf8VaryingString wErrMsg;
+    wSt= ZS_FILEERROR;
+    switch (wErrno) {
+    case ENOENT:
+      wSt= ZS_FILENOTEXIST;
+      wErrMsg.sprintf( "<ENOENT> A component of <%s> does not exist or is a dangling symbolic link.",getNameFromFd(pFd).toString());
+      break;
+    case EACCES:
+      wSt= ZS_USERPRIVILEGES;
+      wErrMsg.sprintf( "<EACCES> Search permission is denied for one of the directories in the path prefix of <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case EBADF:
+      wSt= ZS_FILENOTOPEN;
+      wErrMsg.sprintf( "<EBADF> File descriptor is not a valid open file descriptor for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case EFAULT:
+      wSt= ZS_CORRUPTED;
+      wErrMsg.sprintf( "<EFAULT> Bad address for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case EINVAL:
+      wSt= ZS_INVPARAMS;
+      wErrMsg.sprintf( "<EINVAL> (fstatat()) Invalid flag specified in flags for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case ELOOP:
+      wSt= ZS_BADFILEDESC;
+      wErrMsg.sprintf( "<ELOOP> Too many symbolic links encountered while traversing the path. for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case ENAMETOOLONG:
+      wSt= ZS_INVNAME;
+      wErrMsg.sprintf( "<ENAMETOOLONG> pathname is too long for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case ENOMEM:
+      wSt= ZS_MEMERROR;
+      wErrMsg.sprintf( "<ENOMEM> Out of memory (i.e., kernel memory) for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case ENOTDIR:
+      wSt= ZS_BADFILEDESC;
+      wErrMsg.sprintf( "<ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    case EOVERFLOW:
+      wSt= ZS_BADFILEDESC;
+      wErrMsg.sprintf( "<EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    default:
+      wErrMsg.sprintf( "Unknown error for file <%s>.",getNameFromFd(pFd).toString());
+      break;
+    }// switch
+    if (pLogZException)
+      ZException.getErrno(  wErrno,     /* saved errno */
+          _GET_FUNCTION_NAME_,
+          wSt,
+          Severity_Error,
+          wErrMsg.toCChar());
+
+    return(wSt);
+  } // if (wRet < 0)
+
+  return ZS_SUCCESS;
+}
 
 
 

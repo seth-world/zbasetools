@@ -491,7 +491,7 @@ zxmlDoc::newCDataSection(zxmlNode* pCDataSection,ZDataBuffer& pCDataContent)
     pCDataSection=nullptr;
 
     xmlNodePtr wInternalNode = xmlNewCDataBlock	( _xmlInternalDoc,
-                                                  (const xmlChar *) pCDataContent.DataChar,
+                                                  (const xmlChar *) pCDataContent.Data,
                                                   (int)pCDataContent.Size);
     if (wInternalNode==nullptr)
         {
@@ -692,7 +692,7 @@ zxmlDoc::parseXMLLoadedDoc(void)
     DocParser=new zxmlParser;
     xmlCtxtResetLastError	(DocParser->Context);
 
-    _xmlInternalDoc=   xmlParseMemory(xmlContent.DataChar,xmlContent.Size);
+    _xmlInternalDoc=   xmlParseMemory((const char*)xmlContent.Data,xmlContent.Size);
     if (_xmlInternalDoc==nullptr)
         {
         setXMLZException(_GET_FUNCTION_NAME_,

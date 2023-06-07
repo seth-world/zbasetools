@@ -11,8 +11,11 @@
      * @return an int with file descriptor or -1 if open operation is errored.
      * In this later case, ZException is positionned with errno information and accurate error description.
      */
-  ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int pMode, int pPriv=0);
-  ZStatus rawOpenOld(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, int __oflag);
+  ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv);
+  ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode);
+
+  ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept);
+
 /**
      * @brief rawRead low level read of a file described by its file descriptor pFd of pBytesToRead bytes at most.
      * @param pFd   a valid file descriptor
@@ -78,6 +81,11 @@
   * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
    */
   ZStatus rawSeekEnd(__FILEHANDLE__ pFd, __off_t &pOff);
+
+
+  ZStatus rawChangePermissions(__FILEHANDLE__ pFd,__FILEACCESSRIGHTS__ pAccessRights);
+  ZStatus _rawStat(__FILEHANDLE__ pFd, struct stat& pStat, bool pLogZException=false);
+  ZStatus rawgetPermissions(__FILEHANDLE__ pFd, __FILEACCESSRIGHTS__& pAccessRights, bool pLogZException=false);
 
   /**
    * @brief getNameFromFd returns the full path name of file corresponding to descriptor pFd.

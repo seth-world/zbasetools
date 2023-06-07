@@ -2,12 +2,6 @@
 #define ZDATABUFFER_H
 
 
-//#ifndef __ZDATABUFFER__
-//#define __ZDATABUFFER__
-#ifdef QT_CORE_LIB
-#include <QByteArray>
-#include <QString>
-#endif
 
 #include <errno.h>
 #include <ztoolset/zerror.h>
@@ -93,9 +87,11 @@ public:
 
  //   ZDataBuffer& operator= (const ZDataBuffer&) = delete;       // may assign because of overloaded operator =
     unsigned char * Data=nullptr;
-    char*           DataChar=nullptr;
+/*
+    char*           Data=nullptr;
     void*           VoidPtr=nullptr;
-    wchar_t*        WDataChar=nullptr;
+    wchar_t*        WData=nullptr;
+*/
 public:
 
     size_t             Size=0;
@@ -205,7 +201,7 @@ public:
       while (pIn[wLen])
         wLen++;
       allocate(wLen);
-      char* wPtr=DataChar;
+      char* wPtr=(char*)Data;
       size_t wL=0;
       while (wL<wLen)
         *wPtr++=pIn[wL++];
@@ -221,7 +217,7 @@ public:
       while (pIn[wLen])
         wLen++;
       allocate((wLen+1)*sizeof(_Utf));
-      _Utf* wPtr=(_Utf*)DataChar;
+      _Utf* wPtr=(_Utf*)Data;
       size_t wL=0;
       while (wL<wLen)
         *wPtr++=pIn[wL++];
@@ -235,7 +231,7 @@ public:
       while (pIn[wLen])
         wLen++;
       allocateBZero(wLen+1);
-      utf8_t* wPtr=(utf8_t*)DataChar;
+      utf8_t* wPtr=(utf8_t*)Data;
       size_t wL=0;
       while (wL<wLen)
         *wPtr++=pIn[wL++];
@@ -263,7 +259,7 @@ public:
     appendData(const ZDataBuffer& pBuffer) {
                                           size_t wOld=Size;
                                           extend(pBuffer.Size);
-                                          memmove(&DataChar[wOld],pBuffer.DataChar,pBuffer.Size);
+                                          memmove(&Data[wOld],pBuffer.Data,pBuffer.Size);
                                           return(*this);
                                            }
 
@@ -285,8 +281,8 @@ public:
        extend(wLen);
        size_t wL=0;
        while (wL<wLen)
-         DataChar[wOld++]=pData[wL++];
-//       memmove(&DataChar[wOld],pData,wLen);
+         Data[wOld++]=pData[wL++];
+//       memmove(&Data[wOld],pData,wLen);
        return(*this);
       }
       template <class _Utf>
@@ -298,11 +294,11 @@ public:
         while (pData[wLen])
           wLen++;
         extend(wLen*sizeof(_Utf));
-        _Utf* wPtr=&DataChar[wOld];
+        _Utf* wPtr=&Data[wOld];
         size_t wL=0;
         while (wL<wLen)
           *wPtr++=pData[wL++];
-//        memmove(&DataChar[wOld],pData,wLen);
+//        memmove(&Data[wOld],pData,wLen);
         return(*this);
       }
 /** @brief truncate routines : truncate and Ctruncate reduce the allocated memory size of ZDataBuffer to pLen (Ctruncate adds a '\0' termination)
@@ -310,7 +306,7 @@ public:
  *  Data pointers are modified by truncate routin.
 */
     const ZDataBuffer& truncate(size_t pLen);
-    const ZDataBuffer& Ctruncate(size_t pLen) {truncate(pLen);DataChar[pLen-1]='\0'; return *this;}
+    const ZDataBuffer& Ctruncate(size_t pLen) {truncate(pLen);Data[pLen-1]='\0'; return *this;}
 
 /** @brief changeData replaces data content at pOffset with given data pointer on pLength. Extents storage if necessary. */
     const ZDataBuffer& changeData(void* pData,size_t pLength,size_t pOffset)
@@ -355,18 +351,16 @@ public:
         {
         zfree(Data);
         Data=nullptr;
-        DataChar=nullptr;
-        VoidPtr=nullptr;
+//        Data=nullptr;
+//        VoidPtr=nullptr;
         Size=0;
          return;
         }
 
 
-    char * toString(void) {return DataChar;}
+        char * toString(void) {return (char*)Data;}
 //    ZDataBuffer* toUtf16(ZDataBuffer& pOutBuf);
-//    wchar_t* toWString(void) {return WDataChar;}
-    ZDataBuffer& fromString(const char* pString) { allocate(strlen(pString)+1); strncpy(DataChar,pString,strlen(pString)); return *this; }
-    ZDataBuffer&fromWString(const wchar_t* pWString) { allocate((wcslen(pWString)+1)*sizeof(WDataChar[0])); wcsncpy(WDataChar,pWString,wcslen(pWString)); return *this; }
+//    wchar_t* toWString(void) {return WData;}
     /*
  *   ======ZDataBuffer has NO export/import facilities==============
  *
@@ -473,7 +467,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     ZDataBuffer& addTermination(void) {allocate (Size+1); Data[Size]=0; return *this;}
     ZDataBuffer& addConditionalTermination(void)
         {
-        if (DataChar[Size-1]==0)
+        if (Data[Size-1]==0)
                             return *this;
         allocate (Size+1);
         Data[Size]='\0';
@@ -481,7 +475,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
         }
     ZDataBuffer& utfAddConditionalTermination(void)
         {
-        if (DataChar[Size-1]==0)
+        if (Data[Size-1]==0)
                             return *this;
         allocate (Size+1);
         Data[Size]='\0';
@@ -490,23 +484,25 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     ZDataBuffer& toUpper(void)
                     {
         for (size_t wi=0;wi<Size;wi++)
-                if ((DataChar[wi]>=cst_lowercase_begin)&&(DataChar[wi]<=cst_lowercase_end))
-                                DataChar[wi] -= cst_upperization ;
+                if ((Data[wi]>=cst_lowercase_begin)&&(Data[wi]<=cst_lowercase_end))
+                                Data[wi] -= cst_upperization ;
         return *this;}
 
     ZDataBuffer& toLower(void)
                     {
         for (size_t wi=0;wi<Size;wi++)
-                if ((DataChar[wi]>=cst_uppercase_begin)&&(DataChar[wi]<=cst_uppercase_end))
-                                DataChar[wi] += cst_upperization ;
+                if ((Data[wi]>=cst_uppercase_begin)&&(Data[wi]<=cst_uppercase_end))
+                                Data[wi] += cst_upperization ;
         return *this;}
 
     /** @brief allocate()  Allocates pSize bytes to storage space. If ZDataBuffer contains data : existing data will NOT be lost*/
-    unsigned char *allocate(ssize_t pSize);
+    unsigned char *allocate(size_t pSize);
+    unsigned char *allocate_old(size_t pSize);
     /** @brief allocate()  Allocates pSize bytes to storage space and set all space to binary zero- Existing data WILL BE lost*/
     unsigned char *allocateBZero(ssize_t pSize);
-    unsigned char *extend(ssize_t pSize);
-    unsigned char* extendBZero(ssize_t pSize);
+    unsigned char *extend(size_t pSize);
+    unsigned char *extend_old(size_t pSize);
+    unsigned char* extendBZero(size_t pSize);
 
     template <class _Tp>
     _Tp* utfAllocate_T (ssize_t pCount)
@@ -588,19 +584,20 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
    bool isGreater (const void *pCompare,long pSize=-1);
    bool isLess (const void *pCompare,long pSize=-1);
 
-   bool contains (const char *pString)
-          {
-            return !(strstr(DataChar,pString)==nullptr);
-          }
+   bool contains (const char *pString) {
+     return !(strstr((char*)Data,pString)==nullptr);
+   }
 
 
 
    unsigned char & operator [] (long pIdx) {return Data[pIdx];}
 
    const ZDataBuffer & operator = (const char *pCharIn)
-                                { allocate(strlen(pCharIn)+1);
-                                strcpy(DataChar,pCharIn);
-                                return(*this);}
+   {
+     allocate(strlen(pCharIn)+1);
+     strcpy((char*)Data,pCharIn);
+     return(*this);
+   }
 
 // see with CTORs   const ZDataBuffer & operator = (const ZDataBuffer &pDataBuffer)
 
@@ -698,16 +695,16 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
 
 
     inline const unsigned char* firstNotinSet(const char *pSet=cst_default_delimiter_Char)
-            {return((const unsigned char*)_firstNotinSet((const char*)DataChar,pSet));}
+            {return((const unsigned char*)_firstNotinSet((const char*)Data,pSet));}
 
     char* LTrim(const char *pSet=cst_default_delimiter_Char)
-            {return(_LTrim(DataChar,pSet));}
+    {return(_LTrim((char*)Data,pSet));}
 
     char* RTrim(const char *pSet=cst_default_delimiter_Char)
-            {return(_RTrim(DataChar,pSet));}
+            {return(_RTrim((char*)Data,pSet));}
 
     char* Trim(const char *pSet=cst_default_delimiter_Char)
-            {return(_Trim(DataChar,pSet));}
+            {return(_Trim((char*)Data,pSet));}
 
     ZDataBuffer& setChar(const char pChar, size_t pStart=0, long pSize=-1) ;
     // equivalent of setData but for a C string

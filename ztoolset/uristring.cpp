@@ -572,7 +572,7 @@ uriString::remove() {
       break;
     case ENOENT:
       wSt= ZS_FILENOTEXIST;
-      wErrMsg.sprintf( "<ENOENT> The file name to be deleted doesn’t exist.");
+      wErrMsg.sprintf( "<ENOENT> The file name to be deleted doesn’t exist.File <%s>",toString());
       break;
     case EPERM:
       wSt= ZS_INVOP;
@@ -998,37 +998,117 @@ uriString::suppress(void)
     return(ZS_SUCCESS);
 }// suppress
 
-
-ZStatus uriString::changeAccessRights(mode_t pMode)
+__FILEACCESSRIGHTS__ uriString::getPermissions()
 {
+  struct stat wStat;
+
+  ZStatus wSt=_getStat(wStat,false);
+  if (wSt!=ZS_SUCCESS)
+    return -1;
+  return (wStat.st_mode & 0x777);
+}
+
+
+ZStatus uriString::changePermissions(const uriString& pPath,__FILEACCESSRIGHTS__ pPermissions)
+{
+  return pPath.changePermissions(pPermissions);
+}
+
+ZStatus uriString::changePermissions(__FILEACCESSRIGHTS__ pPermissions) const
+{
+  /* see https://www.man7.org/linux/man-pages/man2/chmod.2.html */
   errno=0;
-  int wRet=chmod(toCChar(),pMode);
+  int wRet=chmod(toCChar(),pPermissions);
   if (wRet<0)
   {
-    switch (errno)
-    {
-    case (EPERM) :
-    case (EACCES) :
-    {
-      return(ZS_ACCESSRIGHTS);
-    }
-    case (EBUSY) :
-    {
-      return(ZS_LOCKED);
-    }
-    case (ENOENT) :
-    {
-      return(ZS_FILENOTEXIST);
-    }
-    default:
-      return (ZS_ERROR);
-    }// switch
+      int wErrno=errno;
+      ZStatus wSt=ZS_ILLEGAL;
+      utf8VaryingString wErrMsg;
+      switch (wErrno) {
+      case EACCES:
+        wSt= ZS_ACCESSRIGHTS ;
+        wErrMsg.sprintf( "<EACCES> A component of either path prefix denies search permission; or one of the directories containing old or new denies write permissions; or, write permission is required and is denied for a directory pointed to by the old or new arguments."
+                        " file <%s>.",toString());
+        break;
+      case EPERM:
+        wSt= ZS_ACCESSRIGHTS;
+        wErrMsg.sprintf( "<EPERM> The effective UID does not match the owner of the file, and the process is not privileged."
+                         " Or The file is marked immutable or append-only."
+                        " file <%s>",toString());
+      case EROFS:
+        wSt= ZS_FILEERROR;
+        wErrMsg.sprintf( "<EROFS> The named file resides on a read-only filesystem."
+                        " file <%s>",toString());
+        break;
+      case EBADF:
+        wSt= ZS_BADFILEDESC;
+        wErrMsg.sprintf( "<EBADF> The file descriptor is not valid."
+                        " file <%s> ",toString());
+        break;
+      case EFAULT:
+        wSt= ZS_LOCKED;
+        wErrMsg.sprintf( "<EFAULT> File's pathname points outside accessible address space."
+                        " file <%s>",toString());
+        break;
+      case EINVAL:
+        wSt= ZS_INVPARAMS;
+        wErrMsg.sprintf( "<EINVAL> Invalid access rights value."
+                         " file <%s>",toString());
+        break;
+      case EIO:
+        wSt= ZS_FILEERROR;
+        wErrMsg.sprintf( "<EIO> A physical I/O error has occurred."
+                        " file <%s>",toString());
+        break;
+      case ELOOP:
+        wSt= ZS_CORRUPTED;
+        wErrMsg.sprintf( "<ELOOP> A loop exists in symbolic links encountered during resolution of the path argument."
+                        " file <%s>",toString());
+        break;
+      case ENAMETOOLONG:
+        wSt= ZS_INVNAME;
+        wErrMsg.sprintf( "<ENAMETOOLONG> The length of a component of a pathname is longer than {NAME_MAX}."
+                        " file <%s>",toString());
+        break;
+      case ENOENT:
+        wSt= ZS_FILENOTEXIST;
+        wErrMsg.sprintf( "<ENOENT>  The link named by old does not name an existing file, a component of the path prefix of new does not exist, or either old or new points to an empty string."
+                        " file <%s>",toString());
+        break;
+      case ENOMEM:
+        wSt= ZS_MEMOVFLW;
+        wErrMsg.sprintf( "<ENOMEM> Insufficient kernel memory was available."
+                         " file <%s>",toString());
+        break;
+      case ENOTDIR:
+        wSt= ZS_NOTDIRECTORY;
+        wErrMsg.sprintf( "<ENOTDIR> A component of either path prefix names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names a directory and the new argument names a non-directory file; or the old argument contains at least one non- <slash> character and ends with one or more trailing <slash> characters and the last pathname component names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names an existing non-directory file and the new argument names a nonexistent file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters;"
+                        " Or the new argument names an existing non-directory file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters."
+                        " file <%s>",toString());
+        break;
+
+
+      case ENOTSUP:
+        wSt= ZS_NOTDIRECTORY;
+        wErrMsg.sprintf( "<ENOTSUP> Flags specified AT_SYMLINK_NOFOLLOW, which is not supported."
+                        " file <%s>",toString());
+        break;
+
+      default:
+        wErrMsg.sprintf( "Unknown error for changing access rights for file <%s>.",toString());
+        break;
+      }// switch
+      ZException.getErrno(wErrno,
+          _GET_FUNCTION_NAME_,
+          wSt,
+          Severity_Error,
+          wErrMsg.toCChar());
+      return wSt;
   }// if
 
 return ZS_SUCCESS;
-}
+} // changeAccessRights
 
-//uriStat_struct ZStat;
 
 
 
@@ -1047,69 +1127,10 @@ uriString::getStatR(uriStat &pZStat, bool pLogZException)const
 {
 struct stat wStatBuffer ;
 passwd *wUserInfo;
-ZStatus wSt=ZS_SUCCESS;
-    errno= 0; /* errno is set by this function */
-    pZStat.clear();
-    int wRet= stat(toCChar(),&wStatBuffer);
-    if (wRet < 0) {
-      int wErrno=errno;
-      utf8VaryingString wErrMsg;
-      wSt= ZS_FILEERROR;
-      switch (wErrno) {
-        case ENOENT:
-          wSt= ZS_FILENOTEXIST;
-          wErrMsg.sprintf( "<ENOENT> A component of <%s> does not exist or is a dangling symbolic link.",toString());
-          break;
-        case EACCES:
-          wSt= ZS_USERPRIVILEGES;
-          wErrMsg.sprintf( "<EACCES> Search permission is denied for one of the directories in the path prefix of <%s>.",toString());
-          break;
-        case EBADF:
-          wSt= ZS_FILENOTOPEN;
-          wErrMsg.sprintf( "<EBADF> File descriptor is not a valid open file descriptor for file <%s>.",toString());
-          break;
-        case EFAULT:
-          wSt= ZS_CORRUPTED;
-          wErrMsg.sprintf( "<EFAULT> Bad address for file <%s>.",toString());
-          break;
-        case EINVAL:
-          wSt= ZS_INVPARAMS;
-          wErrMsg.sprintf( "<EINVAL> (fstatat()) Invalid flag specified in flags for file <%s>.",toString());
-          break;
-        case ELOOP:
-          wSt= ZS_BADFILEDESC;
-          wErrMsg.sprintf( "<ELOOP> Too many symbolic links encountered while traversing the path. for file <%s>.",toString());
-          break;
-        case ENAMETOOLONG:
-          wSt= ZS_INVNAME;
-          wErrMsg.sprintf( "<ENAMETOOLONG> pathname is too long for file <%s>.",toString());
-          break;
-        case ENOMEM:
-          wSt= ZS_MEMERROR;
-          wErrMsg.sprintf( "<ENOMEM> Out of memory (i.e., kernel memory) for file <%s>.",toString());
-          break;
-        case ENOTDIR:
-          wSt= ZS_BADFILEDESC;
-          wErrMsg.sprintf( "<ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory for file <%s>.",toString());
-          break;
-        case EOVERFLOW:
-          wSt= ZS_BADFILEDESC;
-          wErrMsg.sprintf( "<EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented for file <%s>.",toString());
-          break;
-        default:
-          wErrMsg.sprintf( "Unknown error for file <%s>.",toString());
-          break;
-      }// switch
-      if (pLogZException)
-        ZException.getErrno(  wErrno,     /* saved errno */
-                              _GET_FUNCTION_NAME_,
-                              wSt,
-                              Severity_Error,
-                              wErrMsg.toCChar());
-
-      return(wSt);
-    } // if (wRet < 0)
-
+  pZStat.clear();
+  ZStatus wSt=_getStat(wStatBuffer,pLogZException);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
 
     pZStat.Size=wStatBuffer.st_size ;
 //    pZStat.Created.fromTimespec(wStatBuffer.st_ctim);
@@ -1126,6 +1147,74 @@ ZStatus wSt=ZS_SUCCESS;
     return(wSt);
 }// getStatR
 
+ZStatus
+uriString::_getStat(struct stat& pStat, bool pLogZException) const
+{
+  ZStatus wSt=ZS_SUCCESS;
+  memset(&pStat,0,sizeof(pStat));
+  errno= 0; /* errno is set by this function */
+  int wRet= stat(toCChar(),&pStat);
+  if (wRet < 0) {
+    int wErrno=errno;
+    utf8VaryingString wErrMsg;
+    wSt= ZS_FILEERROR;
+    switch (wErrno) {
+    case ENOENT:
+      wSt= ZS_FILENOTEXIST;
+      wErrMsg.sprintf( "<ENOENT> A component of <%s> does not exist or is a dangling symbolic link.",toString());
+      break;
+    case EACCES:
+      wSt= ZS_USERPRIVILEGES;
+      wErrMsg.sprintf( "<EACCES> Search permission is denied for one of the directories in the path prefix of <%s>.",toString());
+      break;
+    case EBADF:
+      wSt= ZS_FILENOTOPEN;
+      wErrMsg.sprintf( "<EBADF> File descriptor is not a valid open file descriptor for file <%s>.",toString());
+      break;
+    case EFAULT:
+      wSt= ZS_CORRUPTED;
+      wErrMsg.sprintf( "<EFAULT> Bad address for file <%s>.",toString());
+      break;
+    case EINVAL:
+      wSt= ZS_INVPARAMS;
+      wErrMsg.sprintf( "<EINVAL> (fstatat()) Invalid flag specified in flags for file <%s>.",toString());
+      break;
+    case ELOOP:
+      wSt= ZS_BADFILEDESC;
+      wErrMsg.sprintf( "<ELOOP> Too many symbolic links encountered while traversing the path. for file <%s>.",toString());
+      break;
+    case ENAMETOOLONG:
+      wSt= ZS_INVNAME;
+      wErrMsg.sprintf( "<ENAMETOOLONG> pathname is too long for file <%s>.",toString());
+      break;
+    case ENOMEM:
+      wSt= ZS_MEMERROR;
+      wErrMsg.sprintf( "<ENOMEM> Out of memory (i.e., kernel memory) for file <%s>.",toString());
+      break;
+    case ENOTDIR:
+      wSt= ZS_BADFILEDESC;
+      wErrMsg.sprintf( "<ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory for file <%s>.",toString());
+      break;
+    case EOVERFLOW:
+      wSt= ZS_BADFILEDESC;
+      wErrMsg.sprintf( "<EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented for file <%s>.",toString());
+      break;
+    default:
+      wErrMsg.sprintf( "Unknown error for file <%s>.",toString());
+      break;
+    }// switch
+    if (pLogZException)
+      ZException.getErrno(  wErrno,     /* saved errno */
+          _GET_FUNCTION_NAME_,
+          wSt,
+          Severity_Error,
+          wErrMsg.toCChar());
+
+    return(wSt);
+  } // if (wRet < 0)
+
+  return ZS_SUCCESS;
+}
 
 uriStat
 uriString::getStatR(bool pLogZException) const {
@@ -1145,12 +1234,15 @@ uriString::getStatR(bool pLogZException) const {
 long long
 uriString::getFileSize(void) const
 {
- uriStat wStat;
- if (getStatR(wStat)!=ZS_SUCCESS)
-                 {
-                 return (-1);
-                 }
-    return(wStat.Size);
+  __FILEHANDLE__ wFd=-1;
+  ZStatus wSt=rawOpen(wFd,*this,O_RDONLY);
+  if (wSt!=ZS_SUCCESS)
+    return -1;
+  __off_t wSize=0;
+  wSt=rawSeekEnd(wFd,wSize);
+  if (wSt!=ZS_SUCCESS)
+    return -1;
+  return wSize;
 }//getFileSize
 
 
@@ -1212,14 +1304,14 @@ uriStat wStat;
           toString());
       if (ZVerbose & ZVB_FileEngine)
         ZException.printLastUserMessage();
-      ::close(wFd);
+      ::rawClose(wFd);
       return ZS_READERROR;
     }
 
     wSt=rawRead(wFd,pDBS,wStat.Size);
 
 
-    ::close(wFd);
+    rawClose(wFd);
     return(ZS_SUCCESS);
 }//loadContent
 
@@ -1370,7 +1462,7 @@ ZDataBuffer wZDBContent;
 
     /* detect any BOM : if encountered skip if utf8 BOM, return error if not */
 
-    ZBOM_type wBOM=detectBOM(wZDBContent.DataChar, wZDBContent.getByteSize(), wBOMSize);
+    ZBOM_type wBOM=detectBOM(wZDBContent.Data, wZDBContent.getByteSize(), wBOMSize);
     if (wBOM!=ZBOM_NoBOM)
         {
         if (wBOM!=ZBOM_UTF8)
@@ -1421,7 +1513,7 @@ ZBool wProcessEndian= false; /* no big / little endian processing requested by d
         if not : straight forward
     */
 
-    ZBOM_type wBOM=detectBOM(wZDBContent.DataChar, wZDBContent.getByteSize(), wBOMSize);
+    ZBOM_type wBOM=detectBOM(wZDBContent.Data, wZDBContent.getByteSize(), wBOMSize);
     if (wBOM!=ZBOM_NoBOM)
         {
         if ((wBOM & ZBOM_UTF16)!=ZBOM_UTF16)
@@ -1479,7 +1571,7 @@ ZBool wProcessEndian= false; /* no big / little endian processing requested by d
         if not : straight forward
     */
 
-    ZBOM_type wBOM=detectBOM(wZDBContent.DataChar, wZDBContent.getByteSize(), wBOMSize);
+    ZBOM_type wBOM=detectBOM(wZDBContent.Data, wZDBContent.getByteSize(), wBOMSize);
     if (wBOM!=ZBOM_NoBOM)
         {
         if ((wBOM & ZBOM_UTF32)!=ZBOM_UTF32)
@@ -1529,10 +1621,13 @@ ZStatus
 uriString::writeContent (ZDataBuffer& pDBS,__FILEACCESSRIGHTS__ pAccessRights) const
 {
   __FILEHANDLE__ wFd ;
-  ZStatus wSt= rawOpen(wFd,*this, O_WRONLY | O_CREAT,pAccessRights);
+  ZStatus wSt= rawOpen(wFd,*this, O_WRONLY | O_CREAT | O_TRUNC,pAccessRights);
   if (wSt!=ZS_SUCCESS)
     return wSt;
-
+/* posix_fallocate bug
+ * when open with mode O_WRONLY | O_CREAT
+ * EBADF returned if file already exists.
+ *
   wSt=rawAllocate(wFd,__off_t(0),__off_t(pDBS.Size));
   if (wSt!=ZS_SUCCESS)
     return wSt;
@@ -1540,7 +1635,7 @@ uriString::writeContent (ZDataBuffer& pDBS,__FILEACCESSRIGHTS__ pAccessRights) c
   wSt=rawSeekBegin(wFd);
   if (wSt!=ZS_SUCCESS)
     return wSt;
-
+*/
   size_t wSizeWritten=0;
   wSt=rawWrite(wFd,pDBS,wSizeWritten);
 
@@ -1550,10 +1645,10 @@ uriString::writeContent (ZDataBuffer& pDBS,__FILEACCESSRIGHTS__ pAccessRights) c
 
 
 ZStatus
-uriString::appendContent (ZDataBuffer& pDBS) const
+uriString::appendContent (ZDataBuffer& pDBS,__FILEACCESSRIGHTS__ pAccessRights) const
 {
   __FILEHANDLE__ wFd =-1;
-  ZStatus wSt = rawOpen(wFd,toCChar(), O_APPEND);
+  ZStatus wSt = rawOpen(wFd,toCChar(),O_WRONLY | O_APPEND,pAccessRights);
   if (wSt!=ZS_SUCCESS)
     return wSt;
   size_t wSk;
@@ -1580,7 +1675,7 @@ uriString::writeContent (utf8VaryingString &pStr, __FILEACCESSRIGHTS__  pAccessR
     return wSt;
 */
   size_t wStrLen = pStr.strlen();
-  wDBS.allocateBZero(sizeof(uint8_t)*(wStrLen+1));
+  wDBS.allocateBZero(sizeof(uint8_t)*(wStrLen));
   size_t wi=0;
   while (wi < wStrLen) {
     wDBS.Data[wi] = pStr.Data[wi];
@@ -1611,7 +1706,7 @@ uriString::appendContent (utf8VaryingString &pStr) const
 {
   ZDataBuffer wDBS;
   size_t wStrLen = pStr.strlen();
-  wDBS.allocateBZero(sizeof(uint8_t)*(wStrLen+1));
+  wDBS.allocateBZero(sizeof(uint8_t)*(wStrLen));
   size_t wi=0;
   while (wi < wStrLen) {
     wDBS.Data[wi] = pStr.Data[wi];
