@@ -133,20 +133,20 @@ public:
 
     ZStatus dirAll(zbs::ZArray<uriString> &pDirArray, ZDirFileEn_type pZDFT = ZDFT_All);
 
-    ZStatus fullDirAll(zbs::ZArray<DirMap> &pDirArray, ZDirFileEn_type pZDFT = ZDFT_All);
+    ZStatus fullDirAll(zbs::ZArray<::DirMap> &pDirArray, ZDirFileEn_type pZDFT = ZDFT_All);
 
-    ZStatus fullDir( DirMap &pDirEntry, ZDirFileEn_type pZDFT=ZDFT_All);
-    ZStatus fullDirNext(DirMap &pDirEntry);
+    ZStatus fullDir( ::DirMap &pDirEntry, ZDirFileEn_type pZDFT=ZDFT_All);
+    ZStatus fullDirNext(::DirMap &pDirEntry);
 
-    ZStatus dirApprox(DirMap &pDirEntry, const utf8VaryingString &pApprox, ZDirFileEn_type pZDFT);
-    ZStatus dirApproxAll(zbs::ZArray<DirMap> &pDirArray,const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT = ZDFT_All);
+    ZStatus dirApprox(::DirMap &pDirEntry, const utf8VaryingString &pApprox, ZDirFileEn_type pZDFT);
+    ZStatus dirApproxAll(zbs::ZArray<::DirMap> &pDirArray,const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT = ZDFT_All);
 
-    ZStatus dirByName(DirMap &pDirEntry, ZDirFileEn_type pZDFT, ZDirSortedByName &DSBN);
+    ZStatus dirByName(::DirMap &pDirEntry, ZDirFileEn_type pZDFT, ZDirSortedByName &DSBN);
 
-    ZStatus dirByName( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT);
-    ZStatus dirBySize( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT);
+//    ZStatus dirByName( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT);
+    ZStatus dirBySize( ZArray<::DirMap> &DSBN, ZDirFileEn_type pZDFT);
 
-    ZStatus dirByNameNext(DirMap &pDirEntry);
+    ZStatus dirByNameNext(::DirMap &pDirEntry);
     ZStatus dirByNameAll(ZDirSortedByName *pDirEntry, ZDirFileEn_type pZDFT);
 
     ZStatus dirBySize(uriString &pDirEntry, ZDirFileEn_type pZDFT);

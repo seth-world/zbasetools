@@ -48,7 +48,7 @@ uriString&
 uriString::fromURI(const uriString *pURI)
 {
     if (pURI==nullptr)
-                    _ABORT_
+      _ABORT_
     if (Data==nullptr)
       allocateUnits(pURI->UnitCount);
     strset(pURI->toUtf());
@@ -57,8 +57,8 @@ uriString::fromURI(const uriString *pURI)
 uriString&
 uriString::fromURI(const uriString& pURI)
 {
-  if (pURI==nullptr)
-    _ABORT_
+  if (pURI.isEmpty())
+    return *this;
   if (Data==nullptr)
     allocateUnits(pURI.UnitCount);
   strset(pURI.toUtf());

@@ -728,15 +728,14 @@ ZExceptionMin::printUserMessage (FILE *pOutput,bool pDelete)
             {
             wi=0;
             int wj=ZExceptionStack::size()-1;
-            while (wj>0)
-                    {
-                    fprintf(pOutput,
-                            " Depth <%ld>\n",
-                            wi);
-                     fprintf(pOutput,ZExceptionStack::Tab[wj]->formatFullUserMessage().toCChar());
-                     wi++;
-                     wj--;
-                    }
+            while (wj>0) {
+                fprintf(pOutput,
+                        " Depth <%ld>\n",
+                        wi);
+                fprintf(pOutput,ZExceptionStack::Tab(wj)->formatFullUserMessage().toCChar());
+                 wi++;
+                 wj--;
+            }
             }// else
         }// else
     fprintf (pOutput,

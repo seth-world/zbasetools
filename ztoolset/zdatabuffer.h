@@ -158,6 +158,15 @@ public:
         return(*this);
     }
 
+    ZDataBuffer&
+    setData(ZDataBuffer& pBuffer)
+    {
+      CryptMethod=pBuffer.CryptMethod;
+      allocate (pBuffer.Size);
+      memmove(Data,pBuffer.Data,pBuffer.Size);
+      return(*this);
+    }
+
     template <typename _Tp>
     void setData_T(const _Tp& pIn)
     {

@@ -440,33 +440,6 @@ ZDateFull::toTimespec(void)
 }
 
 
-#ifdef QT_CORE_LIB
-ZDateFull
-ZDateFull::fromQDateTime (const QDateTime& pQDate)
-{
-    Year = pQDate.date().year();
-    Month = pQDate.date().month();
-    Day = pQDate.date().day();
-    Hour = pQDate.time().hour();
-    Min = pQDate.time().minute();
-    Sec = pQDate.time().second();
-
-    _toInternal();
-    return (*this) ;
-}
-
-ZDateFull
-ZDateFull::fromQDate (const QDate &pQDate)
-{
-    memset(this,0,sizeof(ZDateFull));
-    Year = pQDate.year();
-    Month = pQDate.month();
-    Day = pQDate.day();
-    _toInternal();
-    return (*this) ;
-}
-#endif// QT_CORE_LIB
-
 #include <time.h>
 //#include <ctime>
 ZDateFull
@@ -769,18 +742,6 @@ ZDateFull::toLocale(void)
 
 
 
-#ifdef QT_CORE_LIB
-ZDateFull ZDateFull::fromQString(const QString& pDate)
-{
-    ZDateFull_string wDFS;
-    memset(&wDFS,0,sizeof(ZDateFull_string));
-    size_t wi=pDate.size();
-    if (wi>sizeof(ZDateFull_string))
-                    wi=sizeof(ZDateFull_string);
-        memmove(&wDFS,pDate.toUtf8(),wi);
-    return(fromZDateFullString(wDFS));
-}//fromQString
-#endif // QT_CORE_LIB
 
 //-----------reverse conversion----------------
 

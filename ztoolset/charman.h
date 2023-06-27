@@ -68,7 +68,7 @@ public:
 
     size_t getUnitCount() {return sizeof(content);}
 
-    char* toChar() {return content;}
+    char* toCChar() {return content;}
     char content[250];
 };
 

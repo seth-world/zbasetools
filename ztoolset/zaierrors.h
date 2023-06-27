@@ -197,7 +197,7 @@ public:
         /*      if (count()==0)
           return false;
       for (long wi=0;wi<count();wi++)
-            if (Tab[wi]->Severity > ZAIES_Info)
+            if (Tab(wi)->Severity > ZAIES_Info)
                     return true;
       return false;*/
     }

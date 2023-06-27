@@ -35,7 +35,7 @@ void ZaiErrors::cleanupLogged()
 int ZaiErrors::countType(uint8_t pC) {
   int wRet=0;
   for (long wi=0;wi < count();wi++) {
-    if (Tab[wi]->Severity & pC)
+    if (Tab(wi)->Severity & pC)
       wRet++;
   }
   return wRet;
@@ -63,11 +63,11 @@ ZaiErrors::allLoggedToString()
   int wWarns=0;
   for (long wi=0;wi<count();wi++)
   {
-    if (Tab[wi]->Severity==ZAIES_Text)
-      wReturn.addsprintf("%s\n",Tab[wi]->Message());
+    if (Tab(wi)->Severity==ZAIES_Text)
+      wReturn.addsprintf("%s\n",Tab(wi)->Message());
     else
-      wReturn.addsprintf("<%s> %s\n",decode_ZAIES(Tab[wi]->Severity),Tab[wi]->Message());
-    switch (Tab[wi]->Severity)
+      wReturn.addsprintf("<%s> %s\n",decode_ZAIES(Tab(wi)->Severity),Tab(wi)->Message());
+    switch (Tab(wi)->Severity)
     {
     case ZAIES_Text:
       break;
@@ -101,9 +101,9 @@ utf8VaryingString ZaiErrors::errorsToString()
   int hasOne=0;
   for (long wi=0;wi<count();wi++)
   {
-    if (Tab[wi]->Severity > ZAIES_Error)
+    if (Tab(wi)->Severity > ZAIES_Error)
     {
-      wReturn.sprintf("<%s> %s \n",decode_ZAIES(Tab[wi]->Severity),Tab[wi]->Message());
+      wReturn.sprintf("<%s> %s \n",decode_ZAIES(Tab(wi)->Severity),Tab(wi)->Message());
       hasOne++;
     }
   }
@@ -135,11 +135,11 @@ void ZaiErrors::displayAllLogged(FILE* pOutput )
   int wWarns=0;
   for (long wi=0;wi<count();wi++)
   {
-    if (Tab[wi]->Severity==ZAIES_Text)
-      _print("%s",Tab[wi]->Message());
+    if (Tab(wi)->Severity==ZAIES_Text)
+      _print("%s",Tab(wi)->Message());
     else
-      _print("<%s> %s",decode_ZAIES(Tab[wi]->Severity),Tab[wi]->Message());
-    switch (Tab[wi]->Severity)
+      _print("<%s> %s",decode_ZAIES(Tab(wi)->Severity),Tab(wi)->Message());
+    switch (Tab(wi)->Severity)
     {
     case ZAIES_Text:
       break;
@@ -170,8 +170,8 @@ Severity_type ZaiErrors::getSeverity()
   uint8_t wZAIES = ZAIES_Text;
   for (long wi=0;wi<count();wi++)
     {
-    if (Tab[wi]->Severity > wZAIES)
-      wZAIES = Tab[wi]->Severity ;
+    if (Tab(wi)->Severity > wZAIES)
+      wZAIES = Tab(wi)->Severity ;
     }
     switch (wZAIES)
     {
@@ -199,9 +199,9 @@ void ZaiErrors::displayErrors(FILE* pOutput)
   int hasOne=0;
   for (long wi=0;wi<count();wi++)
   {
-    if (Tab[wi]->Severity > ZAIES_Info)
+    if (Tab(wi)->Severity > ZAIES_Info)
     {
-      _print("<%s> %s \n",decode_ZAIES(Tab[wi]->Severity),Tab[wi]->Message());
+      _print("<%s> %s \n",decode_ZAIES(Tab(wi)->Severity),Tab(wi)->Message());
       hasOne++;
     }
   }
@@ -224,9 +224,9 @@ utf8String ZaiErrors::getLastError( )
   int hasOne=0;
   long wi=lastIdx();
   while (wi>-1)
-    if (Tab[wi]->Severity > ZAIES_Info)
+    if (Tab(wi)->Severity > ZAIES_Info)
     {
-      wErrMsg.sprintf("<%s> %s \n",decode_ZAIES(Tab[wi]->Severity),Tab[wi]->Message());
+      wErrMsg.sprintf("<%s> %s \n",decode_ZAIES(Tab(wi)->Severity),Tab(wi)->Message());
       hasOne++;
       break;
     }

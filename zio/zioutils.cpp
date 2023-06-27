@@ -470,20 +470,30 @@ rawClose(__FILEHANDLE__ pFd) {
   case EBADF:
     wErrMsg.sprintf("<EBADF> File descriptor argument is not a open file descriptor. File <%s>",
         getNameFromFd(pFd).toString());
-    return ZS_BADFILEDESC;
+    wSt = ZS_BADFILEDESC;
+    break;
   case EINTR:
     wErrMsg.sprintf("<EINTR> The close() function was interrupted by a signal. File <%s>",
         getNameFromFd(pFd).toString());
-    return ZS_CANCEL;
+    wSt = ZS_CANCEL;
+    break;
   case EIO:
     wErrMsg.sprintf("<EIO> An I/O error occurred while reading from or writing to the file system. File <%s>",
         getNameFromFd(pFd).toString());
-    return ZS_CANCEL;
+    wSt = ZS_CANCEL;
+    break;
   default:
     wErrMsg.sprintf("Unknown error while closing file <%s>.",
         getNameFromFd(pFd).toString());
-    return ZS_FILEERROR;
+    wSt = ZS_FILEERROR;
+    break;
   }
+  ZException.getErrno(wErrno,
+      _GET_FUNCTION_NAME_,
+      wSt,
+      Severity_Error,
+      wErrMsg.toCChar());
+  return wSt;
 } // rawClose
 
 
@@ -525,6 +535,13 @@ ZStatus _rawSeekError(int wErrno,__FILEHANDLE__ pFd,__off_t &pOff)
     wSt=ZS_FILEPOSERR;
     break;
   }//switch
+
+  ZException.getErrno(wErrno,
+      "Seek operation",
+      wSt,
+      Severity_Error,
+      wErrMsg.toCChar());
+  return wSt;
 
   if (ZVerbose & ZVB_FileEngine)
     ZException.printLastUserMessage(stderr);

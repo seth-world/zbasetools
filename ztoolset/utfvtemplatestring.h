@@ -1003,13 +1003,13 @@ public:
      utfVaryingString& operator += (const std::string&& pIn) { return _addV<char>((char*)pIn.c_str()); }
 
 
-     bool operator == (const utfVaryingString& pIn) { return compare(pIn.Data)==0; }
-     bool operator == (const _Utf* pIn) { return compare(pIn)==0; }
-     bool operator != (const utfVaryingString& pIn) { return compare(pIn.Data); }
-     bool operator != (const _Utf* pIn) { return compare(pIn); }
+     bool operator == (const utfVaryingString& pIn) const { return compare(pIn.Data)==0; }
+     bool operator == (const _Utf* pIn) const { return compare(pIn)==0; }
+     bool operator != (const utfVaryingString& pIn) const { return compare(pIn.Data); }
+     bool operator != (const _Utf* pIn) const { return compare(pIn); }
 
-     bool operator > (const utfVaryingString& pIn) { return compare(pIn.Data)>0; }
-     bool operator < (const utfVaryingString& pIn) { return compare(pIn.Data)<0; }
+     bool operator > (const utfVaryingString& pIn) const { return compare(pIn.Data)>0; }
+     bool operator < (const utfVaryingString& pIn) const { return compare(pIn.Data)<0; }
 
      double toDouble()
      {

@@ -1081,7 +1081,7 @@ void* wVoidPtr;
 // for debug on arguments within thread
     fprintf(stdout,"_threadNoLoop>> Arguments:\n");
     for (long wi=0;wi<wArgList->size();wi++)
-            fprintf (stdout,"%ld>> <%p>\n",wi,wArgList->Tab[wi]);
+      fprintf (stdout,"%ld>> <%p>\n",wi,wArgList->Tab(wi));
 
 
     ZThread* wThread = static_cast<ZThread*>   (wArgList->popRP(&wVoidPtr));
@@ -1280,7 +1280,7 @@ void ZThread::copyArguments(zbs::ZArgList* pArgList)
   if (ArgList==nullptr)
       initArgList();
   for (long wi=0;wi<pArgList->count();wi++)
-    ArgList->push(pArgList->Tab[wi]);
+    ArgList->push(pArgList->Tab(wi));
 }
 
 /**
@@ -1296,7 +1296,7 @@ void* ZThread::getArgument(int wi)
     return nullptr;
   if (wi >= ArgList->count())
     return nullptr;
-  return ArgList->Tab[wi];
+  return ArgList->Tab(wi);
 }
 /**
      * @brief getArgumentInt gets an int from argument stack at position wi without destroying it.
@@ -1314,7 +1314,7 @@ int ZThread::getArgumentInt(int wi)
     return 0;
   if (wi >= ArgList->count())
     return 0;
-  wArg.Ptr=ArgList->Tab[wi];
+  wArg.Ptr=ArgList->Tab(wi);
   return wArg.Int;
 }
 /**

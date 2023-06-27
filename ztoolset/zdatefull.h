@@ -34,6 +34,7 @@ public:
     tm_hour = pIn.tm_hour;
     tm_min = pIn.tm_min;
     tm_sec = pIn.tm_sec;
+    return *this;
   }
 
   ZSuperTm& _copyFrom(const ZSuperTm& pIn) {

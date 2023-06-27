@@ -25,10 +25,28 @@
      * @return a ZStatus set to
      *  ZS_SUCCESS if operation is totally completed,
      *  ZS_PARTIAL if not all bytes have been read.
+     *  ZS_EOF if end of file has been reached. In this case, pData contains nothing.
      * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
      */
   ZStatus rawRead(__FILEHANDLE__ pFd, ZDataBuffer& pData, size_t pBytesToRead);
 
+  /**
+   * @brief rawReadAt reads a file described by its descriptor pFd at address (physical offset) pAddress
+   * a number of bytes pBytesToRead and returns read data into pData.
+   * If the requested amount of data pBytesToRead cannot be read,
+   * the effective size of read data is given by pData.Size.
+   * @param pFd         a valid file descriptor
+   * @param pData a ZDataBuffer.  After read operation, ZDataBuffer::Size is allocated and its size adjusted
+   *                              to the effective number of bytes read.
+   * @param pBytesToRead requested bytes to read at most.
+   * @param pAddress      physical offset from beginning of file
+   * @return a ZStatus set to :
+   *  ZS_SUCCESS if operation is totally completed,
+   *  ZS_PARTIAL if not all bytes have been read.
+   *  ZS_EOF if end of file has been reached. In this case, pData contains nothing.
+   *  other errors : see rawSeekToPosition
+   *
+   */
   ZStatus rawReadAt(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t pBytesToRead, size_t pAddress);
 
   ZStatus rawWrite(__FILEHANDLE__ pFd, ZDataBuffer &pData, size_t &pSizeWritten) ;
@@ -52,11 +70,30 @@
    */
   ZStatus rawAllocate(__FILEHANDLE__ pFd, __off_t pOffset, __off_t pBytes );
 
+  /**
+   * @brief rawSeek
+   * @param pFd   a valid descriptor for an open file
+   * @param pOff  offset
+   * @param pWhence
+   * @return ZS_SUCCESS when operation has completed successfully.
+   * ZS_BADFILEDESC <EBADF> File descriptor argument is not a open file descriptor.
+   * ZS_INVPARAMS <EINVAL>  whence is not valid.  Or: the resulting file offset would be negative, or beyond the end of a seekable device for given offset.
+   * ZS_INVADDRESS <ENXIO> whence is SEEK_DATA or SEEK_HOLE, and offset is beyond the end of the file, or whence is SEEK_DATA and offset is within a hole at the end of the file.
+   * ZS_INVVALUE <EOVERFLOW> The resulting file offset cannot be represented in returned data format.
+   * ZS_INVOP <ESPIPE> file descriptor is associated with a pipe, socket, or FIFO. Operation not allowed.
+   * ZS_FILEPOSERR error is not recognized (errno value).
+   */
   ZStatus rawSeek( __FILEHANDLE__ pFd, __off_t &pOff, int pWhence);
   /**
    * @brief rawSeekToPosition set current file position at absolute offset pOff since beginning of file corresponding to descriptor pFd
    * @return ZS_SUCCESS in case of successfull operation.
-  * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
+   * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
+   * ZS_BADFILEDESC <EBADF> File descriptor argument is not a open file descriptor.
+   * ZS_INVPARAMS <EINVAL>  whence is not valid.  Or: the resulting file offset would be negative, or beyond the end of a seekable device for given offset.
+   * ZS_INVADDRESS <ENXIO> whence is SEEK_DATA or SEEK_HOLE, and offset is beyond the end of the file, or whence is SEEK_DATA and offset is within a hole at the end of the file.
+   * ZS_INVVALUE <EOVERFLOW> The resulting file offset cannot be represented in returned data format.
+   * ZS_INVOP <ESPIPE> file descriptor is associated with a pipe, socket, or FIFO. Operation not allowed.
+   * ZS_FILEPOSERR error is not recognized (errno value).
    */
   ZStatus rawSeekToPosition(__FILEHANDLE__ pFd, size_t pAddress);
   /**
@@ -71,17 +108,28 @@
   /**
    * @brief rawSeekBegin Sets current file position at beginning of file corresponding to descriptor pFd.
    * @return ZS_SUCCESS in case of successfull operation.
-  * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
+   * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
+   * ZS_BADFILEDESC <EBADF> File descriptor argument is not a open file descriptor.
+   * ZS_INVPARAMS <EINVAL>  whence is not valid.  Or: the resulting file offset would be negative, or beyond the end of a seekable device for given offset.
+   * ZS_INVADDRESS <ENXIO> whence is SEEK_DATA or SEEK_HOLE, and offset is beyond the end of the file, or whence is SEEK_DATA and offset is within a hole at the end of the file.
+   * ZS_INVVALUE <EOVERFLOW> The resulting file offset cannot be represented in returned data format.
+   * ZS_INVOP <ESPIPE> file descriptor is associated with a pipe, socket, or FIFO. Operation not allowed.
+   * ZS_FILEPOSERR error is not recognized (errno value).
    */
   ZStatus rawSeekBegin(__FILEHANDLE__ pFd);
   /**
    * @brief rawSeekBegin Sets current file position at end of file corresponding to descriptor pFd and
    *  pOff is set with file's end position.
    * @return ZS_SUCCESS in case of successfull operation.
-  * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
+   * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
+   * ZS_BADFILEDESC <EBADF> File descriptor argument is not a open file descriptor.
+   * ZS_INVPARAMS <EINVAL>  whence is not valid.  Or: the resulting file offset would be negative, or beyond the end of a seekable device for given offset.
+   * ZS_INVADDRESS <ENXIO> whence is SEEK_DATA or SEEK_HOLE, and offset is beyond the end of the file, or whence is SEEK_DATA and offset is within a hole at the end of the file.
+   * ZS_INVVALUE <EOVERFLOW> The resulting file offset cannot be represented in returned data format.
+   * ZS_INVOP <ESPIPE> file descriptor is associated with a pipe, socket, or FIFO. Operation not allowed.
+   * ZS_FILEPOSERR error is not recognized (errno value).
    */
   ZStatus rawSeekEnd(__FILEHANDLE__ pFd, __off_t &pOff);
-
 
   ZStatus rawChangePermissions(__FILEHANDLE__ pFd,__FILEACCESSRIGHTS__ pAccessRights);
   ZStatus _rawStat(__FILEHANDLE__ pFd, struct stat& pStat, bool pLogZException=false);

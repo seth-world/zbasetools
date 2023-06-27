@@ -489,7 +489,7 @@ ZDataBuffer::bsearch (void *pKey,
 {
     long widx = 0;
     long wistart = -1;
-    char *wKey = (char *)pKey;
+    unsigned char *wKey = (unsigned char *)pKey;
     long wHighIdx = Size;
 
     for (long wi=pOffset; wi <wHighIdx ;wi++)
@@ -542,10 +542,10 @@ ZDataBuffer::bsearchCaseRegardless (void *pKey, ssize_t pSize, ssize_t pOffset)
 {
     long widx = 0;
     long wistart = -1;
-    char *wKey = (char *)pKey;
+    unsigned char *wKey = (unsigned char *)pKey;
     long wHighIdx = this->Size ;
-    char ToCompareFromKey ;
-    char ToCompareFromArray;
+    unsigned char ToCompareFromKey ;
+    unsigned char ToCompareFromArray;
 
     for (ssize_t wi=pOffset; wi <wHighIdx ;wi++)
     {
@@ -583,11 +583,11 @@ ZDataBuffer::bsearchCaseRegardless (ZDataBuffer &pKey,ssize_t pOffset)
 ssize_t
 ZDataBuffer::bstartwithCaseRegardless (void *pKey, ssize_t pSize, ssize_t pOffset)
 {
-    char *wKey = (char *)pKey;
+    unsigned char *wKey = (unsigned char *)pKey;
     long wHighIdx = this->Size ;
     long wistart=0;
-    char ToCompareFromKey ;
-    char ToCompareFromArray;
+    unsigned char ToCompareFromKey ;
+    unsigned char ToCompareFromArray;
 
     if (wHighIdx<pSize)
         return -1;
@@ -638,8 +638,8 @@ ZDataBuffer::breverseSearchCaseRegardless(void *pKey,
                                           ssize_t pOffset)
 {
     long widx = pKeySize-1;
-    char *wKey = (char *)pKey;
-    char ToCompareFromArray , ToCompareFromKey;
+    unsigned char *wKey = (unsigned char *)pKey;
+    unsigned char ToCompareFromArray , ToCompareFromKey;
     //long wHighIdx = Size;
 
     if (pOffset<0)
@@ -716,7 +716,7 @@ ZDataBuffer::breverseSearch (void *pKey,
                              ssize_t pOffset)
 {
     long widx = pKeySize-1;
-    char *wKey = (char *)pKey;
+    unsigned char *wKey = (unsigned char *)pKey;
     //long wHighIdx = Size;
 
     if (pOffset<0)
@@ -777,7 +777,7 @@ ZDataBuffer::breverseSearch (ZDataBuffer &pKey,
 ZDataBuffer &
 ZDataBuffer::setChar(const char pChar,size_t pStart,long pSize)
 {
-    long wSize ;
+    long wSize = -1;
 
     if (pSize==-1)
     {

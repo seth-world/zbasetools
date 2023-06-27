@@ -217,7 +217,7 @@ ZDir::dir(uriString &pDirEntry, ZDirFileEn_type pRequestedType)
     ZDFT = pRequestedType;
 int wErrno=0;
 struct dirent* wDirEntry=nullptr;
-ZStatus wSt;
+ZStatus wSt=ZS_SUCCESS;
 
     if (_SystDir==nullptr) {
       wSt=setPath(Data);
@@ -312,7 +312,7 @@ It is recommended that applications use readdir(3) instead of
 } //readdir
 
 
-ZStatus ZDir::fullDir(DirMap &pDirEntry, ZDirFileEn_type pZDFT)
+ZStatus ZDir::fullDir(::DirMap &pDirEntry, ZDirFileEn_type pZDFT)
 {
     uriStat wStat;
     ZDFT = pZDFT;
@@ -447,15 +447,15 @@ ZStatus ZDir::dirAll(zbs::ZArray<uriString> &pDirArray, ZDirFileEn_type pZDFT)
         wSt = ZS_SUCCESS;
     return wSt;
 }
-
-ZStatus ZDir::dirByName( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT)
+/*
+ZStatus ZDir::dirByName( ZArray<::DirMap> &DSBN, ZDirFileEn_type pZDFT)
 {
   DSBN.clear();
-  DirMap wDirEntry;
+  ::DirMap wDirEntry;
   ZStatus wSt = fullDir(wDirEntry, pZDFT);
   while (wSt == ZS_SUCCESS) {
     long wi=0;
-    while (wDirEntry.Name.compareCase(DSBN[wi].Name) < 0)
+    while (wDirEntry.Name.compareCase(DSBN.at(wi).Name) < 0)
       wi++;
     if (wi < DSBN.count())
       DSBN.insert(wDirEntry,wi);
@@ -468,11 +468,11 @@ ZStatus ZDir::dirByName( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT)
     wSt = ZS_SUCCESS;
   return wSt;
 }
-
-ZStatus ZDir::dirBySize( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT)
+*/
+ZStatus ZDir::dirBySize( ZArray<::DirMap> &DSBN, ZDirFileEn_type pZDFT)
 {
   DSBN.clear();
-  DirMap wDirEntry;
+  ::DirMap wDirEntry;
   ZStatus wSt = fullDir(wDirEntry, pZDFT);
   while (wSt == ZS_SUCCESS) {
     long wi=0;
@@ -489,17 +489,17 @@ ZStatus ZDir::dirBySize( ZArray<DirMap> &DSBN, ZDirFileEn_type pZDFT)
     wSt = ZS_SUCCESS;
   return wSt;
 }
-ZStatus ZDir::fullDirAll(zbs::ZArray<DirMap> &pDirArray, ZDirFileEn_type pZDFT)
+ZStatus ZDir::fullDirAll(zbs::ZArray<::DirMap> &pDirArray, ZDirFileEn_type pZDFT)
 {
     pDirArray.clear();
-    DirMap wDirEntry;
+    ::DirMap wDirEntry;
 
 
 }
 
 
 ZStatus
-ZDir::dirApprox(DirMap &pDirEntry,const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT)
+ZDir::dirApprox(::DirMap &pDirEntry,const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT)
 {
   ZStatus wSt = ZS_SUCCESS;
   pDirEntry.clear();
@@ -513,9 +513,9 @@ ZDir::dirApprox(DirMap &pDirEntry,const utf8VaryingString& pApprox, ZDirFileEn_t
 }//dirApprox
 
 ZStatus
-ZDir::dirApproxAll(zbs::ZArray<DirMap> &pDirArray, const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT)
+ZDir::dirApproxAll(zbs::ZArray<::DirMap> &pDirArray, const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT)
 {
-  DirMap wDirEntry;
+  ::DirMap wDirEntry;
   pDirArray.clear();
   ZStatus wSt = dirApprox(wDirEntry,pApprox,pZDFT);
   while (wSt==ZS_SUCCESS) {

@@ -38,7 +38,7 @@ void zprintStack(void)
                 {
                 memset (wFil,' ',(wi+1));
                 wFil[wi+1]='\0';
-                fprintf(stderr," %2d |%s>%s \n",wi,wFil,CurStack->Tab[wi]);
+                fprintf(stderr," %2d |%s>%s \n",wi,wFil,CurStack->Tab(wi));
                 }
     return;
 }
@@ -62,7 +62,7 @@ ZModuleStack::printStack(FILE*pOutput)
                 {
                 memset (wFil,' ',(wJ+1));
                 wFil[wJ+1]='\0';
-                fprintf(pOutput," %2d |%s>%s \n",wi,wFil,Tab[wi]);
+                fprintf(pOutput," %2d |%s>%s \n",wi,wFil,Tab(wi));
                 wJ--;
                 if ((wi>0)&&(wJ==0))
                     {
