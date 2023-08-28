@@ -5,6 +5,8 @@
 #include <ztoolset/zdatabuffer.h>
 #include <ztoolset/zstatus.h>
 
+#include <fcntl.h>
+
 /**
      * @brief rawOpen low level open file described by pPath, using __oflag (see https://www.man7.org/linux/man-pages/man2/open.2.html)
      * @param pStatus returned status set to ZS_SUCCESS if operation is successfull
@@ -15,6 +17,9 @@
   ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode);
 
   ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept);
+
+  ZStatus _rawOpenGetException(int wErrno, const utf8VaryingString& pPath,bool pNoExcept ) ;
+
 
 /**
      * @brief rawRead low level read of a file described by its file descriptor pFd of pBytesToRead bytes at most.
@@ -57,10 +62,10 @@
 /**
  * @brief rawClose low level close operation of a file described by its file descriptor pFd
  * @param pFd
- * @return ZS_SUCCESS in case of successfull operation.
+ * @return ZS_SUCCESS in case of successfull operation. pFd is set to -1.
  * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
  */
-  ZStatus rawClose(__FILEHANDLE__ pFd);
+  ZStatus rawClose(__FILEHANDLE__ &pFd);
 
   /**
    * @brief rawFileAllocate allocates pBytes of additional space starting at pOffset for file described by pFd.
@@ -68,7 +73,7 @@
    * @return ZS_SUCCESS in case of successfull operation.
   * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
    */
-  ZStatus rawAllocate(__FILEHANDLE__ pFd, __off_t pOffset, __off_t pBytes );
+  ZStatus rawAllocate(__FILEHANDLE__ pFd, size_t pOffset, size_t pBytes );
 
   /**
    * @brief rawSeek
@@ -129,8 +134,9 @@
    * ZS_INVOP <ESPIPE> file descriptor is associated with a pipe, socket, or FIFO. Operation not allowed.
    * ZS_FILEPOSERR error is not recognized (errno value).
    */
-  ZStatus rawSeekEnd(__FILEHANDLE__ pFd, __off_t &pOff);
-
+  ZStatus rawSeekEnd(__FILEHANDLE__ pFd, size_t &pOff);
+  /** same as previous but does not return an offset. Only positions to endoffile */
+  ZStatus rawSeekEnd(__FILEHANDLE__ pFd);
   ZStatus rawChangePermissions(__FILEHANDLE__ pFd,__FILEACCESSRIGHTS__ pAccessRights);
   ZStatus _rawStat(__FILEHANDLE__ pFd, struct stat& pStat, bool pLogZException=false);
   ZStatus rawgetPermissions(__FILEHANDLE__ pFd, __FILEACCESSRIGHTS__& pAccessRights, bool pLogZException=false);
@@ -139,6 +145,8 @@
    * @brief getNameFromFd returns the full path name of file corresponding to descriptor pFd.
    * @return file name if successfull or empty string if a problem occurred
    */
-  utf8VaryingString getNameFromFd(__FILEHANDLE__ pFd);
+  utf8VaryingString rawGetNameFromFd(__FILEHANDLE__ pFd);
+
+  bool testSequence (const unsigned char* pSequence,size_t pSeqLen, const unsigned char* pToCompare);
 
 #endif // ZIOUTILS_H

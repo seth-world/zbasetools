@@ -264,6 +264,8 @@ int getDateValue(const unsigned char* &pPtrIn,int &pEnd,int pMaxDigits) {
   return wValue;
 }
 
+
+
 /** 30-12 is a valid date -> gives 30-12-currentyear current time */
 ZDateFull
 ZDateFull::fromDMY(const utf8VaryingString &pString)
@@ -272,6 +274,7 @@ ZDateFull::fromDMY(const utf8VaryingString &pString)
   time_t wTimet=0;
   std::time(&wTimet);
   struct tm wTm;
+  wD.Precision = ZDTPR_invalid;
 
   localtime_r(&wTimet,&wTm);
 
@@ -280,12 +283,13 @@ ZDateFull::fromDMY(const utf8VaryingString &pString)
   if (pString.isEmpty())
     return ZDateFull();
 
-//  wD.getCurrentDateTime();  /* initialize with current date time */
 
   const unsigned char* wPtr=pString.Data;
   wTm.tm_mday = getDateValue(wPtr,wEnd,2);
   if (wTm.tm_mday < 0)
     return ZDateFull(); /* return invalid date */
+
+  wD.Precision = ZDTPR_ymd;
 
   wValue = getDateValue(wPtr,wEnd,2);
   if (wValue < 0) {
@@ -311,6 +315,7 @@ ZDateFull::fromDMY(const utf8VaryingString &pString)
     wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
+  wD.Precision = ZDTPR_ymdh;
   wTm.tm_hour = wValue;
 
   wValue = getDateValue(wPtr,wEnd,2);
@@ -319,6 +324,7 @@ ZDateFull::fromDMY(const utf8VaryingString &pString)
     wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
+  wD.Precision = ZDTPR_ymdhm;
   wTm.tm_min = wValue;
 
   wValue = getDateValue(wPtr,wEnd,2);
@@ -327,6 +333,7 @@ ZDateFull::fromDMY(const utf8VaryingString &pString)
     wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
+  wD.Precision = ZDTPR_ymdhms;
   wTm.tm_sec = wValue;
 
   wD.tv_sec = mktime(&wTm);
@@ -351,6 +358,8 @@ ZDateFull::fromMDY(const utf8VaryingString &pString)
   std::time(&wTimet);
   struct tm wTm;
 
+  wD.Precision = ZDTPR_invalid;
+
   localtime_r(&wTimet,&wTm);
 
   int wEnd=0;
@@ -365,6 +374,8 @@ ZDateFull::fromMDY(const utf8VaryingString &pString)
   wTm.tm_mon = getDateValue(wPtr,wEnd,2);
   if (wTm.tm_mon < 0)
     return ZDateFull(); /* return invalid date */
+
+  wD.Precision = ZDTPR_ymd;  /* a partial date has ymd precision */
 
   wValue = getDateValue(wPtr,wEnd,2);
   if (wValue < 0) {
@@ -390,6 +401,7 @@ ZDateFull::fromMDY(const utf8VaryingString &pString)
     wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
+  wD.Precision = ZDTPR_ymdh;
   wTm.tm_hour = wValue;
 
   wValue = getDateValue(wPtr,wEnd,2);
@@ -398,6 +410,7 @@ ZDateFull::fromMDY(const utf8VaryingString &pString)
     wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
+  wD.Precision = ZDTPR_ymdhm;
   wTm.tm_min = wValue;
 
   wValue = getDateValue(wPtr,wEnd,2);
@@ -406,6 +419,7 @@ ZDateFull::fromMDY(const utf8VaryingString &pString)
     wD.tv_nsec = 0;
     return wD; /* return partial date. other fields are filled with current date time */
   }
+  wD.Precision = ZDTPR_ymdhms;
   wTm.tm_sec = wValue;
 
   wD.tv_sec = mktime(&wTm);
@@ -527,15 +541,6 @@ ZDateFull::_fromInternal(tm & pTm)
 void
 ZDateFull::_toInternal(tm &pTm)
 {
- /* tm pTm;
-    pTm.tm_year=Year - 1900;
-    pTm.tm_mon = int(Month - 1);
-    pTm.tm_mday = int(Day) ;
-
-    pTm.tm_hour= int(Hour) ;
-    pTm.tm_min = int(Min) ;
-    pTm.tm_sec = int(Sec) ;
-*/
     tv_sec = mktime(&pTm); /* store time as local time */
     tv_nsec = 0;
     return ;
@@ -809,6 +814,17 @@ utf8VaryingString ZDateFull::toUTC() const
 } //toUTC
 
 
+utf8VaryingString ZDateFull::toDMYhms() const
+{
+  if (isInvalid())
+    return "<invalid full date>";
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return "<invalid date>";
+  utf8VaryingString wLocalTime;
+  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d-%03d",   wTm.tm_mday,wTm.tm_mon+1, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  return wLocalTime;
+}
 utf8VaryingString ZDateFull::toDMY() const
 {
   if (isInvalid())
@@ -817,11 +833,9 @@ utf8VaryingString ZDateFull::toDMY() const
   if (localtime_r(&tv_sec,&wTm)==nullptr)
     return "<invalid date>";
   utf8VaryingString wLocalTime;
-  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d-%03d",   wTm.tm_mon+1, wTm.tm_mday,wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  wLocalTime.sprintf("%02d-%02d-%04d",   wTm.tm_mday,wTm.tm_mon+1, wTm.tm_year+1900);
   return wLocalTime;
 }
-
-
 utf8VaryingString ZDateFull::toMDY() const
 {
   if (isInvalid())
@@ -830,7 +844,61 @@ utf8VaryingString ZDateFull::toMDY() const
   if (localtime_r(&tv_sec,&wTm)==nullptr)
     return "<invalid date>";
   utf8VaryingString wLocalTime;
-  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d.%03d", wTm.tm_mday,  wTm.tm_mon+1, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  wLocalTime.sprintf("%02d-%02d-%04d",   wTm.tm_mon+1, wTm.tm_mday,wTm.tm_year+1900);
+  return wLocalTime;
+}
+int ZDateFull::year() {
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return -1;
+  return wTm.tm_year+1900;
+}
+int ZDateFull::month() {
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return -1;
+  return wTm.tm_mon+1;
+}
+int ZDateFull::day() {
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return -1;
+  return wTm.tm_mday;
+}
+int ZDateFull::weekday() {
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return -1;
+  return wTm.tm_wday;
+}
+int ZDateFull::hour() {
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return -1;
+  return wTm.tm_hour;
+}
+int ZDateFull::min() {
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return -1;
+  return wTm.tm_min;
+}
+int ZDateFull::sec() {
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return -1;
+  return wTm.tm_sec;
+}
+
+utf8VaryingString ZDateFull::toMDYhms() const
+{
+  if (isInvalid())
+    return "<invalid full date>";
+  struct tm wTm;
+  if (localtime_r(&tv_sec,&wTm)==nullptr)
+    return "<invalid date>";
+  utf8VaryingString wLocalTime;
+  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d.%03d",   wTm.tm_mon+1,wTm.tm_mday, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
   return wLocalTime;
 }
 
@@ -1027,4 +1095,209 @@ void ZDateFull::fromUTC(const utf8VaryingString &pIn)
   tv_nsec = wNanoSec;
 
   return;
+}
+
+
+
+
+int getDateValue(utf8_t* &wPtr,int pMaxDigits,char pSep) {
+
+  if (!*wPtr)
+    return -1;
+
+  int wDigitNb=0,wDigitValue=0,wValue=0,w10=0;
+//  while (*wPtr && (*wPtr != pSep) && (*wPtr != '-')) {
+  while (*wPtr ) {
+    if (wDigitNb == pMaxDigits)
+      return -1;
+    if ((*wPtr>='0')&&((*wPtr<='9'))) {
+      wDigitValue = int(*wPtr - '0');
+      wValue = (wValue * 10) + wDigitValue ;
+//      w10++;
+      wDigitNb++;
+      wPtr++;
+ //     continue;
+    }
+  if (!*wPtr)
+    return wValue;
+  if (*wPtr==pSep) { /* separator could be also '-' by default */
+      wPtr++;
+      return wValue;
+    }
+
+  } // while
+
+  return wValue;  /* end of string has been reached : it is a valid separator (e. g. for year) */
+}// getDateValue
+
+
+/* [d]d{/|-}[m]m{/|-}[yy]yy[-hh:mm:ss] */
+ZStatus
+ZDateFull::checkDMY(const utf8VaryingString& pDateLiteral , tm& pTt, uint8_t &pFed) {
+  int wDay=0,wMonth=0,wYear=0,wHour=0,wMin=0,wSec=0;
+
+  utf8_t* wPtr = pDateLiteral.Data;
+
+  wDay=getDateValue(wPtr,2,'/');
+  if (wDay<1)
+    return ZS_INV_LITERAL;
+
+  wMonth=getDateValue(wPtr,2,'/');
+  if (wMonth<1)
+    return ZS_INV_LITERAL;
+
+  wYear=getDateValue(wPtr,4,'-');
+  if (wYear<1)
+    return ZS_INV_LITERAL;
+  pFed |= ZDTF_DMA;
+
+  while (true) {
+    wHour=getDateValue(wPtr,2,':');
+    if (wHour<1) {
+      wHour=0;
+      break;
+    }
+    if (wHour>24)
+      return ZS_INV_LITERAL;
+    pFed |= ZDTF_HH;
+
+
+    wMin=getDateValue(wPtr,2,':');
+    if (wMin<1) {
+      wMin=0;
+      break;
+    }
+    if (wMin>60)
+      return ZS_INV_LITERAL;
+    pFed |= ZDTF_MM;
+
+    wSec=getDateValue(wPtr,2,'\0');
+    if (wSec<1) {
+      wSec=0;
+      break;
+    }
+    if (wMin>60)
+      return ZS_INV_LITERAL;
+    pFed |= ZDTF_SS;
+
+    break;
+  }// while true
+  /* check values */
+  if (wMonth > 12)
+    return ZS_INV_LITERAL;
+  if (wYear < 1900)
+    return ZS_INV_LITERAL;
+
+  if (wDay > DayMonth[wMonth-1])
+    return ZS_INV_LITERAL;
+
+  memset(&pTt,0,sizeof(tm));
+
+  pTt.tm_mday=wDay;
+  pTt.tm_mon=wMonth-1;
+  pTt.tm_year=wYear - 1900;
+
+  pTt.tm_hour=wHour;
+  pTt.tm_min=wMin;
+  pTt.tm_sec=wSec;
+
+  return ZS_SUCCESS;
+} //checkDMY
+
+
+/* [m]m{/|-}[d]d{/|-}[yy]yy[-hh:mm:ss] */
+ZStatus
+ZDateFull::checkMDY(const utf8VaryingString& pDateLiteral , tm& pTt ,uint8_t &pFed) {
+  int wDay=0,wMonth=0,wYear=0,wHour=0,wMin=0,wSec=0;
+  pFed=ZDTF_Nothing;
+  utf8_t* wPtr = pDateLiteral.Data;
+
+  wMonth=getDateValue(wPtr,2,'/');
+  if (wMonth<1)
+    return ZS_INV_LITERAL;
+
+  wDay=getDateValue(wPtr,2,'/');
+  if (wDay<1)
+    return ZS_INV_LITERAL;
+
+
+  wYear=getDateValue(wPtr,4,'-');
+  if (wYear<1)
+    return ZS_INV_LITERAL;
+
+  pFed |= ZDTF_DMA;
+
+  while (true) {
+    wHour=getDateValue(wPtr,2,':');
+    if (wHour<1) {
+      wHour=0;
+      break;
+    }
+    if (wHour>24)
+      return ZS_INV_LITERAL;
+    pFed |= ZDTF_HH;
+
+
+    wMin=getDateValue(wPtr,2,':');
+    if (wMin<1) {
+      wMin=0;
+      break;
+    }
+    if (wMin>60)
+      return ZS_INV_LITERAL;
+    pFed |= ZDTF_MM;
+
+    wSec=getDateValue(wPtr,2,'\0');
+    if (wSec<1) {
+      wSec=0;
+      break;
+    }
+    if (wMin>60)
+      return ZS_INV_LITERAL;
+    pFed |= ZDTF_SS;
+
+    break;
+  }// while true
+  /* check values */
+  if (wMonth > 12)
+    return ZS_INV_LITERAL;
+  if (wYear < 1900)
+    return ZS_INV_LITERAL;
+
+  if (wDay > DayMonth[wMonth-1])
+    return ZS_INV_LITERAL;
+
+  memset(&pTt,0,sizeof(tm));
+
+  pTt.tm_mday=wDay;
+  pTt.tm_mon=wMonth-1;
+  pTt.tm_year=wYear - 1900;
+
+  pTt.tm_hour=wHour;
+  pTt.tm_min=wMin;
+  pTt.tm_sec=wSec;
+
+  return ZS_SUCCESS;
+} //checkMDY
+
+
+const char* decode_ZDatePrecision(ZDatePrecision pCode)
+{
+  switch (pCode)
+  {
+  case ZDTPR_nothing:
+    return "ZDTPR_nothing";
+  case ZDTPR_invalid:
+    return "ZDTPR_invalid";
+  case ZDTPR_ymd:
+    return "ZDTPR_ymd";
+  case ZDTPR_ymdh:
+    return "ZDTPR_ymdh";
+  case ZDTPR_ymdhm:
+    return "ZDTPR_ymdhm";
+  case ZDTPR_ymdhms:
+    return "ZDTPR_ymdhms";
+  case ZDTPR_nano:
+    return "ZDTPR_nano";
+  }
 }

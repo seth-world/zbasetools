@@ -14,13 +14,22 @@
 
 ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode )
 {
-
-  return _rawOpen(pFd,pPath,pMode,0,false);
+  errno=0;
+  pFd=::open(pPath.toCChar(), pMode);
+  if (pFd >= 0) {
+    return ZS_SUCCESS;
+  }
+  return _rawOpenGetException(errno,pPath,false);
 }//rawOpen
 
 ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv )
 {
-  return _rawOpen(pFd,pPath,pMode,pPriv,false);
+  errno=0;
+  pFd=::open(pPath.toCChar(), pMode, pPriv);
+  if (pFd >= 0) {
+    return ZS_SUCCESS;
+  }
+  return _rawOpenGetException(errno,pPath,false);
 }//rawOpen
 
 ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept ) {
@@ -37,7 +46,15 @@ ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPEN
     return ZS_SUCCESS;
   }
 
-  int wErrno = errno;
+  return _rawOpenGetException(errno,pPath,pNoExcept);
+
+}//_rawOpen
+
+ZStatus _rawOpenGetException(int wErrno, const utf8VaryingString& pPath,bool pNoExcept ) {
+
+  /* see https://www.man7.org/linux/man-pages/man2/open.2.html
+*/
+
   ZStatus wSt=ZS_ERROPEN;
   utf8VaryingString wErrMsg;
   switch (wErrno) {
@@ -118,7 +135,7 @@ ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPEN
                     " file <%s>",pPath.toString());
     break;
   case ENAMETOOLONG:
-    pFd= ZS_INVNAME;
+    wSt= ZS_INVNAME;
     wErrMsg.sprintf( "<ENAMETOOLONG> The length of a component of a pathname is longer than {NAME_MAX}."
                     "\nfile <%s>",pPath.toString());
     break;
@@ -176,7 +193,7 @@ ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPEN
     break;
 
   case EROFS:
-    pFd= ZS_ACCESSRIGHTS;
+    wSt= ZS_ACCESSRIGHTS;
     wErrMsg.sprintf( "<EROFS> pathname refers to a file on a read-only filesystem and write access was requested."
                     "\nfile <%s>",pPath.toString());
     break;
@@ -208,7 +225,6 @@ ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPEN
 
   return wSt;
 }//_rawOpen
-
 ZStatus
 rawWriteAt(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t &pSizeWritten, size_t pAddress) {
   ZStatus wSt=rawSeekToPosition(pFd,pAddress);
@@ -236,40 +252,40 @@ ZStatus rawWrite(__FILEHANDLE__ pFd, ZDataBuffer& pData, size_t &pSizeWritten)
   case EBADF:
     wSt = ZS_BADFILEDESC;
     wErrMsg.sprintf( "<EBADF>  The file descriptor is not a valid file descriptor open for writing."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
   case EDESTADDRREQ:
     wSt= ZS_SOCKADDRESS ;
     wErrMsg.sprintf( "<EDESTADDRREQ> fd refers to a datagram socket for which a peer address has not been set using connect(2)."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EDQUOT:
     wSt = ZS_MEMOVFLW;
     wErrMsg.sprintf( "<EDQUOT> The user's quota of disk blocks on the filesystem containing the file referred to by file descriptor has been exhausted."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EFAULT:
     wSt = ZS_INVADDRESS;
     wErrMsg.sprintf( "<EFAULT> buffer is outside your accessible address space."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EFBIG:
     wSt = ZS_MEMOVFLW;
     wErrMsg.sprintf( "<EFBIG> An attempt was made to write a file that exceeds the implementation-defined maximum file size or the process's file size limit, or to write at a position past the maximum allowed offset."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
   case EINTR:
     wSt = ZS_CANCEL;
     wErrMsg.sprintf( "<EINTR>  The call was interrupted by a signal before any data was written; see signal(7)."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
   case EINVAL:
     wSt = ZS_INVOP;
     wErrMsg.sprintf( "<EINVAL> The file descriptor is attached to an object which is unsuitable for writing; or the file was opened with the O_DIRECT flag, and either the address specified in buf, the value specified in count, or the file offset is not suitably aligned."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
   case EIO:
@@ -278,29 +294,29 @@ ZStatus rawWrite(__FILEHANDLE__ pFd, ZDataBuffer& pData, size_t &pSizeWritten)
                        " This error may relate to the write-back of data written by"
                        " an earlier write(), which may have been issued to a"
                        "different file descriptor on the same file."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case ENOSPC:
     wSt= ZS_MEMOVFLW;
     wErrMsg.sprintf( "<ENOSPC> The device containing pathname has no room for the data."
-                    "\nfile <%s>",getNameFromFd(pFd).toString());
+                    "\nfile <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
   case EPERM:
     wSt= ZS_MEMOVFLW;
     wErrMsg.sprintf( "<EPERM> The operation was prevented by a file seal; see fcntl(2)."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EPIPE:
     wSt= ZS_MEMOVFLW;
     wErrMsg.sprintf( "<EPIPE> fd is connected to a pipe or socket whose reading end is closed.  When this happens the writing process will also"
                      "receive a SIGPIPE signal.  (Thus, the write return value is seen only if the program catches, blocks or ignores this signal.)"
-                     " file <%s>",getNameFromFd(pFd).toString());
+                     " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
 
   default:
-    wErrMsg.sprintf( "Unknown error code writting file <%s>.",getNameFromFd(pFd).toString());
+    wErrMsg.sprintf( "Unknown error code writting file <%s>.",rawGetNameFromFd(pFd).toString());
     break;
   }// switch
   ZException.getErrno(wErrno,
@@ -327,23 +343,23 @@ ZStatus rawFlush(__FILEHANDLE__ pFd)
   case EBADF:
     wSt = ZS_BADFILEDESC;
     wErrMsg.sprintf( "<EBADF>  The file descriptor is not a valid file descriptor open for writting."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
   case EIO:
     wSt= ZS_FILEERROR ;
     wErrMsg.sprintf( "<EIO> An low.level error occurred during synchronization. "
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EROFS:
   case EINVAL :
     wSt = ZS_INVOP;
     wErrMsg.sprintf( "<EDQUOT> File descriptor is bound to a special file which does not support synchronization."
-                    " file <%s>",getNameFromFd(pFd).toString());
+                    " file <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
   default:
-    wErrMsg.sprintf( "Unknown error code flushing data for file <%s>.",getNameFromFd(pFd).toString());
+    wErrMsg.sprintf( "Unknown error code flushing data for file <%s>.",rawGetNameFromFd(pFd).toString());
     break;
   }// switch
   ZException.getErrno(wErrno,
@@ -412,38 +428,38 @@ rawRead(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t pBytesToRead) {
   case EBADF:
     wSt = ZS_BADFILEDESC;
     wErrMsg.sprintf( "<EBADF>  file descriptor is not a valid file descriptor or file is not open for reading."
-                    "\n file <%s>",getNameFromFd(pFd).toString());
+                    "\n file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EFAULT:
     wSt = ZS_MEMERROR;
     wErrMsg.sprintf( "<EFAULT>  buffer is outside your accessible address space."
-                    "\n file <%s>",getNameFromFd(pFd).toString());
+                    "\n file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EINTR:
     wSt= ZS_CANCEL ;
     wErrMsg.sprintf( "<EINTR> TThe call was interrupted by a signal before any data was read."
-                    "\n file <%s>",getNameFromFd(pFd).toString());
+                    "\n file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EINVAL:
     wSt = ZS_INVPARAMS;
     wErrMsg.sprintf( "<EINVAL> fd is attached to an object which is unsuitable for reading; or the file was opened with the O_DIRECT flag, and either the address specified in buf, the value specified in count, or the file offset is not suitably aligned.\n"
                       "Or fd was created via a call to timerfd_create(2) and the wrong size buffer was given to read()."
-                      "\n file <%s>",getNameFromFd(pFd).toString());
+                      "\n file <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EIO:
     wSt = ZS_MEMOVFLW;
     wErrMsg.sprintf(  "<EIO> I/O error.see corresponding error in https://man7.org/linux/man-pages/man2/read.2.html"
-                      "\nfile <%s>",getNameFromFd(pFd).toString());
+                      "\nfile <%s>",rawGetNameFromFd(pFd).toString());
     break;
   case EISDIR:
     wSt = ZS_BADFILEDESC;
     wErrMsg.sprintf( "<EISDIR> fd refers to a directory."
-                      "\nfile <%s>",getNameFromFd(pFd).toString());
+                      "\nfile <%s>",rawGetNameFromFd(pFd).toString());
     break;
 
 
   default:
-    wErrMsg.sprintf( "Unknown error code for reading file <%s>.",getNameFromFd(pFd).toString());
+    wErrMsg.sprintf( "Unknown error code for reading file <%s>.",rawGetNameFromFd(pFd).toString());
     break;
   }// switch
   ZException.getErrno(wErrno,
@@ -456,11 +472,13 @@ rawRead(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t pBytesToRead) {
 }// rawRead
 
 ZStatus
-rawClose(__FILEHANDLE__ pFd) {
+rawClose(__FILEHANDLE__ &pFd) {
   /* see https://man7.org/linux/man-pages/man3/close.3p.html */
+
   errno=0;
   int wRet=::close(pFd);
   if (wRet>=0) {
+    pFd=-1;
     return ZS_SUCCESS;
   }
   int wErrno=errno;
@@ -469,22 +487,22 @@ rawClose(__FILEHANDLE__ pFd) {
   switch (wErrno) {
   case EBADF:
     wErrMsg.sprintf("<EBADF> File descriptor argument is not a open file descriptor. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt = ZS_BADFILEDESC;
     break;
   case EINTR:
     wErrMsg.sprintf("<EINTR> The close() function was interrupted by a signal. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt = ZS_CANCEL;
     break;
   case EIO:
     wErrMsg.sprintf("<EIO> An I/O error occurred while reading from or writing to the file system. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt = ZS_CANCEL;
     break;
   default:
     wErrMsg.sprintf("Unknown error while closing file <%s>.",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt = ZS_FILEERROR;
     break;
   }
@@ -505,33 +523,33 @@ ZStatus _rawSeekError(int wErrno,__FILEHANDLE__ pFd,__off_t &pOff)
   switch (wErrno) {
   case EBADF:
     wErrMsg.sprintf("<EBADF> File descriptor argument is not a open file descriptor. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_BADFILEDESC;
     break;
   case EINVAL:
     wErrMsg.sprintf("<EINVAL>  whence is not valid.  Or: the resulting file offset would be negative, or beyond the end of a seekable device offset %d. File <%s>",
         pOff,
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVPARAMS;
     break;
   case ENXIO:
     wErrMsg.sprintf("<ENXIO> whence is SEEK_DATA or SEEK_HOLE, and offset is beyond the end of the file, or whence is SEEK_DATA and offset is within a hole at the end of the file. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVADDRESS;
     break;
   case EOVERFLOW:
     wErrMsg.sprintf("<EOVERFLOW> The resulting file offset cannot be represented in returned data format. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVVALUE;
     break;
   case ESPIPE:
     wErrMsg.sprintf("<ESPIPE> file descriptor is associated with a pipe, socket, or FIFO. Operation not allowed. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVOP;
     break;
   default:
     wErrMsg.sprintf("Unknown error while positionning on file <%s>.",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_FILEPOSERR;
     break;
   }//switch
@@ -596,25 +614,30 @@ ZStatus rawSeekBegin(__FILEHANDLE__ pFd)
   }
   return _rawSeekError(errno,pFd,wOff);
 }
-ZStatus rawSeekEnd(__FILEHANDLE__ pFd, __off_t &pOff)
+ZStatus rawSeekEnd(__FILEHANDLE__ pFd, size_t &pOff)
 {
   ZStatus wSt=ZS_SUCCESS;
   /* see https://man7.org/linux/man-pages/man2/lseek.2.html */
   errno=0;
-  pOff =  lseek(pFd,__off_t(0),SEEK_END);
-  if (pOff >= 0) {
+  off_t wOff =  lseek(pFd,__off_t(0),SEEK_END);
+  if (wOff >= 0) {
+    pOff = size_t(wOff);
     return ZS_SUCCESS;
   }
-  return _rawSeekError(errno,pFd,pOff);
+  return _rawSeekError(errno,pFd,wOff);
 }
 
+ZStatus rawSeekEnd(__FILEHANDLE__ pFd) {
+  size_t wOff=0;
+  return rawSeekEnd(pFd,wOff);
+}
 
-ZStatus rawAllocate(__FILEHANDLE__ pFd, __off_t pOffset,__off_t pBytes )
+ZStatus rawAllocate(__FILEHANDLE__ pFd, size_t pOffset,size_t pBytes )
 {
   ZStatus wSt=ZS_SUCCESS;
   /* see https://man7.org/linux/man-pages/man3/posix_fallocate.3.html */
   /* errno is not modified by posix_fallocate */
-  int wRet =  posix_fallocate(pFd,pOffset,pBytes);
+  int wRet =  posix_fallocate(pFd,(off_t) pOffset,(off_t)pBytes);
   if (wRet == 0) {
     return ZS_SUCCESS;
   }
@@ -623,54 +646,60 @@ ZStatus rawAllocate(__FILEHANDLE__ pFd, __off_t pOffset,__off_t pBytes )
   switch (wRet) {
   case EBADF:
     wErrMsg.sprintf("<EBADF> File descriptor argument is not a open file descriptor or is not opened for writing. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_BADFILEDESC;
     break;
   case EINVAL:
     wErrMsg.sprintf("<EINVAL>  offset was less than 0, or len was less than or equal to 0, or the underlying filesystem does not support the operation. Offset %d Allocation %d. File <%s>",
         pOffset,
         pBytes,
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVPARAMS;
     break;
   case EFBIG:
     wErrMsg.sprintf("<EFBIG> offset+len exceeds the maximum file size. Offset %d Allocation %d. File <%s>",
         pOffset,
         pBytes,
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_CANTALLOCSPACE;
     break;
   case EINTR:
     wErrMsg.sprintf("<EINTR> A signal was caught during execution of allocation. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_CANCEL;
     break;
   case ENODEV:
     wErrMsg.sprintf("<ENODEV> file descriptor does not refer to a regular file. Operation not allowed. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVOP;
     break;
   case ENOSPC:
     wErrMsg.sprintf("<ENOSPC> There is not enough space left on the device containing the file referred to by the file descriptor. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_CANTALLOCSPACE;
     break;
   case EOPNOTSUPP:
     wErrMsg.sprintf("<EOPNOTSUPP> The filesystem containing the file referred to by the file descriptor does not support this operation. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVOP;
     break;
   case ESPIPE:
     wErrMsg.sprintf("<ESPIPE> file descriptor is associated with a pipe, socket, or FIFO. Operation not allowed. File <%s>",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_INVOP;
     break;
   default:
     wErrMsg.sprintf("Unknown error while allocating space on file <%s>.",
-        getNameFromFd(pFd).toString());
+        rawGetNameFromFd(pFd).toString());
     wSt=ZS_CANTALLOCSPACE;
     break;
   }//switch
+
+  ZException.setMessage(
+      _GET_FUNCTION_NAME_,
+      wSt,
+      Severity_Error,
+      wErrMsg.toCChar());
 
   if (ZVerbose & ZVB_FileEngine)
     ZException.printLastUserMessage(stderr);
@@ -691,74 +720,74 @@ ZStatus rawChangePermissions(__FILEHANDLE__ pFd,__FILEACCESSRIGHTS__ pAccessRigh
     case EACCES:
       wSt= ZS_ACCESSRIGHTS ;
       wErrMsg.sprintf( "<EACCES> A component of either path prefix denies search permission; or one of the directories containing old or new denies write permissions; or, write permission is required and is denied for a directory pointed to by the old or new arguments."
-                      " file <%s>.",getNameFromFd(pFd).toString());
+                      " file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case EPERM:
       wSt= ZS_ACCESSRIGHTS;
       wErrMsg.sprintf( "<EPERM> The effective UID does not match the owner of the file, and the process is not privileged."
                       " Or The file is marked immutable or append-only."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
     case EROFS:
       wSt= ZS_FILEERROR;
       wErrMsg.sprintf( "<EROFS> The named file resides on a read-only filesystem."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case EBADF:
       wSt= ZS_BADFILEDESC;
       wErrMsg.sprintf( "<EBADF> The file descriptor is not valid."
-                      " file <%s> ",getNameFromFd(pFd).toString());
+                      " file <%s> ",rawGetNameFromFd(pFd).toString());
       break;
     case EFAULT:
       wSt= ZS_LOCKED;
       wErrMsg.sprintf( "<EFAULT> File's pathname points outside accessible address space."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case EINVAL:
       wSt= ZS_INVPARAMS;
       wErrMsg.sprintf( "<EINVAL> Invalid access rights value."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case EIO:
       wSt= ZS_FILEERROR;
       wErrMsg.sprintf( "<EIO> A physical I/O error has occurred."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case ELOOP:
       wSt= ZS_CORRUPTED;
       wErrMsg.sprintf( "<ELOOP> A loop exists in symbolic links encountered during resolution of the path argument."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case ENAMETOOLONG:
       wSt= ZS_INVNAME;
       wErrMsg.sprintf( "<ENAMETOOLONG> The length of a component of a pathname is longer than {NAME_MAX}."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case ENOENT:
       wSt= ZS_FILENOTEXIST;
       wErrMsg.sprintf( "<ENOENT>  The link named by old does not name an existing file, a component of the path prefix of new does not exist, or either old or new points to an empty string."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case ENOMEM:
       wSt= ZS_MEMOVFLW;
       wErrMsg.sprintf( "<ENOMEM> Insufficient kernel memory was available."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
     case ENOTDIR:
       wSt= ZS_NOTDIRECTORY;
       wErrMsg.sprintf( "<ENOTDIR> A component of either path prefix names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names a directory and the new argument names a non-directory file; or the old argument contains at least one non- <slash> character and ends with one or more trailing <slash> characters and the last pathname component names an existing file that is neither a directory nor a symbolic link to a directory; or the old argument names an existing non-directory file and the new argument names a nonexistent file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters;"
                       " Or the new argument names an existing non-directory file, contains at least one non- <slash> character, and ends with one or more trailing <slash> characters."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
 
 
     case ENOTSUP:
       wSt= ZS_NOTDIRECTORY;
       wErrMsg.sprintf( "<ENOTSUP> Flags specified AT_SYMLINK_NOFOLLOW, which is not supported."
-                      " file <%s>",getNameFromFd(pFd).toString());
+                      " file <%s>",rawGetNameFromFd(pFd).toString());
       break;
 
     default:
-      wErrMsg.sprintf( "Unknown error for changing access rights for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "Unknown error for changing access rights for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     }// switch
     ZException.getErrno(wErrno,
@@ -792,46 +821,46 @@ ZStatus _rawStat(__FILEHANDLE__ pFd,struct stat& pStat, bool pLogZException)
     switch (wErrno) {
     case ENOENT:
       wSt= ZS_FILENOTEXIST;
-      wErrMsg.sprintf( "<ENOENT> A component of <%s> does not exist or is a dangling symbolic link.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<ENOENT> A component of <%s> does not exist or is a dangling symbolic link.",rawGetNameFromFd(pFd).toString());
       break;
     case EACCES:
       wSt= ZS_USERPRIVILEGES;
-      wErrMsg.sprintf( "<EACCES> Search permission is denied for one of the directories in the path prefix of <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<EACCES> Search permission is denied for one of the directories in the path prefix of <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case EBADF:
       wSt= ZS_FILENOTOPEN;
-      wErrMsg.sprintf( "<EBADF> File descriptor is not a valid open file descriptor for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<EBADF> File descriptor is not a valid open file descriptor for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case EFAULT:
       wSt= ZS_CORRUPTED;
-      wErrMsg.sprintf( "<EFAULT> Bad address for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<EFAULT> Bad address for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case EINVAL:
       wSt= ZS_INVPARAMS;
-      wErrMsg.sprintf( "<EINVAL> (fstatat()) Invalid flag specified in flags for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<EINVAL> (fstatat()) Invalid flag specified in flags for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case ELOOP:
       wSt= ZS_BADFILEDESC;
-      wErrMsg.sprintf( "<ELOOP> Too many symbolic links encountered while traversing the path. for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<ELOOP> Too many symbolic links encountered while traversing the path. for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case ENAMETOOLONG:
       wSt= ZS_INVNAME;
-      wErrMsg.sprintf( "<ENAMETOOLONG> pathname is too long for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<ENAMETOOLONG> pathname is too long for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case ENOMEM:
       wSt= ZS_MEMERROR;
-      wErrMsg.sprintf( "<ENOMEM> Out of memory (i.e., kernel memory) for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<ENOMEM> Out of memory (i.e., kernel memory) for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case ENOTDIR:
       wSt= ZS_BADFILEDESC;
-      wErrMsg.sprintf( "<ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     case EOVERFLOW:
       wSt= ZS_BADFILEDESC;
-      wErrMsg.sprintf( "<EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "<EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     default:
-      wErrMsg.sprintf( "Unknown error for file <%s>.",getNameFromFd(pFd).toString());
+      wErrMsg.sprintf( "Unknown error for file <%s>.",rawGetNameFromFd(pFd).toString());
       break;
     }// switch
     if (pLogZException)
@@ -851,7 +880,7 @@ ZStatus _rawStat(__FILEHANDLE__ pFd,struct stat& pStat, bool pLogZException)
 
 #ifdef __USE_LINUX__
 utf8VaryingString
-getNameFromFd(__FILEHANDLE__ pFd)
+rawGetNameFromFd(__FILEHANDLE__ pFd)
 {
   const size_t cst_MaxName = PATH_MAX;
   char wFName[PATH_MAX];
@@ -868,7 +897,7 @@ getNameFromFd(__FILEHANDLE__ pFd)
 #endif
 #ifdef __USE_OSX__ | __USE_IOS__
 utf8VaryingString
-getNameFromFd(__FILEHANDLE__ pFd)
+rawGetNameFromFd(__FILEHANDLE__ pFd)
 {
   const size_t cst_MaxName = PATH_MAX;
   char wFName[PATH_MAX];
@@ -885,7 +914,7 @@ getNameFromFd(__FILEHANDLE__ pFd)
 #ifdef __USE_WINDOWS__
 /* see https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlea */
 utf8VaryingString
-getNameFromFd(__FILEHANDLE__ pFd)
+rawGetNameFromFd(__FILEHANDLE__ pFd)
 {
   const size_t cst_MaxName = MAX_PATH;
   TCHAR wFName[MAX_PATH];
@@ -911,3 +940,17 @@ getNameFromFd(__FILEHANDLE__ pFd)
   return utf8VaryingString("<cannot get name>");
 }
 #endif //__USE_WINDOWS__
+
+
+
+bool testSequence (const unsigned char* pSequence,size_t pSeqLen, const unsigned char* pToCompare)
+{
+  while (pSeqLen) {
+    if (*pSequence != *pToCompare)
+      return false;
+    pSequence++;
+    pToCompare++;
+    pSeqLen--;
+  }
+  return true;
+}

@@ -49,9 +49,6 @@ public:
 
   void compute(const unsigned char *pInBuffer,size_t pLen);
   void compute(const char *pInBuffer,size_t pLen) {compute ((const unsigned char *)pInBuffer,pLen); return;}
-//    checkSum& compute (ZDataBuffer &pDataBuffer);
-//    template <class _Utf>
-//    checkSum& compute (utfVaryingString<_Utf> &pDataBuffer);
 
     size_t        _exportURF(ZDataBuffer &pUniversal) const;
     size_t        _exportURF_Ptr(unsigned char* &pURF) const;

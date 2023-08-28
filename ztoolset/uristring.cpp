@@ -231,6 +231,21 @@ uriString::addDirectoryDelimiter(void)
     add(__DELIMITER_STRING__);
     return(*this);
 }//addDirectoryDelimiter
+
+
+ZStatus
+uriString::check()
+{
+
+  const utf8_t* wTrimmed=utfSkipSpaces(Data);
+  if (wTrimmed!=Data) {
+    ZException.setMessage("uriString::check",ZS_MALFORMED,Severity_Error,"Leading space in path <%s>",Data);
+    return ZS_MALFORMED;
+  }
+  uriStat wStat;
+  ZStatus wSt=getStatR(wStat);
+}
+
 //#include <unistd.h>
 //#include <pwd.h>
 #include <ztoolset/zsystemuser.h>
@@ -1114,7 +1129,6 @@ return ZS_SUCCESS;
 
 /**
  * @brief uriString::getStatR  getfile attributes information from file system for the current uriString filename
- * Return ZS_FILEERROR in case of failure and then, ZException is filled with error information
  * @param[in] pURI
  * @param[out] pZStat
  *
@@ -1231,14 +1245,14 @@ uriString::getStatR(bool pLogZException) const {
  * @brief uriString::getFileSize returns the file size as a long long or -1 if an error occurred (ZException is set with appropriate infos)
  * @return
  */
-long long
+long
 uriString::getFileSize(void) const
 {
   __FILEHANDLE__ wFd=-1;
   ZStatus wSt=rawOpen(wFd,*this,O_RDONLY);
   if (wSt!=ZS_SUCCESS)
     return -1;
-  __off_t wSize=0;
+  size_t wSize=0;
   wSt=rawSeekEnd(wFd,wSize);
   if (wSt!=ZS_SUCCESS)
     return -1;
@@ -1652,7 +1666,7 @@ uriString::appendContent (ZDataBuffer& pDBS,__FILEACCESSRIGHTS__ pAccessRights) 
   if (wSt!=ZS_SUCCESS)
     return wSt;
   size_t wSk;
-  wSt=rawSeekEnd(wFd,(__off_t &)wSk);
+  wSt=rawSeekEnd(wFd,wSk);
   if (wSt!=ZS_SUCCESS) {
     goto appendContentEnd;
   }

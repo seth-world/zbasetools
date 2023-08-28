@@ -389,11 +389,11 @@ public:
         fprintf(stderr,"ZArray::last-F-OUTOFBOUND empty ZArray, Out of boundaries\n");
         abort() ;
       }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
       _Mutex.lock();
 #endif
       ZReturn = _Base::last();
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
       _Mutex.unlock();
 #endif
       return ZReturn;
@@ -666,7 +666,7 @@ template <typename _Tp>
 ZArray<_Tp>&
 ZArray<_Tp>::_copyFrom (ZArray<_Tp> &pIn)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
     pIn.lock();
 #endif
 
@@ -676,7 +676,7 @@ ZArray<_Tp>::_copyFrom (ZArray<_Tp> &pIn)
 
     for (long wi=0;wi<pIn.count();wi++)
       _pushNoLock(pIn[wi]);
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
     pIn.unlock();
 #endif
     return *this;
@@ -749,7 +749,7 @@ long ZArray<_Tp>::swap (size_t pDest, size_t pOrig,size_t pNumber)
 
       return -1 ; // out of boundaries for
   }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
 
@@ -760,7 +760,7 @@ long ZArray<_Tp>::swap (size_t pDest, size_t pOrig,size_t pNumber)
      _Base::swapItemsAt(wi,wj);
   }
   ZIdx = pDest ;
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return pDest ;
@@ -784,14 +784,14 @@ long ZArray<_Tp>::swap (size_t pDest, size_t pOrig)
 
     return -1 ; // out of boundaries for
   }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
 
   _Base::swapItemsAt(pDest,pOrig);
 
   ZIdx = pDest ;
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return pDest ;
@@ -810,13 +810,13 @@ long ZArray<_Tp>::insert(_Tp &pElement, size_t pIdx)
   if (pIdx > _Base::size()) {
     return push(pElement);
   }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
 
   _Base::insert(pIdx,pElement);
   ZIdx = pIdx;
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (ZIdx);
@@ -847,12 +847,12 @@ long ZArray<_Tp>::insert(_Tp *pElement, size_t pIdx,size_t pNumber)
       return (-1);
   }
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
   for (long wi=0; wi < pNumber;wi++)
     pIdx = _insertNoLock(pElement[wi],pIdx);
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (pIdx);
@@ -875,13 +875,13 @@ long ZArray<_Tp>::erase(size_t pIdx,size_t pNumber)
   if (pIdx==lastIdx())
     return pop();
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
 
   pIdx=_eraseNoLock(pIdx,pNumber);
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (pIdx);
@@ -903,13 +903,13 @@ long ZArray<_Tp>::erase(size_t pIdx)
   if (pIdx==lastIdx())
     return pop();
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
 
   _Base::removeAt(pIdx);
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (pIdx);
@@ -936,15 +936,17 @@ template <typename _Tp>
  */
 void ZArray<_Tp>::clear(bool pLock)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
     if (pLock)
         _Mutex.lock();
 #endif
-    _Base::clear();
+    //    _Base::clear();
+    while (_Base::size() > 0)
+      _Base::removeLast();
     ZIdx = 0;
     allocate( ZInitialAllocation);
 //    memset (ZPtr,0,ZAllocatedSize);
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
     if (pLock)
         _Mutex.unlock();
 #endif
@@ -957,13 +959,16 @@ template <typename _Tp>
  */
 void ZArray<_Tp>::reset(void)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
-  if (!(_Base::size()<0)) {
-    ZIdx = 0;
-  }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+
+  ZIdx = 0;
+
+  while (_Base::size() > 0)
+    _Base::removeLast();
+
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return ;
@@ -1014,7 +1019,7 @@ template <typename _Tp>
  */
 void ZArray<_Tp>::setAllocation (size_t pAlloc,bool pLock)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   if (pLock)
       _Mutex.lock();
 #endif
@@ -1026,7 +1031,7 @@ void ZArray<_Tp>::setAllocation (size_t pAlloc,bool pLock)
                         ZReallocQuota);
     _Base::reserve(pAlloc) ;
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
     if (pLock)
       _Mutex.unlock();
 #endif
@@ -1034,7 +1039,7 @@ void ZArray<_Tp>::setAllocation (size_t pAlloc,bool pLock)
   }//if (pAlloc<(size()+ZReallocQuota
 
   allocate(pAlloc);
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   if (pLock)
     _Mutex.unlock();
 #endif
@@ -1057,12 +1062,12 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::push(_Tp &pElement)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
   long wR=_pushNoLock(pElement);
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
 #endif
     return(wR) ;
@@ -1074,12 +1079,12 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::push(const _Tp &pElement)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
   long wR=_pushNoLock(pElement);
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return(wR) ;
@@ -1112,11 +1117,11 @@ template <typename _Tp>
 
 long ZArray<_Tp>::push( _Tp &&pElement)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
   _Base::append(pElement);
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return(lastIdx()) ;
@@ -1129,11 +1134,11 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::push_front(_Tp pElement)
 {
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
   _Base::prepend(pElement);
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (0) ;  // index for inserted element (if needed)
@@ -1157,12 +1162,12 @@ _Tp & ZArray<_Tp>::popR(void)
       _Base::size());
       abort();
   }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
       ZReturn = _Base::last();
       _Base::removeLast();
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
         _Mutex.unlock();
 #endif
     return (ZReturn);
@@ -1197,11 +1202,11 @@ _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
     abort();
   }
 
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
   *pReturn = _Base::takeLast();
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
    _Mutex.unlock();
 #endif
   return (*pReturn);
@@ -1234,12 +1239,12 @@ long ZArray<_Tp>::pop(void)
   if (_Base::size() < 1) {
     return -1;
   }
-#if __USE_ZTHREAD__  & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
   _pop_nolock();
 
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (_Base::size());
@@ -1269,13 +1274,13 @@ long ZArray<_Tp>::pop_front(void)
       return -1;
     }
 
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
 
   _pop_front_nolock();
 
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (_Base::size());
@@ -1307,12 +1312,12 @@ _Tp &ZArray<_Tp>::popR_front(void)
     abort();
   }
 
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
         _Mutex.lock();
 #endif
   ZReturn = _Base::takeFirst();
 
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
   return (ZReturn); // bad thing when being used with ZThreads
@@ -1343,11 +1348,11 @@ _Tp &ZArray<_Tp>::popRP_front(_Tp*pReturn)
     abort();
   }
 
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.lock();
 #endif
   _popRP_front_nolock(pReturn);
-#if __USE_ZTHREAD__ & __ZTHREAD_AUTOMATIC__
+#ifdef __ZTHREAD_AUTOMATIC__
   _Mutex.unlock();
 #endif
     return (*pReturn);
@@ -1480,7 +1485,7 @@ static ZStatus ZAimport(ZArray<_TpOut>* pZArray,
 {
 
 
-#if __USE_ZTHREAD__
+#ifdef __ZTHREAD_AUTOMATIC__
     pZArray->lock();
 #endif
     pZArray->clear(false); // clear with no lock
@@ -1528,7 +1533,7 @@ static ZStatus ZAimport(ZArray<_TpOut>* pZArray,
         }// for
 
 
-#ifdef __USE_ZTHREAD__
+#ifdef __ZTHREAD_AUTOMATIC__
     pZArray->unlock();
 #endif
 

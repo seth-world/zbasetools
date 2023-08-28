@@ -701,7 +701,7 @@ public:
 //    int ncompare(const _Utf* pString2,size_t pCount) {return utfStrncmp<_Utf>(Data,pString2,pCount);}/** corresponds to strncmp */
     int compare(const _Utf* pString2) const ;                      /* corresponds to strcmp */
 
-    int compareCase (const utfVaryingString<_Utf> &pCompare) ;
+    int compareCase (const utfVaryingString<_Utf> &pCompare) const;
 
     int compare(const utfVaryingString<_Utf> & pString2) const {
       return compare(pString2.Data);
@@ -732,7 +732,7 @@ public:
     int ncompare(const utfVaryingString<_Utf> & pString2,size_t pCount) const {
       return ncompare(pString2.Data,pCount);
     }
-
+    int ncompareCase(const _Utf* pString2,size_t pCount) const ; /** corresponds to strncasecmp */
 
     ssize_t strlen() const {return (utfStrlen<_Utf>(Data));}
 
@@ -784,11 +784,13 @@ public:
      * @brief _rfindEOSM reverse find for end of string mark
      * @return a pointer to end of string mark
      */
-    _Utf* _rfindEOSM();
+    _Utf* _rfindEOSM() const;
 
 
     bool startsCaseWith(const _Utf* pString);
     bool startsWith(const _Utf* pString) const;
+
+    bool endsWith(const _Utf* pString) const;
 
     template <class _Utf1>
     utfVaryingString<_Utf> &_addV( _Utf1* wSrc)
@@ -1376,6 +1378,10 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
 
     _Utf* Trim(const _Utf *pSet=__DEFAULTDELIMITERSET__)
             {return(utfTrim<_Utf>(Data,pSet));}
+
+    _Utf* LTrimSpaces() const {
+      return utfSkipSpaces(Data);
+    }
 
 
     utfVaryingString<_Utf> Left (size_t pLen) const;
@@ -2182,7 +2188,7 @@ utfVaryingString<_Utf>::nadd( const _Utf *wSrc, size_t pCount)
 
 template<class _Utf>
 _Utf*
-utfVaryingString<_Utf>::_rfindEOSM()
+utfVaryingString<_Utf>::_rfindEOSM() const
 {
   // size_t wS=utfStrlen(Data);
 
@@ -3473,7 +3479,7 @@ return value	indicates
 */
 template <class _Utf>
 int
-utfVaryingString<_Utf>::compareCase (const utfVaryingString<_Utf>& pCompare)
+utfVaryingString<_Utf>::compareCase (const utfVaryingString<_Utf>& pCompare) const
 {
   _Utf* wPtr1=Data;
   _Utf* wPtr2=pCompare.Data;
@@ -3616,6 +3622,42 @@ utfVaryingString<_Utf>::ncompare(const _Utf* pString2,size_t pCount) const
 
   for (;!wComp && wPtr[wCount] && pString2[wCount] && (wCount < pCount); wCount++) {
     wComp=(int)(wPtr[wCount] - pString2[wCount]);
+  }// for
+  if (wComp)
+    return wComp;
+  if (wCount==pCount)
+    return wComp;
+  // up to here wComp==0 (equality)
+  //    test string lengths
+  if (wPtr[wCount]==0) { // string 1 exhausted
+    if (pString2[wCount]==0)   // so is string2
+      return 0;   // equality
+    return -1; // string 2 is greater than string1 (because more characters)
+  }
+  // up to here wComp==0 but string1 is not exhausted
+  //
+  return 1; // string 1 is longer
+}/** corresponds to strncmp */
+
+template <class _Utf>
+inline int
+utfVaryingString<_Utf>::ncompareCase(const _Utf* pString2,size_t pCount) const
+{
+  assert (pCount > 0);
+  const _Utf* wPtr=Data;
+  if (Data==pString2)
+    return 0;
+  if (isEmpty())
+    return -1;
+  if (pString2==nullptr)
+    return 1;
+
+  int wCount = 0;
+  int wComp = (int)(*wPtr - *pString2);
+
+  for (;!wComp && wPtr[wCount] && pString2[wCount] && (wCount < pCount); wCount++) {
+
+    wComp=(int)(utfUpper<_Utf>(wPtr[wCount]) - utfUpper<_Utf>(pString2[wCount]));
   }// for
   if (wComp)
     return wComp;
@@ -3776,6 +3818,22 @@ bool
 utfVaryingString<_Utf>::startsWith(const _Utf* pString) const
 {
   return !utfStrncmp<_Utf>(Data,pString,utfStrlen<_Utf>(pString));
+}
+
+template <class _Utf>
+bool
+utfVaryingString<_Utf>::endsWith(const _Utf* pString) const
+{
+  if (pString==nullptr)
+    return false;
+  _Utf* wPtr=_rfindEOSM();
+  size_t wStrLen=utfStrlen<_Utf>(pString);
+
+  wPtr += wStrLen;
+  if (wPtr < Data)
+    return false;
+
+  return !utfStrncmp<_Utf>(wPtr,pString,wStrLen);
 }
 
 template <class _Utf>

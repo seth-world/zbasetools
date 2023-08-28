@@ -185,14 +185,26 @@ const char * decode_ZStatus (ZStatus ZS)
                     return ("ZS_EXCEPTION");
                 }
       case ZS_INVPARAMS :
-                {
-                  return ("ZS_INVPARAMS");
-                }
+        return ("ZS_INVPARAMS");
 
-        case ZS_FOUND :
-                {
-                    return ("ZS_FOUND");
-                }
+
+      case ZS_FOUND :
+        return ("ZS_FOUND");
+
+
+      case ZS_MISS_KEYWORD:
+        return ("ZS_MISS_KEYWORD");
+      case ZS_MISS_FIELD:
+        return ("ZS_MISS_FIELD");
+      case ZS_MISS_PUNCTSIGN:
+        return ("ZS_MISS_PUNCTSIGN");
+      case ZS_MISS_LITERAL:
+        return ("ZS_MISS_LITERAL");
+      case ZS_INV_ENTITY:
+        return ("ZS_INV_ENTITY");
+      case ZS_INV_FIELD:
+        return ("ZS_INV_FIELD");
+
         case ZS_S_ERASEKEY :
                 {
                 return ("ZS_S_ERASEKEY");

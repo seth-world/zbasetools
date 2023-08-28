@@ -10,8 +10,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <errno.h>
-#include <ztoolset/zlimit.h>
-#include <ztoolset/zstatus.h>
+#include "zlimit.h"
+#include "zstatus.h"
 
 //#include <ztoolset/zarray.h>   // do not include zarray.h in this file
 

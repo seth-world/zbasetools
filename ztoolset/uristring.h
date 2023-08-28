@@ -269,7 +269,12 @@ public:
 
     static uriString currentWorkingDirectory();
 
-
+    /**
+     * @brief check Checks if uristring content is a valid path in accessing object.
+     * @return ZS_SUCCESS if path points to a valid directory or file
+     * In case of error, returned status is given by getStatR() method. Please refer to this method to get errored status list.
+     */
+    ZStatus check();
 
 
 #ifdef QT_CORE_LIB
@@ -287,7 +292,16 @@ public:
     /** @brief getStatR obtains an uriStat structure with file information from current file.
      * if pLogZException is set to true, and when an error occurs, a ZException is set.
      * if not, only wrong status is returned.
-     * @return returns a ZStatus set to ZS_SUCCESS if operation went well or with appropriate status if not.
+     * returned error see https://www.man7.org/linux/man-pages/man2/stat.2.html
+     * @return returns a ZStatus set to ZS_SUCCESS if operation went well or with appropriate status if not :
+     * ZS_FILENOTEXIST <ENOENT> A component of path does not exist or is a dangling symbolic link.
+     * ZS_USERPRIVILEGES <EACCES> Search permission is denied for one of the directories in the path prefix
+     * ZS_FILENOTOPEN EBADF> File descriptor is not a valid open file descriptor for file.
+     * ZS_BADFILEDESC ELOOP> Too many symbolic links encountered while traversing the path.
+     * ZS_INVNAME <ENAMETOOLONG> pathname is too long
+     * ZS_MEMERROR <ENOMEM> Out of memory (i.e., kernel memory)
+     * ZS_BADFILEDESC <ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory.
+     * ZS_BADFILEDESC <EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented-
      */
     ZStatus getStatR(uriStat &pZStat, bool pLogZException=false) const;
 
@@ -312,7 +326,7 @@ public:
 
 
 
-    long long getFileSize(void) const  ;
+    long getFileSize(void) const  ;
 
     checkSum getChecksum(void) const;
 

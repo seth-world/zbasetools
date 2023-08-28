@@ -15,6 +15,9 @@ extern const char *ZTimeFormat_Standard       ;
 extern const char *ZDateTimeFormat_Standard   ;
 
 
+//                              1   2     3   4     5   6     7   8     9   10    11  12
+const int DayMonth [12] = {  31 , 29 , 31 , 30 , 31 , 30 , 31 , 31 , 30 , 31 , 30 , 31 };
+
 class ZSuperTm : public tm {
 public:
   ZSuperTm(){memset (this,0,sizeof(ZSuperTm));}
@@ -98,25 +101,29 @@ public:
 
 //class ZDate;
 
+enum ZDatePrecision {
+  ZDTPR_invalid = -1,
+  ZDTPR_nothing = 0,
+  ZDTPR_ymd     = 1,
+  ZDTPR_ymdh    = 2,
+  ZDTPR_ymdhm   = 3,
+  ZDTPR_ymdhms  = 4,
+  ZDTPR_nano    = 5
+};
+
+const char* decode_ZDatePrecision(ZDatePrecision pCode);
+
 class ZDateFull : public timespec
 {
 public:
-/*
-  uint16_t Year;
-  uint8_t Month;
-  uint8_t Day;
-  uint8_t Hour;
-  uint8_t Min;
-  uint8_t Sec;
-*/
- // typedef ZDateFull::tm _Base;
- //                             1   2     3   4     5   6     7   8     9   10    11  12
-  const int DayMonth [12] = {  31 , 29 , 31 , 30 , 31 , 30 , 31 , 31 , 30 , 31 , 30 , 31 };
+  ZDatePrecision Precision = ZDTPR_nano;
 
   ZDateFull() ;
   ZDateFull(const ZDateFull &pIn) { _copyFrom(pIn); }
   ZDateFull(const ZDateFull &&pIn) { _copyFrom(pIn); }
   ZDateFull(const utf8VaryingString& pDate) {_fromDMY(pDate);}
+
+  ZDatePrecision getPrecision() {return Precision;}
 
   bool isInvalid() const {
     return (tv_sec <= 0);
@@ -142,6 +149,62 @@ public:
   bool operator < (const ZDateFull& pDt) const {return tv_sec < pDt.tv_sec ;}
   bool operator <= (const ZDateFull& pDt) const {return tv_sec <= pDt.tv_sec ;}
 
+  int _stringCompare(const utf8String& pDateString,ZDatePrecision & pOutPrecision) const {
+    ZDateFull wD1=fromDMY(pDateString);
+    if (wD1.Precision==ZDTPR_invalid){
+      wD1=fromDMY(pDateString);
+    }
+    if (wD1.Precision==ZDTPR_invalid){
+      return 1;
+    }
+    return _Compare(wD1,pOutPrecision);
+  }
+
+  /** tries to convert a string to a ZDateFull, best case using DMY then MDY algorithm.
+   * according the data found and converted, returns pOutPrecision mentionning the level of data taken into account */
+  static ZDateFull fromString(const utf8String& pDateString)  {
+    ZDateFull wD1=fromDMY(pDateString);
+    if (wD1.Precision==ZDTPR_invalid){
+      wD1=fromDMY(pDateString);
+    }
+    if (wD1.Precision==ZDTPR_invalid){
+      return ZDateFull();
+    }
+    return wD1;
+  }
+
+  int _Compare(const ZDateFull& pDate,const ZDatePrecision & pPrecision=ZDTPR_nano) const {
+    if (pPrecision==ZDTPR_invalid)
+      return 1;
+    tm wComp1 = getLocalTime();
+    tm wComp2 = pDate.getLocalTime();
+    int wC =wComp1.tm_year - wComp2.tm_year;
+    if (wC!=0)
+      return wC;
+    wC = wComp1.tm_mon - wComp2.tm_mon;
+    if (wC!=0)
+      return wC;
+    wC = wComp1.tm_mday - wComp2.tm_mday;
+    if (wC!=0)
+      return wC;
+    if (pPrecision==ZDTPR_ymd)
+      return wC;
+
+    wC = wComp1.tm_hour - wComp2.tm_hour;
+    if (wC!=0)
+      return wC;
+    if (pPrecision==ZDTPR_ymdh)
+      return wC;
+    wC = wComp1.tm_min - wComp2.tm_min;
+    if (wC!=0)
+      return wC;
+    if (pPrecision==ZDTPR_ymdhm)
+      return wC;
+    wC = wComp1.tm_sec - wComp2.tm_sec;
+    return wC;
+  }
+
+
   int nanoCompare(const ZDateFull& pDate ) const {
     if (tv_sec == pDate.tv_sec){
       return int(tv_nsec - pDate.tv_nsec);
@@ -152,6 +215,13 @@ public:
   int nanoIsGreater(const ZDateFull& pDate ) const { return nanoCompare(pDate)>0;}
   int nanoIsLess(const ZDateFull& pDate ) const { return nanoCompare(pDate)<0;}
 
+  int year();
+  int month();
+  int day();
+  int weekday();
+  int hour();
+  int min();
+  int sec();
 
   struct timespec getBase(void) {return (struct timespec&)*this;}
   struct tm getUTC(void) {
@@ -160,13 +230,23 @@ public:
     gmtime_r(&tv_sec, &wTm);
     return wTm;
   }
-  struct tm getLocalTime(void) {
+  struct tm getLocalTime(void) const {
     struct tm wTm;
 
     localtime_r(&tv_sec, &wTm);
     return wTm;
   }
 
+
+
+  /* NB; pOutPrecision gives the precision of the given string used to formulate the ZDateFull object :
+   * Example : ZDTPR_ymd : year month and day have been specified. Hour min and sec are missing.
+   * ZDTPR_ymdh means that in addition hours have been mentionned
+   * ZDTPR_ymdhm means hours and minutes have been mentionned
+   * ZDTPR_ymdhms means hours minutes and seconds have been mentionned
+   *
+   *
+*/
   static ZDateFull fromDMY(const utf8VaryingString &pString);
   static ZDateFull fromMDY(const utf8VaryingString &pString);
 
@@ -221,10 +301,14 @@ public:
   /** @brief toUTCGMT converts first internal date-time content into GMT time then format it into UTC format */
   utf8VaryingString toUTCGMT() const;
 
-  utf8VaryingString toDMY() const;
   /*  "11-08-2011 07:07:09.000Z" */
+  utf8VaryingString toDMYhms() const;
+  /*  "08-11-2011 07:07:09.000Z" */
+  utf8VaryingString toMDYhms() const;
+  /*  "08-11-2011" */
+  utf8VaryingString toDMY() const;
+  /*  "11-08-2011" */
   utf8VaryingString toMDY() const;
-
 
   /** @brief fromUTC  gets a date-time from a UTC format, GMT or other.
    * Trailing time zone :
@@ -248,7 +332,13 @@ public:
 
   ZDateFull& getCurrentDateTime(void) {return _copyFrom(currentDateTime());}
 
+  /* input format [m]m{/|-}[d]d{/|-}[yy]yy[-hh:mm:ss] */
 
+  static ZStatus checkMDY(const utf8VaryingString& pDateLiteral , tm &pTt , uint8_t &pFed);
+
+  /* input format [d]d{/|-}[m]m{/|-}[yy]yy[-hh:mm:ss] */
+
+  static ZStatus checkDMY(const utf8VaryingString& pDateLiteral , tm& pTt ,uint8_t &pFed);
 
 
 #ifdef QT_CORE_LIB
@@ -265,16 +355,35 @@ public:
   int weekDay();
   int yearDay();
 
-private:
   void _toInternal(tm &pTm);
   ZDateFull& _fromInternal();
   time_t _toTime_t();
   void _fromTime_t(time_t pTime_t);
+
 };  // class ZDateFull
 
 /* for gmt conversions */
 long getTimeZoneDiff();
 const char* getTimeZoneName ();
 int getDST ();
+
+
+enum ZDateFed : uint8_t
+{
+  ZDTF_Nothing    = 0,
+  ZDTF_DMA        = 1,
+  ZDTF_HH         = 2,
+  ZDTF_MM         = 4,
+  ZDTF_SS         = 8
+};
+
+
+/* [d]d{/|-}[m]m{/|-}[yy]yy[-hh:mm:ss] */
+ZStatus checkDMY(const utf8VaryingString& pDateLiteral , tm* pTt, uint8_t &pFed);
+
+/* [m]m{/|-}[d]d{/|-}[yy]yy[-hh:mm:ss] */
+ZStatus checkMDY(const utf8VaryingString& pDateLiteral , tm* pTt ,uint8_t &pFed);
+
+int getDateValue(utf8_t* &wPtr,int pMaxDigits,char pSep);
 
 #endif // ZDATEFULL_H

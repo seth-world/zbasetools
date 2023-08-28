@@ -7,6 +7,8 @@
 
 #include <time.h> // for timeout computation
 
+#include <ztoolset/utfvaryingstring.h>
+
 using namespace zbs;
 
 #ifdef __USE_POSIX_ZTHREAD__
@@ -36,9 +38,9 @@ ZMutex::ZMutex(void)
         }
     wRet=pthread_mutex_init(&Mutex_id,&MutexAttributes);
     if (wRet==0)
-                    return;
-     fprintf(stderr,"ZMutex-F-ERRINITMTX Fatal error initializing ZMutex : %s \n",
-             strerror(wRet));
+      return;
+
+    fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
      abort();
 }
 
@@ -46,67 +48,79 @@ ZMutex::~ZMutex() {     pthread_mutex_destroy(&Mutex_id);}
 
 int ZMutex::lock()
 {
-    if (State_locked)
-        {
-        fprintf(stderr,"ZMutex-%s>> Mutex has a state of locked while trying to lock it\n",_GET_FUNCTION_NAME_);
-        return  EPERM;
-        }
-    if (__ZMUTEXVERBOSE__)
-        fprintf(stdout,"ZMutex-I-LOCK locking ZMutex  \n");
-int wRet=pthread_mutex_lock(&Mutex_id);
 
-    if (wRet==0)
-        {
-        State_locked = true;
-        return wRet;
-        }
+  if (__ZMUTEXVERBOSE__) {
+    fprintf(stdout,"ZMutex-I-LOCK locking ZMutex  \n");
+    std::cout.flush();
+  }
+  if (State_locked) {
+    fprintf(stderr,"ZMutex-%s>> Mutex has a state of locked while trying to lock it\n",_GET_FUNCTION_NAME_);
+    std::cout.flush();
+    return  EPERM;
+  }
 
-     fprintf(stderr,"ZMutex-E-Lock>> Error locking ZMutex : %s \n",
-             strerror(wRet));
-     return wRet;
+  int wRet=pthread_mutex_lock(&Mutex_id);
+
+  if (wRet==0) {
+    State_locked = true;
+    if (__ZMUTEXVERBOSE__) {
+      fprintf(stdout,"ZMutex-I-LOCK           set state locked  \n");
+      std::cout.flush();
+      return wRet;
+    }
+  }
+  fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
+  return wRet;
 }// lock
 
 void ZMutex::lockBlock()
 {
     if (__ZMUTEXVERBOSE__)
-        fprintf(stdout,"ZMutex-I-LOCK locking ZMutex  \n");
-int wRet=pthread_mutex_lock(&Mutex_id);
+        fprintf(stdout,"ZMutex-I-LOCKBLOCK locking ZMutex  \n");
+
+    int wRet=pthread_mutex_lock(&Mutex_id);
 
     if (wRet==0)
         {
         State_locked = true;
+        if (__ZMUTEXVERBOSE__)
+          fprintf(stdout,"ZMutex-I-LOCKBLOCK          set state locked  \n");
         return ;
         }
 
-     fprintf(stderr,"ZMutex-E-Lock>> Error locking ZMutex : %s \n",
-             strerror(wRet));
+     fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
      return ;
 }// lockBlock
 
 bool
 ZMutex::tryLock()
 {
-    if (State_locked)
-        {
-        fprintf(stderr,"ZMutex-%s>> Mutex has a state of locked while trying to lock it\n",_GET_FUNCTION_NAME_);
-        return  EPERM;
-        }
-    if (__ZMUTEXVERBOSE__)
-        fprintf(stdout,"ZMutex-I-LOCK trying to lock ZMutex  \n");
+  if (__ZMUTEXVERBOSE__) {
+    fprintf(stdout,"ZMutex-I-TRYLOCK trying to lock ZMutex  \n");
+    std::cout.flush();
+  }
+  if (State_locked) {
+    fprintf(stderr,"ZMutex-tryLock>> Mutex has a state of locked while trying to lock it\n");
+    std::cout.flush();
+    return  EPERM;
+  }
 
+  int wRet=pthread_mutex_trylock(&Mutex_id);
 
-    int wRet=pthread_mutex_trylock(&Mutex_id);
-
-    if (wRet==0)
-        {
-        State_locked = true;
-        }
-        else
-    {
-        if (wRet==EBUSY)
-            fprintf(stderr,"ZMutex-tryLock>> EBUSY returned while trying to lock it\n");
+  if (wRet==0) {
+    State_locked = true;
+    if (__ZMUTEXVERBOSE__) {
+      fprintf(stdout,"ZMutex-I-TRYLOCK           set state locked  \n");
+      std::cout.flush();
     }
-    return (wRet==0);
+  }
+  else {
+    if (wRet==EBUSY)
+            fprintf(stderr,"ZMutex-tryLock>> EBUSY returned while trying to lock it\n");
+        else
+          fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
+  }
+  return (wRet==0);
 
 } // tryLock()
 
@@ -114,13 +128,15 @@ int
 ZMutex::timedLock(ZTime pTimeout)
 {
 ZTime wTimeoutlimit;
+  if (__ZMUTEXVERBOSE__)
+    fprintf(stdout,"ZMutex-I-TIMEDLOCK trying to lock ZMutex  \n");
+
     if (State_locked)
         {
         fprintf(stderr,"ZMutex-%s>> Mutex has a state of locked while trying to lock it\n",_GET_FUNCTION_NAME_);
         return  EPERM;
         }
-    if (__ZMUTEXVERBOSE__)
-        fprintf(stdout,"ZMutex-I-LOCK trying to lock ZMutex  \n");
+
 
     wTimeoutlimit.absoluteFromDelay(pTimeout);
 
@@ -132,11 +148,14 @@ ZTime wTimeoutlimit;
                     return wRet;
         if (wRet==EBUSY)
             fprintf(stderr,"ZMutex-timedLock>> EBUSY returned while trying to lock ZMutex\n");
-        fprintf(stderr,"ZMutex-F-timedLock Fatal error waiting for lock (timedlock) : %s \n",
-                strerror(wRet));
-        abort();
+        else {
+          fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
+          abort();
+        }
         }
     State_locked = true;
+    if (__ZMUTEXVERBOSE__)
+      fprintf(stdout,"ZMutex-I-TIMEDLOCK           set state locked  \n");
     return (wRet);
 
 } // timedLock()
@@ -148,39 +167,51 @@ ZMutex::unlockBesttry()
             {
             return 0;
             }
+
     if (__ZMUTEXVERBOSE__)
-        fprintf(stdout,"ZMutex-I-LOCK unlocking ZMutex  \n");
-int wRet=pthread_mutex_unlock(&Mutex_id);
+        fprintf(stdout,"ZMutex-I-UNLOCKBESTTRY unlocking ZMutex  \n");
+
+    int wRet=pthread_mutex_unlock(&Mutex_id);
     if (wRet==0)
             {
             State_locked = false;
+            if (__ZMUTEXVERBOSE__)
+              fprintf(stdout,"ZMutex-I-UNLOCKBESTTRY            set state unlocked  \n");
             return wRet;
             }
-     fprintf(stderr,"ZMutex-E-UNLOCK Error unlocking ZMutex : %s \n",
-             strerror(wRet));
+     fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
      return wRet;
 }// unlock
 
 int
 ZMutex::unlock()
 {
-    if (!State_locked)
-            {
-            fprintf(stderr,"ZMutex-unlock>> Mutex has a state of unlocked while unlocking it\n");
-            return EPERM;
-            }
-    if (__ZMUTEXVERBOSE__)
-        fprintf(stdout,"ZMutex-I-LOCK unlocking ZMutex  \n");
-int wRet=pthread_mutex_unlock(&Mutex_id);
-    if (wRet==0)
-            {
-            State_locked = false;
-            return wRet;
-            }
-     fprintf(stderr,"ZMutex-E-UNLOCK Error unlocking ZMutex : %s \n",
-             strerror(wRet));
-     return wRet;
+  if (__ZMUTEXVERBOSE__) {
+    fprintf(stdout,"ZMutex-I-UNLOCK unlocking ZMutex  \n");
+    std::cout.flush();
+  }
+
+  if (!State_locked) {
+    fprintf(stderr,"ZMutex-unlock>> Mutex has a state of unlocked while unlocking it\n");
+    std::cout.flush();
+    return EPERM;
+  }
+
+  int wRet=pthread_mutex_unlock(&Mutex_id);
+  if (wRet==0) {
+    State_locked = false;
+    if (__ZMUTEXVERBOSE__) {
+      fprintf(stdout,"ZMutex-I-UNLOCK               set state unlocked  \n");
+      std::cout.flush();
+    }
+    return wRet;
+  }
+  fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
+  return wRet;
 }// unlock
+
+
+
 
 //------------Timed mutex-------------------------------------
 
@@ -209,8 +240,7 @@ ZMtxRecursive::ZMtxRecursive(void)
     wRet=pthread_mutex_init(&Mutex_id,&MutexAttributes);
     if (wRet==0)
                     return;
-     fprintf(stderr,"ZMxRecursive-F-ERRINITMTX Fatal error initializing ZMutex : %s \n",
-             strerror(wRet));
+     fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
      abort();
 }
 ZMtxRecursive::~ZMtxRecursive()
@@ -236,23 +266,24 @@ int wRet=pthread_mutex_lock(&Mutex_id);
         OwnedLocks++;
         return wRet;
         }
-    fprintf(stderr,"ZMutex-E-LOCK Error locking ZMutex : %s \n",
-         strerror(wRet));
+    fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
      return wRet;
 }
 bool
 ZMtxRecursive::trylock()
 {
 bool wRet=false;
+    if (__ZMUTEXVERBOSE__)
+    {
+      fprintf(stdout,"ZMutex-I-TRYLOCK trying to lock recursive ZMutex  \n");
+    }
+
     if (OwnedLocks)
         {
         fprintf(stderr,"ZMutex-%s>> Recursive ZMutex has a state of lock already owned by current process while trying to lock it\n",_GET_FUNCTION_NAME_);
         return  EPERM;
         }
-    if (__ZMUTEXVERBOSE__)
-        {
-       fprintf(stdout,"ZMutex-I-TRYLOCK trying to lock recursive ZMutex  \n");
-        }
+
     wRet=!pthread_mutex_trylock(&Mutex_id);
     if (wRet)
             {
@@ -283,8 +314,7 @@ int wRet=pthread_mutex_unlock(&Mutex_id);
             OwnedLocks--;
             return wRet;
             }
-     fprintf(stderr,"ZMutex-E-UNLOCK Error unlocking ZMutex : %s \n",
-             strerror(wRet));
+     fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
      return wRet;
 }// unlock
 
@@ -413,6 +443,8 @@ ZTime wTimeoutlimit;
         abort();
         }
     State_locked = true;
+    if (__ZMUTEXVERBOSE__)
+      fprintf(stdout,"ZMutex-I-TIMEDWAIT           set state locked  \n");
     return (wRet);
 }// timedWait
 #else // ================not  __USE_POSIX_ZTHREAD__  -> __USE_STD_ZTHREAD__===================================
@@ -641,6 +673,49 @@ ZMutexCondition::wait(void)
     return;
 }// wait
 #endif // else __USE_POSIX_ZTHREAD__
+
+/* see https://www.man7.org/linux/man-pages/man3/pthread_mutex_lock.3p.html */
+
+utf8VaryingString
+decode_MutexError(const char* pModule,int pStatus) {
+  utf8VaryingString wReturn;
+  utf8VaryingString wErrMes;
+
+  switch(pStatus) {
+  case 0:
+    wErrMes = "Success";
+    break;
+  case EAGAIN :
+    wErrMes = "<EAGAIN> The mutex could not be acquired because the maximum number of recursive locks for mutex has been exceeded.";
+    break;
+  case EINVAL :
+    wErrMes = "<EINVAL> The mutex was created with the protocol attribute having the value PTHREAD_PRIO_PROTECT and the calling thread's priority is higher than the mutex's current priority ceiling.";
+    break;
+  case ENOTRECOVERABLE :
+    wErrMes = "<ENOTRECOVERABLE> The state protected by the mutex is not recoverable.";
+    break;
+  case EOWNERDEAD :
+    wErrMes = "<EOWNERDEAD>The mutex is a robust mutex and the process containing the previous owning thread terminated while holding the mutex lock. The mutex lock shall be acquired by the calling thread and it is up to the new owner to make the state consistent.";
+    break;
+  case EDEADLK :
+    wErrMes = "<EDEADLK> The mutex type is PTHREAD_MUTEX_ERRORCHECK and the current thread already owns the mutex.";
+    break;
+  case EBUSY :
+    wErrMes = "<EBUSY>  The mutex could not be acquired because it was already locked.";
+    break;
+  case EPERM :
+    wErrMes = "<EPERM>  The mutex type is PTHREAD_MUTEX_ERRORCHECK or PTHREAD_MUTEX_RECURSIVE, or the mutex is a robust mutex, and the current thread does not own the mutex.";
+    break;
+
+  default:
+    wErrMes = "Unknown mutex error returned";
+    break;
+  }
+  wReturn.sprintf("ZMutex-%s %s",pModule,wErrMes.toString());
+  return wReturn;
+}
+
+
 
 #endif // ZMUTEX_CPP
 

@@ -25,12 +25,12 @@ class ZBitset
 {
 public:
     typedef uint8_t ZBitsetType;
-    ZBitsetType *bit=nullptr;                   // bitset content itself
-    size_t      Size=0;                            // number of ZBitsetType to allocate (of UnitByteSize bytes each)
-    size_t      BitCapacity=0;                         // total number of bits it represents
-    size_t      EffectiveBitSize=0;                  // number of effective bits requested for allocation: to be exported/imported
-    const size_t UnitByteSize=sizeof(ZBitsetType); // size in bytes of one ZBitsetType
-    const size_t UnitBitSize=UnitByteSize*8;    // size in bits of one ZBitsetType
+    ZBitsetType *bit=nullptr;                       // bitset content itself
+    size_t      Size=0;                             // number of ZBitsetType to allocate (of UnitByteSize bytes each)
+    size_t      BitCapacity=0;                      // total number of bits it represents
+    size_t      EffectiveBitSize=0;                 // number of effective bits requested by allocation: to be exported/imported
+    const size_t UnitByteSize=sizeof(ZBitsetType);  // size in bytes of one ZBitsetType
+    const size_t UnitBitSize=UnitByteSize*8;        // size in bits of one ZBitsetType
 
     ZBitset() {}
     ZBitset(const uint16_t pBitsToAllocate) {
@@ -46,6 +46,7 @@ public:
     /**
      * @brief getEffectivebitsNumber returns the effective number of bits.
      */
+    size_t count()  const {return EffectiveBitSize;}
     size_t getEffectivebitsNumber() const {return EffectiveBitSize;}
     /**
      * @brief _allocate allocates memory space enough for managing pBitsToAllocate slots (bits) within bitmap
@@ -90,6 +91,9 @@ public:
      * and an error message is issued on stderr.
      */
     bool test(const size_t pBitRank) const;
+
+
+    bool operator [] (const size_t pBitRank) const {return test(pBitRank);}
 
     inline uint16_t     getByteSize(void) const  {return (uint16_t)(Size*sizeof(ZBitsetType));}
     size_t              getURFSize(void) const;

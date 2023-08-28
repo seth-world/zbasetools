@@ -7,6 +7,7 @@
 
 //#define __DISPLAYCALLBACK__(__NAME__)  void (*__NAME__) (const utf8VaryingString& pOut)
 #define __DISPLAYCALLBACK__(__NAME__)  std::function<void (const utf8VaryingString&)> __NAME__
+#define __DISPLAYCOLORCB__(__NAME__) std::function<void (uint8_t,const utf8VaryingString&)> __NAME__
 
 enum ZaiE_Severity : uint8_t
 {
@@ -187,10 +188,16 @@ public:
     void logZException();
 
 
-    void errorLog(const char* pFormat,...);
+    void errorLog(const char* pFormat,...) ;
     void infoLog(const char* pFormat,...);
     void textLog(const char* pFormat,...);
     void warningLog(const char* pFormat,...);
+
+
+    void _errorLog(const char* pFormat,va_list pArgs);
+    void _infoLog(const char* pFormat,va_list pArgs);
+    void _textLog(const char* pFormat,va_list pArgs);
+    void _warningLog(const char* pFormat,va_list pArgs);
     bool hasError()
     {
       return ErrorLevel & (ZAIES_Error|ZAIES_Fatal) ;
@@ -217,11 +224,14 @@ public:
     void setAutoPrintOn(ZaiE_Severity pOnOff) {AutoPrint=pOnOff;}
     void setOutput(FILE* pOutput) {Output=pOutput;}
 
-    void _print(const char *pFormat,...);
-    void _print(const utf8VaryingString& pOut);
+    void _print(uint8_t pSeverity, const char *pFormat,...);
+    void _print(uint8_t pSeverity, const utf8VaryingString& pOut);
 
     void setDisplayCallback(__DISPLAYCALLBACK__(pdisplayCallback) ) {_displayCallback=pdisplayCallback;}
+    void setDisplayColorCB(__DISPLAYCOLORCB__(pdisplayCallback) ) {_displayColorCB=pdisplayCallback;}
+
     __DISPLAYCALLBACK__(_displayCallback) ;
+    __DISPLAYCOLORCB__(_displayColorCB) ;
 
     ZaiE_Severity AutoPrint=ZAIES_None; /* if set then prints info and warning messages to stdout and error messages to stderr as soon as registrated */
     ZArray<utf8String> Context;

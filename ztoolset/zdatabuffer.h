@@ -16,7 +16,6 @@ typedef uint32_t    utf32_t ;*/
 typedef uint32_t    ucs4_t ;
 
 
-
 #ifndef __ZCRYPTMETHOD_TYPE__
 #define __ZCRYPTMETHOD_TYPE__
 enum ZCryptMethod_type : uint8_t
@@ -367,7 +366,11 @@ public:
         }
 
 
-        char * toString(void) {return (char*)Data;}
+    utf8_t* toString(void) {return Data;}
+    char* toCChar() {return (char*)Data;}
+    int   getInt()  {return (int)*Data;}
+    double getDouble() {return (double)*Data;}
+
 //    ZDataBuffer* toUtf16(ZDataBuffer& pOutBuf);
 //    wchar_t* toWString(void) {return WData;}
     /*

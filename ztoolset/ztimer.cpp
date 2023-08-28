@@ -21,9 +21,9 @@ ZTimer::init (void)
  */
 void
 ZTimer::start (void)
-         {
+{
         BeginTime.getCurrentTime();
-         }
+}
 
 /**
  * @brief ZTimer::end Ends the time capture session and computes the delta time
@@ -65,7 +65,11 @@ ZTimer::reportDeltaTime (void)
     return reportZTime(DeltaTime);
 } //reportDeltaTime
 
-
+utf8VaryingString
+ZTimer::reportElapsed()
+{
+  return reportZTime(getElapsed());
+} //reportDeltaTime
 /**
  * @brief ZTimer::reportBeginTime a descstring with timer begin time.
  * Time is reported under format "hh:mm:ss-ms.mms"
@@ -93,7 +97,7 @@ ZTimer::reportEndTime (void)
  * @return
  */
 utf8VaryingString
-ZTimer::reportZTime (ZTime & pTime)
+ZTimer::reportZTime (ZTime pTime)
 {
 double wDelta , wDeltams,wDeltamms, wDeltans , wRemain ;
 

@@ -60,6 +60,24 @@ enum ZStatus: ZStatusBase
 
                 ZS_FOUND            =    0x0103 ,       //< Key value has successfully been found
 
+
+
+              /* ZSearchParser  */
+
+                ZS_MISS_KEYWORD     =     -0x008001,
+                ZS_MISS_FIELD       =     -0x008002,
+                ZS_MISS_PUNCTSIGN   =     -0x008003,  /* missing punctuation sign as semi colon or dot */
+                ZS_MISS_LITERAL     =     -0x008004,  /* expected literal (value or path) */
+                ZS_MISS_OPERATOR    =     -0x008005,  /* expected operator  */
+
+                ZS_INV_ENTITY       =     -0x008010,  /* invalid fentity name */
+                ZS_INV_FIELD        =     -0x008012,  /* invalid field */
+                ZS_INV_MODIFIER     =     -0x008013,  /* invalid modifier */
+                ZS_INV_LITERAL      =     -0x008014,  /* literal is malformed ex. invalid date format */
+                ZS_INV_OPERATOR     =     -0x008015,  /* Operator is not allowed here */
+                ZS_SYNTAX_ERROR     =     -0x008016,  /* syntax error : ex. closed parenthesis without corresponding open parenthesis */
+
+
                 ZS_S_ERASEKEY         =   -0x100100,    //< Error while erasing Key
                 ZS_S_ERASEREVERSE     =   -0x100200,    //< Error while erasing reverse index
 

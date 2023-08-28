@@ -28,16 +28,17 @@ public:
 
     void addDeltaTime (ZTimer &pTimer1);
     utf8VaryingString reportDeltaTime(void) ;
+    utf8VaryingString reportElapsed(void) ;
     utf8VaryingString reportBeginTime(void) ;
     utf8VaryingString reportEndTime(void) ;
     static
-    utf8VaryingString reportZTime(ZTime & pTime); // generic static function
+    utf8VaryingString reportZTime(ZTime pTime); // generic static function
 
     ZTimer operator = (ZTimer pTi) {BeginTime=pTi.BeginTime;
                                     EndTime=pTi.EndTime;
                                     DeltaTime=pTi.DeltaTime;
                                     return *this;}
-     ZTimer operator += (ZTimer pTi) {DeltaTime+=pTi.DeltaTime; return *this;}
+    ZTimer operator += (ZTimer pTi) {DeltaTime+=pTi.DeltaTime; return *this;}
 
 }; // ZTimer
 

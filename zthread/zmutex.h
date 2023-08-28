@@ -1,4 +1,4 @@
-#ifndef ZMUTEX_H
+﻿#ifndef ZMUTEX_H
 #define ZMUTEX_H
 #include <config/zconfig.h>
 
@@ -284,5 +284,6 @@ private:
 #endif // (__USE_ZTHREAD__ & __USE_POSIX_ZTHREAD__)!= __USE_POSIX_ZTHREAD__
 
 
+utf8VaryingString decode_MutexError(const char* pModule,int pStatus) ;
 
 #endif // ZMUTEX_H

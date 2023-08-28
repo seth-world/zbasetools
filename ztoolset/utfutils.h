@@ -93,8 +93,6 @@ bool utfIsAsciiChar(_Utf pChar)
 }
 
 
-
-
 enum ZNumBase_type:uint8_t
 {
     ZNBase_Nothing = 0,
@@ -2133,12 +2131,14 @@ utfExpurgeSet(const _Utf *pInString, const _Utf *pSet)
 /**
  * @brief utfExpurgeString
  *          suppresses all occurrences of _Utf substring pSubString from _Utf string pString,
- *          returns pString expurged from encountered substrings of pString.
+ *          returns a string expurged from encountered pSubString sequenses from pString.
+ *          returned string must be freed by callee.
+ *
  * @param pString
  * @param pSubString
- * @return pString expurged from encountered substrings of pString.
+ * @return pString expurged from encountered substrings of pSubString.
  */
-template <class _Utf=char>
+template <class _Utf>
 _Utf *
 utfExpurgeString(_Utf *pInString, const _Utf *pSubString)
 {
@@ -2147,8 +2147,8 @@ utfExpurgeString(_Utf *pInString, const _Utf *pSubString)
     while (*wPtr++)
             wStrlen++;  // get strlen
     wStrlen++;  // count '\0' endofstring mark
-    _Utf* wOutString=(char*)calloc(wStrlen,sizeof(char)); // allocate room as input string length
-    memset (wOutString,0,wStrlen*sizeof(char));
+    _Utf* wOutString=(_Utf*)calloc(wStrlen,sizeof(_Utf)); // allocate room as input string length
+    memset (wOutString,0,wStrlen*sizeof(_Utf));
 
     wPtr=pInString; // reset wPtr to pInString
     _Utf *wPtr2;
@@ -2157,7 +2157,7 @@ utfExpurgeString(_Utf *pInString, const _Utf *pSubString)
     size_t wSubStrCount=0;
     while (pSubString[wSubStrCount++]); // get strlen of pSubString into wSubStrCount- without '\0'
 
-    while((wPtr2=(_Utf*)strstr(wPtr,pSubString))!=nullptr)
+    while((wPtr2=(_Utf*)utfStrstr<_Utf>(wPtr,pSubString))!=nullptr)
         {
         while (wPtr<wPtr2)
                 *wPtrOut++=*wPtr++;  // copy to out string until substring start
