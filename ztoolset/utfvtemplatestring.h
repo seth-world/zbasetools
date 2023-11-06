@@ -99,10 +99,29 @@ class utfVaryingString : public utfStringDescriptor
 {
 protected:
     utfVaryingString& _copyFrom(const utfVaryingString& pIn)
-    {   
+    {
 //      CryptMethod=pIn.CryptMethod;
+
+//     utfStringDescriptor::_copyFrom(pIn);  // NO : this induces memory corruption
+     if (pIn.Data==nullptr) {
+           freeData();
+          return *this;
+      }
+     /* in place of utfStringDescriptor::_copyFrom(pIn) */
+
+
+     /* all below are defined during allocatexxx operation and must not be changed before */
+     //DataByte = pIn->DataByte;
+     //UnitCount = pIn->UnitCount;
+     //ByteSize = pIn->ByteSize;
+
+     Check=cst_ZCHECK;
+     ZType = pIn.ZType;
+     Charset = pIn.Charset;
+     CryptMethod = pIn.CryptMethod;
+     littleEndian = pIn.littleEndian;
+
       allocateBytes(pIn.ByteSize);   /* ByteSize must have the former size value when entering within allocateBytes */
-      utfStringDescriptor::_copyFrom(pIn);
       memmove(Data,pIn.Data,pIn.ByteSize);
       CheckData();
       return(*this);
@@ -112,8 +131,19 @@ public:
     utfVaryingString (const utfVaryingString& pIn);
     utfVaryingString (const utfVaryingString&& pIn);
 
+    inline void _check() const {
+      if (Check!=cst_ZCHECK) {
+          fprintf(stderr,"utfStringDescriptor::_check  Fatal error: Invalid check int.\n");
+          abort();
+      }
+    }
 
     _Utf *           Data=nullptr;
+    uint8_t*         DataByte=nullptr;  /** pointer to effective data : content if fixed string or Data if varying string */
+
+    inline bool isNull (void) const {return Data==nullptr;} /** test if any allocation has been made (only used for varying string) */
+
+
     utfVaryingString (void) ;
     utfVaryingString (_Utf *pData,ssize_t pCount);
     utfVaryingString (size_t pCount);
@@ -683,7 +713,7 @@ public:
             return  *this;
             }
 
-    bool isNull(void) const {return (Data==nullptr);}
+//    bool isNull(void) const {return (Data==nullptr);}
     bool isEmpty(void) const  {return (Data==nullptr) || (ByteSize==0) || (Data[0]==0);}
 
     void freeData(void);
@@ -1101,7 +1131,8 @@ public:
      * Important : imported string format (utf-xx) must be the same as current string
      * @param[in,out] pUniversalPtr pointer to Varying Universal formatted data header.
      *                this pointer is updated to point to first byte after imported data.
-     * @return total size IN BYTES of  bytes used from pUniversalPtr buffer (Overall used size including header)
+     * @return if OK : total size IN BYTES of  bytes used from pUniversalPtr buffer (Overall used size including header)
+     *         returns 0 if UVF format is invalid
      */
     size_t _importUVF(const unsigned char *&pPtrIn);
 
@@ -1237,7 +1268,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     utfVaryingString& addConditionalTermination(void) {
       if (Data==nullptr)
         abort();
-      if (Data[UnitCount-1]<=0)
+      if (Data[UnitCount-1]==0)
                             return *this;
       allocateUnits (UnitCount+1);
       Data[UnitCount-1]=(_Utf)'\0';
@@ -2424,8 +2455,15 @@ utfVaryingString<_Utf>::allocateBytes(ssize_t pSize)
     else
       {
       wP2=(uint32_t*)&DataByte[ByteSize];
+      if (*wP2 != cst_ZSTRINGEND) {
+          fprintf(stderr,
+                  "utfVaryingString::allocateBytes-F-CORRUPT memory corrupted : Byte size %ld Unit Count %ld \n",
+                  ByteSize,
+                  UnitCount);
+          abort();
+      }
       *wP2=0;/* clear former cst_ZSTRINGEND marker before reallocating memory */
-      Data=zrealloc(Data,(size_t)(pSize)+ sizeof(uint32_t));
+      Data=zrealloc<_Utf>(Data,(size_t)(pSize)+ sizeof(uint32_t));
       }
 
     ByteSize=pSize;
@@ -2461,6 +2499,13 @@ utfVaryingString<_Utf>::allocateUnits(ssize_t pCharCount)
     else
       {
       wP2=(uint32_t*)&DataByte[ByteSize];
+      if (*wP2 != cst_ZSTRINGEND) {
+        fprintf(stderr,
+                "utfVaryingString::allocateUnits-F-CORRUPT memory corrupted : Byte size %ld Unit Count %ld \n",
+                ByteSize,
+                UnitCount);
+        abort();
+      }
       *wP2=0;/* clear former cst_ZSTRINGEND marker before reallocating memory */
       Data=zrealloc(Data,(size_t)wByteSize + sizeof(uint32_t));
       }
@@ -2531,15 +2576,22 @@ utfVaryingString<_Utf>::extendBytes(ssize_t pByteSize)
         Data=zmalloc<_Utf>(ByteSize + sizeof(uint32_t));
         DataByte= (uint8_t*)Data;
 
-        /* set the end of allocated / reallocated memory as cst_ZSTRINGEND */
         wP2=(uint32_t*)&DataByte[ByteSize];
+        /* set the end of allocated / reallocated memory as cst_ZSTRINGEND */
+        if (*wP2 != cst_ZSTRINGEND) {
+            fprintf(stderr,
+                    "utfVaryingString::extendBytes-F-CORRUPT memory corrupted : Byte size %ld Unit Count %ld \n",
+                    ByteSize,
+                    UnitCount);
+            abort();
+        }
         *wP2=cst_ZSTRINGEND;
 
         return  Data;
     }// Data==nullptr
 
     wP2=(uint32_t*)&DataByte[ByteSize];
-    *wP2=0;/* clear former cst_ZSTRINGEND marker before reallocating memory */
+//    *wP2=0;/* clear former cst_ZSTRINGEND marker before reallocating memory */
     /* allocate/reallocate requested space plus uint32_t for cst_ZSTRINGEND */
     Data =zrealloc<_Utf>(Data,ByteSize + pByteSize + sizeof(uint32_t));
 
@@ -2549,7 +2601,7 @@ utfVaryingString<_Utf>::extendBytes(ssize_t pByteSize)
     DataByte= (uint8_t*)Data;
 
     /* set the end of allocated / reallocated memory as cst_ZSTRINGEND */
-    wP2=(uint32_t/* allocate/reallocate requested space plus uint32_t for cst_ZSTRINGEND */*)&DataByte[ByteSize];
+    wP2=(uint32_t*)&DataByte[ByteSize];
     *wP2=cst_ZSTRINGEND;
 
     return  wExtentPtr;  // returns the first byte of extended memory
@@ -2581,12 +2633,20 @@ utfVaryingString<_Utf>::extendUnits(ssize_t pCharCount)
 
         /* set the end of allocated / reallocated memory as cst_ZSTRINGEND */
         wP2=(uint32_t*)&DataByte[ByteSize];
+
         *wP2=cst_ZSTRINGEND;
 
         return  Data;
     }// Data==nullptr
 
     wP2=(uint32_t*)&DataByte[ByteSize];
+    if (*wP2 != cst_ZSTRINGEND) {
+        fprintf(stderr,
+                "utfVaryingString::extendUnits-F-CORRUPT memory corrupted : Byte size %ld Unit Count %ld \n",
+                ByteSize,
+                UnitCount);
+        abort();
+    }
     *wP2=0;/* clear former cst_ZSTRINGEND marker before reallocating memory */
 
     /* allocate/reallocate requested space plus uint32_t for cst_ZSTRINGEND */
@@ -3061,7 +3121,7 @@ utfVaryingString<_Utf>::_importUVF(const unsigned char *&pPtrIn)
   /* first get and control char unit size */
   if (wH.UnitSize!=sizeof(_Utf))
     {
-    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
+    fprintf(stderr,"_importUVF-E-IVUSIZE Imported varying string format <%s> does not correspond to current string format <%s>\n",
         getUnitFormat(wH.UnitSize),
         getUnitFormat(sizeof(_Utf)));
     return 0;

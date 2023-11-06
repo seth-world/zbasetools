@@ -1,14 +1,16 @@
 #ifndef ZXMLDOC_CPP
 #define ZXMLDOC_CPP
 
-#include <zxml/zxmldoc.h>
+#include "zxmldoc.h"
+#include <stdio.h>
 #include <ztoolset/zexceptionmin.h>
-#include <zxml/zxmlerror.h>
 
-#include <zxml/zxmlnode.h>
-#include <zxml/zxmlattribute.h>
-#include <zxml/zxmlnamespace.h>
+#include "zxmlnode.h"
+#include "zxmlattribute.h"
+#include "zxmlnamespace.h"
 
+#include "zxmlerror.h"
+#include <ztoolset/zaierrors.h>
 //========================Generic class/functions================================
 
 bool ZXML_Init=false;
@@ -1192,5 +1194,39 @@ zxmlDoc::writeDOMDocumentEncoded (const char* pFilename,const char*pEncoding, bo
 }// writeDocumentEncoded
 
 
+ZStatus zxmlDoc::XmlParseFromMemory(const utf8VaryingString& pXmlString,ZaiErrors* pErrorLog)
+{
+    ZStatus wSt = ParseXMLDocFromMemory(pXmlString.toCChar(), pXmlString.getUnitCount(), nullptr, 0);
+    if (wSt != ZS_SUCCESS) {
+        utf8VaryingString wXmlErrored = zxmlError::getErroredXmlCodeLine(pXmlString);
+        zxmlLineCol wLC=zxmlError::getLineCol();
 
+        if (pErrorLog!=nullptr) {
+            pErrorLog->logZExceptionLast("XmlParseFromMemory-E-PARSERR Xml parsing error.");
+            pErrorLog->errorLog(
+                "Xml error detail\n"
+                "%s\n"
+                "Xml errored code\n"
+                "line %4d|%s\n"
+                "col. %4d|%*c\n"
+                "\n",
+                zxmlError::getMessage().toCChar(),
+
+                wLC.line,wXmlErrored.toCChar(),
+                wLC.col,wLC.col,'^');
+        }
+        else
+            fprintf(stderr, "XmlParseFromMemory-E-PARSERR Xml parsing error.\n"
+                            "%s\n"
+                            "Xml errored code\n"
+                            "line %4d|%s\n"
+                            "col. %4d|%*c\n"
+                            "\n",
+                    zxmlError::getMessage().toCChar(),
+
+                    wLC.line,wXmlErrored.toCChar(),
+                    wLC.col,wLC.col,'^');
+    }
+    return wSt;
+} //zxmlDoc::XmlParseFromMemory
 #endif // ZXMLDOC_CPP

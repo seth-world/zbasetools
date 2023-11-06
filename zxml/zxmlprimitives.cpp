@@ -77,6 +77,110 @@ utf8VaryingString fmtXMLversion(const utf8VaryingString& pName,unsigned long pFu
   return fmtXMLchar(pName,wStr.toCChar(),pLevel);
 }
 
+utf8VaryingString fmtXMLCData(const utf8VaryingString &pVarName, const ZDataBuffer& pVarContent, const int pLevel)
+{
+  utf8VaryingString wReturn;
+  int wIndent = pLevel * cst_XMLIndent;
+//  char wBuffer[500];
+//  memset (wBuffer,0,sizeof(wBuffer));
+  wReturn.sprintf ("%*c<%s>\n", wIndent,' ',pVarName.toCChar());
+  //<![CDATA[ … ]]>
+  wReturn += "<![CDATA[";
+  utf8_t* wPtr=wReturn.extendBytesBZero(pVarContent.Size);
+  size_t wi=0;
+  while (wi < pVarContent.Size)
+    *wPtr++ = pVarContent.Data[wi++];
+  wReturn += "]]>\n";
+  wReturn.sprintf ("%*c</%s>\n", wIndent,' ',pVarName.toCChar());
+  return wReturn;
+}
+
+utf8VaryingString fmtXMLBlob(const utf8VaryingString &pVarName, ZDataBuffer& pVarContent, const int pLevel)
+{
+  ZDataBuffer wB64 ;
+  pVarContent.encryptB64(&wB64);
+  return fmtXMLCData(pVarName,wB64,pLevel);
+}
+
+ZStatus XMLgetChildBlob(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDataBuffer &pContent,ZaiErrors* pErrorlog,ZaiE_Severity pSeverity)
+{
+  ZDataBuffer wB64 ;
+  ZStatus wSt=XMLgetChildCData(pElement,pChildName,wB64,pErrorlog,pSeverity);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+  wSt = wB64.uncryptB64(&pContent);
+  if (wSt!=ZS_SUCCESS)
+  {
+
+    if (pErrorlog==nullptr) {
+        ZException.setMessage("XMLgetChildBlob",wSt,Severity_Error,
+                              "XMLgetChildBlob-E-UNCRYPTB64 Error cannot uncrypt B64 node name <%s>",
+                              pChildName.toCChar());
+    }
+    else
+        pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildCData-E-CNTFINDND Error cannot uncrypt B64 node element with name <%s> status <%s>",
+                              pChildName.toCChar(),
+                              decode_ZStatus(wSt));
+  } // wSt
+  return wSt;
+}
+
+ZStatus XMLgetChildCData(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDataBuffer &pContent,ZaiErrors* pErrorlog,ZaiE_Severity pSeverity)
+{
+  ZStatus wSt;
+  if (!pElement->hasCData()) {
+    pErrorlog->errorLog("");
+  }
+  zxmlElement*  wChild=nullptr;
+  zxmlNode*     wChildNodeCData=nullptr;
+  wSt=pElement->getChildByName((zxmlNode*&)wChild,pChildName);
+  if (wSt!=ZS_SUCCESS)
+  {
+
+    if (pErrorlog==nullptr) {
+        ZException.setMessage("XMLgetChildCData",wSt,Severity_Error,
+                              "XMLgetChildCData-E-CNTFINDND Error cannot find node element with name <%s>",
+                              pChildName.toCChar());
+        return wSt;
+    }
+    else
+        pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildCData-E-CNTFINDND Error cannot find node element with name <%s> status <%s>",
+                              pChildName.toCChar(),
+                              decode_ZStatus(wSt));
+    return wSt;
+  } // wSt
+  wSt=wChild->getFirstChildCData(wChildNodeCData);
+  if (wSt!=ZS_SUCCESS)
+  {
+    if (pErrorlog==nullptr) {
+        ZException.setMessage("XMLgetChildCData",wSt,Severity_Error,
+                              "XMLgetChildCData-E-CNTFINDND Error cannot find CData section within element <%s>",
+                              wChild->getName().toCChar());
+        return wSt;
+    }
+    else
+        pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildCData-E-CNTFINDND Error cannot find CData section within element <%s> status <%s>",
+                              wChild->getName().toCChar(),
+                              decode_ZStatus(wSt));
+    return wSt;
+  }
+  wSt=wChildNodeCData->getCData(pContent);
+  if (wSt!=ZS_SUCCESS)
+  {
+    if (pErrorlog==nullptr) {
+        ZException.setMessage("XMLgetChildCData",wSt,Severity_Error,
+                              "XMLgetChildCData-E-CNTFINDND Error cannot find CData section within element <%s>",
+                              wChild->getName().toCChar());
+        return wSt;
+    }
+    else
+        pErrorlog->logZStatus(pSeverity,wSt,"XMLgetChildCData-E-CNTFINDND Error cannot find CData section within element <%s> status <%s>",
+                              wChild->getName().toCChar(),
+                              decode_ZStatus(wSt));
+    return wSt;
+  }
+
+}
 
 utf8VaryingString fmtXMLnode(const utf8VaryingString &pNodeName, const int pLevel)
 {
@@ -364,7 +468,7 @@ utf8VaryingString fmtXMLdatefull(const utf8VaryingString &pVarName,const ZDateFu
   char wBuffer[500];
   memset (wBuffer,0,sizeof(wBuffer));
   if(pVarContent.isInvalid()){
-    sprintf(wBuffer,"%*c<%s>**invalid date**</%s>\n",
+    sprintf(wBuffer,"%*c<%s><!-- invalid date --></%s>\n",
       wIndent,' ',pVarName.toCChar(),pVarName.toCChar());
   }
   else
@@ -630,7 +734,7 @@ XMLgetChildZDateFull(zxmlElement *pElement, const utf8VaryingString& pChildName,
   if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
     return wSt;
 
-  pDateFull.fromUTC (wValue);
+  pDateFull.fromXmlValue (wValue);
   return ZS_SUCCESS;
 } //XMLgetChildZDate
 
@@ -740,19 +844,12 @@ XMLgetChildMd5 (zxmlElement*pElement,const utf8VaryingString &pChildName,md5 &pM
                           decode_ZStatus(wSt));
     return ZS_NOTFOUND;
     }
-
-  if (XMLgetChildText(wChild,"md5",wValue,pErrorlog,pSeverity) <0)
+  int wRet=XMLgetChildText(wChild,"md5",wValue,pErrorlog,pSeverity) ;
+  XMLderegister(wChild);
+  if (wRet<0) {
     return ZS_INVNAME;
-/*  utf8_t* wPtr=wValue.Data;
-  if (wValue.Data[0]=='<')
-    {
-    wPtr++;
-    utf8_t* wPtr1 = wPtr;
-    while (*wPtr1 &&(*wPtr1 != '>'))
-      wPtr1++;
-    *wPtr1='\0';
-    }
-*/
+  }
+
   return pMd5.fromHexa(wValue);
 } //XMLgetChildMd5
 
@@ -775,9 +872,12 @@ XMLgetChildCheckSum (zxmlElement*pElement,const utf8VaryingString & pChildName,c
                           decode_ZStatus(wSt));
     return ZS_XMLERROR;
     }
-
-  if (XMLgetChildText(wChild,"checksum",wValue,pErrorlog,pSeverity) <0)
+  int wRet=XMLgetChildText(wChild,"checksum",wValue,pErrorlog,pSeverity);
+  XMLderegister(wChild);
+  if ( wRet<0) {
     return ZS_INVNAME;
+  }
+
   utf8_t* wPtr=wValue.Data;
   if (wValue.Data[0]=='<')
   {
@@ -827,6 +927,7 @@ utf8VaryingString fmtXMLcheckSum(const utf8VaryingString &pVarName, const checkS
   wReturn += fmtXMLendnode(pVarName,pLevel);
   return wReturn;
 }//fmtXMLcheckSum
+
 
 
 utf8VaryingString fmtXMLSSLKeyB64(const utf8VaryingString &pVarName, const ZCryptKeyAES256& pVarContent, const int pLevel)
@@ -923,5 +1024,92 @@ XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildNam
   return pKey.set(wValue.decodeB64().toUtf());
 
 } //XMLgetChildSSLKeyB64
+
+
+size_t Payload=100;
+
+void setPayload(size_t pPayload) {Payload = pPayload;}
+
+/**
+ * @brief XMLLoadEntity
+ * @param pFd           file handler - file must be open for reading
+ * @param pEntity       keyword to search without any '<' or '>' character
+ * @param pXMLContent   returned Xml content containing entity including leading entity markup and end entity markup
+ * @param pOffset       input : file offset to start search
+ *                      output : file offset pointing to first byte AFTER end entity markup
+ * @return              a ZStatus
+ */
+ZStatus
+XMLLoadEntity(__FILEHANDLE__ pFd, const utf8VaryingString& pEntity,utf8VaryingString& pXMLContent,size_t& pOffset)
+{
+  bool wEof=false;
+  size_t wCurrentOffset = pOffset;
+  ZDataBuffer wZDB ;
+  ssize_t wOffsetStart=-1 , wOffsetEnd=-1 ;
+  size_t wEffectiveOffsetStart = 0 , wEffectiveOffsetEnd = 0 ;
+
+  utf8VaryingString wEntityStart , wEntityEnd;
+  wEntityStart.sprintf("<%s>",pEntity.toString());
+  wEntityEnd.sprintf("</%s>",pEntity.toString());
+  size_t wESLen=wEntityStart.strlen();
+  size_t wEELen=wEntityEnd.strlen();
+
+  pXMLContent = fmtXMLdeclaration();
+
+  ZStatus wSt=rawSeekToPosition(pFd,pOffset);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+
+ // utf8_t* wPtrIn=reinterpret_cast<utf8_t*> (wZDB.Data);
+  while ((wOffsetStart<0)&& (!wEof)) {
+    wSt=rawReadAt(pFd,wZDB,Payload,wCurrentOffset);
+    if (wSt!=ZS_SUCCESS) {
+      if ((wSt==ZS_READPARTIAL)||(wSt==ZS_EOF))
+          wEof=true;
+      else
+          return wSt;
+    }
+
+    wOffsetStart=wZDB.bsearch(&wEntityStart,0);
+    if (wOffsetStart < 0) {
+      if (wEof)
+          return ZS_NOTFOUND;
+      wCurrentOffset += Payload - wEELen ;
+    }
+  }
+  wEffectiveOffsetStart = wCurrentOffset + wOffsetStart;
+  wCurrentOffset = wEffectiveOffsetStart;
+  ZDataBuffer wZDBContent;
+  wZDBContent.setData (wZDB.Data + wOffsetStart , wZDB.Size - wOffsetStart);
+  wZDB.setData(wZDBContent);
+  wZDBContent.clear();
+  wOffsetEnd=wZDB.bsearch(&wEntityEnd,wEELen);
+  while ((wOffsetEnd<0) && (!wEof)) {
+      wCurrentOffset += wZDB.Size - wEELen ;  /* because end entity might be truncated at the end of buffer */
+      wZDBContent.appendData(wZDB.Data,wZDB.Size - wEELen);
+
+      wSt=rawReadAt(pFd,wZDB,Payload,wCurrentOffset);
+      if (wSt!=ZS_SUCCESS) {
+      if ((wSt==ZS_READPARTIAL)||(wSt==ZS_EOF)) {
+          wEof=true;
+          wSt=ZS_EOF;
+      }
+      else
+          return wSt;
+      }
+    wOffsetEnd=wZDB.bsearch(&wEntityEnd,0);
+  }
+  wZDBContent.appendData(wZDB.Data, wOffsetEnd + wEELen);
+  wEffectiveOffsetEnd =  wCurrentOffset + wOffsetEnd + wEELen ;
+
+  pXMLContent.setData((const utf8_t*)wZDBContent.Data,wZDBContent.Size);
+  pXMLContent.addConditionalTermination();
+
+  pOffset = wCurrentOffset + wOffsetEnd + wEELen ;
+  if (wEof)
+    return ZS_EOF ;
+
+  return ZS_SUCCESS;
+} // XMLLoadEntity
 
 #endif //ZXMLPRIMITIVES_CPP

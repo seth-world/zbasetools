@@ -765,7 +765,18 @@ ZDate ZDateFull::toZDate(void)
 
 
 /* UTC conversions */
+utf8VaryingString ZDateFull::toXmlValue() const
+{
+  if (isInvalid())
+    return "<!-- invalid date -->";
+  struct tm wTm;
+  if (gmtime_r(&tv_sec,&wTm)==nullptr)
+    return "<!-- invalid date -->";
 
+  utf8VaryingString wUTC;
+  wUTC.sprintf("%04d-%02d-%02dT%02d:%02d:%02d.%03dZ", wTm.tm_year+1900, wTm.tm_mon+1, wTm.tm_mday, wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  return wUTC;
+}
 
 utf8VaryingString ZDateFull::toUTCGMT() const
 {
@@ -847,6 +858,7 @@ utf8VaryingString ZDateFull::toMDY() const
   wLocalTime.sprintf("%02d-%02d-%04d",   wTm.tm_mon+1, wTm.tm_mday,wTm.tm_year+1900);
   return wLocalTime;
 }
+
 int ZDateFull::year() {
   struct tm wTm;
   if (localtime_r(&tv_sec,&wTm)==nullptr)
@@ -1097,7 +1109,10 @@ void ZDateFull::fromUTC(const utf8VaryingString &pIn)
   return;
 }
 
-
+void ZDateFull::fromXmlValue(const utf8VaryingString &pIn)
+{
+  fromUTC(pIn);
+}
 
 
 int getDateValue(utf8_t* &wPtr,int pMaxDigits,char pSep) {

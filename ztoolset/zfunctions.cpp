@@ -1625,7 +1625,7 @@ void conditionalWNL(wchar_t *pString,const ssize_t pSizeMax)
 
 
 
-
+#ifdef __MOVED__
 
 const char*
 decode_ZST(ZSort_Type pZST)
@@ -1661,7 +1661,7 @@ encode_ZST(const char* pZST)
 
     return ZST_Nothing;
 }
-
+#endif // __MOVED__
 //================String and WString functions==========================
 /**
  * @brief _firstNotinSet   utility routine

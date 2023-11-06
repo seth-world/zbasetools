@@ -1766,7 +1766,7 @@ LDoubleToUtfDigits_G(LONG_DOUBLE pValue,
         }
     else
     {
-    if (wFractionalDigits>0)
+    if (wFractionalDigits!=nullptr)
     {
     wUtfInPtr =wFractionalDigits;
     if (*wUtfInPtr)

@@ -1184,8 +1184,6 @@ zxmlElement::newCData(zxmlNode* &pNode,ZDataBuffer &pCData)
 ZStatus
 zxmlElement::newCDataElement(zxmlElement* &pElement, const char *pName, ZDataBuffer &pCData, zxmlNameSpace* pNameSpace)
 {
-
-
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
             wNs=pNameSpace->_xmlInternalNameSpace;

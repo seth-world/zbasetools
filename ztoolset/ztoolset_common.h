@@ -46,7 +46,7 @@ struct ZData_Type_struct
             };
  };
 
-
+#ifdef __MOVED__
 
 /**
  * @brief The ZSort_Type enum Gives the type of access to index : with duplicate key values or without duplicates
@@ -57,7 +57,7 @@ enum ZSort_Type: uint8_t
     ZST_NODUPLICATES = 1,  //!< No duplicate allowed
     ZST_DUPLICATES   = 2   //!< Duplicates are allowed
 };
-
+#endif //__MOVED__
 
 /* migrated to zlock.h
 typedef uint8_t         zlock_type ;

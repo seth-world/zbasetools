@@ -35,6 +35,9 @@
 #include <ztoolset/zatomicconvert.h>
 
 #include <ztoolset/zmem.h> // for zfree()
+
+#include <ztoolset/zdatabuffer.h>
+
 /*
 template <class _Utf>
 _Utf* utfStrdup(const _Utf* pString); // see strdup

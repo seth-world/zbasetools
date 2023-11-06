@@ -56,6 +56,8 @@ using namespace zbs;
 #ifndef __URISTRING__
 class uriString;
 #endif
+class utf8VaryingString;
+
 #ifndef CHECKSUM_H
 struct checkSum;
 #endif
@@ -68,6 +70,8 @@ class ZCryptKeyAES256;
 class ZCryptVectorAES256;
 }
 #endif
+
+class zxmlElement;
 
 class ZDataBuffer
 {
@@ -566,6 +570,8 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
  * @return the offset of pKey if it has been found. -1 if nothing has been found
  */
    ssize_t bsearch (void *pKey,const size_t pKeySize,const size_t pOffset=0);
+   ssize_t bsearch (const ZDataBuffer *pKey,const size_t pOffset=0);
+   ssize_t bsearch (const utf8VaryingString *pKey,const size_t pOffset=0);
    /**
  * @brief bsearch   Binary search for a key
  *  Same as previous but key to search is ZDataBuffer::Data Content of ZDataBuffer::Size length.
@@ -750,6 +756,10 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     size_t        getURFSize() const ;
     size_t        getURFHeaderSize() const;
 
+/* Deprecated : use fmtXMLBlob and XMLgetChildBlob in place  (zxml/zxmlprimitives.h)
+    utf8VaryingString toXml(const utf8VaryingString &pName, int pLevel);
+    ZStatus fromXml(zxmlElement* pBlobRoot, ZaiErrors* pErrorLog,ZaiE_Severity pSeverity);
+*/
 }; // ZDataBuffer
 
 
@@ -789,9 +799,9 @@ static size_t ZAimportZDB(ZArray<_TpOut>* pZArray,
 template <class _Tp>
 size_t _importAtomic(_Tp& pValue,const unsigned char * &pUniversalPtr)
 {
-//  _Tp wValue;
-//  memmove(&wValue,pUniversalPtr,sizeof(_Tp));
-//  pValue=reverseByteOrder_Conditional<_Tp>(wValue);
+  //  _Tp wValue;
+  //  memmove(&wValue,pUniversalPtr,sizeof(_Tp));
+  //  pValue=reverseByteOrder_Conditional<_Tp>(wValue);
   _Tp* wPtr =(_Tp*)pUniversalPtr;
   pValue=reverseByteOrder_Conditional<_Tp>(*wPtr);
   pUniversalPtr += sizeof(_Tp);
@@ -820,6 +830,13 @@ size_t _exportAtomicPtr(_Tp pValue,unsigned char* &pPtrOut)
   _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
   memmove(pPtrOut,&wOut,sizeof(_Tp));
   pPtrOut += sizeof(_Tp);
+  return sizeof(_Tp);
+}
+
+template <class _Tp>
+size_t _exportAtomicValue(_Tp pValueIn,_Tp &pValueOut)
+{
+  pValueOut = reverseByteOrder_Conditional<_Tp>(pValueIn);
   return sizeof(_Tp);
 }
 

@@ -11,6 +11,8 @@
 #include <ztoolset/userid.h>
 
 #include <ztoolset/zdatecommon.h>
+#include <QUrl>
+
 /*
 #ifdef QT_CORE_LIB
 #include <QUrl>

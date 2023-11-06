@@ -184,10 +184,11 @@ public:
     void utfInit(ZType_type pZType,ZCharset_type pCharset)
     {
       Check = cst_ZCHECK;
-        DataByte=(uint8_t*)content;
+ //       DataByte=(uint8_t*)content;
         UnitCount=_Sz;
         ByteSize=_Sz*sizeof(_Utf);
         CryptMethod=ZCM_Uncrypted;
+        clear();
         if (pCharset==ZCHARSET_SYSTEMDEFAULT)
                     pCharset=getDefaultCharset();
         if (charsetUnitSize(pCharset)!=sizeof(_Utf)){
@@ -526,7 +527,7 @@ public:
 
     //-------------------------------------------------------------------
     bool isEmpty (void) const {return (content[0]==(_Utf)'\0');}
-    void clear(void) {memset(content,0,getUnitCount()); UnitCount = _Sz; ByteSize= UnitCount *sizeof(_Utf);}
+    void clear(void) {memset(content,0,_Sz); UnitCount = _Sz; ByteSize= UnitCount *sizeof(_Utf);}
 
     const _Utf * toString(void) const {return((const _Utf *)content);}
 
@@ -1476,7 +1477,7 @@ ssize_t utftemplateString<_Sz, _Utf>::_exportURF_Ptr(unsigned char* &pURF) const
       *wPtrOut ++ =*wPtrIn++;
   else
     while (*wPtrIn)
-      *wPtrOut ++= reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
+      *wPtrOut++ = reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
 
   pURF = (unsigned char*)wPtrOut;
 
@@ -1698,7 +1699,7 @@ utftemplateString<_Sz,_Utf>::_importUVF(unsigned char*& pPtrIn)
   uint8_t wUnitSize=(uint8_t)*pPtrIn;
   if (wUnitSize!=sizeof(_Utf))
   {
-    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <%s>",
+    fprintf(stderr,"_importUVF-E-IVUSIZE Imported fixed string format <%s> does not correspond to current string format <%s>\n",
         getUnitFormat(wUnitSize),
         getUnitFormat(sizeof(_Utf)));
     return 0;
@@ -1715,7 +1716,7 @@ utftemplateString<_Sz,_Utf>::_importUVF(unsigned char*& pPtrIn)
   /* check capacity */
   if (wUnitCount >= _Sz)
   {
-    fprintf(stderr,"_importUVF-W-CAPOVFL Fixed string capacity overflow : importing <%d> char unit while capacity is <%d>. Truncating imported string.",
+    fprintf(stderr,"_importUVF-W-CAPOVFL Fixed string capacity overflow : importing <%d> char unit while capacity is <%d>. Truncating imported string.\n",
         wUnitCount,
         _Sz);
     wUnitCount= _Sz-1;
@@ -1777,8 +1778,7 @@ ZTypeBase wType;
     if (wType!=pType)
         {
         fprintf (stderr,
-                 "%s>> Error invalid URF data type <%X> <%s> while getting universal value of <%s> ",
-                 _GET_FUNCTION_NAME_,
+                 "getUniversalFromURF-E-INVTYP Error invalid URF data type <%X> <%s> while expecting type <%s>\n",
                  wType,
                  decode_ZType(wType),
                  decode_ZType(pType));

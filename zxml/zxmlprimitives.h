@@ -6,6 +6,9 @@
 //#include <stdint-gcc.h>
 #include <stdint.h>
 #include <sys/types.h>
+
+#include <zio/zioutils.h>
+
 #ifndef ZXMLPRIMITIVES_CPP
 extern int cst_XMLIndent;
 #endif
@@ -135,6 +138,12 @@ utf8VaryingString fmtXMLSSLVectorB64(const utf8VaryingString &pVarName, const zb
 
 
 utf8VaryingString fmtXMLversion(const utf8VaryingString& pName, unsigned long pFullVersion, const int pLevel=0);
+
+/* writes a row CData element whose data is contained in pVarContent */
+utf8VaryingString fmtXMLCData(const utf8VaryingString &pVarName, const ZDataBuffer& pVarContent, const int pLevel);
+
+/* encode pVarContent in B64 format, then writes it as CData using fmtXMLCData */
+utf8VaryingString fmtXMLBlob(const utf8VaryingString &pVarName, ZDataBuffer &pVarContent, const int pLevel);
 
 /*
 utf8VaryingString fmtXMLint32Hexa(const char *pVarName, const int32_t pVarContent, const int pLevel)
@@ -301,6 +310,10 @@ XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildNam
 ZStatus
 XMLgetChildSSLVectorB64 (zxmlElement*pElement,const utf8VaryingString &pChildName,zbs::ZCryptVectorAES256 &pKey,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 
+ZStatus
+XMLgetChildCData(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDataBuffer &pContent, ZaiErrors* pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus
+XMLgetChildBlob(zxmlElement *pElement, const utf8VaryingString& pChildName, ZDataBuffer &pContent,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 
 
 /**
@@ -313,5 +326,20 @@ void setXmlIdent(int pIndent);
  * @brief suppressLF  eliminates the first encountered character '\n' (LF) from the given string
  */
 utf8VaryingString& suppressLF(utf8VaryingString& pString);
+
+void setPayload(size_t pPayload);
+/**
+ * @brief XMLLoadEntity Loads a segment of Xml code corresponding to entity pEntity into pXmlContent;
+ * @param pFd           file handler - file must be open for reading
+ * @param pEntity       keyword to search without any '<' or '>' character
+ * @param pXMLContent   returned Xml content containing entity including leading entity markup and end entity markup
+ * @param pOffset       input : file offset to start search
+ *                      output : file offset pointing to first byte AFTER end entity markup
+ * @return              a ZStatus U
+ *  ZS_SUCCESS  one Xml entity has been loaded to pXMLContent and there is more to read from pFd
+ *  ZS_EOF      The last Xml entity has been loaded to pXMLContent then EOF has been reached
+ */
+ZStatus XMLLoadEntity(__FILEHANDLE__ pFd, const utf8VaryingString& pEntity, utf8VaryingString& pXMLContent, size_t &pOffset);
+
 
 #endif // ZXMLPRIMITIVES_H

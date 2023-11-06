@@ -3,20 +3,62 @@
 #include <ztoolset/zaierrors.h>
 #include <ztoolset/zexceptionmin.h>
 
-void ZaiErrors::logZException()
+ZaiErrors::ZaiErrors(const char* pContext)
 {
-  ZaiE_Severity wS= ZAIES_Info;
-    if (ZException.count() == 0)
-        push(new ZaiError(ZAIES_Info, (const utf8_t*)"No exception logged at this time"));
-    else {
-      wS=cvttoZAIESeverity(ZException.last().Severity);
-        push(new ZaiError(wS, ZException.lastUtf8().toUtf()));
-    }
-    if (wS >= AutoPrint )
-        _print(wS,"<%s> %s",decode_ZAIES(last()->Severity),last()->Message());
+    Context.push(pContext);
+}
+
+ZaiErrors::~ZaiErrors()
+{
+    if ((Output!=stderr)&&(Output!=stdout))
+        fclose(Output);
+
+    while (count())
+        delete popR();
+}
+
+void ZaiErrors::setContext(const char* pContext,...)
+{
+    va_list args;
+    va_start (args, pContext);
+    char wContext[200];
+    memset(wContext,0,sizeof(wContext));
+    vsnprintf(wContext,199,pContext,args);
+    Context.push(wContext);
+
+    textLog("           Context set to <%s>",Context.last().toCChar());
+
+    va_end(args);
 }
 
 
+void ZaiErrors::logZExceptionLast(const utf8VaryingString &pAdd)
+{
+    logZException(ZException.last());
+}
+
+void ZaiErrors::logZException(const ZExceptionBase& pException,const utf8VaryingString& pAdd)
+{
+    utf8VaryingString wAdd(pAdd);
+    ZaiError* wErrToPush=nullptr;
+    ZaiE_Severity wS= ZAIES_None;
+    if (!wAdd.isEmpty())
+        wAdd.add("\n");
+    if (ZException.count() == 0)
+        wErrToPush=new ZaiError(ZAIES_Info, wAdd + "No exception logged at this time");
+    else {
+        wS=cvttoZAIESeverity(pException.Severity);
+        wErrToPush=new ZaiError(wS, wAdd + pException.formatUtf8());
+    }
+    if (wS >= AutoPrint ) {
+        _print(wS,"<%s> %s",decode_ZAIES(last()->Severity),pAdd.toUtf());
+        _print(wS,"<%s> %s",decode_ZAIES(last()->Severity),wErrToPush->Message());
+    }
+    if (wS >= StoreMinSeverity )
+        push(wErrToPush);
+    else
+        delete wErrToPush;
+}
 void ZaiErrors::cleanupLogged()
 {
   ErrorLevel = 0;
@@ -32,6 +74,7 @@ void ZaiErrors::cleanupLogged()
     delete popR();
   }
 }
+
 int ZaiErrors::countType(uint8_t pC) {
   int wRet=0;
   for (long wi=0;wi < count();wi++) {
@@ -239,24 +282,28 @@ utf8String ZaiErrors::getLastError( )
 void ZaiErrors::log(ZaiE_Severity pSeverity,const char* pFormat,...)
 {
   ErrorLevel = pSeverity;
+
   va_list args;
   va_start (args, pFormat);
-  push(new ZaiError(pSeverity,pFormat,args));
-  if (pSeverity >= AutoPrint)
-    _print(last()->Severity,"<%s> %s ",decode_ZAIES(last()->Severity),last()->Message());
-
+  _log(pSeverity,pFormat,args);
   va_end(args);
 }
+
 void ZaiErrors::logZStatus(ZaiE_Severity pSeverity,ZStatus pSt,const char* pFormat,...)
 {
   ErrorLevel = pSeverity;
+
   va_list args;
   va_start (args, pFormat);
+  ZaiError* wErrToPush=new ZaiError(pSeverity,pSt,pFormat,args);
   push(new ZaiError(pSeverity,pSt,pFormat,args));
   if (pSeverity >= AutoPrint)
-    _print(pSeverity,"<%s> <%s> %s",decode_ZAIES(last()->Severity),decode_ZStatus(last()->Status),last()->Message());
-
+    _print(pSeverity,"<%s> <%s> %s",decode_ZAIES(wErrToPush->Severity),decode_ZStatus(wErrToPush->Status),wErrToPush->Message());
   va_end(args);
+  if (pSeverity >= StoreMinSeverity )
+      push(wErrToPush);
+  else
+      delete wErrToPush;
 }
 
 void ZaiErrors::_print(uint8_t pSeverity,const char* pFormat,...)
@@ -318,70 +365,66 @@ void ZaiErrors::errorLog(const char* pFormat,...)
 {
   va_list args;
   va_start (args, pFormat);
-  _errorLog(pFormat,args);
-
+  _log(ZAIES_Error,pFormat,args);
   va_end(args);
 }
 void ZaiErrors::textLog(const char* pFormat,...)
 {
   va_list args;
   va_start (args, pFormat);
-  _textLog(pFormat,args);
+  _log(ZAIES_Text,pFormat,args);
   va_end(args);
 }
 void ZaiErrors::infoLog(const char* pFormat,...)
 {
   va_list args;
   va_start (args, pFormat);
-  _infoLog(pFormat,args);
+  _log(ZAIES_Info,pFormat,args);
   va_end(args);
 }
 void ZaiErrors::warningLog(const char* pFormat,...)
 {
   va_list args;
   va_start (args, pFormat);
-  _warningLog(pFormat,args);
+  _log(ZAIES_Warning,pFormat,args);
   va_end(args);
 }
+void ZaiErrors::_log(ZaiE_Severity pSeverity,const char* pFormat,va_list pArgs)
+{
+    ErrorLevel = pSeverity;
+    ZaiError* wErrorToPush = new ZaiError(pSeverity,pFormat,pArgs);
 
+    if (ZAIES_Error >= AutoPrint)
+        _print(ZAIES_Error,"<%s> %s ",decode_ZAIES(wErrorToPush->Severity),wErrorToPush->Message());
+    if (pSeverity >= StoreMinSeverity )
+        push(wErrorToPush);
+    else
+        delete wErrorToPush;
+}
+/*
+void ZaiErrors::_fatalLog(const char* pFormat,va_list pArgs)
+{
+    _log(ZAIES_Fatal,pFormat,pArgs);
+}
 
 void ZaiErrors::_errorLog(const char* pFormat,va_list pArgs)
 {
-  ErrorLevel = ZAIES_Error;
-
-  push(new ZaiError(ZAIES_Error,pFormat,pArgs));
-  if (ZAIES_Error >= AutoPrint)
-    _print(ZAIES_Error,"<%s> %s ",decode_ZAIES(last()->Severity),last()->Message());
-
+    _log(ZAIES_Error,pFormat,pArgs);
 }
+
 void ZaiErrors::_textLog(const char* pFormat,va_list pArgs)
 {
-  ErrorLevel = ZAIES_Text;
-  push(new ZaiError(ZAIES_Text,pFormat,pArgs));
-
-  if (AutoPrint <= ZAIES_Text )
-    _print(ZAIES_Text,"%s",last()->Message());
+    _log(ZAIES_Text,pFormat,pArgs);
 }
 void ZaiErrors::_infoLog(const char* pFormat,va_list pArgs)
 {
-  ErrorLevel = ZAIES_Info;
-  push(new ZaiError(ZAIES_Info,pFormat,pArgs));
-
-  if (ZAIES_Info >= AutoPrint)
-    _print(ZAIES_Info,"<%s> %s ",decode_ZAIES(last()->Severity),last()->Message());
-
+    _log(ZAIES_Info,pFormat,pArgs);
 }
 void ZaiErrors::_warningLog(const char* pFormat,va_list pArgs)
 {
-  ErrorLevel = ZAIES_Warning;
-
-  push(new ZaiError(ZAIES_Warning,pFormat,pArgs));
-
-  if (ZAIES_Warning >= AutoPrint)
-    _print(ZAIES_Warning,"<%s> %s ",decode_ZAIES(last()->Severity),last()->Message());
-
+    _log(ZAIES_Warning,pFormat,pArgs);
 }
-
+*/
 
 const char* decode_ZAIES(ZaiE_Severity pSeverity)
 {

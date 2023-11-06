@@ -530,7 +530,7 @@ uriString::getUniqueName (const char* pRootName)
 #ifdef __USE_WINDOWS__
     return utf8String((utf8_t*)_mktemp(wTempName));
 #else
-    return utf8String((utf8_t*)mktemp(wTempName));
+    return utf8String((utf8_t*)mkstemp(wTempName));
 #endif //__USE_WINDOWS__
 
 
@@ -1134,7 +1134,17 @@ return ZS_SUCCESS;
  *
  * returned error see https://www.man7.org/linux/man-pages/man2/stat.2.html
  *
-* @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.@see ZBSError
+* @return  a ZStatus. In case of error, ZStatus is returned and ZException is set with appropriate message.
+      ZS_FILENOTEXIST   <ENOENT> A component of <%s> does not exist or is a dangling symbolic link.
+      ZS_USERPRIVILEGES <EACCES> Search permission is denied for one of the directories in the path prefix of <%s>.
+      ZS_FILENOTOPEN    <EBADF> File descriptor is not a valid open file descriptor for file <%s>.
+      ZS_CORRUPTED      <EFAULT> Bad address for file <%s>.
+      ZS_INVPARAMS      <EINVAL> (fstatat()) Invalid flag specified in flags for file <%s>.
+      ZS_BADFILEDESC    <ELOOP> Too many symbolic links encountered while traversing the path. for file <%s>.
+      ZS_INVNAME        <ENAMETOOLONG> pathname is too long for file <%s>.
+      ZS_MEMERROR       <ENOMEM> Out of memory (i.e., kernel memory) for file <%s>.
+      ZS_BADFILEDESC    <ENOTDIR> A component of the path prefix of pathname is not a directory or referring to a file other than a directory for file <%s>
+      ZS_BADFILEDESC    <EOVERFLOW> Pathname or fd refers to a file whose size, inode number, or number of blocks cannot be represented for file <%s>.
  */
 ZStatus
 uriString::getStatR(uriStat &pZStat, bool pLogZException)const

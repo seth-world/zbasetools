@@ -60,7 +60,7 @@ size_t _getimportCharArrayUVFSize(const unsigned char *&pUniversalPtr)
   if (wUnitSize!=sizeof(char))
   {
     errno=EPERM;
-    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <char>",
+    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string (char array) format <%s> does not correspond to current string format <char>\n",
         getUnitFormat(wUnitSize));
     return 0;
   }
@@ -80,7 +80,7 @@ size_t _importCharArrayUVF(char* pDataOut, size_t pMaxSize, const unsigned char 
   if (wUnitSize!=sizeof(char))
   {
     errno=EPERM;
-    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string format <%s> does not correspond to current string format <char>",
+    fprintf(stderr,"_importUVF-E-IVUSIZE Imported string  (char array) format <%s> does not correspond to current string format <char>\n",
         getUnitFormat(wUnitSize));
     return 0;
   }

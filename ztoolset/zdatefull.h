@@ -296,6 +296,7 @@ public:
   /** @brief toUTC converts date content as local time in utf format with appropriate Time Zone difference trail.
    * @see fromUTC() Trailing Time Zone secton
  */
+  utf8VaryingString toXmlValue() const;
   utf8VaryingString toUTC() const;
 
   /** @brief toUTCGMT converts first internal date-time content into GMT time then format it into UTC format */
@@ -319,6 +320,8 @@ public:
    *    +99.99 or -99.99  applies to given date as plus or minus hour(2 digits).minutes(2digits) to give gmt time
  */
   void fromUTC(const utf8VaryingString &pIn );
+  void fromXmlValue(const utf8VaryingString &pIn );
+
 
   ZSuperTm getUTC(const utf8VaryingString &pIn );
 
@@ -326,7 +329,12 @@ public:
   ZDateFull fromTimespec(timespec &pTimespec);
   timespec  toTimespec(void);
 
+  /**
+   * @brief currentDateTime this static method returns a ZDateFull object with current date and time
+   */
   static ZDateFull currentDateTime(void);
+  /**  @brief now alias for currentDateTime()
+   */
   static ZDateFull now();
   static ZDateFull fromDMY(const ZDateFull_string &pDate);
 
@@ -340,12 +348,6 @@ public:
 
   static ZStatus checkDMY(const utf8VaryingString& pDateLiteral , tm& pTt ,uint8_t &pFed);
 
-
-#ifdef QT_CORE_LIB
-  ZDateFull fromQDateTime (const QDateTime &pQDate);
-  ZDateFull fromQDate (const QDate &pQDate);
-  ZDateFull fromQString(const QString &pDate);
-#endif // QT_CORE_LIB
 //-----------reverse conversion----------------
 
 

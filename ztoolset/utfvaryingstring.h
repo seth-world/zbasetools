@@ -53,6 +53,11 @@ typedef utf8_t                  _UtfBase;
     utf8VaryingString(std::string& pIn) {_setToUtf8() ; fromStdString(pIn);}
     utf8VaryingString(std::string&& pIn) {_setToUtf8() ; fromStdString(pIn);}
 
+    utf8VaryingString& operator + (const utf8VaryingString&  pIn) {
+          add(pIn);
+          return *this;
+    }
+
 protected:
     utf8VaryingString(ZType_type pType):_Base() {_setToUtf8(pType);}
 public:

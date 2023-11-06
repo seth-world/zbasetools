@@ -58,7 +58,7 @@ public:
 
     void trunc(const utf8_t*pPtr,int pSize)
     {
-      ::strncpy(content,(char*)pPtr,pSize>(sizeof(content)-1)?sizeof(content)-1:pSize);
+        ::strncpy(content,(char*)pPtr,size_t(pSize)>(sizeof(content)-1)?sizeof(content)-1:size_t(pSize));
     }
     void trunc(const char*pPtr,size_t pSize)
     {

@@ -9,6 +9,9 @@
 
 #QT -= core  # requested for QList
 QT -= gui
+QT += core
+
+greaterThan(QT_MAJOR_VERSION,5): QT += core5compat
 
 TEMPLATE = lib
 CONFIG += c++17 shared dll create_prl link_prl
@@ -193,7 +196,8 @@ LIBS += -lcrypto -lcrypt
 #base libs static
 #LIBS += -ldl -static-libstdc++  #do not link libstdc in static where we link icu in dynamic because icu libraries need libstdc
 
-
+INCLUDEPATH +=  /usr/include/x86_64-linux-gnu \
+                /usr/include
 
 INCLUDEPATH += \
 #/usr/include/c++/8 \
@@ -215,6 +219,7 @@ INCLUDEPATH += \
 #                $$ICU_SRCi18n
 
 # if using libxml2
+
 INCLUDEPATH +=  /usr/include/libxml2
 
 # if using libxml++ (version 2.6)  : uncomment
@@ -226,7 +231,9 @@ INCLUDEPATH +=  /usr/include/libxml2
 #                /usr/lib/x86_64-linux-gnu/glibmm-2.4/include
 
 
-HEADERS += $$TOOLSET_BASE/ztoolset/zarray.h \
+HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
+            $${TOOLSET_ROOT}/config/zconfig.h \
+            $$TOOLSET_BASE/ztoolset/zarray.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_common.h \
     $$TOOLSET_BASE/ztoolset/zerror.h \
     $$TOOLSET_BASE/zio/zdir.h \
@@ -301,8 +308,6 @@ HEADERS += $$TOOLSET_BASE/ztoolset/zarray.h \
     $$TOOLSET_BASE/ztoolset/zdatecommon.h \
     $$TOOLSET_BASE/ztoolset/zdatefull.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_release.h \
-    $$TOOLSET_ROOT/config/zconfig.h \
-    $$TOOLSET_ROOT/config/zconfig_general.h \
     $$TOOLSET_BASE/zio/zioutils.h
 
 

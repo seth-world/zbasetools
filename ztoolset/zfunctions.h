@@ -87,10 +87,10 @@ ZData_Type_struct &_get_Data_Type (ZData_Type_struct*pDT_Return);
 //-------------decoding codes-----------------
 
 const char * decode_ZStatus (ZStatus ZS);
-
+#ifdef __MOVED__
 const char* decode_ZST(ZSort_Type pZST);
 ZSort_Type  encode_ZST(const char* pZST);
-
+#endif // __MOVED__
 
 
 //--------------Spawn and child process section-------------------------------------------

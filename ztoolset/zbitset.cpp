@@ -173,9 +173,11 @@ int wNum=0;
 
 utf8VaryingString
 ZBitset::toString() {
+
   utf8VaryingString wReturn;
   utf8_t wByte;
-
+  if (isFullBitset())
+        return "";
   wReturn.allocateUnitsBZero((Size*8)+1);
 
   utf8_t* wPtr = wReturn.Data;
@@ -239,7 +241,7 @@ unsigned char* wURFPtr;
 
     if (bit==nullptr)
       {
-      return ssize_t( _exportAtomic<ZTypeBase>(ZType_bitsetFull,pBitsetExport));
+      return ssize_t( _exportAtomic<ZTypeBase>(ZType_bitsetFull,&pBitsetExport));
       }
 
       wURFPtr=pBitsetExport.extendBZero(getURFSize()); /* create room */

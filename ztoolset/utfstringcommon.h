@@ -54,7 +54,7 @@ protected:
     utfStringDescriptor& _copyFrom(const utfStringDescriptor* pIn)
     {
         Check=cst_ZCHECK;
-        DataByte = pIn->DataByte;
+ //       DataByte = pIn->DataByte;
         UnitCount = pIn->UnitCount;
         ByteSize = pIn->ByteSize;
         ZType = pIn->ZType;
@@ -64,7 +64,7 @@ protected:
         return *this;
     }
 public:
-    uint8_t*            DataByte=nullptr;  /** pointer to effective data : content if fixed string or Data if varying string */
+//    uint8_t*            DataByte=nullptr;  /** pointer to effective data : content if fixed string or Data if varying string */
     size_t              UnitCount=0;     /** current string capacity in terms of character units */
     size_t              ByteSize=0;      /** effective data size in bytes : updated according alloc/realloc if varying string */
     ZType_type          ZType=ZType_Nothing;
@@ -87,7 +87,7 @@ public:
     inline ZCharset_type getCharset(void) {return Charset;}
     inline ssize_t getCharsetUnitSize(void) const {return charsetUnitSize(Charset);}
     inline ZCryptMethod_type getCryptMethod(void) const {return CryptMethod;}
-    inline bool isNull (void) const {return DataByte==nullptr;} /** test if any allocation has been made (only used for varying string) */
+//    inline bool isNull (void) const {return DataByte==nullptr;} /** test if any allocation has been made (only used for varying string) */
 protected:
     inline ZStatus setCharset(ZCharset_type pCharset)
     {
@@ -113,14 +113,15 @@ public:
 
     static ZStatus getUniversalFromURF(ZType_type pType, const unsigned char *pURFDataPtr, ZDataBuffer &pUniversal, const  unsigned char **pURFDataPtrOut=nullptr);
 #endif // #ifdef __DEPRECATED__
+/*
     template <class _Utf>
     _Utf* allocateChars(ssize_t pCharCount);
+*/
 };
-
 
 typedef utfStringHeader* utfStringHeaderPtr;
 
-
+/*
 template <class _Utf>
 _Utf*
 utfStringHeader::allocateChars(ssize_t pCharCount)
@@ -160,7 +161,7 @@ utfStringHeader::allocateChars(ssize_t pCharCount)
 
     return (_Utf*)DataByte;
 }//utfStringHeader::allocateChars
-
+*/
 
 template <class _Tp>
 inline unsigned char*

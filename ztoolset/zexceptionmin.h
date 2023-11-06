@@ -1,15 +1,17 @@
 #ifndef ZEXCEPTIONMIN_H
 #define ZEXCEPTIONMIN_H
+//#pragma once
 
 #include <config/zconfig.h>
 
 #include <exception>
 #include <ztoolset/zerror.h>
 
-#include <ztoolset/ztoolset_common.h>
+//#include <ztoolset/ztoolset_common.h>
 //#include <ztoolset/zbasedatatypes.h>
 
 #include <ztoolset/exceptionstring.h>
+#include <functional>
 
 //typedef templateString<char [cst_desclen+1]> descString;
 //typedef templateString<char [cst_codelen+1]> codeString;
@@ -33,7 +35,9 @@
  *
  * @{ */
 
+#define __ABORTCALLBACK__(__NAME__)  std::function<void (void)> __NAME__
 
+void setAbortCallBack(__ABORTCALLBACK__(pAbortCallBack)) ;
 
 
 class ZExceptionBase_Data //: public std::exception
@@ -208,7 +212,7 @@ public:
 
 //    ZExceptionBase &operator = (const ZExceptionBase &pZException) {memmove (this,&pZException,sizeof(ZExceptionBase)); return(*this);}
 
-    utf8VaryingString formatUtf8 (void);
+    utf8VaryingString formatUtf8 (void) const;
 
 #ifdef __COMMENT__
 #ifdef QT_CORE_LIB
@@ -290,6 +294,9 @@ public:
 };
 
 class ZaiErrors;
+/* this simple abort routine must be replaced by other routines whenever some cleanings are necessary before aborting */
+
+
 
 class ZExceptionMin : public ZExceptionStack
 {
@@ -384,7 +391,7 @@ public:
     void _display (const utf8VaryingString& pString) ;
 
 
-#if __USE_ZTHREAD__
+#ifdef __USE_ZTHREAD__
     void Thread_exit_abort(const ZStatus pStatus=ZS_NOTHING);
 #endif
     void printUserMessage (FILE *pOutput=stderr, bool pDelete=true);

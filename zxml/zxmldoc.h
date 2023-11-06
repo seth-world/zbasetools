@@ -149,6 +149,9 @@ public:
 
     ZStatus newTextElement(zxmlElement *pTextNode, const char *pNodeName, utf8VaryingString& pContent, zxmlNameSpace* pNameSpace);
 
+    /* parse memory with detailed error management (mention errored xml string portion) */
+    ZStatus XmlParseFromMemory(const utf8VaryingString& pXmlString,ZaiErrors* pErrorLog);
+
 
 utffieldNameString Version;
 
@@ -159,5 +162,7 @@ zxmlParser* DocParser=nullptr;
 zxmlElement* RootElement=nullptr;
 };
 
+
+ZStatus XmlParseFromMemory(const utf8VaryingString& pXmlString,zxmlDoc& pOutDoc,ZaiErrors* pErrorLog);
 
 #endif // ZXMLDOC_H

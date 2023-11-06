@@ -30,8 +30,17 @@
 
 #include <qstring.h>
 #include <qtextstream.h>
-#include <qtextcodec.h>
 
+//The QTextCodec class was moved to the core5compat submodule so it is not enough to add that in the .pro, but you must correct the import to:
+/*
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include <QtCore/QTextCodec>
+#else
+#include <QtCore5Compat/QTextCodec>
+#endif
+
+#include <qtextcodec.h>
+*/
 #endif //QT_CORE_LIB
 
 /* ============== utf fixed string classes definitions ============================= */

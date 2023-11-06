@@ -15,6 +15,9 @@
 
 #include <ztoolset/zutfstrings.h>
 
+#include <zxml/zxmlprimitives.h>
+#include <ztoolset/utfvaryingstring.h>
+
 ZDataBuffer::ZDataBuffer(void): Data(nullptr), Size(0) ,CryptMethod(ZCM_Uncrypted)
 {return;}
 
@@ -489,10 +492,10 @@ ZDataBuffer::bsearch (void *pKey,
 {
     long widx = 0;
     long wistart = -1;
-    unsigned char *wKey = (unsigned char *)pKey;
+    const unsigned char *wKey = (const unsigned char *)pKey;
     long wHighIdx = Size;
 
-    for (long wi=pOffset; wi <wHighIdx ;wi++)
+    for (long wi=pOffset; wi < wHighIdx ;wi++)
     {
         if (wKey[widx]==Data[wi])
         {
@@ -500,6 +503,68 @@ ZDataBuffer::bsearch (void *pKey,
                 wistart=wi;
             widx++;
             if (widx==pKeySize)
+            {
+                return (wistart);
+            }
+            continue;
+        }// if wKey
+        widx=0;
+        wistart=-1;
+    }
+    return (-1) ;
+}//bsearch
+
+ssize_t
+ZDataBuffer::bsearch (const ZDataBuffer *pKey,
+                     const size_t pOffset)
+{
+    if (pKey->isEmpty())
+        return -1;
+    long wKeyLen = pKey->Size;
+    long widx = 0;
+    long wistart = -1;
+    const unsigned char* wKey = (const unsigned char *)pKey->Data;
+    long wHighIdx = Size;
+
+    for (long wi=pOffset; wi < wHighIdx ;wi++)
+    {
+        if (wKey[widx]==Data[wi])
+        {
+            if (wistart==-1)
+                wistart=wi;
+            widx++;
+            if (widx==wKeyLen)
+            {
+                return (wistart);
+            }
+            continue;
+        }// if wKey
+        widx=0;
+        wistart=-1;
+    }
+    return (-1) ;
+}//bsearch
+
+ssize_t
+ZDataBuffer::bsearch (const utf8VaryingString *pKey,
+                     const size_t pOffset)
+{
+    if (pKey->isEmpty())
+        return -1;
+    long wKeyLen = pKey->strlen();
+    long widx = 0;
+    long wistart = -1;
+    const unsigned char* wKey = (const unsigned char *)pKey->Data;
+    long wHighIdx = Size;
+
+    for (long wi=pOffset; wi < wHighIdx ;wi++)
+    {
+        if (wKey[widx]==Data[wi])
+        {
+            if (wistart==-1)
+                wistart=wi;
+            widx++;
+            if (widx==wKeyLen)
             {
                 return (wistart);
             }
@@ -1326,6 +1391,25 @@ ZDataBuffer::_importURF(const unsigned char* &pURF)
 
 /** @endcond */ //Development
 
+/*
+utf8VaryingString
+ZDataBuffer::toXml(const utf8VaryingString& pName, int pLevel)
+{
+  return  fmtXMLBlob(pName,*this,pLevel);
 
+}
 
+ZStatus
+ZDataBuffer::fromXml(zxmlElement* pBlobRoot, ZaiErrors* pErrorLog, ZaiE_Severity pSeverity)
+{
+utf8String wContent = fmtXMLnode("zblob", pLevel);
+
+wContent += fmtXMLCdatanode(this);
+wContent += fmtXMLint64("id", id, pLevel+1);
+wContent += fmtXMLint64("entity", Entity, pLevel+1);
+//    wContent += fmtXMLint64("datarank", DataRank, pLevel);
+wContent += fmtXMLendnode("zblob", pLevel);
+return wContent;
+}
+*/
 #endif // ZDATABUFFER_CPP

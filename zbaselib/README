@@ -1,0 +1,21 @@
+# base system static library
+
+zbasesystemlib
+zio
+zthread
+ztoolset
+zxml
+zcrypt
+zbslib_examples
+
+#content manager static library
+
+zcontentlib
+zcontentstaticlib
+zrandomfile
+zindexedfile
+
+# network management static library
+
+zremotelib
+zremote

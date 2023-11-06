@@ -23,6 +23,14 @@
 
 #include <ztoolset/zaierrors.h>
 
+void _abortCallBack() { abort();}
+
+__ABORTCALLBACK__(AbortCallBack) = _abortCallBack;
+
+void setAbortCallBack(__ABORTCALLBACK__(pAbortCallBack)) {AbortCallBack=pAbortCallBack;}
+
+
+
 ZExceptionMin               ZException;
 
 utfexceptionString&
@@ -161,7 +169,7 @@ ZExceptionMin::getErrno (const int pErrno,
     if (pSeverity >= ThrowOnSeverity)
         zthrow (ZExceptionStack::last());
     if (pSeverity >= AbortOnSeverity)
-        exit_abort();
+        _abortCallBack();
     return;
 }//getErrno
 
@@ -813,7 +821,11 @@ utf8String ZExceptionMin::formatFullUserMessage(void)
 #if __USE_ZTHREAD__
     _Mtx.lock();
 #endif
-     utf8String wStr=ZExceptionStack::last()->formatFullUserMessage();
+    utf8VaryingString wStr;
+    if (count()>0)
+     wStr=ZExceptionStack::last()->formatFullUserMessage();
+    else
+     wStr="No exception set";
 #if __USE_ZTHREAD__
     _Mtx.unlock();
 #endif
@@ -831,7 +843,8 @@ ZExceptionMin::exit_abort(void)
   printUserMessage(stderr);
   ZExceptionStack::clear();
 //        exit(EXIT_FAILURE);
-  abort();
+  AbortCallBack();
+ // abort();
 //        _ABORT_     /* _ABORT_ list all module stack and clean it before aborting */
 //        _EXIT_ (EXIT_FAILURE);
 }
@@ -989,7 +1002,7 @@ ZExceptionMin::lastUtf8()
 
 
 utf8VaryingString
-ZExceptionBase::formatUtf8 (void)
+ZExceptionBase::formatUtf8 (void) const
 {
     utf8String wRet;
     wRet=Message.toCChar();

@@ -12,9 +12,16 @@
      * @param pStatus returned status set to ZS_SUCCESS if operation is successfull
      * @return an int with file descriptor or -1 if open operation is errored.
      * In this later case, ZException is positionned with errno information and accurate error description.
+     *
+     * pMode is generally one of these O_RDONLY, O_WRONLY, or O_RDWR.
+     * for other modes see https://www.man7.org/linux/man-pages/man2/open.2.html
+     *
+     *
+     * in order to create (or replace) a file pMode must be set to O_CREAT|O_WRONLY|O_TRUNC
+     *
      */
-  ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv);
-  ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode);
+  ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pAccessRights = S_IRWXU|S_IRWXG|S_IROTH);
+//  ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode);
 
   ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept);
 
@@ -59,6 +66,11 @@
   ZStatus rawWriteAt(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t &pSizeWritten, size_t pAddress);
 
   ZStatus rawFlush(__FILEHANDLE__ pFd);
+
+  ZStatus rawReadText(__FILEHANDLE__ pFd, utf8VaryingString& pString, size_t pBytesToRead);
+  ZStatus rawReadTextAt(__FILEHANDLE__ pFd, utf8VaryingString& pString,size_t pBytesToRead, size_t pAddress);
+  ZStatus rawWriteText(__FILEHANDLE__ pFd, const utf8VaryingString& pString, size_t &pSizeWritten);
+  ZStatus rawWriteTextAt(__FILEHANDLE__ pFd, const utf8VaryingString&& pData,size_t &pSizeWritten, size_t pAddress);
 /**
  * @brief rawClose low level close operation of a file described by its file descriptor pFd
  * @param pFd

@@ -493,8 +493,8 @@ ZStatus ZDir::fullDirAll(zbs::ZArray<::DirMap> &pDirArray, ZDirFileEn_type pZDFT
 {
     pDirArray.clear();
     ::DirMap wDirEntry;
-
-
+    /* warning : to be coded */
+    return ZS_SUCCESS;
 }
 
 

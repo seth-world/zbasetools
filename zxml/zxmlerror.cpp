@@ -4,7 +4,8 @@
 #include <stddef.h>
 
 #include <zxml/zxmlerror.h>
-#include <ztoolset/zexceptionmin.h>
+//#include <ztoolset/zexceptionmin.h>
+
 
 struct xmlErrDomainElement { const char* StrErrDomain; const char* LibErrDomain; } ;
 /**
@@ -860,6 +861,7 @@ va_list args;
     va_end(args);
     return;
 }
+
 utf8VaryingString
 getXMLLastError(void)
 {
@@ -942,5 +944,77 @@ utf8VaryingString wException;
 
     return wException;
 }// getXMLLastParserNodeError
+
+
+ZStatus zxmlError::get() {
+    xmlErrorPtr wErr = xmlGetLastError();
+    if (wErr==nullptr)
+      return ZS_EMPTY;
+    memmove(this,wErr,sizeof(xmlError));
+    return ZS_SUCCESS;
+}
+utf8VaryingString zxmlError::getFullMessage() {
+    xmlErrorPtr wErr = xmlGetLastError();
+    if (wErr==nullptr)
+      return "No error";
+
+    utf8VaryingString wReturn = wErr->message;
+    if (wErr->str1!=nullptr)
+      wReturn.addsprintf("\n %s", wErr->str1);
+    if (wErr->str2!=nullptr)
+      wReturn.addsprintf("\n %s", wErr->str2);
+    if (wErr->str3!=nullptr)
+      wReturn.addsprintf("\n %s", wErr->str3);
+    return wReturn;
+}
+
+utf8VaryingString zxmlError::getMessage()
+{
+    xmlErrorPtr wErr = xmlGetLastError();
+    if (wErr->code==0)
+      return "No xml error";
+    return wErr->message;
+}
+
+zxmlLineCol zxmlError::getLineCol() {
+    xmlErrorPtr wErr = xmlGetLastError();
+
+    zxmlLineCol wLC ;
+    wLC.line=wErr->line;
+    wLC.col=wErr->int2;
+    return wLC;
+}
+
+utf8VaryingString zxmlError::getErroredXmlCodeLine(const utf8VaryingString& pXmlCode)
+{
+    xmlErrorPtr wErr = xmlGetLastError();
+
+    zxmlLineCol wLC ;
+    wLC.line=wErr->line;
+    wLC.col=wErr->int2;
+
+    int wOffset=0;
+    int wLine=1;
+    utf8_t* wPtr=pXmlCode.Data;
+    while (wLine < wLC.line) {
+      if (*wPtr++ == '\n') {
+        wLine++;
+      }
+      wOffset++;
+    }
+    wOffset++;
+    int wOffset2 = wOffset;
+    utf8_t* wPtr2=wPtr;
+    while (*wPtr2 && (*wPtr2++ != '\n')) {
+      wOffset2++;
+    }
+    wPtr2--;
+
+    utf8VaryingString wXmlErrored ;
+    wXmlErrored.strnset(wPtr,wOffset2-wOffset);
+
+    return wXmlErrored;
+}
+
 
 #endif // ZXMLERROR_CPP

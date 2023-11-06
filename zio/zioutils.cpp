@@ -22,20 +22,20 @@ ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENM
   return _rawOpenGetException(errno,pPath,false);
 }//rawOpen
 
-ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv )
+ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pAccessRights )
 {
   errno=0;
-  pFd=::open(pPath.toCChar(), pMode, pPriv);
+  pFd=::open(pPath.toCChar(), pMode, pAccessRights);
   if (pFd >= 0) {
     return ZS_SUCCESS;
   }
   return _rawOpenGetException(errno,pPath,false);
 }//rawOpen
 
+#ifdef __COMMENT__
 ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept ) {
 
-  /* see https://www.man7.org/linux/man-pages/man2/open.2.html
-*/
+
 
   if (pPriv == 0)
     pFd=::open(pPath.toCChar(), pMode);
@@ -49,6 +49,7 @@ ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPEN
   return _rawOpenGetException(errno,pPath,pNoExcept);
 
 }//_rawOpen
+#endif // __COMMENT__
 
 ZStatus _rawOpenGetException(int wErrno, const utf8VaryingString& pPath,bool pNoExcept ) {
 
@@ -233,8 +234,26 @@ rawWriteAt(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t &pSizeWritten, size_t p
   return rawWrite(pFd,pData,pSizeWritten);
 }
 
+ZStatus rawWriteText(__FILEHANDLE__ pFd, const utf8VaryingString& pString, size_t &pSizeWritten)
+{
+  if (pString.isEmpty())
+    return ZS_EMPTY;
+  ZDataBuffer wZDB;
+  wZDB.allocateBZero(pString.strlen());
+  utf8_t* wPtrIn=pString.Data;
+  utf8_t* wPtrOut=(utf8_t*)wZDB.Data;
+  size_t wCount = pString.UnitCount;
+  while (*wPtrIn && wCount--)
+  {
+    *wPtrOut++ = *wPtrIn++;
+  }
+  return rawWrite(pFd,wZDB,pSizeWritten);
+}
+
 ZStatus rawWrite(__FILEHANDLE__ pFd, ZDataBuffer& pData, size_t &pSizeWritten)
 {
+  if (pData.isEmpty())
+    return ZS_EMPTY;
 /* see https://man7.org/linux/man-pages/man2/write.2.html */
   errno=0; /* this function uses errno */
   ssize_t wSS=::write(pFd,pData.Data,pData.Size);
@@ -379,6 +398,38 @@ rawReadAt(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t pBytesToRead,size_t pAdd
   return rawRead(pFd,pData,pBytesToRead);
 }
 
+ZStatus rawReadText(__FILEHANDLE__ pFd, utf8VaryingString& pString, size_t pBytesToRead)
+{
+  ZDataBuffer wZDB;
+  ZStatus wSt= rawRead(pFd,wZDB,pBytesToRead);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+  pString.allocateUnitsBZero(wZDB.Size);
+  utf8_t* wPtrOut=pString.Data;
+  utf8_t* wPtrIn=(utf8_t*)wZDB.Data;
+  size_t wCount = wZDB.Size;
+  while (*wPtrIn && wCount--)
+  {
+    *wPtrOut++ = *wPtrIn++;
+  }
+  return ZS_SUCCESS;
+}
+ZStatus rawReadTextAt(__FILEHANDLE__ pFd, utf8VaryingString& pString, size_t pBytesToRead,size_t pAddress)
+{
+  ZDataBuffer wZDB;
+  ZStatus wSt= rawReadAt(pFd,wZDB,pBytesToRead,pAddress);
+  if (wSt!=ZS_SUCCESS)
+    return wSt;
+  pString.allocateUnitsBZero(wZDB.Size);
+  utf8_t* wPtrOut=pString.Data;
+  utf8_t* wPtrIn=(utf8_t*)wZDB.Data;
+  size_t wCount = wZDB.Size;
+  while (*wPtrIn && wCount--)
+  {
+    *wPtrOut++ = *wPtrIn++;
+  }
+  return ZS_SUCCESS;
+}
 ZStatus
 rawRead(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t pBytesToRead) {
   ssize_t wBRead=0;
@@ -535,7 +586,7 @@ ZStatus _rawSeekError(int wErrno,__FILEHANDLE__ pFd,__off_t &pOff)
   case ENXIO:
     wErrMsg.sprintf("<ENXIO> whence is SEEK_DATA or SEEK_HOLE, and offset is beyond the end of the file, or whence is SEEK_DATA and offset is within a hole at the end of the file. File <%s>",
         rawGetNameFromFd(pFd).toString());
-    wSt=ZS_INVADDRESS;
+    wSt=ZS_EOF;
     break;
   case EOVERFLOW:
     wErrMsg.sprintf("<EOVERFLOW> The resulting file offset cannot be represented in returned data format. File <%s>",

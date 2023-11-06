@@ -28,6 +28,11 @@ Severity_type cvttoZEXSeverity(ZaiE_Severity pZEXSev);
 class ZaiError {
 public:
     ZaiError()=default;
+    ZaiError(ZaiE_Severity pSeverity,const utf8VaryingString& pMsg)
+    {
+        Severity=pSeverity;
+        _Message=pMsg;
+    }
     ZaiError(const char* pFormat,...)
     {
         char wMsg[500];
@@ -89,7 +94,7 @@ public:
     utf8String     _Message ;
     ZaiE_Severity   Severity;
 };
-
+class ZExceptionBase;
 /**
  * @brief The ZaiErrors class holds and manages journal for main objects.
  *
@@ -99,19 +104,9 @@ class ZaiErrors : public zbs::ZArray<ZaiError*>
 {
 public:
     ZaiErrors()=default;
-    ZaiErrors(const char* pContext)
-    {
-      Context.push(pContext);
-    }
+    ZaiErrors(const char* pContext);
 
-    ~ZaiErrors()
-    {
-      if ((Output!=stderr)&&(Output!=stdout))
-        fclose(Output);
-
-        while (count())
-            delete popR();
-    }
+    ~ZaiErrors();
 
     ZaiErrors(ZaiErrors& pIn)
     {
@@ -119,19 +114,8 @@ public:
         add(pIn);
     }
 
-    void setContext(const char* pContext,...)
-    {
-        va_list args;
-        va_start (args, pContext);
-        char wContext[200];
-        memset(wContext,0,sizeof(wContext));
-        vsnprintf(wContext,199,pContext,args);
-        Context.push(wContext);
+    void setContext(const char* pContext,...);
 
-        textLog("           Context set to <%s>",Context.last().toCChar());
-
-        va_end(args);
-    }
 
     int countType(uint8_t pC);
 
@@ -164,9 +148,7 @@ public:
     void cleanupLogged();
 
 
-
     ZStatus getLastZStatus() { return last()->getZStatus(); }
-
 
     Severity_type getSeverity();
 
@@ -183,21 +165,25 @@ public:
     void displayErrors(FILE* pOutput=stdout );
     utf8String getLastError( );
     void log(ZaiE_Severity pSeverity,const char* pFormat,...);
+
+    void _log(ZaiE_Severity pSeverity,const char* pFormat,va_list pArgs);
     void logZStatus(ZaiE_Severity pSeverity,ZStatus pSt,const char* pFormat,...);
 
-    void logZException();
-
+    void logZExceptionLast(const utf8VaryingString& pAdd=utf8VaryingString());
+    void logZException(const ZExceptionBase& pException, const utf8VaryingString &pAdd=utf8VaryingString());
 
     void errorLog(const char* pFormat,...) ;
     void infoLog(const char* pFormat,...);
     void textLog(const char* pFormat,...);
     void warningLog(const char* pFormat,...);
 
-
+/*
     void _errorLog(const char* pFormat,va_list pArgs);
     void _infoLog(const char* pFormat,va_list pArgs);
     void _textLog(const char* pFormat,va_list pArgs);
     void _warningLog(const char* pFormat,va_list pArgs);
+    void _fatalLog(const char* pFormat,va_list pArgs);
+*/
     bool hasError()
     {
       return ErrorLevel & (ZAIES_Error|ZAIES_Fatal) ;
@@ -222,6 +208,15 @@ public:
     }
 
     void setAutoPrintOn(ZaiE_Severity pOnOff) {AutoPrint=pOnOff;}
+    void setAutoPrintAll() {AutoPrint=ZAIES_None;}
+    void setStoreMinSeverity(ZaiE_Severity pMinSeverity) {StoreMinSeverity=pMinSeverity;}
+    void setStoreSeverityAtLeast(ZaiE_Severity pMinSeverity=ZAIES_Text)
+    {
+        if (StoreMinSeverity > pMinSeverity)
+            return;
+        StoreMinSeverity=pMinSeverity;
+    }
+
     void setOutput(FILE* pOutput) {Output=pOutput;}
 
     void _print(uint8_t pSeverity, const char *pFormat,...);
@@ -230,10 +225,11 @@ public:
     void setDisplayCallback(__DISPLAYCALLBACK__(pdisplayCallback) ) {_displayCallback=pdisplayCallback;}
     void setDisplayColorCB(__DISPLAYCOLORCB__(pdisplayCallback) ) {_displayColorCB=pdisplayCallback;}
 
-    __DISPLAYCALLBACK__(_displayCallback) ;
-    __DISPLAYCOLORCB__(_displayColorCB) ;
+    __DISPLAYCALLBACK__(_displayCallback) = nullptr ;
+    __DISPLAYCOLORCB__(_displayColorCB) = nullptr ;
 
     ZaiE_Severity AutoPrint=ZAIES_None; /* if set then prints info and warning messages to stdout and error messages to stderr as soon as registrated */
+    ZaiE_Severity StoreMinSeverity=ZAIES_None;  /* minimum severity until message is stored */
     ZArray<utf8String> Context;
     uint8_t ErrorLevel=0;
     FILE* Output=stderr;

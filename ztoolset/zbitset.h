@@ -101,6 +101,8 @@ public:
     size_t              getUniversalSize(void) const ;
 
     uint16_t getEffectiveBitSize(void) const {return((uint16_t)EffectiveBitSize);}
+
+    /* nb : pBitsetExport is a ZDataBuffer and URF bitset data is APPENDED to existing content of ZDataBuffer */
     ssize_t _exportURF(ZDataBuffer& pBitsetExport) const;
     ssize_t _exportURF_Ptr(unsigned char*& pURF) const;
 

@@ -6,7 +6,7 @@
 #include <config/zconfig.h>
 #include <ztoolset/zlimit.h>
 #include <ztoolset/zmem.h>  // for zfree()
-
+#
 #include <ztoolset/zerror_min.h>
 
 #include <QList>
@@ -204,13 +204,9 @@ private :
 #endif
 public:
 
-   ZArray():_Mutex() {
-     _mInit(_cst_default_allocation,_cst_realloc_quota);
-   }
-   ZArray (size_t pInitialAlloc,
-       size_t pReallocQuota) : _Mutex() {
-     _mInit(pInitialAlloc,pReallocQuota);
-   }
+  ZArray() ;
+  ZArray (size_t pInitialAlloc,
+         size_t pReallocQuota) ;
 
    ~ZArray();
 
@@ -218,19 +214,9 @@ public:
  //  ZArray& operator = (ZArray&)=delete;     // can not copy
 //#ifdef __USE_ZARRAY_COPY_CONTRUCTOR__
 
-   ZArray(ZArray& pIn):_Mutex()
-   {
-        _mInit(_cst_default_allocation,_cst_realloc_quota);
-       _copyFrom(pIn);
-       return;
-   }
-   ZArray( ZArray&& pIn):_Mutex()
-   {
-     //       _mInit(); /* init with default allocation values */
-     _mInit(_cst_default_allocation,_cst_realloc_quota);
-     _copyFrom(pIn);
-     return;
-   }
+   ZArray(ZArray& pIn);
+   ZArray( ZArray&& pIn);
+
    ZArray& operator = (ZArray&pIn)
     {
 //       _mInit(); /* init with default allocation values */
@@ -601,15 +587,69 @@ protected :
 
 
 /* --------------- Begin developed methods ------------------*/
+template <typename _Tp>
+#ifdef __USE_ZTHREAD__
+ZArray<_Tp>::ZArray():_Mutex() {
+#else
+#pragma message ("ZArray: Thread management is disactivated for template ZArray")
+ZArray<_Tp>::ZArray() {
+#endif
+    _mInit(_cst_default_allocation,_cst_realloc_quota);
+}
 
-
-
+template <typename _Tp>
+#ifdef __USE_ZTHREAD__
+ZArray<_Tp>::ZArray (size_t pInitialAlloc, size_t pReallocQuota) : _Mutex() {
+#else
+#pragma message ("ZArray: Thread management is disactivated for template ZArray")
+ZArray<_Tp>::ZArray (size_t pInitialAlloc, size_t pReallocQuota) {
+#endif
+    _Tp wBlank;
+    push(wBlank);
+    _mInit(pInitialAlloc,pReallocQuota);
+    pop();
+}
+template <typename _Tp>
+#ifdef __USE_ZTHREAD__
+ZArray<_Tp>::ZArray(ZArray& pIn):_Mutex()
+#else
+#pragma message ("ZArray: Thread management is disactivated for template ZArray")
+ZArray<_Tp>::ZArray( ZArray& pIn)
+#endif
+{
+    _mInit(_cst_default_allocation,_cst_realloc_quota);
+    _copyFrom(pIn);
+    return;
+}
+template <typename _Tp>
+#ifdef __USE_ZTHREAD__
+ZArray<_Tp>::ZArray( ZArray&& pIn):_Mutex()
+#else
+#pragma message ("ZArray: Thread management is disactivated for template ZArray")
+ZArray<_Tp>::ZArray( ZArray&& pIn)
+#endif
+{
+    //       _mInit(); /* init with default allocation values */
+    _mInit(_cst_default_allocation,_cst_realloc_quota);
+    _copyFrom(pIn);
+    return;
+}
 /**
  * operator << overload that cannot be put as friend within class due to template limitations
  */
 #ifndef __OPERATOR_ZARRAY_PUSH_OVERLOAD__
 #define __OPERATOR_ZARRAY_PUSH_OVERLOAD__
 
+template <typename _Tp>
+ZArray<_Tp>& operator << (ZArray<_Tp> *pZA,const _Tp &pRes)
+{
+    return(pZA->push(pRes));
+}
+template <typename _Tp>
+ZArray<_Tp>& operator << (ZArray<_Tp> *pZA, _Tp &pRes)
+{
+    return(pZA->push(pRes));
+}
 template <typename _Tp>
 /**
   * @brief operator << pops the ZArray (on the left side) mentionned as a POINTER and returns the result within the field of type _Tp mentionned as left argument
@@ -619,6 +659,7 @@ _Tp& operator << (_Tp &pRes,ZArray<_Tp> *pZA)
      {
      return(pZA->popRP(&pRes));
      }
+
 #endif // __OPERATOR_ZARRAY_PUSH_OVERLOAD__
 
 
@@ -635,7 +676,8 @@ void ZArray<_Tp>::_mInit(size_t pInitialAlloc,
     ZIdx=0;
 }
 
-template <typename _Tp> ZArray<_Tp>::~ZArray()
+template <typename _Tp>
+ZArray<_Tp>::~ZArray()
 {
 
 }//DTOR
@@ -1158,7 +1200,7 @@ _Tp & ZArray<_Tp>::popR(void)
 
 
   if (_Base::size()<1) {
-      fprintf (stderr,"popR-F-INVZCURRNB Fatal error : index of ZArray <%ld> is < 1 \n",
+      fprintf (stderr,"popR-F-INVZCURRNB Fatal error : index of ZArray <%d> is < 1 \n",
       _Base::size());
       abort();
   }
@@ -1197,7 +1239,7 @@ template <typename _Tp>
 _Tp &ZArray<_Tp>::popRP(_Tp* pReturn)
 {
   if (_Base::size() < 1) {
-    fprintf (stderr,"popRP-F-INVZCURRNB Fatal error : index of ZArray <%ld> is < 1 \n",
+    fprintf (stderr,"popRP-F-INVZCURRNB Fatal error : index of ZArray <%d> is < 1 \n",
         _Base::size());
     abort();
   }

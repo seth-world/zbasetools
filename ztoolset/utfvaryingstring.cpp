@@ -132,7 +132,7 @@ utf8VaryingString::decodeB64(void) const
     //     allocate (Size+1);
     //     memmove (Data,buffer,Size);
     //     Data[Size]='\0';
-    wReturn.setData(buffer,ByteSize);
+    wReturn.setData((const utf8_t*)buffer,ByteSize);
     //    addTermination();
 
     zfree(buffer);
@@ -167,7 +167,7 @@ ZStatus utf8VaryingString::uncryptAES256(const ZDataBuffer &pEncryptedZDB,
     ZStatus wSt = wZDB.uncryptAES256(pKey, pVector);
     if (wSt != ZS_SUCCESS)
         return wSt;
-    setData(wZDB.Data, wZDB.Size);
+    setData((const utf8_t*)wZDB.Data, wZDB.Size);
     addConditionalTermination();
     return ZS_SUCCESS;
 }
@@ -185,7 +185,7 @@ const char*
 utf8VaryingString::toCChar() const
 {
   if (Data==nullptr)
-    return "<null>";
+    return "";
   if (UnitCount==0)
     return "";
 
