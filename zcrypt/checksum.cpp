@@ -12,7 +12,7 @@
 
 #include <openssl/sha.h>
 
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 
 #include <ztoolset/ztypetype.h>
 

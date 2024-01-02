@@ -16,7 +16,7 @@
 #include <ztoolset/zmem.h>
 
 
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 
 #include <ztoolset/zdatabuffer.h>
 

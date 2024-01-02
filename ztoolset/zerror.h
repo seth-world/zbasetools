@@ -2,7 +2,9 @@
 #define ZERROR_H
 
 #include <config/zconfig.h>
-#include <ztoolset/zerror_min.h>
-#include <ztoolset/zmodulestack.h>
-
+#include "zbaseparameters.h"
+#include "zerror_min.h"
+#ifdef __DEPRECATED__
+//#include "zmodulestack.h"
+#endif
 #endif // ZERROR_H

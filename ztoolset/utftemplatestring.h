@@ -19,28 +19,32 @@ const char* getUnitFormat(uint8_t pSize);
  * Each fixed string below has a constant that corresponds to it representing maximum size of its data (plus one).
  *
  * see utffixedstring.h
- * see zutfstring.h
+ * see utfvaryingstring.h
  */
 
 #include <iostream>
 #include <stdlib.h>
+#include <string.h>
 
 //#include <openssl/sha.h>  // required for checksum
 
-#include <ztoolset/zmem.h>  // for zfree routine
-#include <ztoolset/zerror.h>
-#include <ztoolset/zdatabuffer.h>
-#include <string.h>
-#include <ztoolset/zlimit.h>
-#include <ztoolset/ztypetype.h>
-#include <ztoolset/zatomicconvert.h>
-#include <ztoolset/zcharset.h>
+#include "zmem.h"  // for zfree routine
+#include "zerror.h"
+#include "utfsprintf.h"
+#include "utfutils.h"
+#include "zcharset.h"
+#include "zdatabuffer.h"
 
-#include <ztoolset/utfutils.h>
+#include "zlimit.h"
+#include "ztypetype.h"
+#include "zatomicconvert.h"
 
-#include <ztoolset/utfsprintf.h>
 
-#include <ztoolset/utfstringcommon.h>
+
+
+
+
+#include "utfstringcommon.h"
 
 #include <zcrypt/zcrypt.h>
 #include <zcrypt/checksum.h>
@@ -192,12 +196,12 @@ public:
         if (pCharset==ZCHARSET_SYSTEMDEFAULT)
                     pCharset=getDefaultCharset();
         if (charsetUnitSize(pCharset)!=sizeof(_Utf)){
-                                fprintf(stderr,
-                                        "%s-Fatal Error charset size <%ld> is incompatible with string unit size <%ld>\n",
-                                        _GET_FUNCTION_NAME_,
-                                        charsetUnitSize(pCharset),
-                                        sizeof(_Utf));
-                                    _ABORT_ }
+            fprintf(stderr,"%s-Fatal Error charset size <%ld> is incompatible with string unit size <%ld>\n",
+                    _GET_FUNCTION_NAME_,
+                    charsetUnitSize(pCharset),
+                    sizeof(_Utf));
+            exit (EXIT_FAILURE);
+        }
         ZType=pZType;
         /* Coherence control between ZType_type and Charset */
         Charset=pCharset;
@@ -635,7 +639,13 @@ public:
 //
 
      _Utf& operator [] (const size_t pIdx) const
-        { if(pIdx>getUnitCount()) _ABORT_ return  (content[pIdx]);}
+        {
+         if(pIdx>getUnitCount()) {
+            fprintf(stderr,"utftemplateString-F-OUTRNGE Index %d is out of string capacity %d.\n",pIdx,getUnitCount());
+            exit (EXIT_FAILURE);
+         }
+         return  (content[pIdx]);
+        }
 
 
      utftemplateString<_Sz,_Utf>& operator = (const _Utf *pString) {return utftemplateString<_Sz,_Utf>::strset(pString);}
@@ -1435,7 +1445,7 @@ URF_UnitCount_type wUniversalSize=URF_UnitCount_type(wEffectiveUnitCount*sizeof(
                  _GET_FUNCTION_NAME_,
                  wUniversalSize,
                  UINT16_MAX);
-        _ABORT_
+        exit(EXIT_FAILURE);
         }
 
 size_t wTotalByteSize=(size_t)(wUniversalSize+
@@ -1462,7 +1472,7 @@ ssize_t utftemplateString<_Sz, _Utf>::_exportURF_Ptr(unsigned char* &pURF) const
         _GET_FUNCTION_NAME_,
         wEffectiveUnitCount,
         wCanonical);
-    _ABORT_
+    exit(EXIT_FAILURE);
   }
 
   const _Utf* wPtrIn=content;
@@ -1496,7 +1506,7 @@ utftemplateString<_Sz,_Utf>::getURFSize() const {
         _GET_FUNCTION_NAME_,
         wUniversalSize,
         UINT16_MAX);
-    _ABORT_
+    exit(EXIT_FAILURE);
   }
 
   return (size_t)(wUniversalSize+

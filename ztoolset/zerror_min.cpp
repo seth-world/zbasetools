@@ -3,14 +3,10 @@
 #include <stdint.h>
 
 
-//#ifndef __ZVERBOSE_DEFINE__
-//#define __ZVERBOSE_DEFINE__
-typedef uint32_t ZVerbose_Base ;
-ZVerbose_Base ZVerbose =0;
-//#endif
-#include <ztoolset/zerror_min.h>
+#include "zerror_min.h"
+#ifdef __DEPRECATED__
 #include <ztoolset/zmodulestack.h>
-
+#endif
 
 /** @addtogroup ZBSOptions Setting Options for runtime
  * We can set on or off options in order to change runtime behavior of product
@@ -21,13 +17,14 @@ ZVerbose_Base ZVerbose =0;
  * @brief setVerbose Set the option ZVerbose with the appropriate mask made from ZVerbose_type enum
  *  According ZVerbose option mask set, a lot a explaining text is displayed to stdout during program execution.
  */
+/*  deprecated : see ZBaseParameters
 void setVerbose(ZVerbose_Base pVerbose) {ZVerbose=pVerbose;
                                         return;}
 void addVerbose(ZVerbose_Base pVerbose) {ZVerbose |= pVerbose;
                                         return;}
 void clearVerbose(ZVerbose_Base pVerbose){ZVerbose &= ~pVerbose;
                                          return;}
-
+*/
 
 
 

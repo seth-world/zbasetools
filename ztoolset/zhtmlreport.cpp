@@ -82,11 +82,11 @@ ZHtmlCell::ZHtmlCell(const ZHtmlCell && pIn)
 
 
 
-utf8String ZHtmlCell::get()
+utf8VaryingString ZHtmlCell::get()
 {
 
   if (Content.isEmpty())
-    return (utf8String(""));
+    return (utf8VaryingString(""));
   return setupHtmlString(Content);
 }
 
@@ -150,11 +150,11 @@ void ZHtmlTableRow::clear()
 
 
 
-utf8String ZHtmlTableHeaderRow::get(int pColumnCount)
+utf8VaryingString ZHtmlTableHeaderRow::get(int pColumnCount)
 {
   //    if (Cells.count()0)
-  //      return utf8String("");
-  utf8String wReturn;
+  //      return utf8VaryingString("");
+  utf8VaryingString wReturn;
   wReturn = "<tr>\n";
   long wi=0;
   for (;(wi < pColumnCount)&&(wi<Cells.count());wi++)
@@ -172,11 +172,11 @@ utf8String ZHtmlTableHeaderRow::get(int pColumnCount)
 }// ZHtmlTableHeaderRow::get()
 
 
-utf8String ZHtmlTableCommonRow::get(int pColumnCount,bool pGrey,bool pLast)
+utf8VaryingString ZHtmlTableCommonRow::get(int pColumnCount,bool pGrey,bool pLast)
 {
   //    if (Cells.count()==0)
-  //      return utf8String("");
-  utf8String wReturn;
+  //      return utf8VaryingString("");
+  utf8VaryingString wReturn;
   if (pGrey)
     {
     if (pLast)
@@ -234,9 +234,9 @@ void ZHtmlTable::addCommonRow(ZHtmlTableCommonRow* pRow)
   Rows.push(pRow);
 }
 
-utf8String ZHtmlTable::get()
+utf8VaryingString ZHtmlTable::get()
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
 
   int Maxcol=0;
 
@@ -291,44 +291,44 @@ ZHtmlReport::~ZHtmlReport()
     delete Font;
 }
 
-void ZHtmlReport::setTitle(const utf8String& pTitle)
+void ZHtmlReport::setTitle(const utf8VaryingString& pTitle)
 {
   if (Title)
     delete Title;
-  Title=new utf8String;
+  Title=new utf8VaryingString;
   Title->add(setupHtmlString(pTitle));
 }
 
-void ZHtmlReport::setIntroduction(const utf8String& pIntro)
+void ZHtmlReport::setIntroduction(const utf8VaryingString& pIntro)
 {
   if (Introduction)
     delete Introduction;
-  Introduction=new utf8String;
+  Introduction=new utf8VaryingString;
   Introduction->add(setupHtmlString(pIntro));
 }
-void ZHtmlReport::setSignature(const utf8String& pSignature)
+void ZHtmlReport::setSignature(const utf8VaryingString& pSignature)
 {
   if (Signature)
     delete Signature;
-  Signature=new utf8String;
+  Signature=new utf8VaryingString;
   Signature->add(setupHtmlString(pSignature));
 }
 
-void ZHtmlReport::addParagraphBefore(const utf8String& pParagraph)
+void ZHtmlReport::addParagraphBefore(const utf8VaryingString& pParagraph)
 {
 /*  if (ParBefore)
     delete ParBefore;*/
   if (!ParBefore)
-      ParBefore=new utf8String;
+      ParBefore=new utf8VaryingString;
   ParBefore->addsprintf("<p>%s</p>",setupHtmlString(pParagraph).toCChar());
 }
-void ZHtmlReport::addParagraphAfter(const utf8String& pParagraph)
+void ZHtmlReport::addParagraphAfter(const utf8VaryingString& pParagraph)
 {
 /*  if (ParAfter)
     delete ParAfter;
-  ParAfter=new utf8String(pParagraph);*/
+  ParAfter=new utf8VaryingString(pParagraph);*/
   if (!ParAfter)
-    ParAfter=new utf8String;
+    ParAfter=new utf8VaryingString;
 
   ParAfter->addsprintf("<p>%s</p>",setupHtmlString(pParagraph).toCChar());
 }
@@ -337,20 +337,20 @@ void ZHtmlReport::addTable(int pColumns)
 {
   Table=new ZHtmlTable(pColumns);
 }
-void ZHtmlReport::setFont (const utf8String& pFont)
+void ZHtmlReport::setFont (const utf8VaryingString& pFont)
 {
   if (Font)
     delete Font;
-  Font=new utf8String(pFont);
+  Font=new utf8VaryingString(pFont);
 }
 
-utf8String ZHtmlReport::get()
+utf8VaryingString ZHtmlReport::get()
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
   wReturn = HtmlHeader;
 
-  utf8String wHeaderBackColor="lightskyblue";
-  utf8String wFont="verdana";
+  utf8VaryingString wHeaderBackColor="lightskyblue";
+  utf8VaryingString wFont="verdana";
   if (Font)
     wFont=*Font;
   if (Table)
@@ -439,9 +439,9 @@ utf8String ZHtmlReport::get()
 
 
 
-utf8String FmtHtmlColHeadCell(const char* pText,const char*pStyle=nullptr)
+utf8VaryingString FmtHtmlColHeadCell(const char* pText,const char*pStyle=nullptr)
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
   if (pStyle)
     wReturn.sprintf("<th style=%s>%s</th>\n",pStyle,pText);
   else
@@ -449,10 +449,10 @@ utf8String FmtHtmlColHeadCell(const char* pText,const char*pStyle=nullptr)
   return wReturn;
 }
 
-utf8String
+utf8VaryingString
 FmtHtmlColRowCell(const char* pText,const char*pStyle=nullptr)
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
   const char* wDefaultheaderstyle="\"text-align:left;\"";
   if (pStyle)
     wReturn.sprintf("<td style=%s>%s</td>\n",pStyle,pText);
@@ -460,9 +460,9 @@ FmtHtmlColRowCell(const char* pText,const char*pStyle=nullptr)
     wReturn.sprintf("<td style=%s>%s</td>\n",wDefaultheaderstyle,pText);
   return wReturn;
 }
-utf8String FmtHtmlColRowCell1(const char* pText,const char*pStyle=nullptr)
+utf8VaryingString FmtHtmlColRowCell1(const char* pText,const char*pStyle=nullptr)
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
   const char* wDefaultheaderstyle="\"background-color: Light Sky Blue;text-align:left;\"";
   if (pStyle)
     wReturn.sprintf("<td style=%s>%s</td>\n",pStyle,pText);
@@ -472,9 +472,9 @@ utf8String FmtHtmlColRowCell1(const char* pText,const char*pStyle=nullptr)
 }
 
 
-utf8String FmtHtmlHeaderRow(const char* pHead1,const char*pHead2,const char*pHead3)
+utf8VaryingString FmtHtmlHeaderRow(const char* pHead1,const char*pHead2,const char*pHead3)
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
   wReturn = "<tr>";
   wReturn = FmtHtmlColHeadCell(pHead1);
 
@@ -486,9 +486,9 @@ utf8String FmtHtmlHeaderRow(const char* pHead1,const char*pHead2,const char*pHea
   return wReturn;
 }
 
-utf8String FmtHtmlRow(const char* pHead1,const char*pHead2,const char*pHead3)
+utf8VaryingString FmtHtmlRow(const char* pHead1,const char*pHead2,const char*pHead3)
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
   wReturn = "<tr class=\"Gridtransparent\">";
 
   wReturn +=  FmtHtmlColRowCell(pHead1);
@@ -500,9 +500,9 @@ utf8String FmtHtmlRow(const char* pHead1,const char*pHead2,const char*pHead3)
   wReturn += "</tr>";
   return wReturn;
 }
-utf8String FmtHtmlRowGrey(const char* pHead1,const char*pHead2,const char*pHead3)
+utf8VaryingString FmtHtmlRowGrey(const char* pHead1,const char*pHead2,const char*pHead3)
 {
-  utf8String wReturn;
+  utf8VaryingString wReturn;
   wReturn = "<tr class=\"Gridgrey\">";
   wReturn +=  FmtHtmlColRowCell1(pHead1);
 
@@ -514,10 +514,10 @@ utf8String FmtHtmlRowGrey(const char* pHead1,const char*pHead2,const char*pHead3
   return wReturn;
 }
 
-utf8String
+utf8VaryingString
 FmtHtmlMail()
 {
-  utf8String wMailBody ="Dear User,\n\n"
+  utf8VaryingString wMailBody ="Dear User,\n\n"
                          "You changed some key parameters in your profile.\n"
                          "As your parameter file is encrypted, this is utmost important that you keep this email in a secure place.\n"
                          "This will be the unique mode of recovery for your data in case you loose your password or your encryption Key.";
@@ -528,9 +528,9 @@ FmtHtmlMail()
 
 }
 
-utf8String setupHtmlString(const utf8String& pContent)
+utf8VaryingString setupHtmlString(const utf8VaryingString& pContent)
 {
-  utf8String wContent=pContent;
+  utf8VaryingString wContent=pContent;
   wContent.replace("\"","&quot");
   wContent.replace("'","&apos");
 //  wContent.replace("<","&lt;");

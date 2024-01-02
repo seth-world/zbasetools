@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <ztoolset/zutfstrings.h>
+#include "utfvaryingstring.h"
 
 #ifdef __GNUG__
 #include <unistd.h>
@@ -133,10 +133,10 @@ public:
         memmove(content, &pId, sizeof(userid_type));
     }
 
-    utfcodeString toString()
+    utf8VaryingString toString()
     {
         userid_type wuid;
-        utfcodeString wReturn;
+        utf8VaryingString wReturn;
         memmove(&wuid, content, sizeof(userid_type));
         wReturn.sprintf("%c-%d", Type, (int) wuid);
         return wReturn;

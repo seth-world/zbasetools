@@ -1,8 +1,8 @@
 #ifndef ZTIMER_CPP
 #define ZTIMER_CPP
 
-#include <ztoolset/ztimer.h>
-#include <ztoolset/zutfstrings.h>
+#include "ztimer.h"
+#include "utfvaryingstring.h"
 //
 //-------------  ZTimer ------------------
 //
@@ -11,10 +11,11 @@
  * @brief init Initialize (resets to zero) the time capture session
  */
 void
-ZTimer::init (void)
-         {
-        DeltaTime.clear();
-         }
+ZTimer::init (void) {
+    ZTime::clear();
+    DeltaTime.clear();
+    this-> ZTime::_copyFrom(getCurrentTime());
+}
 
 /**
  * @brief start Starts the time capture session
@@ -22,7 +23,7 @@ ZTimer::init (void)
 void
 ZTimer::start (void)
 {
-        BeginTime.getCurrentTime();
+    init();
 }
 
 /**
@@ -31,27 +32,22 @@ ZTimer::start (void)
  */
 void
 ZTimer::end (void)
-         {
-    EndTime.getCurrentTime();
-//    gettimeofday( &EndTime,nullptr);
-    ZTime wTi;
-    wTi= EndTime;
-    wTi = wTi-BeginTime;
-    DeltaTime += wTi;
-         }
+{
+    DeltaTime += ZTime::getCurrentTime() - (ZTime)*this   ;
+}
 
 ZTime ZTimer::getDeltaTime(void)
 {
-        return EndTime-BeginTime;
+    return ZTime::getCurrentTime() - (ZTime)*this;
 }
 ZTime ZTimer::getElapsed(void)
 {
-  return EndTime-BeginTime;
+    return ZTime::getCurrentTime() - (ZTime)*this;
 }
 void
 ZTimer::addDeltaTime (ZTimer &pTimer1)
 {
-    DeltaTime+= pTimer1.DeltaTime;
+    DeltaTime += pTimer1.DeltaTime;
 } //reportDeltaTime
 
 /**
@@ -62,13 +58,15 @@ ZTimer::addDeltaTime (ZTimer &pTimer1)
 utf8VaryingString
 ZTimer::reportDeltaTime (void)
 {
-    return reportZTime(DeltaTime);
+    if (DeltaTime.isNull())
+        end();
+    return reportTimeInterval(DeltaTime);
 } //reportDeltaTime
 
 utf8VaryingString
-ZTimer::reportElapsed()
+ZTimer::reportElapsed(ZDelayPrecision_type pDelayType)
 {
-  return reportZTime(getElapsed());
+  return reportTimeInterval(getElapsed());
 } //reportDeltaTime
 /**
  * @brief ZTimer::reportBeginTime a descstring with timer begin time.
@@ -77,18 +75,9 @@ ZTimer::reportElapsed()
  */
 utf8VaryingString ZTimer::reportBeginTime(void)
 {
-    return reportZTime(BeginTime) ;
+    return reportTimeInterval(*this) ;
 } //reportBeginTime
-/**
- * @brief ZTimer::reportEndTime a descstring with timer begin time.
- * Time is reported under format "hh:mm:ss-ms.mms"
- * @return
- */
-utf8VaryingString
-ZTimer::reportEndTime (void)
-{
-    return reportZTime(EndTime) ;
-} //reportEndTime
+
 /**
  * @brief ZTimer::reportZTimeVal Formats a descstring with a ZTime.
  * Time is reported under format "hh:mm:ss-ms.mms"
@@ -97,7 +86,7 @@ ZTimer::reportEndTime (void)
  * @return
  */
 utf8VaryingString
-ZTimer::reportZTime (ZTime pTime)
+ZTimer::reportTimeInterval (ZTime pTime,ZDelayPrecision_type pPrecision)
 {
 double wDelta , wDeltams,wDeltamms, wDeltans , wRemain ;
 
@@ -125,18 +114,26 @@ short int whh , wmm, wss, wms , wmms , wns;
     wDeltamms=(wRemain/1000.0);
     wDeltamms=(int)(wDeltamms);
     wDeltans= wRemain - (wDeltamms*1000);
-//    wDeltans = (wDeltans-(wDeltams*1000000.0)-(wDeltamms*1000.0));
+
     wms=(int)wDeltams;
     wmms=(int)wDeltamms;
     wns=(int)wDeltans;
 
-//    wms =(short int) (wDeltans/1000000.0); // milliseconds
-//    wmms = (short int) ((wDeltans/1000.0)-(wms*1000000.0)); // microseconds
-//    wns = (short int) (wDeltans-(wms*1000000.0)-(wmms*1000.0)); // nanoseconds
-
     utf8VaryingString wReport;
-    wReport.sprintf("%02d:%02d:%02d-%03d.%03d.%03d", whh,wmm,wss,wms,wmms,wns);
-
+    switch(pPrecision)
+    {
+    case ZDPT_Seconds:
+        wReport.sprintf("%02d:%02d:%02d", whh,wmm,wss);
+        break;
+    case ZDPT_Milliseconds:
+        wReport.sprintf("%02d:%02d:%02d-%03d", whh,wmm,wss,wms);
+    case ZDPT_Microseconds:
+        wReport.sprintf("%02d:%02d:%02d-%03d.%03d", whh,wmm,wss,wms,wmms);
+        break;
+    case ZDPT_Nanoseconds:
+        wReport.sprintf("%02d:%02d:%02d-%03d.%03d.%03d", whh,wmm,wss,wms,wmms,wns);
+        break;
+    }
     return wReport;
 } //reportZTime
 

@@ -25,24 +25,24 @@ public:
     {
     
         if (zis_Error(zicuConverter::setup("UTF8",pWarningSignal)))
-                    _ABORT_;
+                    exit(EXIT_FAILURE);
     }
 
     ZStatus toEncoding (char** pOutCharStr,size_t* pOutCount,
-                        utf8_t* putf8String,size_t pInByteSize,
+                        utf8_t* putf8VaryingString,size_t pInByteSize,
                         const char* pExtEncoding=nullptr)
     {
         return zicuConverter::toEncoding<utf8_t>(pOutCharStr,pOutCount,
-                                                 putf8String,pInByteSize,
+                                                 putf8VaryingString,pInByteSize,
                                                  pExtEncoding);
     }
 
-    ZStatus fromEncoding (utf8_t** putf8String,size_t* pOutSize,
+    ZStatus fromEncoding (utf8_t** putf8VaryingString,size_t* pOutSize,
                           const char* pInString,size_t pInSize,
                           const char* pExtEncoding=nullptr)
     {
 
-        return zicuConverter::fromEncoding<utf8_t> (putf8String,pOutSize,
+        return zicuConverter::fromEncoding<utf8_t> (putf8VaryingString,pOutSize,
                                                     pInString,pInSize,
                                                     pExtEncoding);
     }
@@ -76,13 +76,13 @@ public:
             {
             
             if (zis_Error(zicuConverter::setup("UTF16LE",pWarningSignal)))
-                        _ABORT_;
+                        exit(EXIT_FAILURE);
             }
         else
             {
             
             if (zis_Error(zicuConverter::setup("UTF16BE",pWarningSignal)))
-                        _ABORT_;
+                        exit(EXIT_FAILURE);
             }
     }
 
@@ -156,13 +156,13 @@ public:
             {
             
             if (zis_Error(zicuConverter::setup("UTF32LE",pWarningSignal)))
-                        _ABORT_;
+                        exit(EXIT_FAILURE);
             }
         else
             {
             
             if (zis_Error(zicuConverter::setup("UTF32BE",pWarningSignal)))
-                        _ABORT_;
+                        exit(EXIT_FAILURE);
             }
     }
 

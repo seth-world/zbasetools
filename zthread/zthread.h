@@ -60,8 +60,7 @@ enum ZThreadSignal_type : uint16_t {
 const char *
 decode_ZTSGN(ZThreadSignal_type pZTSG);
 
-int
-encode_ZTSGN (char *pString);
+int encode_ZTSGN(const utf8VaryingString &pString);
 
 /*typedef     ZStatus (*ZTH_Functor)(zbs::ZArray<void*>*)  ; // any function to be launched within a ZThread
 typedef     zbs::ZArray<void*>*      ZTH_Arglist;          // argument list for these functions

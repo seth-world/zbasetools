@@ -4,11 +4,16 @@
 
 
 #include <errno.h>
-#include <ztoolset/zerror.h>
-#include <ztoolset/zarray.h>
+#include "zerror.h"
+//#include "zarray.h"
 #include <stdint.h>
-#include <ztoolset/zcharset.h>
+#include "zcharset.h"
 #include <type_traits>
+
+#include "zatomicconvert.h" // required for import / export functions (see end of file)
+
+
+//#include "zfunctions.h"
 /*
 typedef uint8_t     utf8_t ;
 typedef uint16_t    utf16_t ;
@@ -29,7 +34,7 @@ enum ZCryptMethod_type : uint8_t
 #endif // __ZCRYPTMETHOD_TYPE__
 
 
-#include <ztoolset/zfunctions.h>
+//#include "zfunctions.h"
 
 /**
  * @brief The ZDataBuffer class    Base class for buffering and processing data.
@@ -238,7 +243,7 @@ public:
     }
 
     ZDataBuffer&
-    setUtf8String(const utf8_t* pIn) {
+    setutf8VaryingString(const utf8_t* pIn) {
       size_t wLen=0;
       while (pIn[wLen])
         wLen++;
@@ -385,6 +390,37 @@ public:
 */
 
     template<class _Tp>
+    typename std::enable_if_t<std::is_trivially_copy_constructible<_Tp>::value, _Tp> moveTo() const
+    {
+        if (sizeof(_Tp) > Size)
+        {
+            fprintf(stderr,
+                    "ZDataBuffer::moveTo-F-INVTYP Invalid data size <%ld> for type size <%ld>\n",
+                    Size,
+                    sizeof(_Tp));
+            abort();
+        }
+
+        return _Tp(*(_Tp*)(Data));
+    }
+
+    template<class _Tp>
+    typename std::enable_if_t<!std::is_trivially_copy_constructible<_Tp>::value, _Tp> moveTo() const
+    {
+        if (sizeof(_Tp) > Size)
+        {
+            fprintf(stderr,
+                    "ZDataBuffer::moveTo-F-INVTYP Invalid data size <%ld> for type size <%ld>\n",
+                    Size,
+                    sizeof(_Tp));
+            abort();
+        }
+    _Tp wOut;
+        memmove(&wOut, Data, sizeof(_Tp));
+        return wOut;
+    }
+    /*
+    template<class _Tp>
     _Tp moveTo() const
     {
         _Tp wOut;
@@ -401,6 +437,7 @@ public:
 
         return wOut;
     }
+*/
     template<class _Tp>
     _Tp* moveToPtr() { return static_cast<_Tp*>(Data); }
 
@@ -712,17 +749,13 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     void moven(void* pDest,ssize_t pSize)    {ssize_t wS=pSize > (ssize_t)Size? Size:pSize; memmove(pDest,Data,wS);}
 
 
-    inline const unsigned char* firstNotinSet(const char *pSet=cst_default_delimiter_Char)
-            {return((const unsigned char*)_firstNotinSet((const char*)Data,pSet));}
+    const unsigned char* firstNotinSet(const char *pSet=cst_default_delimiter_Char);
 
-    char* LTrim(const char *pSet=cst_default_delimiter_Char)
-    {return(_LTrim((char*)Data,pSet));}
+    char* LTrim(const char *pSet=cst_default_delimiter_Char);
 
-    char* RTrim(const char *pSet=cst_default_delimiter_Char)
-            {return(_RTrim((char*)Data,pSet));}
+    char* RTrim(const char *pSet=cst_default_delimiter_Char);
 
-    char* Trim(const char *pSet=cst_default_delimiter_Char)
-            {return(_Trim((char*)Data,pSet));}
+    char* Trim(const char *pSet=cst_default_delimiter_Char);
 
     ZDataBuffer& setChar(const char pChar, size_t pStart=0, long pSize=-1) ;
     // equivalent of setData but for a C string
@@ -764,7 +797,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
 
 
 int rulerSetup (ZDataBuffer &pRulerHexa, ZDataBuffer &pRulerAscii,int pColumn);
-
+#ifdef __COMMENT__
 template <typename _Tp>
 zbs::ZArray<_Tp>& ZDataBufferToZArray (ZDataBuffer &pDataBuffer,zbs::ZArray<_Tp> &pZArray);
 
@@ -794,53 +827,140 @@ static size_t ZAimportZDB(ZArray<_TpOut>* pZArray,
 {
   return ZAimport<_TpIn,_TpOut>(pZArray,pBuffer.Data,_importConvert,nullptr);
 }//ZAimportZDB
+#endif
+
 
 
 template <class _Tp>
 size_t _importAtomic(_Tp& pValue,const unsigned char * &pUniversalPtr)
 {
-  //  _Tp wValue;
-  //  memmove(&wValue,pUniversalPtr,sizeof(_Tp));
-  //  pValue=reverseByteOrder_Conditional<_Tp>(wValue);
-  _Tp* wPtr =(_Tp*)pUniversalPtr;
-  pValue=reverseByteOrder_Conditional<_Tp>(*wPtr);
-  pUniversalPtr += sizeof(_Tp);
-  return sizeof(_Tp);
+    _Tp* wPtr =(_Tp*)pUniversalPtr;
+    pValue=reverseByteOrder_Conditional<_Tp>(*wPtr);
+    pUniversalPtr += sizeof(_Tp);
+    return sizeof(_Tp);
 }
 
 
 template <class _Tp>
 size_t _exportAtomic(_Tp pValue,ZDataBuffer& pZDB)
 {
-  _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
-  pZDB.appendData(&wOut,sizeof(_Tp));
-  return sizeof(_Tp);
+    _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
+    pZDB.appendData(&wOut,sizeof(_Tp));
+    return sizeof(_Tp);
 }
 
 template <class _Tp>
 size_t _exportAtomic(_Tp pValue,ZDataBuffer* pZDB)
 {
-  _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
-  pZDB->appendData(&wOut,sizeof(_Tp));
-  return sizeof(_Tp);
+    _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
+    pZDB->appendData(&wOut,sizeof(_Tp));
+    return sizeof(_Tp);
 }
 template <class _Tp>
 size_t _exportAtomicPtr(_Tp pValue,unsigned char* &pPtrOut)
 {
-  _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
-  memmove(pPtrOut,&wOut,sizeof(_Tp));
-  pPtrOut += sizeof(_Tp);
-  return sizeof(_Tp);
+    _Tp wOut = reverseByteOrder_Conditional<_Tp>(pValue);
+    memmove(pPtrOut,&wOut,sizeof(_Tp));
+    pPtrOut += sizeof(_Tp);
+    return sizeof(_Tp);
 }
 
 template <class _Tp>
 size_t _exportAtomicValue(_Tp pValueIn,_Tp &pValueOut)
 {
-  pValueOut = reverseByteOrder_Conditional<_Tp>(pValueIn);
-  return sizeof(_Tp);
+    pValueOut = reverseByteOrder_Conditional<_Tp>(pValueIn);
+    return sizeof(_Tp);
 }
 
 ZStatus _importZStatus(const unsigned char *pPtrIn);
 ZDataBuffer& _exportZStatus(ZStatus wSt,ZDataBuffer& pZDB);
+
+
+
+/** UVF export/import template routines for array of _Utf units */
+
+//#include "zdatabuffer.h"
+template <class _Utf>
+UVF_Size_type utfGetexportArrayUVFSize(const _Utf*pDataIn)
+{
+    UVF_Size_type wUnitCount = 0;
+    while (pDataIn[wUnitCount]!=0)
+        wUnitCount++;
+    return (UVF_Size_type)(wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1;
+}
+
+template <class _Utf=char>
+void utfExportAppendArrayUVF(const _Utf*pDataIn,ZDataBuffer& wReturn)
+{
+    UVF_Size_type wUnitCount = 0;
+    while (pDataIn[wUnitCount])
+        wUnitCount++;
+    _Utf* wPtrTarg=(_Utf*)wReturn.extend((size_t)(wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1);
+    /* set export data with char _Utf size */
+    *wPtrTarg = (uint8_t)sizeof (_Utf);
+    wPtrTarg++;
+    /* prepare and set unit count to export data */
+    UVF_Size_type wUnitCount_Export=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
+    memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
+    wPtrTarg += sizeof(UVF_Size_type);
+
+    while (*pDataIn)
+        *wPtrTarg++=reverseByteOrder_Conditional<_Utf>(*pDataIn++);
+    return ;
+}//_exportCharArrayUVF
+
+template <class _Utf=char>
+size_t utfGetimportArrayUVFSize(const _Utf*& pUniversalPtr)
+{
+    if (pUniversalPtr==nullptr)
+        return 0;
+    errno=0;
+    const _Utf* wPtrSrc = pUniversalPtr;
+    /* get and control char unit size */
+    uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+
+    wPtrSrc++;
+    /* get char units to load excluding (_Utf)'\0' mark */
+    UVF_Size_type    wUnitCount;
+    size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
+    return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
+}//utfGetimportArrayUVFSize
+
+template <class _Utf=char>
+size_t utfImportArrayUVF(_Utf* pDataOut,size_t pMaxSize,const unsigned char*& pUniversalPtr)
+{
+    errno=0;
+    const unsigned char* wPtrSrc = pUniversalPtr;
+    /* get and control char unit size */
+    uint8_t wUnitSize=(uint8_t)*wPtrSrc;
+    wPtrSrc++;
+    /* get char units to load excluding (_Utf)'\0' mark */
+    UVF_Size_type    wUnitCount;
+    size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
+    if (wUnitCount > pMaxSize)
+    {
+        fprintf(stderr,"uriString::_importUVF-W-TRUNC Overflow : imported string length <%d> truncated to <%ld>.\n",
+                wUnitCount, pMaxSize-1);
+
+        wUnitCount=pMaxSize-1;
+    }
+    /* import string per char unit */
+
+    _Utf* wPtrOut=pDataOut ;
+    _Utf* wPtrIn=(_Utf*)(wPtrSrc);
+    _Utf* wPtrEnd = &wPtrIn[wUnitCount];
+    while (wPtrIn < wPtrEnd)
+        *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
+    while (wPtrOut < (pDataOut+pMaxSize))
+        *wPtrOut++ = 0;  /* pad to zero til pMaxSize-1 */
+
+    pUniversalPtr = (const unsigned char*)wPtrIn;
+    pUniversalPtr++;
+    return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
+}//utfImportArrayUVF
+
+
+
+
 
 #endif // ZDATABUFFER_H

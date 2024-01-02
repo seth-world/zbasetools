@@ -419,9 +419,8 @@ zxmlDoc::createRootElementfromTree(zxmlElement* &pNode) // no xml error on that 
             return  ZS_XMLERROR;
             }
     RootElement=pNode;
-    if (ZVerbose)
-            fprintf(stdout,"%s>>Root element <%s> has been created\n",
-                    _GET_FUNCTION_NAME_,
+    if (BaseParameters->VerboseXml())
+        fprintf(stdout,"%s>>Root element <%s> has been created\n", _GET_FUNCTION_NAME_,
                     RootElement->getName().toCChar());
 
     return  ZS_SUCCESS;
@@ -462,10 +461,8 @@ zxmlDoc::replaceRootElementfromTree(zxmlElement* &pNode) // no xml error on that
                               "Replace root node instead.");
         return  ZS_INVOP;
         }
-    if (RootElement)
-        {
-
-        if (ZVerbose)
+    if (RootElement) {
+        if (BaseParameters->VerboseXml())
                 fprintf(stdout,"%s>>Root element <%s> has been deleted to be replaced\n",
                         _GET_FUNCTION_NAME_,
                         RootElement->getName().toCChar());
@@ -473,7 +470,7 @@ zxmlDoc::replaceRootElementfromTree(zxmlElement* &pNode) // no xml error on that
         RootElement=nullptr;
         }
     RootElement=pNode;
-    if (ZVerbose)
+    if (BaseParameters->VerboseXml())
             fprintf(stdout,"%s>>Root element has been set to <%s>\n",
                     _GET_FUNCTION_NAME_,
                     RootElement->getName().toCChar());
@@ -710,10 +707,10 @@ zxmlDoc::parseXMLLoadedDoc(void)
 
 
 
-utfdescString
+utf8VaryingString
 decode_XMLParseOptions(int pOptions)
 {
-utfdescString wOptions;
+utf8VaryingString wOptions;
     wOptions.clear();
     if (pOptions&XML_PARSE_RECOVER)
                 wOptions.addConditionalOR((const utf8_t*)"XML_PARSE_RECOVER"); /* recover on errors */
@@ -1034,14 +1031,14 @@ zxmlDoc::searchNameSpaceByURL(zxmlNameSpace*pNameSpace, const char* pURL, zxmlEl
     return  ZS_SUCCESS;
 }
 
-utffieldNameString zxmlDoc::getName(void)
+utf8VaryingString zxmlDoc::getName(void)
 {
     if (!_xmlInternalDoc)
-            return utffieldNameString((utf8_t*)"null");
-    return (utffieldNameString((const utf8_t*)_xmlInternalDoc->name));
+            return utf8VaryingString((utf8_t*)"null");
+    return (utf8VaryingString((const utf8_t*)_xmlInternalDoc->name));
 }
 
-ZStatus zxmlDoc::getDocEncoding(utffieldNameString &pEncoding)
+ZStatus zxmlDoc::getDocEncoding(utf8VaryingString &pEncoding)
 {
     pEncoding.clear();
     if (_xmlInternalDoc==nullptr)
@@ -1073,7 +1070,7 @@ zxmlDoc::getDocCharset(void)
     return _xmlInternalDoc->charset;
 }
 //#include <libxml/encoding.h>
-utffieldNameString zxmlDoc::getDocVersion(void)
+utf8VaryingString zxmlDoc::getDocVersion(void)
 {
 
     if (_xmlInternalDoc==nullptr)
@@ -1086,7 +1083,7 @@ utffieldNameString zxmlDoc::getDocVersion(void)
         ZException.setMessage(_GET_FUNCTION_NAME_,ZS_XMLERROR,Severity_Error,"No version for current xml document");
         ZException.exit_abort();
         }
-    return  utffieldNameString((const utf8_t*) _xmlInternalDoc->version);
+    return  utf8VaryingString((const utf8_t*) _xmlInternalDoc->version);
 }//getDocVersion
 
 

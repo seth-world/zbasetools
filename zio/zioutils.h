@@ -6,6 +6,86 @@
 #include <ztoolset/zstatus.h>
 
 #include <fcntl.h>
+#include <filesystem>
+
+#include <ztoolset/utfvaryingstring.h>
+
+#define __progressCallBack__(__NAME__)  std::function<void (int,const utf8VaryingString&)> __NAME__
+#define __progressSetupCallBack__(__NAME__)  std::function<void (int,const utf8VaryingString&)> __NAME__
+
+typedef uint8_t ZMNP_type;
+enum ZCopyManip_enum : ZMNP_type
+{
+    ZMNP_Nothing    = 0,    /* if chosen, target file will be replaced if exists, and copied file will have current owner and default permissions */
+    ZMNP_Replace    = 1,    /* replace file if exists : if not selected and if no backup selected abort if exists*/
+    ZMNP_Backup     = 2 ,   /* backup target file if exists before copy : exclusive with ZMNP_Replace */
+    ZMNP_KeepPerm   = 4 ,   /* keep owner and file permissions : if not selected copied file is set with default permission and current owner */
+    ZMNP_IncludeAll = 8     /* include all files : header , indexes and their header : managed by ZRandomFile and ZRawMasterFIle corresponding copy routines */
+};
+
+
+utf8VaryingString decode_ZMNP(ZMNP_type pFlag);
+
+class ZaiErrors;
+
+extern int rawCopyPayLoad ;
+/**
+ * @brief setRawCopyPayLoad sets the default payload for raw copy operation.
+ */
+void setRawCopyPayLoad(int pPayload) ;
+
+/**
+ * @brief rawCopy   copy a source file to a target file, with each file access operation is of pPayLoad bytes.
+ *                  if exists, progress call backs are used.
+ *                  if exists, pErrorLog is used for reporting results and/or errors.
+ *
+ *                  To be done : access remote files as source or as target.
+ * @param pSource   a valid uriString pointing to an UNIQUE file
+ * @param pTarget   a valid uriString pointing to a well formed full file description.
+ *                  Target file name must be mentionned.
+ *                  No wild card allowed.
+ * @param pFlag     see ZCopyManip_enum. Nota bene : ZMNP_IncludeAll has no effect since only low level files are considered here.
+ * @param pPayLoad  amount of byte to be read/written at each access. if set to -1, then default payload applies. see setRawCopyPayLoad()
+ * @param pErrorLog
+ * @return
+ */
+ZStatus rawCopy(const uriString &pSource,
+                const uriString &pTarget,
+                uint8_t pFlag = ZMNP_Nothing,
+                long pPayLoad = -1,
+                __progressCallBack__ (_progressCallBack) = nullptr,
+                __progressSetupCallBack__ (_progressSetupCallBack) = nullptr,
+                ZaiErrors *pErrorLog = nullptr);
+/**
+ * @brief rawRenameBck  renames pFile in the same directory to a name with pBckExt extension according standard rules :
+ *      <file base name>_<bckext>99
+ *      with    <file base name> is <file root>.<file extension>
+ *              <bckext> is pBckExt : generally a suite of 3 alphabetic characters e. g. 'bck'
+ *              99 a two digits number from 01 to 99 varying according already existing file names.
+ *
+ *  ATTENTION : For random file suite, please use built in renameBck() method that insures file names alignment.
+ * @param pFile         File full description to rename
+ * @param pBckExt
+ * @param pErrorLog
+ * @return same status a rawRename()
+ */
+ZStatus rawRenameBck(const uriString &pFile,
+                     const utf8VaryingString &pBckExt,
+                     bool pNoExcept = false,
+                     ZaiErrors *pErrorLog = nullptr);
+/**
+ * @brief rawRename
+ *
+ *      see https://www.man7.org/linux/man-pages/man2/rename.2.html
+ * @param pFile         File full description to rename
+ * @param pNewURI
+ * @param pErrorLog
+ * @return
+ */
+ZStatus rawRename(const uriString &pFile,
+                  const utf8VaryingString &pNewURI,
+                  bool pNoExcept = false,
+                  ZaiErrors *pErrorLog = nullptr);
 
 /**
      * @brief rawOpen low level open file described by pPath, using __oflag (see https://www.man7.org/linux/man-pages/man2/open.2.html)
@@ -26,6 +106,11 @@
   ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept);
 
   ZStatus _rawOpenGetException(int wErrno, const utf8VaryingString& pPath,bool pNoExcept ) ;
+
+
+  ZStatus rawOpenRead(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath);
+  ZStatus rawOpenModify(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath);
+  ZStatus rawOpenCreate(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath);
 
 
 /**
@@ -152,6 +237,23 @@
   ZStatus rawChangePermissions(__FILEHANDLE__ pFd,__FILEACCESSRIGHTS__ pAccessRights);
   ZStatus _rawStat(__FILEHANDLE__ pFd, struct stat& pStat, bool pLogZException=false);
   ZStatus rawgetPermissions(__FILEHANDLE__ pFd, __FILEACCESSRIGHTS__& pAccessRights, bool pLogZException=false);
+
+  /**
+   * @brief rawTruncate effectively truncates (or extend) the file pointed by pFd to a global size of pLength.
+   *                    pFd must be a valid file descriptor for a file open for writing,
+   *
+   * refer to https://www.man7.org/linux/man-pages/man3/ftruncate.3p.html
+   *
+   * @param pFd      a valid file descriptor open for writing
+   * @param pLength  global size of the file after truncate operation.
+   * @return ZS_SUCCESS in case of successfull operation.
+   * If not successfull, status is adjusted according errno error and ZException is set with acurate content.
+   * ZS_INVSIZE <EFBIG><EINVAL> pLength is an invalid length argument (negative or greater than the maximum file size).
+   * ZS_SYSTEMERROR <EINTR> A signal was caught during execution.
+   * ZS_SYSTEMERROR <EIO>  An I/O error occurred while reading from or writing to file system.
+   * ZS_BADFILEDESC <EBADF> Not a file descriptor open for writing.
+   */
+  ZStatus rawTruncate(__FILEHANDLE__ pFd,size_t pLength);
 
   /**
    * @brief getNameFromFd returns the full path name of file corresponding to descriptor pFd.

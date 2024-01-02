@@ -1,8 +1,8 @@
 #ifndef ZTYPETYPE_CPP
 #define ZTYPETYPE_CPP
-#include <ztoolset/ztypetype.h>
-#include <ztoolset/zsymbols.h>
-#include <ztoolset/zutfstrings.h>
+#include "ztypetype.h"
+#include "zsymbols.h"
+#include "utfvaryingstring.h"
 
 //======================Encoding Decoding ZType_type=====================================
 
@@ -424,7 +424,7 @@ ZTypeBase encode_ZType (const utf8VaryingString &pString)
     /* strings */
     if (pString.strstr((const utf8_t*)"ZType_Utf8VaryingString")) {
       wZType|=ZType_Utf8VaryingString; break ; }
-    if (pString.strstr((const utf8_t*)"ZType_Utf8String")) {
+    if (pString.strstr((const utf8_t*)"ZType_utf8VaryingString")) {
       wZType|=ZType_Utf8VaryingString; break ; }
 
     if (pString.strstr((const utf8_t*)"ZType_Utf16VaryingString")) {

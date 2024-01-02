@@ -2,7 +2,7 @@
 #define ZXMLNAMESPACE_H
 
 #include <libxml/tree.h>
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 
 class zxmlDoc;
 class zxmlNode;
@@ -31,8 +31,8 @@ public:
     zxmlNameSpace(const zxmlNameSpace&)=delete;
     zxmlNameSpace& operator=(const zxmlNameSpace&) = delete;  // no copy
 
-    utffieldNameString getPrefix(void) {return utffieldNameString((const utf8_t*)_xmlInternalNameSpace->prefix);}
-    utfdescString getURL(void) {return utfdescString((const utf8_t*)_xmlInternalNameSpace->href);}
+    utf8VaryingString getPrefix(void) {return utf8VaryingString((const utf8_t*)_xmlInternalNameSpace->prefix);}
+    utf8VaryingString getURL(void) {return utf8VaryingString((const utf8_t*)_xmlInternalNameSpace->href);}
 
    xmlNsPtr _xmlInternalNameSpace=nullptr;
 };

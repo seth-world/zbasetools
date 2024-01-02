@@ -35,6 +35,7 @@ enum ZDelayPrecision_type
     ZDPT_Microseconds=2,
     ZDPT_Nanoseconds=3
 };
+class utf8VaryingString;
 /**
  * @brief The ZTime struct overloaded from struct timespec : same data - only operators added
  * ZTime precision is nano seconds (ZTime.tv_nsec)
@@ -52,22 +53,30 @@ public:
 
     ZTime& _copyFrom(const ZTime& pTi) {tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_nsec; return *this;}
 
-    void clear() {memset(this,0,sizeof(ZTime));}
+    void clear() {tv_sec=0;  tv_nsec=0;}
+    void setNull() {tv_sec=0;  tv_nsec=0;}
 
     ZTime& operator = (const ZTime& pTi) {return _copyFrom(pTi);}
     ZTime operator = (timespec pTi){return _copyFrom(pTi);}
     ZTime operator = (timeval pTi){tv_sec = pTi.tv_sec; tv_nsec = pTi.tv_usec*1000; return *this;} // micro to nanoseconds
 
+    bool operator == (const ZTime& pIn) {return (tv_sec==pIn.tv_sec && tv_nsec==pIn.tv_nsec);}
+
+
     ZTime operator +=  (ZTime pTime);
     ZTime operator -=  (ZTime pTime);
 
-    ZTime operator -  (ZTime &pTime);
+    ZTime operator -  (const ZTime &pTime);
     ZTime operator +  (ZTime &pTi);
 
     ZTime operator *  (int pMult);
     ZTime operator *  (double pMult);
     ZTime operator /  (int pDiv);
     ZTime operator /  (double pDiv);
+
+    bool isNull() {return tv_sec==0 && tv_nsec==0;}
+
+
 
     /**
      * @brief getTimeVal converts and returns current ZTime content to a timeval time structure
@@ -133,9 +142,15 @@ public:
 
     char* toString(char* pBuf, size_t pLen, const char* pFormat=nullptr, ZDelayPrecision_type pDelayType=ZDPT_Seconds) ;
 
-    CharMan toString(const char* pFormat=nullptr,ZDelayPrecision_type pDelayType=ZDPT_Seconds);
+//    CharMan toString(const char* pFormat=nullptr,ZDelayPrecision_type pDelayType=ZDPT_Seconds);
+
+    utf8VaryingString toString( const char* pFormat=nullptr, ZDelayPrecision_type pDelayType=ZDPT_Seconds) ;
 
     char* delaytoString (char* pBuf,unsigned int pLen,ZDelayPrecision_type pDelayType=ZDPT_Milliseconds) ;
+    utf8VaryingString delaytoString(ZDelayPrecision_type pPrecision = ZDPT_Milliseconds);
+
+    /* reports ZTime content not as a date-time but as an interval of time */
+    utf8VaryingString reportTimeInterval( ZDelayPrecision_type pPrecision=ZDPT_Milliseconds);
 
     /** @brief _export() serializes ZTime */
     ZDataBuffer _export();

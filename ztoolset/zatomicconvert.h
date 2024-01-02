@@ -104,4 +104,6 @@ _Tp wValue;
 
 
 
+
+
 #endif // ZATOMICCONVERT_H

@@ -20,7 +20,7 @@
 
 class utf16VaryingString;
 class utf32VaryingString;
-class stringKey;
+//class stringKey;
 /**
  * @brief The utf8VaryingString class ZString object unicode utf8 encoded with varying length.
  */
@@ -160,6 +160,13 @@ public:
                             const ZCryptKeyAES256& pKey,
                             const ZCryptVectorAES256& pVector);
 
+    /**
+     * @brief escapeHtmlSeq returns an utf8 string with following string sequence escaped for html :
+     * <%s>  <%d> <%ld> <%g>
+     */
+    utf8VaryingString escapeHtmlSeq() const ;
+
+    static utf8VaryingString escapeHtmlSeq(const utf8VaryingString& pIn) ;
 
 //    utf8_t operator [] (const size_t pIdx) const  { if(pIdx>getUnitCount()) return 0; return (Data[pIdx]);}
     utf8VaryingString & operator = (const char* pString) {
@@ -218,6 +225,24 @@ public:
     }
 
 #endif
+
+/*
+    utf8_t* firstNotinSet(const utf8_t  *pSet=cst_default_delimiter_U8)
+    {return(utfFirstNotinSet<utf8_t>((const utf8_t*)Data,pSet));}
+
+    utf8_t* lastNotinSet(const utf8_t *pSet=cst_default_delimiter_U8)
+    {return(utfLastNotinSet<utf8_t>((const utf8_t*)Data,pSet));}
+
+    utf8_t* LTrim(const utf8_t *pSet=cst_default_delimiter_U8)
+    {return(utfLTrim<utf8_t>((const utf8_t*)Data,pSet));}
+
+    utf8_t* RTrim(const utf8_t *pSet=cst_default_delimiter_U8)
+    {return(utfRTrim<utf8_t>((const utf8_t*)Data,pSet));}
+
+    utf8_t* Trim(utf8_t *pSet=cst_default_delimiter_U8)
+    {return(utfTrim<utf8_t>(Data,pSet));}
+*/
+
 
 };
 
@@ -320,7 +345,22 @@ typedef utf16_t                  _UtfBase;
     }
 
 #endif
+/*
+    utf16_t* firstNotinSet(const utf16_t  *pSet)
+    {return(utfFirstNotinSet<utf16_t>((Data,pSet));}
 
+    utf16_t* lastNotinSet(const utf16_t *pSet)
+    {return(utfLastNotinSet<utf16_t>(Data,pSet));}
+
+    utf16_t* LTrim(const utf16_t *pSet)
+    {return(utfLTrim<utf16_t>(Data,pSet));}
+
+    utf16_t* RTrim(const utf16_t *pSet)
+    {return(utfRTrim<utf16_t>(Data,pSet));}
+
+    utf16_t* Trim(const utf16_t *pSet=cst_default_delimiter_U16)
+    {return(utfTrim<utf16_t>(Data,pSet));}
+*/
 
     bool operator == (const char* pIn) { return compareV<char>(pIn); }
     bool operator != (const char* pIn) { return !compareV<char>(pIn); }
@@ -364,7 +404,23 @@ typedef utf32_t                  _UtfBase;
        if (is_little_endian())
          Charset=(ZCharset_type)(int(Charset)|ZCHARSET_LITTLEENDIAN);
      }
+/*
+     utf32_t* firstNotinSet(const utf32_t  *pSet=cst_default_delimiter_U32)
+     {return(utfFirstNotinSet<utf32_t>(Data,pSet));}
 
+     utf32_t* lastNotinSet(const utf32_t *pSet=cst_default_delimiter_U32)
+     {return(utfLastNotinSet<utf32_t>(Data,pSet));}
+
+     utf32_t* LTrim(const utf32_t *pSet=cst_default_delimiter_U32)
+     {return(utfLTrim<utf32_t>(Data,pSet));}
+
+     utf32_t* RTrim(const utf32_t *pSet=cst_default_delimiter_U32)
+     {return(utfRTrim<utf32_t>(Data,pSet));}
+
+     utf32_t* Trim(const utf32_t *pSet=cst_default_delimiter_U32)
+     {return(utfTrim<utf32_t>(Data,pSet));}
+
+*/
 
     ssize_t strcount(UST_Status_type &pStatus)  /** Counts the effective number of utf32 characters - skipping BOM */
         {

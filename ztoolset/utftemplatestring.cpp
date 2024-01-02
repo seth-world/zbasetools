@@ -1,8 +1,8 @@
 #ifndef UTFTEMPLATESTRING_CPP
 #define UTFTEMPLATESTRING_CPP
 
-#include <ztoolset/utftemplatestring.h>
-#include <ztoolset/zexceptionmin.h>
+#include "utftemplatestring.h"
+#include "zexceptionmin.h"
 
 
 /**

@@ -10,7 +10,7 @@
 //#include <ztoolset/ztoolset_common.h>
 //#include <ztoolset/zbasedatatypes.h>
 
-#include <ztoolset/exceptionstring.h>
+//#include <ztoolset/exceptionstring.h>
 #include <functional>
 
 //typedef templateString<char [cst_desclen+1]> descString;
@@ -29,16 +29,16 @@
 #endif
 #endif // __COMMENT__
 #include <unicode/utypes.h>  // for UErrorCode etc...
-#include <ztoolset/zutfstrings.h>
+#include "utfvaryingstring.h"
 
 /** @addtogroup ZBSErrorGroup
  *
  * @{ */
 
 #define __ABORTCALLBACK__(__NAME__)  std::function<void (void)> __NAME__
-
+/*
 void setAbortCallBack(__ABORTCALLBACK__(pAbortCallBack)) ;
-
+*/
 
 class ZExceptionBase_Data //: public std::exception
 {
@@ -64,10 +64,10 @@ public:
 
     int             Error       = 0 ;           /**< system error code corresponding to errno. This field is positionned when and only when a system error or a file error occurred. */
     ZStatus         Status      = ZS_NOTHING;   /**< ZStatus describing zbs error*/
-    utf8String      Message ;     /**< Application text message. This message is created using a varying list of argument as printf uses.*/
-    utf8String      Complement;   /**<  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
+    utf8VaryingString      Message ;     /**< Application text message. This message is created using a varying list of argument as printf uses.*/
+    utf8VaryingString      Complement;   /**<  a complementary technical information left to user's choice or generated from system error string (get() or getFileError())*/
     Severity_type   Severity= Severity_Nothing; /**< a Severity_type that mentions the kind of error and its impact on application flow.*/
-    utf8String      Module ;                    /**< a string chain mentionning the origin of the error : either method, function routine etc...*/
+    utf8VaryingString      Module ;                    /**< a string chain mentionning the origin of the error : either method, function routine etc...*/
  };
 
 class ZNetException;
@@ -92,7 +92,7 @@ public:
 
     virtual char* what() noexcept { return (char*)formatFullUserMessage().toCChar();}
 
-
+    bool isNull() const { return Message.isEmpty() && (Severity == Severity_Nothing) ; }
     void setContext (const char *pModule,ZStatus pStatus,Severity_type pSeverity);
 
     void getErrno(const int pErrno,
@@ -159,7 +159,7 @@ public:
     void setComplement (const char *pFormat,...);
     void setComplement (const char *pFormat,va_list arglist);
     void setComplementToStatus();
-    void setComplement (const utf8String& pComplement);
+    void setComplement (const utf8VaryingString& pComplement);
 
 
     static ZExceptionBase create(const char *pModule, ZStatus pStatus, Severity_type pSeverity,
@@ -328,7 +328,7 @@ public:
             }
 
     void removeLast(void);
-    utf8String formatFullUserMessage (void);
+    utf8VaryingString formatFullUserMessage (void);
 
     ZStatus getLastStatus(void);
     Severity_type getLastSeverity(void);
@@ -337,8 +337,8 @@ public:
     void setLastStatus(ZStatus pSt);
     void setLastSeverity(Severity_type pSeverity);
 
-    utf8String getLastMessage(void) ;
-    utf8String getLastComplement(void) ;
+    utf8VaryingString getLastMessage(void) ;
+    utf8VaryingString getLastComplement(void) ;
 
 //    zbs::ZArray<ZExceptionBase*>  ZStack;
 //     ZExceptionStack ZStack;
@@ -431,6 +431,12 @@ public:
 
     void setThrowOnSeverity(Severity_type pSeverity) {ThrowOnSeverity=pSeverity;}
     void setThrowDefault(void) {ThrowOnSeverity=Severity_Highest;}
+
+    void setAbortCallBack(__ABORTCALLBACK__(pAbortCallBack))
+    {
+        AbortCallBack = pAbortCallBack;
+    }
+
 private:
 #ifdef __USE_ZTHREAD__
     zbs::ZMutex     _Mtx;
@@ -440,6 +446,14 @@ private:
 
     uint8_t         AbortOnSeverityOld=Severity_Fatal;
     uint8_t         ThrowOnSeverityOld=Severity_Fatal;
+
+    void _stdAbortCallBack()
+    {
+        fprintf(stderr," Standard abort call back\n");
+        exit(1);
+    }
+
+    __ABORTCALLBACK__(AbortCallBack) = std::bind(&ZExceptionMin::_stdAbortCallBack,this);
 
 private:
     void clear() {/*_Base::clear();*/

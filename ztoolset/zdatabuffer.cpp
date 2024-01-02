@@ -1,22 +1,22 @@
 #ifndef ZDATABUFFER_CPP
 #define ZDATABUFFER_CPP
 
-#include <ztoolset/zdatabuffer.h>
-#include <ztoolset/zerror.h>
-#include <ztoolset/uristring.h>
-#include <ztoolset/zexceptionmin.h>
-#include <ztoolset/zfunctions.h>
+#include "zdatabuffer.h"
+#include "zerror.h"
+#include "uristring.h"
+#include "zexceptionmin.h"
+#include "zfunctions.h"
 
-#include <ztoolset/zcharset.h>
+#include "zcharset.h"
 
 #include <zcrypt/zcrypt.h>
 #include <zcrypt/checksum.h>
 #include <zcrypt/md5.h>
 
-#include <ztoolset/zutfstrings.h>
+//#include "zutfstrings.h"
 
 #include <zxml/zxmlprimitives.h>
-#include <ztoolset/utfvaryingstring.h>
+#include "utfvaryingstring.h"
 
 ZDataBuffer::ZDataBuffer(void): Data(nullptr), Size(0) ,CryptMethod(ZCM_Uncrypted)
 {return;}
@@ -325,7 +325,7 @@ ZDataBuffer::allocate(size_t pSize)
                 "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
                 _GET_FUNCTION_NAME_,
                 pSize,pSize);
-        _ABORT_
+        exit(EXIT_FAILURE);
       }
      /* allocate/reallocate enough size for requested byte size plus end sign cst_ZBUFFEREND */
     if (Data==nullptr)
@@ -350,7 +350,7 @@ ZDataBuffer::allocate_old(size_t pSize)
         "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
         _GET_FUNCTION_NAME_,
         pSize,pSize);
-    _ABORT_
+      exit(EXIT_FAILURE);
   }
   /* allocate/reallocate enough size for requested byte size plus end sign cst_ZBUFFEREND */
   if (Data==nullptr)
@@ -403,7 +403,7 @@ ZDataBuffer::extend(size_t pSize)
           "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
           _GET_FUNCTION_NAME_,
           pSize,pSize);
-      _ABORT_
+      exit(EXIT_FAILURE);
     }
   if (Data==nullptr)
       {
@@ -430,7 +430,7 @@ ZDataBuffer::extend_old(size_t pSize)
         "%s-F-INVALIDSIZE  Fatal error trying to allocate invalid size %ld %lX.\n",
         _GET_FUNCTION_NAME_,
         pSize,pSize);
-    _ABORT_
+    exit(EXIT_FAILURE);
   }
   if (Data==nullptr)
   {
@@ -825,6 +825,31 @@ ZDataBuffer::breverseSearch (ZDataBuffer &pKey,
 
     return (breverseSearch(pKey.Data,pKey.Size,pOffset)) ;
 }//breverseSearch
+
+
+
+
+const unsigned char*
+ZDataBuffer::firstNotinSet(const char *pSet)
+{
+    return((const unsigned char*)_firstNotinSet((const char*)Data,pSet));
+}
+
+char*
+ZDataBuffer::LTrim(const char *pSet)
+{
+    return(_LTrim((char*)Data,pSet));
+}
+
+char*
+ZDataBuffer::RTrim(const char *pSet)
+{return(_RTrim((char*)Data,pSet));}
+
+char*
+ZDataBuffer::Trim(const char *pSet)
+{return(_Trim((char*)Data,pSet));}
+
+
 /**
  * @brief ZDataBuffer::setChar         set content to pChar starting at pStart byte for pSize long
  *
@@ -1402,7 +1427,7 @@ ZDataBuffer::toXml(const utf8VaryingString& pName, int pLevel)
 ZStatus
 ZDataBuffer::fromXml(zxmlElement* pBlobRoot, ZaiErrors* pErrorLog, ZaiE_Severity pSeverity)
 {
-utf8String wContent = fmtXMLnode("zblob", pLevel);
+utf8VaryingString wContent = fmtXMLnode("zblob", pLevel);
 
 wContent += fmtXMLCdatanode(this);
 wContent += fmtXMLint64("id", id, pLevel+1);

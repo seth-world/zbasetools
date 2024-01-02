@@ -121,11 +121,14 @@ zicuConverter::toEncoding (char** pOutCharStr,size_t* pOutCount,
 ZStatus wSt=ZS_SUCCESS;
 UST_Status_type wUSTSt;
 
-    if (!pOutCharStr)
-            _ABORT_;
-    if (!putfString)
-            _ABORT_;
+    if (!pOutCharStr) {
+        fprintf(stderr,"zicuConverter::toEncoding-F-NOOUTPUT no output string defined.\n");
+        exit (EXIT_FAILURE);
+    }
     *pOutCharStr=nullptr;
+    if (!putfString)
+            return ZS_EMPTY;
+
 
     /* if destination encoding is omitted, we do not allow icu to take its default encoding,
      * but we provide our default encoding name (it may be set by setDefaultEncoding() function */
@@ -232,11 +235,13 @@ zicuConverter::fromEncoding(_Utf** putfString,size_t* pOutCount,
 
 ZStatus wSt=ZS_SUCCESS;
 
-    if (!putfString)
-            _ABORT_;
-    if (!pInString)
-            _ABORT_;
+    if (!putfString) {
+        fprintf(stderr,"zicuConverter::fromEncoding-F-NOOUTPUT no output string defined.\n");
+        exit (EXIT_FAILURE);
+    }
     *putfString=nullptr;
+    if (!pInString)
+        return ZS_EMPTY;
 
     /* if source encoding is omitted, we do not allow icu to take its default encoding,
      * but we provide our default encoding name (it may be set by setDefaultEncoding() function */

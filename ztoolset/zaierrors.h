@@ -91,7 +91,7 @@ public:
     ZStatus getZStatus() { return Status; }
 
     ZStatus         Status=ZS_NOTHING;
-    utf8String     _Message ;
+    utf8VaryingString     _Message ;
     ZaiE_Severity   Severity;
 };
 class ZExceptionBase;
@@ -139,7 +139,7 @@ public:
     }
 
     void setOutput(const char* pOutfile);
-    void setOutput(const utf8String& pOutfile)
+    void setOutput(const utf8VaryingString& pOutfile)
     {
       setOutput(pOutfile.toCChar());
     }
@@ -163,7 +163,7 @@ public:
 
 
     void displayErrors(FILE* pOutput=stdout );
-    utf8String getLastError( );
+    utf8VaryingString getLastError( );
     void log(ZaiE_Severity pSeverity,const char* pFormat,...);
 
     void _log(ZaiE_Severity pSeverity,const char* pFormat,va_list pArgs);
@@ -223,14 +223,20 @@ public:
     void _print(uint8_t pSeverity, const utf8VaryingString& pOut);
 
     void setDisplayCallback(__DISPLAYCALLBACK__(pdisplayCallback) ) {_displayCallback=pdisplayCallback;}
-    void setDisplayColorCB(__DISPLAYCOLORCB__(pdisplayCallback) ) {_displayColorCB=pdisplayCallback;}
+    void setDisplayColorCallBack(__DISPLAYCOLORCB__(pdisplayCallback) ) {_displayColorCB=pdisplayCallback;}
+
+    void clearDisplayCallBacks()
+    {
+        _displayCallback=nullptr;
+        _displayColorCB=nullptr;
+    }
 
     __DISPLAYCALLBACK__(_displayCallback) = nullptr ;
     __DISPLAYCOLORCB__(_displayColorCB) = nullptr ;
 
     ZaiE_Severity AutoPrint=ZAIES_None; /* if set then prints info and warning messages to stdout and error messages to stderr as soon as registrated */
     ZaiE_Severity StoreMinSeverity=ZAIES_None;  /* minimum severity until message is stored */
-    ZArray<utf8String> Context;
+    ZArray<utf8VaryingString> Context;
     uint8_t ErrorLevel=0;
     FILE* Output=stderr;
 };

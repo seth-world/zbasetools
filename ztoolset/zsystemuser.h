@@ -3,12 +3,12 @@
 
 #include <config/zconfig.h>
 
-#include <ztoolset/userid.h>
+#include "userid.h"
 
-#include <ztoolset/zerror.h>
-#include <ztoolset/zexceptionmin.h>
+#include "zerror.h"
+#include "zexceptionmin.h"
 //#include <ztoolset/zfunctions.h>
-#include <ztoolset/zutfstrings.h>
+#include "utfvaryingstring.h"
 
 #include <zio/zdir.h>
 
@@ -51,14 +51,14 @@ public:
     ZStatus setToName(const char* pName);
     ZStatus setToUserId (ZSystemUserId pUserId);
 
-    utf8String    getSystemName() const;
+    utf8VaryingString    getSystemName() const;
     ZDir          getHomeDir() const;
 
     static ZDir   getCurrentDir();
 
     bool          isRoot() const ;
-    utfcodeString UserIdToString()  {return SystemUserId.toString();}
-    utfcodeString GroupIdToString() {return SystemGroupId.toString();}
+    utf8VaryingString UserIdToString()  {return SystemUserId.toString();}
+    utf8VaryingString GroupIdToString() {return SystemGroupId.toString();}
 
     ZSystemUserId getUserId() const {return SystemUserId;}
     ZSystemUserId getGroupId() const {return SystemGroupId;}
@@ -78,7 +78,7 @@ protected:
     ZSystemUserId SystemUserId;
     ZSystemUserId SystemGroupId;
     bool Init=false;
-    utf8String SystemUserName;
+    utf8VaryingString SystemUserName;
     ZDir  Home;
 
 #ifdef __GNUG__

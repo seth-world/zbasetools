@@ -1,6 +1,6 @@
 #ifndef ZMODULESTACK_H
 #define ZMODULESTACK_H
-
+#ifdef __COMMENT__
 #include <config/zconfig.h>
 #include <ztoolset/zarray.h>
 
@@ -22,6 +22,8 @@ public:
 void zprintStack(void) ;
 
 }// namespace zbs
+
+
 
 #ifdef __ERROR_MANAGEMENT_LEVEL__
 
@@ -125,6 +127,6 @@ zprintMessage (__SEVERITY__, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg
   sprintf(wMsg,__VA_ARGS__); \
   zprintSystemMessage (__SEVERITY__,errno, _MODULENAME,__SHORTMESSAGE__,__FILE__,__LINE__,wMsg) ;
 
-
+#endif // __COMMENT__
 
 #endif // ZMODULESTACK_H

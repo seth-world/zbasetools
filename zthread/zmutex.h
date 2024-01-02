@@ -25,7 +25,7 @@
 #ifdef __USE_POSIX_ZTHREAD__
 //#include <zthread/zmutex_pthread.h>
 
-#pragma message "ZTHREAD-W-USINGPOSIX  Using STD Mutexes : check that you link with compiler option -pthread and library option -lpthread . \n"
+#pragma message("ZTHREAD-W-USINGPOSIX  Using STD Mutexes : check that you link with compiler option -pthread and library option -lpthread . \n")
 
 #include <pthread.h>
 

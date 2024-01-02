@@ -12,36 +12,33 @@
 #include <stdarg.h> /* both two includes are for va_list va-start...etc. */
 
 #include <exception>
-#include <ztoolset/zexceptionmin.h>
+#include "zexceptionmin.h"
 
-#include <ztoolset/zutfstrings.h>
-#include <ztoolset/uristring.h>
+//#include "utfvaryingstring.h"
+#include "uristring.h"
 
-#include <ztoolset/zbasedatatypes.h>
-
-#include <ztoolset/utfvaryingstring.h>
-
-#include <ztoolset/zaierrors.h>
-
-void _abortCallBack() { abort();}
-
-__ABORTCALLBACK__(AbortCallBack) = _abortCallBack;
-
-void setAbortCallBack(__ABORTCALLBACK__(pAbortCallBack)) {AbortCallBack=pAbortCallBack;}
+#include "zbasedatatypes.h"
 
 
+#include "zaierrors.h"
+/*
+void _abortCallBack()
+{
+    _DBGPRINT(" Standard abort call back\n")
+    exit(1);
+}
+
+__ABORTCALLBACK__(AbortCallBack) = &_abortCallBack;
+
+void setAbortCallBack(__ABORTCALLBACK__(pAbortCallBack))
+{
+    _DBGPRINT(" Abort call back set\n")
+    AbortCallBack=pAbortCallBack;
+}
+
+*/
 
 ZExceptionMin               ZException;
-
-utfexceptionString&
-utfexceptionString::setFromURI(const uriString &pUri)
-{
-    uriString& wUri=const_cast<uriString&>(pUri);
-    const _Utf* wContent=wUri.toUtf();
-    fromUtf(wContent);
-    return *this;
-//    return ((utfexceptionString&)*_Base::fromUtf8(pUri.toUtf()));
-}
 
 
 
@@ -169,7 +166,7 @@ ZExceptionMin::getErrno (const int pErrno,
     if (pSeverity >= ThrowOnSeverity)
         zthrow (ZExceptionStack::last());
     if (pSeverity >= AbortOnSeverity)
-        _abortCallBack();
+        AbortCallBack();
     return;
 }//getErrno
 
@@ -565,7 +562,7 @@ void ZExceptionBase::setComplement (const char *pFormat,va_list arglist)
 return;
 }
 
-void ZExceptionBase::setComplement (const utf8String& pComplement)
+void ZExceptionBase::setComplement (const utf8VaryingString& pComplement)
 {
   Complement=pComplement;
   return;
@@ -788,9 +785,9 @@ ZExceptionMin::printLastUserMessage (FILE *pOutput,bool pKeep)
 #endif
 }//ZExceptionMin::printLastUserMessage
 
-utf8String
+utf8VaryingString
 ZExceptionBase::formatFullUserMessage (bool pEndNL)
-{   utf8String wReturn;
+{   utf8VaryingString wReturn;
     wReturn.sprintf("_____________ZException content_____________\n");
     wReturn.addsprintf(
                  "%s\n"
@@ -816,7 +813,7 @@ ZExceptionBase::formatFullUserMessage (bool pEndNL)
     return wReturn;
 }
 
-utf8String ZExceptionMin::formatFullUserMessage(void)
+utf8VaryingString ZExceptionMin::formatFullUserMessage(void)
 {
 #if __USE_ZTHREAD__
     _Mtx.lock();
@@ -839,7 +836,7 @@ utf8String ZExceptionMin::formatFullUserMessage(void)
 void
 ZExceptionMin::exit_abort(void)
 {
-  fprintf (stderr,"ZExceptionMin::exit_abort  Program exited at application request.\n");
+  fprintf (stderr,"ZExceptionMin::exit_abort  Program exiting at application request.\n");
   printUserMessage(stderr);
   ZExceptionStack::clear();
 //        exit(EXIT_FAILURE);
@@ -895,7 +892,7 @@ ZExceptionBase *wExceptionBase = new ZExceptionBase;
 #endif // __USE_ZTHREAD__
 
 
-utf8String ZExceptionMin::getLastMessage(void)
+utf8VaryingString ZExceptionMin::getLastMessage(void)
 {
     if (ZExceptionStack::isEmpty())
         {
@@ -905,13 +902,13 @@ utf8String ZExceptionMin::getLastMessage(void)
     return ZExceptionStack::last()->Message;
 }
 
-utf8String
+utf8VaryingString
 ZExceptionMin::getLastComplement(void)
 {
     if (ZExceptionStack::isEmpty())
         {
         fprintf (stderr,"%s-F-EmptyStack Fatal error: stack is empty while trying to get last exception complement\n",_GET_FUNCTION_NAME_);
-        return utf8String("");
+        return utf8VaryingString("");
         }
     return ZExceptionStack::last()->Complement;
 }
@@ -1004,7 +1001,7 @@ ZExceptionMin::lastUtf8()
 utf8VaryingString
 ZExceptionBase::formatUtf8 (void) const
 {
-    utf8String wRet;
+    utf8VaryingString wRet;
     wRet=Message.toCChar();
     if (!Complement.isEmpty())
         {

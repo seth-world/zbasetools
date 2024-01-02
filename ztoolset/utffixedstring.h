@@ -16,14 +16,14 @@
 
 #include <config/zconfig.h>
 
-#include <ztoolset/zcharset.h>
+//#include "zcharset.h"   // already in utftemplatestring.h
+//#include "utfsprintf.h" // already in utftemplatestring.h
+#include "utftemplatestring.h"
 
-#include <ztoolset/utftemplatestring.h>
 
-#include <ztoolset/utfsprintf.h>
 //#include <stdint.h>
 
-#include <ztoolset/charman.h>
+//#include <ztoolset/charman.h>
 
 #ifdef QT_CORE_LIB
 //#include <qglobal.h> // for uint
@@ -346,7 +346,7 @@ utf8FixedString<_Sz>::fromWArray(const wchar_t* pInWString)
             sizeof(wchar_t),
             sizeof(utf16_t),
             sizeof(utf32_t));
-    _ABORT_
+    exit(EXIT_FAILURE);
 
 }// fromWString_Ptr
 
@@ -1220,7 +1220,7 @@ utf16FixedString<_Sz>::fromWArray(const wchar_t* pInWString)
             sizeof(wchar_t),
             sizeof(utf16_t),
             sizeof(utf32_t));
-    _ABORT_
+    exit(EXIT_FAILURE);
 
 }// utf16FixedString<_Sz>::fromWArray
 
@@ -1950,7 +1950,7 @@ utf32FixedString<_Sz>::fromWArray(const wchar_t* pInWString)
             sizeof(wchar_t),
             sizeof(utf16_t),
             sizeof(utf32_t));
-    _ABORT_
+    exit(EXIT_FAILURE);
 
 }// fromWArray
 

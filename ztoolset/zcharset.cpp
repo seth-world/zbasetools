@@ -12,14 +12,14 @@
 
 #include <iconv.h>
 
-#include <ztoolset/zatomicconvert.h>
-#include <ztoolset/zdatabuffer.h>
-#include <ztoolset/zutfstrings.h>
+#include "zatomicconvert.h"
+#include "zdatabuffer.h"
+#include "utfvaryingstring.h"
 
 //#include <ztoolset/zfunctions.h>
-#include <ztoolset/utfutils.h>
+#include "utfutils.h"
 
-#include <ztoolset/zlimit.h>
+#include "zlimit.h"
 
 using namespace zbs;
 
@@ -2071,9 +2071,9 @@ ZStatus wSt;
 static UConverter* wUtf8Conv=nullptr;
 static UConverter* wExtConv=nullptr;
     if (!pOutCharStr)
-            _ABORT_
+        exit(EXIT_FAILURE);
     if (!pInString)
-            _ABORT_
+        exit(EXIT_FAILURE);
 
     *pOutCharStr=nullptr;
 
@@ -2295,9 +2295,9 @@ ZStatus utf16StrToCharStr (char **pOutCharStr,
 
 
     if (!pOutCharStr)
-            _ABORT_;
+            exit(EXIT_FAILURE);
     if (!pInString)
-            _ABORT_;
+            exit(EXIT_FAILURE);
 
     *pOutCharStr=nullptr;
 
@@ -2396,9 +2396,9 @@ ZStatus utf32StrToCharStr (char **pOutCharStr,
 
 
     if (!pOutCharStr)
-            _ABORT_;
+            exit(EXIT_FAILURE);
     if (!pInString)
-            _ABORT_;
+            exit(EXIT_FAILURE);
 
     *pOutCharStr=nullptr;
 
@@ -2522,11 +2522,11 @@ UST_Status_type utf8StrToCStr (char **pCStr, const utf8_t* pInString, utfStrCtx 
 
 
     if (!pCStr)
-            _ABORT_;
+            exit(EXIT_FAILURE);
     if (!pInString)
-            _ABORT_;
+            exit(EXIT_FAILURE);
     if (!pContext)
-            _ABORT_;
+            exit(EXIT_FAILURE);
     *pCStr=nullptr;
 
 size_t wUtf8Count=0;
@@ -2921,7 +2921,7 @@ utf8_t* addUtf8Bom(utf8_t*pString, size_t *pByteSize)
         fprintf(stderr,"%s-F-CANTALLOC Fatal error: Cannot allocate memory size %ld.\n",
                 _GET_FUNCTION_NAME_,
                 wSize+2);
-        _ABORT_
+        exit(EXIT_FAILURE);
     }
     long wi=0;
     while (wi<sizeof(cst_utf8BOM))
@@ -2963,7 +2963,7 @@ utf16_t* addUtf16Bom(utf16_t* pString, size_t*pByteSize, ZBool *plittleEndian)
         fprintf(stderr,"%s-F-CANTALLOC Fatal error: Cannot allocate memory size %ld utf16_t character units.\n",
                 _GET_FUNCTION_NAME_,
                 wSize);
-        _ABORT_
+        exit(EXIT_FAILURE);
     }
     *wPtr++= *wBOM;
     while (*pString)
@@ -3002,7 +3002,7 @@ utf32_t* addUtf32Bom(utf32_t* pString,size_t*pByteSize, ZBool* plittleEndian)
             fprintf(stderr,"%s-F-CANTALLOC Fatal error: Cannot allocate memory size %ld utf16_t character units.\n",
                     _GET_FUNCTION_NAME_,
                     wSize);
-            _ABORT_
+            exit(EXIT_FAILURE);
         }
         *wPtr++= *wBOM;
         while (*pString)
@@ -3065,9 +3065,9 @@ const utf16_t* detectUtf16Bom(const utf16_t *pInString, ZBOM_type* pBOM)
 
 
   if (!pInString)
-                    _ABORT_;
+                    exit(EXIT_FAILURE);
   if (!pBOM)
-                    _ABORT_;
+                    exit(EXIT_FAILURE);
 
 utf8_t* wPtr=(utf8_t*)pInString;
 
@@ -3122,9 +3122,9 @@ const utf32_t* detectUtf32Bom(const utf32_t *pInString,ZBOM_type* pBOM)
 {
 
   if (!pInString)
-              _ABORT_;
+              exit(EXIT_FAILURE);
   if (!pBOM)
-              _ABORT_;
+              exit(EXIT_FAILURE);
 
   *pBOM=ZBOM_NoBOM;
   if (!memcmp(pInString,cst_utf32BOMBE_Byte,4))
@@ -4687,10 +4687,10 @@ singleUtf8toUtf16 (utf16_t* pOutChar,size_t* pOutCount,
 
     utf16_t wUtf16Char[3]={0,0,0};
     if (utf8Decode(pInChar,&wCodePoint,&wUtf8Count,&pInSize) < UST_SEVERE)
-        _ABORT_;
+        exit(EXIT_FAILURE);
 
     if (utf16Encode((utf16_t*)wUtf16Char,&wUtf16Count,wCodePoint,nullptr) < UST_SEVERE)
-                                                    {_ABORT_;}
+                                                    {exit(EXIT_FAILURE);}
 
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
@@ -4731,7 +4731,7 @@ singleUtf8toUtf32 (utf32_t *pOutChar, size_t* pOutSize,
     if (((*pCurrLen) + 1) >= pMaxLength)
                             {return  UST_TRUNCATED;}
     if (utf8Decode(pInChar,pOutChar,&wUtf8Count,&pInSize) < UST_SEVERE)
-                            _ABORT_;
+                            exit(EXIT_FAILURE);
     *pOutSize=1;
     pOutChar++;
     (*pCurrLen)++;
@@ -4748,10 +4748,10 @@ singleUtf16toUtf8 (utf8_t* pOutChar,size_t* pOutCount,
     size_t  wUtf8Count;
     utf8_t wUtf8Char[5];
     if (utf16Decode(pInChar,&wCodePoint,&wUtf8Count,nullptr) < UST_SEVERE)
-                            _ABORT_;
+                            exit(EXIT_FAILURE);
 
     if (utf8Encode(wUtf8Char,&wUtf8Count,wCodePoint,nullptr) < UST_SEVERE)
-                            _ABORT_;
+                            exit(EXIT_FAILURE);
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)+= wUtf8Count;
@@ -4786,7 +4786,7 @@ singleUtf16toUtf32 (utf32_t* pOutChar,size_t* pOutSize,
             return  UST_SUCCESS;
             }
     if (utf16Decode(pInChar,pOutChar,&wUtf16Count,nullptr) < UST_SEVERE)
-                            _ABORT_;
+                            exit(EXIT_FAILURE);
     *pOutSize=1;
     (*pCurrLen)++;
     return  UST_SUCCESS;
@@ -4801,10 +4801,10 @@ singleUtf32toUtf8 (utf8_t* pOutChar,size_t* pOutCount,
     size_t  wUtf32Count,wUtf8Count;
     utf8_t wUtf8Char[5];
     if (utf32Decode(pInChar,&wCodePoint,&wUtf32Count,nullptr) < UST_SEVERE)
-                            _ABORT_;
+                            exit(EXIT_FAILURE);
 
     if (utf8Encode(wUtf8Char,&wUtf8Count,wCodePoint,nullptr) < UST_SEVERE)
-                            _ABORT_;
+                            exit(EXIT_FAILURE);
 
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
@@ -4835,7 +4835,7 @@ singleUtf32toUtf16 (utf16_t *pOutChar, size_t* pOutCount,
     size_t  wUtf16Count;
     utf16_t wUtf16Char[3];
     if (utf16Encode(wUtf16Char,&wUtf16Count,wCodePoint,nullptr) < UST_SEVERE)
-                            _ABORT_
+        exit(EXIT_FAILURE);
     if (!pOutChar)  /* output buffer is null, so do not take care of pMaxLength and return length */
             {
             (*pCurrLen)+= wUtf16Count;
@@ -5155,7 +5155,7 @@ decode_XMLCharEncoding(int8_t pEncoding)
       }
 }// decode_CharEncoding
 
-utfdescString GUST_Lib;
+utf8VaryingString GUST_Lib;
 const char* decode_UST(const UST_Status_type pStatus)
 {
 
@@ -5238,7 +5238,7 @@ const char* decode_UST(const UST_Status_type pStatus)
 
   if (GUST_Lib.isEmpty())
             return "Unknown UST Status";
-  return (const char*)GUST_Lib.toCString_Strait();
+  return (const char*)GUST_Lib.toCChar();
 } // decode_UST
 
 

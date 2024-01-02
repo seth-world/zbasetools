@@ -18,7 +18,7 @@ using namespace zbs;
 
 //------------Simple mutex--------------------------------------
 
-#define __ZMUTEXVERBOSE__  ZVerbose & ZVB_Mutex
+#define __ZMUTEXVERBOSE__  BaseParameters->VerboseMutex()
 
 ZMutex::ZMutex(void)
 {
@@ -50,7 +50,7 @@ int ZMutex::lock()
 {
 
   if (__ZMUTEXVERBOSE__) {
-    fprintf(stdout,"ZMutex-I-LOCK locking ZMutex  \n");
+    fprintf(stdout,"ZMutex-I-LOCK locking ZMutex\n");
     std::cout.flush();
   }
   if (State_locked) {
@@ -66,8 +66,8 @@ int ZMutex::lock()
     if (__ZMUTEXVERBOSE__) {
       fprintf(stdout,"ZMutex-I-LOCK           set state locked  \n");
       std::cout.flush();
-      return wRet;
     }
+    return wRet;
   }
   fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
   return wRet;
@@ -239,7 +239,7 @@ ZMtxRecursive::ZMtxRecursive(void)
         }
     wRet=pthread_mutex_init(&Mutex_id,&MutexAttributes);
     if (wRet==0)
-                    return;
+        return;
      fprintf(stderr,decode_MutexError(_GET_FUNCTION_NAME_,wRet).toCChar());
      abort();
 }

@@ -213,6 +213,31 @@ utf8VaryingString::toCString(ZDataBuffer& pZDB)
     return pZDB;
 }// utf8VaryingString::toCString
 
+
+utf8VaryingString
+utf8VaryingString::escapeHtmlSeq(const utf8VaryingString& pIn)
+{
+    return pIn.escapeHtmlSeq() ;
+}
+
+utf8VaryingString
+utf8VaryingString::escapeHtmlSeq() const {
+    utf8VaryingString wStr=*this;
+
+
+    wStr.replace("<%s>","&lt;%s&gt;");
+    wStr.replace("<%d>","&lt;%d&gt;");
+    wStr.replace("<%g>","&lt;%g&gt;");
+    wStr.replace("<%ld>","&lt;%ld&gt;");
+
+    wStr.replace("\n","<br>");
+
+    return wStr;
+}
+
+
+/*================= utf16 ==================*/
+
 #include <ztoolset/cnvcallback.h>   // for custom callbacks
 #include <unicode/ucnv.h>           // for icu converters
 

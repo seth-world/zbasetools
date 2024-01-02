@@ -202,7 +202,7 @@ ZTime & ZTime::fromMilliseconds(long long pMillis)
   return *this;
 }
 
-/*
+
 utf8VaryingString
  ZTime::toString(const char* pFormat,ZDelayPrecision_type pDelayType)
 {
@@ -211,15 +211,15 @@ utf8VaryingString
   toString((char*)wReturn.Data,wReturn.getUnitCount(),pFormat,pDelayType);
   return wReturn;
 }
-*/
 
+/*
 CharMan ZTime::toString(const char* pFormat,ZDelayPrecision_type pDelayType)
 {
   CharMan wReturn;
   toString(wReturn.content,wReturn.getUnitCount(),pFormat,pDelayType);
   return wReturn;
 }
-
+*/
 char* ZTime::delaytoString(char* pBuf,unsigned int pLen,ZDelayPrecision_type pDelayType)
 {
     int wDays;
@@ -293,6 +293,108 @@ char* ZTime::delaytoString(char* pBuf,unsigned int pLen,ZDelayPrecision_type pDe
 
 }
 
+utf8VaryingString ZTime::reportTimeInterval(  ZDelayPrecision_type pPrecision)
+{
+    double wDelta , wDeltams,wDeltamms, wDeltans , wRemain ;
+
+    short int whh , wmm, wss, wms , wmms , wns;
+    wDelta =(double) (tv_sec);
+    whh = (int)(wDelta /3600.0 );
+    wRemain  = (int)(wDelta - ((double)whh * 3600.0)) ;
+
+    wmm = (int) (wRemain/60.0) ;
+    wRemain  = wRemain - (wmm * 60.0) ;
+
+    wss = (short int)wRemain;
+
+    if (tv_nsec < 0)
+    {
+        wss --;
+        wDeltans = 1000000000.0 + tv_nsec; // nano is 10^9 - micro 10^6 - milli 10^3
+    }
+    else
+        wDeltans=tv_nsec;
+    wDeltams=(wDeltans/1000000.0);
+    wDeltams=(int)wDeltams;
+    wRemain= wDeltans - (wDeltams*1000000);
+    wDeltamms=(wRemain/1000.0);
+    wDeltamms=(int)(wDeltamms);
+    wDeltans= wRemain - (wDeltamms*1000);
+
+    wms=(int)wDeltams;
+    wmms=(int)wDeltamms;
+    wns=(int)wDeltans;
+
+    utf8VaryingString wReport;
+    switch(pPrecision)
+    {
+    case ZDPT_Seconds:
+        wReport.sprintf("%02d:%02d:%02d", whh,wmm,wss);
+        break;
+    case ZDPT_Milliseconds:
+        wReport.sprintf("%02d:%02d:%02d-%03d", whh,wmm,wss,wms);
+    case ZDPT_Microseconds:
+        wReport.sprintf("%02d:%02d:%02d-%03d.%03d", whh,wmm,wss,wms,wmms);
+        break;
+    case ZDPT_Nanoseconds:
+        wReport.sprintf("%02d:%02d:%02d-%03d.%03d.%03d", whh,wmm,wss,wms,wmms,wns);
+        break;
+    }
+    return wReport;
+} //reportTimeInterval
+
+utf8VaryingString ZTime::delaytoString(ZDelayPrecision_type pPrecision)
+{
+    utf8VaryingString wBuf;
+    int wDays;
+    int wHours;
+    int wMin;
+    int wSec;
+    long wReminder=tv_sec;
+    wDays=(int)(wReminder/86400);
+    wReminder=wReminder-(wDays*86400);
+    wHours=(int)wReminder/3600;
+    wReminder=wReminder-(wHours*3600);
+    wMin=(int)wReminder/60;
+    wSec=wReminder-(wMin*60);
+
+    int wMilli;
+    int wMicros;
+    int wNanos;
+    wReminder=tv_nsec;
+    wMilli=(int)tv_nsec/1000000;
+    wReminder=(int)wReminder-(wMilli*1000000);
+    wMicros=(int)wReminder/1000;
+    wNanos=wReminder-(wMicros*1000);
+
+
+
+    if (wDays>0)
+        wBuf.sprintf("%2d-",wDays);
+    if (wHours>0)
+        wBuf.addsprintf("%2d:",wHours);
+    if (wMin>0)
+        wBuf.addsprintf("%2d:",wMin);
+    // anyway the seconds
+    wBuf.addsprintf("%2d",wSec);
+
+    if (pPrecision > ZDPT_Seconds)
+    {
+        wBuf.addsprintf("-%03d",wMilli);
+    }
+    if (pPrecision>ZDPT_Milliseconds)
+    {
+         wBuf.addsprintf(".%03d",wMicros);
+    }
+    if (pPrecision>ZDPT_Microseconds)
+    {
+        wBuf.addsprintf(".%03d",wNanos);
+    }
+
+    return wBuf;
+
+}
+
 ZDataBuffer ZTime::_export()
 {
   ZDataBuffer wReturn;
@@ -308,9 +410,7 @@ const unsigned char *ZTime::_import(const unsigned char *&pPtrIn)
   return pPtrIn;
 }
 
-
-
-ZTime ZTime::operator -  (ZTime &pTime)
+ZTime ZTime::operator-(const ZTime &pTime)
 {
   ZTime wDelta;
   wDelta.tv_sec = tv_sec - pTime.tv_sec;

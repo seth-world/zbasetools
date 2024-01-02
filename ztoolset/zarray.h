@@ -1,13 +1,29 @@
 #ifndef ZARRAY_H
 #define ZARRAY_H
 
+/*
+ *   ===========WARNING :   Do not include zerror.h in this include file  ========================
+ *                         Do not use ZException in this include file
+ */
+
 //#define __USE_NEW_STD_ALLOCATOR__
 
+#include <cassert>
+#include <memory.h>
+#include <stdlib.h>
+#include <iostream>
+#include <string.h>
+#include <initializer_list>
+
 #include <config/zconfig.h>
-#include <ztoolset/zlimit.h>
-#include <ztoolset/zmem.h>  // for zfree()
-#
-#include <ztoolset/zerror_min.h>
+
+#include "zlimit.h"
+#include "zmem.h"  // for zfree()
+
+#include "zerror_min.h"
+#include "zbaseparameters.h"
+
+//extern class ZGeneralParameters GeneralParameters;
 
 #include <QList>
 
@@ -15,26 +31,11 @@
     #include <zthread/zmutex.h>
 #endif
 
-#include <cassert>
 
-#include <memory.h>
+#include "zatomicconvert.h"
 
-//extern ZVerbose_Base ZVerbose;
 
-/*
- *   ===========WARNING :   Do not include zerror.h in this include file  ========================
- *                         Do not use ZException in this include file
- */
-#include <stdlib.h>
-#include <iostream>
-#include <string.h>
-#include <ztoolset/zlimit.h>
 
-#include <ztoolset/zatomicconvert.h>
-//#include <ztoolset/ztoolset_common.h>
-#include <initializer_list>
-
-//#include <ztoolset/zdatabuffer.h>
 
 namespace zbs {
 
@@ -1066,7 +1067,7 @@ void ZArray<_Tp>::setAllocation (size_t pAlloc,bool pLock)
       _Mutex.lock();
 #endif
   if (pAlloc<(_Base::size()+ZReallocQuota)) {
-    if (ZVerbose)
+      if (BaseParameters->VerboseBasic())
       fprintf(stderr,"ZArray::setAllocation-W-BADALLOC Warning allocation given <%ld> is less than current number of elements <%ld> + allocation quota <%ld>. Trimming the ZArray...\n",
                         pAlloc,
                         _Base::size(),

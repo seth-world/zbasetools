@@ -30,13 +30,14 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <ztoolset/zcharset.h>
+#include "zmem.h" // for zfree()
+#include "zcharset.h"
 
-#include <ztoolset/zatomicconvert.h>
+#include "zatomicconvert.h"
 
-#include <ztoolset/zmem.h> // for zfree()
 
-#include <ztoolset/zdatabuffer.h>
+
+
 
 /*
 template <class _Utf>
@@ -932,7 +933,8 @@ void utfSetReverse(_Utf*&pStringOut,const _Utf*&pDataIn,const size_t pInCount)
               *pStringOut++=reverseByteOrder_Conditional<_Utf>(*pDataIn++) ;
     return;
 }
-
+#ifdef __DEPRECATED__
+#include "zdatabuffer.h"
 void  _exportCharArrayUVF(const char*pDataIn,ZDataBuffer & wReturn);
 size_t _getexportCharArrayUVFSize(const char*pDataIn);
 /** @brief _importCharArrayUVF imports pUniversalPtr an array of char in UVF from into pDataOut with size max pMaxSize
@@ -941,7 +943,7 @@ size_t _getexportCharArrayUVFSize(const char*pDataIn);
 size_t _importCharArrayUVF(char* pDataOut, size_t pMaxSize,const unsigned char *&pUniversalPtr);
 /** @brief _getimportCharArrayUVFSize computes required size for importing UVF format pUniversalPtr */
 size_t _getimportCharArrayUVFSize(const unsigned char*& pUniversalPtr);
-
+#endif // __DEPRECATED__
 template <class _Utf>
 /* Compare S1 and S2, returning less than, equal to or
    greater than zero if S1 is lexicographically less than,
@@ -1205,8 +1207,8 @@ utfStrrchr(_Utf* wStr,_Utf wChar)
    if (!wStr)
      return nullptr;
 
-     const _Utf* wD=wStr+utfStrlen(wStr);
-     while (*wD != wChar)
+   const _Utf* wD=wStr+utfStrlen(wStr);
+   while (*wD != wChar)
          {
          if (wD--==wStr)
                      return nullptr;
@@ -1301,11 +1303,12 @@ long wi;
 
 template <class _Utf>
  _Utf *
-utfLastNotinSet(const _Utf *pStr, const _Utf *pSet)
+utfLastNotinSet( _Utf *pStr, const _Utf *pSet)
 {
-  if (!pStr)
+  if (pStr==nullptr)
     return nullptr;
-
+  if (!pSet)
+      pSet=getDefaultDelimiter<_Utf>();
 size_t wL = utfStrlen(pSet);
 size_t wj = 0;
 _Utf* wStr=pStr+utfStrlen(pStr);
@@ -1546,7 +1549,8 @@ utfDecode(_Utf* pString,utf32_t* pUtf32CodePoint, size_t* pUtfCount,ZBool *plitt
      return utf32Decode((const utf32_t*)pString,pUtf32CodePoint,pUtfCount,plittleEndian)  ;
     }
     default:
-        _ABORT_;
+        fprintf(stderr,"utfDecode-F-ILLEGAL invalid character size of utf data.\n");
+        exit (EXIT_FAILURE);
     }
 }//utfGetNextCharacter
 /*
@@ -1606,6 +1610,128 @@ utfStrstr(const _Utf *string,/* String to search. */
     }
     return nullptr;
 }// utfStrstr
+
+template <class _Utf>
+bool
+utfIsSeparator(_Utf pChar,const _Utf* pSep=nullptr)
+{
+    if (pSep==nullptr)
+        pSep=cst_default_delimiter<_Utf>;
+    for(int wi=0;pSep[wi]!=0;wi++) {
+        if (pSep[wi]==pChar)
+            return true;
+    }
+    return false;
+}
+
+template <class _Utf>
+const _Utf*
+utfGetToken(const _Utf *pString , const _Utf* pToken)
+{
+    if (pString==nullptr)
+        return nullptr;
+    if (pToken==nullptr)
+        return nullptr;
+
+    size_t wTokenSize=0;
+    const _Utf* wTokenPtr=pToken;
+    while (*wTokenPtr!=0) {
+        if (utfIsSeparator<_Utf>(*wTokenPtr)) {
+            fprintf(stderr,"utfGetToken-E-INVTOKEN Invalid token <%s> : contains unauthorized, invalid character.\n",pToken);
+            return nullptr;
+        }
+        wTokenSize++;
+        wTokenPtr++;
+    } // while
+    const _Utf* wPtr=pString;
+    wTokenPtr = pToken;
+    bool wFullToken = false;
+    const _Utf* wStartPtr=nullptr;
+    while (*wPtr!=0) {
+        if (*wPtr == *wTokenPtr) {
+            wStartPtr=wPtr;
+            wPtr++;
+            wTokenPtr++;
+            while (*wPtr == *wTokenPtr) {
+                wTokenPtr++;
+                wPtr++;
+                if (*wTokenPtr == 0) {
+                    if ((*wPtr == 0) || utfIsSeparator(*wPtr)) {
+                        return wStartPtr;
+                    }
+                }
+            } // while (*wPtr == *wTokenPtr)
+            wTokenPtr = pToken;
+            continue;
+        }// if (*wPtr == *wTokenPtr)
+        wStartPtr=nullptr;
+        wPtr++;
+    } // while (*wPtr!=0)
+
+    return nullptr;
+}// utfGetToken
+
+template <class _Utf>
+bool
+utfHasToken(const _Utf *pString , const _Utf* pToken)
+{
+    return utfGetToken<_Utf>(pString,pToken)!=nullptr;
+}
+
+template <class _Utf>
+const _Utf*
+utfGetTokenCase(const _Utf *pString , const _Utf* pToken)
+{
+    if (pString==nullptr)
+        return nullptr;
+    if (pToken==nullptr)
+        return nullptr;
+
+    size_t wTokenSize=0;
+    const _Utf* wTokenPtr=pToken;
+    while (*wTokenPtr!=0) {
+        if (utfIsSeparator<_Utf>(*wTokenPtr)) {
+            fprintf(stderr,"utfGetToken-E-INVTOKEN Invalid token <%s> : contains unauthorized, invalid character.\n",pToken);
+            return nullptr;
+        }
+        wTokenSize++;
+        wTokenPtr++;
+    }
+    const _Utf* wPtr=pString;
+    wTokenPtr = pToken;
+    bool wFullToken = false;
+    const _Utf* wStartPtr=nullptr;
+    while (*wPtr!=0) {
+        if (utfUpper(*wPtr) == utfUpper(*wTokenPtr)) {
+            wStartPtr=wPtr;
+            wPtr++;
+            wTokenPtr++;
+            while (utfUpper(*wPtr) == utfUpper(*wTokenPtr)) {
+                wTokenPtr++;
+                wPtr++;
+                if (*wTokenPtr == 0) {
+                    if ((*wPtr == 0) || utfIsSeparator(*wPtr)) {
+                        return wStartPtr;
+                    }
+                }
+            } // while (*wPtr == *wTokenPtr)
+            wTokenPtr = pToken;
+            continue;
+        }// if (*wPtr == *wTokenPtr)
+        wStartPtr=nullptr;
+        wPtr++;
+    } // while (*wPtr!=0)
+
+    return nullptr;
+}// utfGetTokenCase
+
+template <class _Utf>
+bool
+utfHasTokenCase(const _Utf *pString , const _Utf* pToken)
+{
+    return utfGetTokenCase<_Utf>(pString,pToken)!=nullptr;
+}
+
 /*
  *----------------------------------------------------------------------
  *
@@ -1896,11 +2022,13 @@ template <class _Utf>
  * @return
  */
 _Utf*
-utfFirstNotinSet(const _Utf* pString,const _Utf* pSet)
+utfFirstNotinSet( _Utf* pString,const _Utf* pSet)
 {
     if (pString==nullptr)
                 return nullptr;
     const _Utf*wStr = pString;
+    if (!pSet)
+        pSet=getDefaultDelimiter<_Utf>();
     const _Utf*wSet = pSet;
 
     for (;*wStr!=0;wStr++)
@@ -1987,7 +2115,7 @@ utfLTrim (_Utf*pString, const _Utf *pSet)
             wSet=getDefaultDelimiter<_Utf>();
 
 //    size_t wL =utfStrlen<_Utf>(pString);
-    _Utf *wPtr=(_Utf*)utfFirstNotinSet<_Utf>((const _Utf*)pString,wSet);
+    _Utf *wPtr=(_Utf*)utfFirstNotinSet<_Utf>(pString,wSet);
     if (wPtr==nullptr)
             return(pString);
     return utfStrcpy<_Utf>(pString,wPtr);
@@ -2009,7 +2137,7 @@ utfLTrimPtr (_Utf*pString, const _Utf *pSet)
     wSet=getDefaultDelimiter<_Utf>();
 
   //    size_t wL =utfStrlen<_Utf>(pString);
-  _Utf *wPtr=(_Utf*)utfFirstNotinSet<_Utf>((const _Utf*)pString,wSet);
+  _Utf *wPtr=(_Utf*)utfFirstNotinSet<_Utf>(pString,wSet);
   if (wPtr==nullptr)
     return(pString);
   return wPtr;
@@ -2026,7 +2154,7 @@ template <class _Utf>
  * @return
  */
  _Utf *
-utfRTrim (_Utf*pString, _Utf *pSet)
+utfRTrim (_Utf*pString,const _Utf *pSet)
 {
     const _Utf* wSet=pSet;
     if (!wSet)
@@ -2037,8 +2165,8 @@ size_t wSetLen=utfStrlen<_Utf>(pSet);
  //   for (w1=strlen(content);(w1 >= 0)&&(content[w1]==' ');w1--); // empty for loop
     for (;(w1 >= 0);w1--)
             {
-            for (wj=0;pSet[wj]!=0;wj++)
-                                if (pString[w1]==pSet[wj])
+            for (wj=0;wSet[wj]!=0;wj++)
+                                if (pString[w1]==wSet[wj])
                                             {
                                             pString[w1]=0;
                                             break;
@@ -2062,12 +2190,16 @@ template <class _Utf>
  * @return
  */
   _Utf *
-utfTrim (_Utf* pString, _Utf *pSet)
+utfTrim (_Utf* pString,const _Utf *pSet)
 {
-    if (pSet==nullptr)
+/*    if (pSet==nullptr)
                 pSet={0x020 , 0};
-    utfLTrim(pString,pSet);
-    return(utfRTrim(pString,pSet));
+*/
+    const _Utf* wSet=pSet;
+    if (!wSet)
+        wSet=getDefaultDelimiter<_Utf>();
+    utfLTrim(pString,wSet);
+    return(utfRTrim(pString,wSet));
 }
 
 template<class _Utf>
@@ -2105,7 +2237,7 @@ utfExpurgeSet(const _Utf *pInString, const _Utf *pSet)
     while (*wPtr++)
             wStrlen++;
     wStrlen++;
-    _Utf* wOutString=(char*)calloc(wStrlen,sizeof(_Utf));
+    _Utf* wOutString=(_Utf*)calloc(wStrlen,sizeof(_Utf));
     _Utf* wOutPtr=wOutString;
 
     wPtr=pInString;
@@ -2202,92 +2334,8 @@ const char* getStringType(void)
 
 
 
-/** UVF export/import template routines for array of _Utf units */
+utf8VaryingString formatSize(long long wSize);
 
-#include <ztoolset/zdatabuffer.h>
-template <class _Utf>
-UVF_Size_type utfGetexportArrayUVFSize(const _Utf*pDataIn)
-{
-  UVF_Size_type wUnitCount = 0;
-  while (pDataIn[wUnitCount]!=0)
-    wUnitCount++;
-  return (UVF_Size_type)(wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1;
-}
-
-template <class _Utf=char>
-void utfExportAppendArrayUVF(const _Utf*pDataIn,ZDataBuffer& wReturn)
-{
-  UVF_Size_type wUnitCount = 0;
-  while (pDataIn[wUnitCount])
-    wUnitCount++;
-  _Utf* wPtrTarg=(_Utf*)wReturn.extend((size_t)(wUnitCount*sizeof(_Utf))+sizeof(UVF_Size_type)+1);
-  /* set export data with char _Utf size */
-  *wPtrTarg = (uint8_t)sizeof (_Utf);
-  wPtrTarg++;
-  /* prepare and set unit count to export data */
-  UVF_Size_type wUnitCount_Export=reverseByteOrder_Conditional<UVF_Size_type>(wUnitCount);
-  memmove(wPtrTarg,&wUnitCount_Export,sizeof(UVF_Size_type));
-  wPtrTarg += sizeof(UVF_Size_type);
-
-  while (*pDataIn)
-    *wPtrTarg++=reverseByteOrder_Conditional<_Utf>(*pDataIn++);
-  return ;
-}//_exportCharArrayUVF
-
-template <class _Utf=char>
-size_t utfGetimportArrayUVFSize(const _Utf*& pUniversalPtr)
-{
-  if (pUniversalPtr==nullptr)
-    return 0;
-  errno=0;
-  const _Utf* wPtrSrc = pUniversalPtr;
-  /* get and control char unit size */
-  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
-
-  wPtrSrc++;
-  /* get char units to load excluding (_Utf)'\0' mark */
-  UVF_Size_type    wUnitCount;
-  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
-  return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
-}//utfGetimportArrayUVFSize
-
-template <class _Utf=char>
-size_t utfImportArrayUVF(_Utf* pDataOut,size_t pMaxSize,const unsigned char*& pUniversalPtr)
-{
-  errno=0;
-  const unsigned char* wPtrSrc = pUniversalPtr;
-  /* get and control char unit size */
-  uint8_t wUnitSize=(uint8_t)*wPtrSrc;
-  wPtrSrc++;
-  /* get char units to load excluding (_Utf)'\0' mark */
-  UVF_Size_type    wUnitCount;
-  size_t wLen = _importAtomic<UVF_Size_type>(wUnitCount,wPtrSrc);
-  if (wUnitCount > pMaxSize)
-  {
-    fprintf(stderr,"uriString::_importUVF-W-TRUNC Overflow : imported string length <%d> truncated to <%ld>.\n",
-        wUnitCount, pMaxSize-1);
-
-    wUnitCount=pMaxSize-1;
-  }
-  /* import string per char unit */
-
-  _Utf* wPtrOut=pDataOut ;
-  _Utf* wPtrIn=(_Utf*)(wPtrSrc);
-  _Utf* wPtrEnd = &wPtrIn[wUnitCount];
-  while (wPtrIn < wPtrEnd)
-    *wPtrOut++=reverseByteOrder_Conditional<_Utf>(*wPtrIn++);
-  while (wPtrOut < (pDataOut+pMaxSize))
-      *wPtrOut++ = 0;  /* pad to zero til pMaxSize-1 */
-
-  pUniversalPtr = (const unsigned char*)wPtrIn;
-  pUniversalPtr++;
-  return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
-}//utfImportArrayUVF
-
-
-
-
-
-const char* etUnitFormat(uint8_t pSize);
+const char* getUnitFormat(uint8_t pSize);
 
 #endif // UTFUTILS_H

@@ -3,35 +3,33 @@
 
 #include <config/zconfig.h>
 #include <cassert>
-
-#ifdef QT_CORE_LIB
-#include <QByteArray>
-#include <QString>
-#endif
-
 #include <errno.h>
 #include <stdint.h>
-#include <ztoolset/zerror.h>
-#include <ztoolset/zarray.h>
-#include <ztoolset/zcharset.h>
-#include <ztoolset/utfsprintf.h>
-#include <ztoolset/utfutils.h>
-
 
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/buffer.h>
 
+#include "zerror.h"
+
+#include "zarray.h"
+
+#include "zcharset.h"
+#include "utfsprintf.h"
+#include "utfutils.h"
+
 #include <zcrypt/checksum.h>
 #include <zcrypt/md5.h>
 
 
+
+
 size_t UVScalcDecodeLengthB64(const void *b64input, size_t pSize);
 
-
+/*
 template <class _Utf>
 class utfVaryingString;
-
+*/
 
 
 #ifndef __ZCRYPTMETHOD_TYPE__
@@ -48,7 +46,13 @@ enum ZCryptMethod_type : uint8_t
 
 #ifndef __DEFAULTDELIMITERSET__
 #define __DEFAULTDELIMITERSET__  " \t\n\r"
+/*
+const char* cst_DefaultDelimiterSetChar = " \t\n\r";
 
+const utf8_t* cst_DefaultDelimiterSetU8 = (utf8_t*)" \t\n\r";
+const utf16_t* cst_DefaultDelimiterSetU16 = (utf16_t*)u" \t\n\r";
+const utf32_t* cst_DefaultDelimiterSetU32 = (utf32_t*)U" \t\n\r";
+*/
 const char* _firstNotinSet(const char*pString, const char *pSet=__DEFAULTDELIMITERSET__);
 const char* _firstinSet (const char*pString,const char *pSet=__DEFAULTDELIMITERSET__);
 const char* _lastinSet (const char*pString,const char *pSet=__DEFAULTDELIMITERSET__);
@@ -62,7 +66,8 @@ char* _toUpper(char *pStr,char *pOutStr=nullptr);
 char* _expurgeSet(char *pString, const char *pSet=__DEFAULTDELIMITERSET__);
 char* _expurgeString(char *pString, const char *pSubString);
 int _strncasecmp(const char*pString1,const char*pString2,size_t pMaxLen);
-#endif
+
+#endif  //__DEFAULTDELIMITERSET__
 
 /**
  * @brief The utfVaryingString class    Base class for buffering and processing data.
@@ -86,13 +91,23 @@ int _strncasecmp(const char*pString1,const char*pString2,size_t pMaxLen);
 
  */
 using namespace zbs;
-class uriString;
-struct checkSum;
+//class uriString;
+//struct checkSum;
 
-#include <ztoolset/ztypetype.h>
-#include <ztoolset/utfstringcommon.h>
+#include "ztypetype.h"
+#include "utfstringcommon.h"
 
 class utfKey;
+template <class _Utf>
+class DefaultDelimiter
+{
+public:
+    DefaultDelimiter() = default;
+    static const _Utf* Data = { _Utf(' '),_Utf('\n'),_Utf('\t'),_Utf('\r')};
+    static const _Utf* get() {return Data;}
+};
+
+//#include "utfkey.h"
 
 template <class _Utf>
 class utfVaryingString : public utfStringDescriptor
@@ -352,6 +367,8 @@ public:
     return utfIsdigit<_Utf>(Data[0]);
   }
 
+
+
   ZArray<utfVaryingString> strtok(const _Utf* pSeparator)
   {
     ZArray<utfVaryingString> wReturn;
@@ -428,6 +445,8 @@ public:
   utfVaryingString &
   eliminateChar (_Utf pChar)
   {
+    if (Data==nullptr)
+        return *this;
     _Utf* wPtr = Data ;
     int wCount=0;
     while (*wPtr!=(_Utf)'\0')
@@ -447,6 +466,8 @@ public:
 
   utfVaryingString& shiftRight(size_t pOffset,size_t pCount) {
 
+    if (Data==nullptr)
+        return *this;
     size_t wInitLen = strlen();
     if (UnitCount < (wInitLen + pCount + 1) ) {
         extendUnits((wInitLen + pCount + 1) - UnitCount);
@@ -465,6 +486,8 @@ public:
   } // shiftRight
   utfVaryingString& move(const utfVaryingString& pToInsert,size_t pOffset) {
 
+      if (Data==nullptr)
+          return *this;
     size_t wInitLen = strlen();
     size_t wMoveLen = pToInsert.strlen();
     if (UnitCount < (pOffset + wMoveLen + 1) ) {
@@ -863,6 +886,28 @@ public:
     }// addV
 //    utfVaryingString<_Utf> &add( const _Utf *wSrc, size_t pCount); /** corresponds to strncat: adds counted _Utf string wSrc to current string. Extends allocation */
 
+/*
+    Numeric format
+
+    %[flags][width][.precision][data length]specifier
+
+  Flags < - + space # 0 >
+
+flags	description
+  -     Left-justify within the given field width; Right justification is the default (see width sub-specifier).
+  +     Forces to preceed the result with a plus or minus sign (+ or -) even for positive numbers.
+        By default, only negative numbers are preceded with a - sign.
+(space)	If no sign is going to be written, a blank space is inserted before the value.
+  #     Used with o, x or X specifiers the value is preceeded with 0, 0x or 0X respectively for values different than zero.
+        Used with a, A, e, E, f, F, g or G it forces the written output to contain a decimal point even if no more digits follow. By default, if no digits follow, no decimal point is written.
+  0     Left-pads the number with zeroes (0) instead of spaces when padding is specified (see width sub-specifier).
+
+ extension from standard
+  <     sign is mentioned and preceeds
+  >     sign is mentioned and follows
+
+
+*/
     ZStatus sprintf( const std::conditional<std::is_same<_Utf,char>::value, utf8_t, _Utf> *pFormat,...);/** sets currents string content with wSrc. Allocates characters */
     ZStatus addsprintf(const std::conditional<std::is_same<_Utf,char>::value, utf8_t, _Utf>* pFormat,...);  /** adds formatted content to current string. Extends characters allocation to make string fit */
 
@@ -1011,6 +1056,31 @@ public:
 
     /** @brief subString() returns a new string with content of current string starting a position pOffset and with pLen character units */
     utfVaryingString<_Utf> subString(size_t pOffset, int pLen=-1) const;
+/*
+    const DefaultDelimiter<_Utf> DefDel;
+*/
+
+    /* if pSet is omitted (nullptr) then default delimiter is taken in underneath routine */
+    _Utf* firstNotinSet(const _Utf  *pSet=nullptr)
+        { return(utfFirstNotinSet<_Utf>((const _Utf*)Data,pSet=nullptr)); }
+
+    _Utf* lastNotinSet(const _Utf *pSet=nullptr)
+        {return(utfLastNotinSet<_Utf>(Data,pSet));}
+
+    _Utf* LTrim(const _Utf *pSet=nullptr)
+        {return(utfLTrim<_Utf>(Data,pSet));}
+
+    _Utf* RTrim(const _Utf *pSet=nullptr)
+        {return(utfRTrim<_Utf>(Data,pSet));}
+
+        _Utf* Trim(const _Utf *pSet=nullptr)
+        {return(utfTrim<_Utf>(Data,pSet));}
+
+    _Utf* LTrimSpaces() const {
+        return utfSkipSpaces(Data);
+    }
+
+
 
 //------------------ operator overloads  ------------------------------------------------
 
@@ -1291,40 +1361,33 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     _Utf* extendBytesBZero(ssize_t pSize);
     _Utf* extendUnitsBZero(ssize_t pCharCount);
 
+    ssize_t bsearch(const void *pKey, const size_t pKeyByteSize, const size_t pOffset = 0) const;
+    ssize_t bsearch(utfVaryingString &&pKey, const size_t pOffset = 0) const;
 
+    ssize_t bsearchCaseRegardless(_Utf *pKey, ssize_t pSize, ssize_t pOffset);
+    ssize_t bsearchCaseRegardless(utfVaryingString &pKey, ssize_t pOffset);
 
+    ssize_t bstartwithCaseRegardless(void *pKey, ssize_t pSize, ssize_t pOffset = 0);
+    ssize_t bstartwithCaseRegardless(utfVaryingString pKey, size_t pOffset = 0);
 
+    ssize_t breverseSearch(void *pKey, ssize_t pKeySize, ssize_t pOffset = 0);
+    ssize_t breverseSearch(utfVaryingString<_Utf> &pKey, const ssize_t pOffset = 0);
 
-   ssize_t bsearch (void *pKey, const size_t pKeyByteSize, const size_t pOffset=0);
-   ssize_t bsearch(utfVaryingString &pKey,const size_t pOffset=0);
+    ssize_t breverseSearchCaseRegardless(void *pKey, ssize_t pKeySize, ssize_t pOffset = 0);
+    ssize_t breverseSearchCaseRegardless(utfVaryingString<_Utf> &pKey, const ssize_t pOffset = 0);
 
-   ssize_t bsearchCaseRegardless (_Utf *pKey, ssize_t pSize, ssize_t pOffset);
-   ssize_t bsearchCaseRegardless (utfVaryingString &pKey, ssize_t pOffset);
+    bool isEqual(const _Utf *pCompare, long pSize = -1);
+    bool isEqualCase(const _Utf *pCompare);
+    bool isGreater(const _Utf *pCompare, long pSize = -1);
+    bool isLess(const _Utf *pCompare, long pSize = -1);
 
-   ssize_t bstartwithCaseRegardless (void *pKey,ssize_t pSize,ssize_t pOffset=0);
-   ssize_t bstartwithCaseRegardless (utfVaryingString pKey,size_t pOffset=0);
+    bool isEqual(const utfVaryingString<_Utf> &pCompare);
+    bool isEqualCase(const utfVaryingString<_Utf> &pCompare);
+    bool isGreater(const utfVaryingString<_Utf> &pCompare);
+    bool isLess(const utfVaryingString<_Utf> &pCompare);
 
-   ssize_t breverseSearch(void *pKey, ssize_t pKeySize, ssize_t pOffset=0);
-   ssize_t breverseSearch(utfVaryingString<_Utf> &pKey, const ssize_t pOffset=0);
-
-   ssize_t breverseSearchCaseRegardless(void *pKey, ssize_t pKeySize, ssize_t pOffset=0);
-   ssize_t breverseSearchCaseRegardless(utfVaryingString<_Utf> &pKey,const ssize_t pOffset=0);
-
-   bool isEqual (const _Utf *pCompare, long pSize=-1) ;
-   bool isEqualCase (const _Utf *pCompare) ;
-   bool isGreater (const _Utf *pCompare, long pSize=-1);
-   bool isLess (const _Utf *pCompare, long pSize=-1);
-
-   bool isEqual (const utfVaryingString<_Utf> &pCompare) ;
-   bool isEqualCase (const utfVaryingString<_Utf> &pCompare) ;
-   bool isGreater (const utfVaryingString<_Utf> &pCompare);
-   bool isLess (const utfVaryingString<_Utf> &pCompare);
-
-
-   bool contains (const _Utf *pString)
-          {
-            return !(strstr(pString)==nullptr);
-          }
+    bool contains(const _Utf *pString) const { return !(strstr(pString) == nullptr); }
+    bool containsCase(const _Utf *pString) const { return !(strcasestr(pString) == nullptr); }
     /** @brief locate()  locates a substring pString in utftemplateString
     *                            and returns its offset from beginning as a ssize_t value.*/
     ssize_t locate(const _Utf *pString) const;
@@ -1338,6 +1401,12 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     /** @brief locateCase()  locates a substring pString CASE REGARDLESS in utftemplateString
     *                        and returns its offset since pOffset (zero meaning beginning of string) as a ssize_t value.*/
     ssize_t locateCase(const _Utf* pString,size_t pOffset) const;
+
+    const _Utf* getToken(const _Utf* pToken) const { return utfGetToken(Data,pToken);}
+    const _Utf* getTokenCase(const _Utf* pToken) const { return utfGetTokenCase(Data,pToken);}
+
+    bool hasToken(const _Utf* pToken) const { return utfHasToken(Data,pToken);}
+    bool hasTokenCase(const _Utf* pToken) const { return utfHasTokenCase(Data,pToken);}
 
    _Utf  operator [] (long pIdx) {return Data[pIdx];}
 
@@ -1361,7 +1430,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
    utfVaryingString & operator = (const double pValue)
                     { sprintf("%g",pValue); return *this;}
 
-   ZStatus operator << (uriString & pURI);
+//   ZStatus operator << (uriString & pURI);
 
  //   const utfVaryingString & operator += (const char* pString)
  //                                { appendData(pString,strlen(pString)+1); return *this;}
@@ -1393,27 +1462,6 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
      * @param pSize
      */
     void moven(void* pDest,ssize_t pSize)    {ssize_t wS=pSize>ByteSize? ByteSize:pSize; memmove(pDest,Data,wS);}
-
-
-    _Utf* firstNotinSet(const _Utf *pSet=__DEFAULTDELIMITERSET__)
-            {return(utfFirstNotinSet<_Utf>(Data,pSet));}
-
-    _Utf* lastNotinSet(const _Utf *pSet=__DEFAULTDELIMITERSET__)
-            {return(utfLastNotinSet<_Utf>(Data,pSet));}
-
-    _Utf* LTrim(const _Utf *pSet=__DEFAULTDELIMITERSET__)
-            {return(utfLTrim<_Utf>(Data,pSet));}
-
-    _Utf* RTrim(const _Utf *pSet=__DEFAULTDELIMITERSET__)
-            {return(utfRTrim<_Utf>(Data,pSet));}
-
-    _Utf* Trim(const _Utf *pSet=__DEFAULTDELIMITERSET__)
-            {return(utfTrim<_Utf>(Data,pSet));}
-
-    _Utf* LTrimSpaces() const {
-      return utfSkipSpaces(Data);
-    }
-
 
     utfVaryingString<_Utf> Left (size_t pLen) const;
     utfVaryingString<_Utf> Right (size_t pLen) const ;
@@ -3224,11 +3272,10 @@ utfVaryingString<_Utf>::getUniversalFromURF(ZTypeBase pType, const unsigned char
  * @param[in] pOffset   starting offset for search in utfVaryingString::Data
  * @return the offset of pKey if it has been found. -1 if nothing has been found
  */
-template <class _Utf>
-ssize_t
-utfVaryingString<_Utf>::bsearch (void *pKey,
-                      const size_t pKeyByteSize,
-                      const size_t pOffset)
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearch(const void *pKey,
+                                        const size_t pKeyByteSize,
+                                        const size_t pOffset) const
 {
     long widx = 0;
     long wistart = -1;
@@ -3267,7 +3314,7 @@ utfVaryingString<_Utf>::bsearch (void *pKey,
  */
 template <class _Utf>
 ssize_t
-utfVaryingString<_Utf>::bsearch (utfVaryingString<_Utf> &pKey,const size_t pOffset)
+utfVaryingString<_Utf>::bsearch (utfVaryingString<_Utf> &&pKey,const size_t pOffset) const
 
 {
     return (bsearch(pKey.DataByte,pKey.ByteSize,pOffset)) ;

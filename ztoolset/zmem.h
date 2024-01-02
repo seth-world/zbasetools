@@ -81,7 +81,7 @@ zmemDump(unsigned char* pData, const size_t pSize, const int pWidth, ssize_t pLi
 /**
  * @brief zmemDumpHexa dumps a segment of memory pointed by pData and returns both ascii and hexadecimal values.
  *
- *  Returns the current memory using 2 utf8Strings :
+ *  Returns the current memory using 2 utf8VaryingStrings :
  *   - one for printable hexadecimal result grouped by sets of 4 hexadecimal bytes
  *   - the other is printable ascii result.
  *

@@ -1,10 +1,12 @@
 #ifndef ZFUNCTIONS_H
 #define ZFUNCTIONS_H
 
-#include <config/zconfig.h>
 #include <time.h>
-#include <ztoolset/cescapedstring.h>
-#include <ztoolset/ztoolset_common.h>
+
+#include <config/zconfig.h>
+
+#include "cescapedstring.h"
+#include "ztoolset_common.h"
 
 char *findLastNotChar(char *pContent,char pChar);
 bool isTerminatedBy(const char *pContent,char pChar);

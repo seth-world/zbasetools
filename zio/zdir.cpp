@@ -1,19 +1,23 @@
 #ifndef ZDIR_CPP
 #define ZDIR_CPP
 
+
+#include "zdir.h"
+
 #ifdef QT_CORE_LIB
 #include <QString>
 #endif
 
-#include <zio/zdir.h>
+/* for mode_t */
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <ztoolset/uristring.h>
 
 #include <map>
 
 #include <ztoolset/zarray.h>
-/* for mode_t */
-#include <sys/types.h>
-#include <sys/stat.h>
+
 
 
 ZDir::ZDir (const utf8_t *pDirName)
@@ -54,7 +58,7 @@ int ZDir::countElements(uriString &pDirEntry,ZDirFileEn_type pZDFT)
  *  if an error occurs, ZException is positionned with the appropriate message preceeded by errno symbolic value.
  */
 ZStatus
-ZDir::setPath(const utf8String &pPath)
+ZDir::setPath(const utf8VaryingString &pPath)
 {
     errno=0; /* errno is set by this function */
     strset(pPath.toUtf());

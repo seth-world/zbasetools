@@ -11,7 +11,7 @@
 
 #include <ztoolset/zerror.h>
 #include <ztoolset/zexceptionmin.h>
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 #include <ztoolset/uristring.h>
 
 #ifndef ZDIR_FILE_TYPE
@@ -116,7 +116,7 @@ public:
  * @return a ZStatus ZS_SUCCESS when successfull.
  *  if an error occurs, ZException is positionned with the appropriate message preceeded by errno symbolic value.
  */
-    ZStatus setPath (const utf8String& pPath) ;
+    ZStatus setPath (const utf8VaryingString& pPath) ;
 
     /** @brief dir
      *

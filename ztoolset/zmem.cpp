@@ -1,7 +1,7 @@
 #include "zmem.h"
 
 #include <ztoolset/utfvaryingstring.h>
-typedef utf8VaryingString utf8String;
+typedef utf8VaryingString utf8VaryingString;
 /*
 void zfree(void*&pPtr)
 {
@@ -113,7 +113,7 @@ int zmemRulerSetup (utf8VaryingString &pRulerHexa, utf8VaryingString &pRulerAsci
 }
 
 /**
- * @brief zmemDump returns an utf8String with the dump of memory segment starting at pData of length pSize.
+ * @brief zmemDump returns an utf8VaryingString with the dump of memory segment starting at pData of length pSize.
  * @param pData   pointer to segment of memory to dump
  * @param pSize   size of memory segment to dump
  * @param pWidth  Number of bytes displayed both in ascii and hexadecimal per row

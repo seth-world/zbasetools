@@ -29,8 +29,8 @@ public:
     zxmlAttribute& operator=(const zxmlAttribute&) = delete;  // no copy
 
 
-    utffieldNameString getName(void);
-    utfdescString getValue(void);
+    utf8VaryingString getName(void);
+    utf8VaryingString getValue(void);
     ZStatus getNextAttributeSibling(zxmlAttribute *&pAttribute);
 //    ZStatus getNextAttributeSibling(zxmlAttribute* pAttribute);
 

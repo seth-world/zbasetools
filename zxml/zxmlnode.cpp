@@ -125,9 +125,9 @@ zxmlNode::setLanguage(const char *pLanguage)
 
 }// setLanguage
 
-utffieldNameString zxmlNode::getLanguage(void)
+utf8VaryingString zxmlNode::getLanguage(void)
 {
-    return utffieldNameString((const utf8_t*)xmlNodeGetLang(_xmlInternalNode));
+    return utf8VaryingString((const utf8_t*)xmlNodeGetLang(_xmlInternalNode));
 
 }// getLanguage
 
@@ -1030,15 +1030,15 @@ ZStatus
 zxmlElement::newElementTextsprintf(zxmlElement* &pNode, const char *pNodeName, zxmlNameSpace*pNameSpace, const char *pFormat,...)
 {
 
-utfdescString wString;
+utf8VaryingString wString;
     va_list args;
     va_start (args, pFormat);
-    wString.sprintf (pFormat, args);
+    wString.vsnprintf (5000, pFormat, args);
     va_end(args);
     xmlNsPtr wNs=nullptr;
     if (pNameSpace)
             wNs=pNameSpace->_xmlInternalNameSpace;
-    xmlNodePtr wNode=xmlNewTextChild(_xmlInternalNode,wNs,(const xmlChar*)pNodeName,(const xmlChar*)wString.content);
+    xmlNodePtr wNode=xmlNewTextChild(_xmlInternalNode,wNs,(const xmlChar*)pNodeName,(const xmlChar*)wString.toCChar());
     if (!wNode)
         {
         setXMLZException(_GET_FUNCTION_NAME_,

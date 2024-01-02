@@ -5,7 +5,7 @@
 #include <ztoolset/zexceptionmin.h>
 #include <zthread/zthreadexithandler.h>
 
-#define __ZTHREADVERBOSE__  ZVerbose & ZVB_Thread
+#define __ZTHREADVERBOSE__  BaseParameters->VerboseThread()
 
 using namespace zbs;
 
@@ -1438,13 +1438,15 @@ decode_ZTSGN(ZThreadSignal_type pZTSG)
     }
 }// decodeZTSGN
 
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 
 int
-encode_ZTSGN (char *pString)
+encode_ZTSGN (const utf8VaryingString& pString)
 {
  int   State = ZTSGN_Nothing;
-    if (pString==nullptr)
+    if (pString.isEmpty())
+     return State;
+/*    if (pString==nullptr)
                 {
                     return State;
                 }
@@ -1452,26 +1454,30 @@ encode_ZTSGN (char *pString)
                 {
                     return State;
                 }
-utfdescString wBuf;
+*/
+/*
+utf8VaryingString wBuf;
     wBuf.clear();
     wBuf = (const utf8_t*)pString;
     wBuf.toUpper();
-    if (wBuf==(const utf8_t*)"ZTSGN_NOTHING")
+*/
+    if (pString=="ZTSGN_Nothing")
             {
                 return State;
             }
 //============= ZThread signals===================================
 
-    if (wBuf.contains((utf8_t*)"ZTSGN_CANCELREQUEST"))
+    if (pString.hasToken((utf8_t*)"ZTSGN_CancelRequest"))
                      State |= ZTSGN_CancelRequest;
-    if (wBuf.contains((utf8_t*)"ZTSGN_SLEEP"))
+    if (pString.hasToken((utf8_t*)"ZTSGN_Sleep"))
                      State |= ZTSGN_Sleep;
-    if (wBuf.contains((utf8_t*)"ZTSGN_SETDORMANT"))
+    if (pString.hasToken((utf8_t*)"ZTSGN_SetDormant"))
                      State |= ZTSGN_SetDormant;
-    if (wBuf.contains((utf8_t*)"ZTSGN_EXECUTE"))
+    if (pString.hasToken((utf8_t*)"ZTSGN_Execute"))
                      State |= ZTSGN_Execute;
-    if (wBuf.contains((utf8_t*)"ZTSGN_TERMINATE"))
+    if (pString.hasToken((utf8_t*)"ZTSGN_Terminate"))
                      State |= ZTSGN_Terminate;
+    return State;
 
 }// encode_ZTSGN
 

@@ -9,7 +9,7 @@
 void
 ZThreadExitHandler::exitHandler(void)
 {
-    if (ZVerbose)
+    if (BaseParameters->VerboseBasic())
         {
         fprintf(stdout,"%s>> Entering in exitHandler for thread Process id <%ld> \n",_GET_FUNCTION_NAME_,Thread->getPid());
         }

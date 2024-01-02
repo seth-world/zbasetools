@@ -14,7 +14,7 @@ QT += core
 greaterThan(QT_MAJOR_VERSION,5): QT += core5compat
 
 TEMPLATE = lib
-CONFIG += c++17 shared dll create_prl link_prl
+CONFIG += shared dll create_prl link_prl
 TARGET = zbase
 DEFINES += ZBASE_LIBRARY
 
@@ -196,8 +196,10 @@ LIBS += -lcrypto -lcrypt
 #base libs static
 #LIBS += -ldl -static-libstdc++  #do not link libstdc in static where we link icu in dynamic because icu libraries need libstdc
 
-INCLUDEPATH +=  /usr/include/x86_64-linux-gnu \
-                /usr/include
+#INCLUDEPATH +=  /usr/include/x86_64-linux-gnu \
+#                /usr/include
+
+
 
 INCLUDEPATH += \
 #/usr/include/c++/8 \
@@ -248,7 +250,7 @@ HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/uristring.h \
     $$TOOLSET_BASE/ztoolset/ztime.h \
     $$TOOLSET_BASE/ztoolset/zatomicconvert.h \
-    $$TOOLSET_BASE/ztoolset/zmodulestack.h \
+#    $$TOOLSET_BASE/ztoolset/zmodulestack.h \
     $$TOOLSET_BASE/ztoolset/zerror_min.h \
     $$TOOLSET_BASE/ztoolset/zerror.h \
     $$TOOLSET_BASE/zxml/zxmldoc.h \
@@ -262,9 +264,9 @@ HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/encodedString.h \
     $$TOOLSET_BASE/ztoolset/zcharset.h \
     $$TOOLSET_BASE/ztoolset/utftemplatestring.h \
-    $$TOOLSET_BASE/ztoolset/zutfstrings.h \
-    $$TOOLSET_BASE/ztoolset/zutfstrings.h \
-    $$TOOLSET_BASE/ztoolset/exceptionstring.h \
+#    $$TOOLSET_BASE/ztoolset/zutfstrings.h \
+#    $$TOOLSET_BASE/ztoolset/zutfstrings.h \
+#   $$TOOLSET_BASE/ztoolset/exceptionstring.h \
     $$TOOLSET_BASE/ztoolset/utfvsprintf.h \
     $$TOOLSET_BASE/ztoolset/utfutils.h \
     $$TOOLSET_BASE/ztoolset/utfsprintf.h \
@@ -273,7 +275,7 @@ HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/cfixedstring.h \
     $$TOOLSET_BASE/ztoolset/utfvtemplatestring.h \
     $$TOOLSET_BASE/ztoolset/utfvaryingstring.h \
-    $$TOOLSET_BASE/ztoolset/zutfstrings.h \
+#    $$TOOLSET_BASE/ztoolset/zutfstrings.h \
     $$TOOLSET_BASE/ztoolset/charfixedstring.h \
     $$TOOLSET_BASE/ztoolset/charvaryingstring.h \
     $$TOOLSET_BASE/zcrypt/zcrypt.h \
@@ -308,7 +310,9 @@ HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/zdatecommon.h \
     $$TOOLSET_BASE/ztoolset/zdatefull.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_release.h \
-    $$TOOLSET_BASE/zio/zioutils.h
+    $$TOOLSET_BASE/zio/zioutils.h \
+    $$TOOLSET_BASE/ztoolset/zbaseparameters.h \
+#    ../ztoolset/zgeneralparameters.h
 
 
 
@@ -331,7 +335,9 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/zarray.cpp \
     $$TOOLSET_BASE/ztoolset/zdatecommon.cpp \
     $$TOOLSET_BASE/ztoolset/zdatefull.cpp \
-    ../zio/zioutils.cpp \
+    $$TOOLSET_BASE/zio/zioutils.cpp \
+    $$TOOLSET_BASE/ztoolset/zbaseparameters.cpp \
+ #   ../ztoolset/zgeneralparameters.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
     $$TOOLSET_BASE/zthread/zmutex.cpp \
@@ -342,8 +348,8 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/zbitset.cpp \
 #    $$TOOLSET_BASE/ztoolset/templatewstring.cpp \
 #    $$TOOLSET_BASE/ztoolset/templatestring.cpp \
-#    $$TOOLSET_BASE/ztoolset/zwstrings.cpp \
-    $$TOOLSET_BASE/ztoolset/zmodulestack.cpp \
+#    $$TOOLSET_BASE/ztoolset/zwstrings.cpp \        #deprecated
+#    $$TOOLSET_BASE/ztoolset/zmodulestack.cpp \     #deprecated
 #    $$TOOLSET_BASE/ztoolset/zerror_min.cpp
     $$TOOLSET_BASE/ztoolset/zerror_min.cpp \
     $$TOOLSET_BASE/zxml/zxmldoc.cpp \
@@ -354,11 +360,11 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/ztoolset/encodedString.cpp \
     $$TOOLSET_BASE/ztoolset/zcharset.cpp \
     $$TOOLSET_BASE/ztoolset/utftemplatestring.cpp \
-    $$TOOLSET_BASE/ztoolset/zutfstrings.cpp \
+#    $$TOOLSET_BASE/ztoolset/zutfstrings.cpp \
     $$TOOLSET_BASE/ztoolset/utfsprintf.cpp \
     $$TOOLSET_BASE/ztoolset/zatomicconvert.cpp \
     $$TOOLSET_BASE/ztoolset/utfstringcommon.cpp \
-    $$TOOLSET_BASE/ztoolset/exceptionstring.cpp \
+ #   $$TOOLSET_BASE/ztoolset/exceptionstring.cpp \
     $$TOOLSET_BASE/ztoolset/utfvtemplatestring.cpp \
     $$TOOLSET_BASE/ztoolset/utfvaryingstring.cpp \
     $$TOOLSET_BASE/ztoolset/charvaryingstring.cpp \

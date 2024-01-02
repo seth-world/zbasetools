@@ -1,9 +1,10 @@
 #ifndef ZTOKENIZER_H
 #define ZTOKENIZER_H
-#include <ztoolset/zdatabuffer.h>
-#include <ztoolset/zarray.h>
-#include <ztoolset/zfunctions.h>
-#include <ztoolset/zutfstrings.h>
+
+#include "zdatabuffer.h"
+#include "zarray.h"
+#include "zfunctions.h"
+#include "utfvaryingstring.h"
 namespace zbs
 {
 

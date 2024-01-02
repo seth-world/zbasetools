@@ -874,7 +874,7 @@ utfFormatUtf8Field(OutEncoding_type pOutOET,
 {
 
 
-    const utf8_t* wUtf8String=pInString; /* Argument value for an utf8_t field */
+    const utf8_t* wutf8VaryingString=pInString; /* Argument value for an utf8_t field */
 
     utf8_t* wBufferUtf8=nullptr;    /* Buffer is utf8 */
     utf16_t *wBufferUtf16=nullptr;  /* Buffer is utf16 */
@@ -889,9 +889,11 @@ utfFormatUtf8Field(OutEncoding_type pOutOET,
     size_t          wU=0;
     int             wFieldCount=0; /* used to check maximum slots for field if any flag */
 
-    _ASSERT_(pInOET!=OET_UTF8,"Fatal error : invalid character set for input string OET_UTF8 expected while <%s> found\n",
+    if(pInOET!=OET_UTF8) {
+        fprintf(stderr,"Fatal error : invalid character set for input string OET_UTF8 expected while <%s> found\n",
              decode_OET(pInOET));
-
+        exit(EXIT_FAILURE);
+    }
     if (pInString == 0)
         {
         signalNull(pOutOET,pBuffer,pCurrlen,pMaxlen); /* string content is set to <null> */
@@ -903,12 +905,11 @@ utfFormatUtf8Field(OutEncoding_type pOutOET,
 
 /* first step : get canonical character count */
 
-//        wSt=utf8CharCount(wUtf8String,&wCharCount);
-        wSt=utf8DiacriticalCharCount(wUtf8String,&wCharCount);/* diacritical exclusion */
+//        wSt=utf8CharCount(wutf8VaryingString,&wCharCount);
+        wSt=utf8DiacriticalCharCount(wutf8VaryingString,&wCharCount);/* diacritical exclusion */
 
         _ASSERT_(wSt < UST_SEVERE,"Error while parsing string encoding <%s>. Error code is <%s>\n",
-                 decode_OET(pInOET),
-                 decode_UST((wSt)));
+                 decode_OET(pInOET), decode_UST((wSt)));
 /*  padding if necessary      */
 
         wPadLen = pFieldMinSize - wCharCount;
@@ -934,22 +935,22 @@ utfFormatUtf8Field(OutEncoding_type pOutOET,
             {
             wBufferUtf8 = static_cast<utf8_t*>(pBuffer);
 
-            while (*wUtf8String && (wFieldCount < pFieldMaximum))
+            while (*wutf8VaryingString && (wFieldCount < pFieldMaximum))
                 {
-                wSt=utf8Decode(wUtf8String,&wCodePoint,&wUtf8Count);
+                wSt=utf8Decode(wutf8VaryingString,&wCodePoint,&wUtf8Count);
                 if (UST_Is_Error(wSt))// if error, put illegal char, skip whole character.
                     {
                     wU=0;
                     while(utf8Replacement[wU])  /* utf8Replacement array ends with '\0' */
                             utfSPFOutChar<utf8_t>(wBufferUtf8,pCurrlen,pMaxlen,utf8Replacement[wU++]);
-                    wUtf8String+=wUtf8Count;
+                    wutf8VaryingString+=wUtf8Count;
                     }
                 else
                     {
                     wU=wUtf8Count;
                     while(wU--)
                         {
-                        utfSPFOutChar<utf8_t>(wBufferUtf8,pCurrlen,pMaxlen,*(wUtf8String++));
+                        utfSPFOutChar<utf8_t>(wBufferUtf8,pCurrlen,pMaxlen,*(wutf8VaryingString++));
                         }
                     }
                 if (!isDiacritical(wCodePoint)) /* diacritical mark must be skipped */
@@ -965,27 +966,30 @@ utfFormatUtf8Field(OutEncoding_type pOutOET,
         size_t wUtf8Count, wUtf16Count;
         utf16_t wUtf16Char[3];
 
-        while ((*wUtf8String)&& (wFieldCount < pFieldMaximum))
+        while ((*wutf8VaryingString)&& (wFieldCount < pFieldMaximum))
         {
-        wSt=utf8Decode(wUtf8String,&wCodePoint,&wUtf8Count,nullptr);
+        wSt=utf8Decode(wutf8VaryingString,&wCodePoint,&wUtf8Count,nullptr);
         _ASSERT_(wSt<UST_SEVERE,"utf8 string decoder encountered a fatal error status <%s>",decode_UST(wSt))
         if (UST_Is_Error(wSt))// if error, put illegal char, skip whole character.
             {
             wU=0;
             while(utf8Replacement[wU])  /* utf8Replacement array ends with '\0' */
                     utfSPFOutChar<utf8_t>(wBufferUtf8,pCurrlen,pMaxlen,utf8Replacement[wU++]);
-            wUtf8String+=wUtf8Count;
+            wutf8VaryingString+=wUtf8Count;
             wFieldCount ++; /* only one character is written there */
             continue;
             }
         wSt=utf16Encode((utf16_t*)&wUtf16Char,&wUtf16Count,wCodePoint,nullptr);
-        _ASSERT_(wSt<UST_SEVERE,"utf16 string encoder encountered a fatal error status <%s>",decode_UST(wSt))
+        if(wSt<UST_SEVERE) {
+            fprintf(stderr,"utf16 string encoder encountered a fatal error status <%s>",decode_UST(wSt));
+            exit(EXIT_FAILURE);
+        }
 
         for (size_t wi=0;wi<wUtf16Count;wi++)
                 {
                 utfSPFOutChar<utf16_t>(wBufferUtf16,pCurrlen,pMaxlen, wUtf16Char[wi]);
                 }
-        wUtf8String += wUtf8Count;
+        wutf8VaryingString += wUtf8Count;
         if (!isDiacritical(wCodePoint)) /* diacritical mark must be skipped */
                             wFieldCount ++; /* only one character is written there */
         }//while (*wUtf8value)
@@ -996,23 +1000,23 @@ utfFormatUtf8Field(OutEncoding_type pOutOET,
         {
         wBufferUtf32 = static_cast<utf32_t*>(pBuffer);
 
-        while ((*wUtf8String)&& (wFieldCount < pFieldMaximum))
+        while ((*wutf8VaryingString)&& (wFieldCount < pFieldMaximum))
         {
-        wSt=utf8Decode(wUtf8String,&wCodePoint,&wUtf8Count,nullptr);
+        wSt=utf8Decode(wutf8VaryingString,&wCodePoint,&wUtf8Count,nullptr);
         _ASSERT_(wSt<UST_SEVERE,"utf8 string decoder encountered a fatal error status <%s>",decode_UST(wSt))
         if (UST_Is_Error(wSt))// if error, put illegal char, skip whole character.
             {
             wU=0;
             while(utf8Replacement[wU])  /* utf8Replacement array ends with '\0' */
                     utfSPFOutChar<utf8_t>(wBufferUtf8,pCurrlen,pMaxlen,utf8Replacement[wU++]);
-            wUtf8String+=wUtf8Count;
+            wutf8VaryingString+=wUtf8Count;
             wFieldCount ++; /* only one character is written there */
             continue;
             }
 
         utfSPFOutChar<utf32_t>(wBufferUtf32,pCurrlen,pMaxlen, wCodePoint);
 
-        wUtf8String += wUtf8Count;
+        wutf8VaryingString += wUtf8Count;
         if (!isDiacritical(wCodePoint)) /* diacritical mark must be skipped */
                             wFieldCount ++; /* only one character is written there */
         }//while (*wUtf8value)
@@ -1648,7 +1652,7 @@ Used with a, A, e, E, f, F, g or G it forces the written output to contain a dec
         /* If both the ' ' and '+' flags appear, the ' ' flag should be ignored */
         if (wFmtFlags & FMTF_Plus){
                    wFmtFlags = wFmtFlags & ~(FMTF_SignSpace);
-                    }
+        }
 
 
 /* Parse field width and precision indications possibilities
@@ -1935,13 +1939,13 @@ String :
             continue;
             }
         /* up to here remains __S_LOW__ only option without modifier : utf8 */
-        const utf8_t* wUtf8String=va_arg(args,const utf8_t*);
+        const utf8_t* wutf8VaryingString=va_arg(args,const utf8_t*);
         wCheckLen= wCurrlen;
         utfFormatUtf8Field(pOutOET,
                            pBuffer,
                            &wCurrlen,
                            pMaxlen,
-                           wUtf8String,
+                           wutf8VaryingString,
                            OET_UTF8,
                            wFmtFlags,
                            wFieldMinSize,

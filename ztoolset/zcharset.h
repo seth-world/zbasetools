@@ -29,9 +29,9 @@
 #include <ztoolset/utfstrctx.h>
 
 #include <stdint.h>
-
+#ifdef __DEPRECATED__
 #include <ztoolset/zmodulestack.h>
-
+#endif
 typedef uint8_t         utf8_t ;
 typedef uint16_t        utf16_t ;
 typedef uint32_t        utf32_t ;
@@ -445,7 +445,10 @@ template <class _Utf>
         {
         wLen++;
         }
-    _ASSERT_(wLen >= __STRING_MAX_LENGTH__,"Fatal error: endofmark has not been found in string\n",1)
+    if(wLen >= __STRING_MAX_LENGTH__) {
+            fprintf(stderr,"utfStrlen-F-EOSNTFND Fatal error: endofmark has not been found in string\n");
+            exit(1);
+    }
     return wLen;
 }
 
@@ -769,14 +772,14 @@ extern utf8_t cst_Latin1_Lowcase [];
 
 extern utf8_t cst_Latin1_Only_Char[];
 
-
+#ifdef __COMMENT__
 #ifndef ZCHARSET_CPP
 extern const char      cst_default_delimiter_Char[] ;
 extern const utf8_t    cst_default_delimiter_U8[] ;
 extern const utf16_t   cst_default_delimiter_U16[] ;
 extern const utf32_t   cst_default_delimiter_U32[] ;
 #endif // ZCHARSET_CPP
-#ifdef __COMMENT__
+
 #ifndef __UTF_REPLACEMENT__
 #define __UTF_REPLACEMENT__
 extern utf32_t  utf32Replacement ;
@@ -870,6 +873,10 @@ const _Utf cst_default_delimiter[] = {
         (_Utf)'\t',
         (_Utf)'\n',
         (_Utf)'\r',
+        (_Utf)'|',
+        (_Utf)'&',
+        (_Utf)'*',
+        (_Utf)'#',
         (_Utf)'\0'  // must end with '\0'
     };
 

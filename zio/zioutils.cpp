@@ -1,3 +1,5 @@
+#include <zconfig.h>
+
 #include "zioutils.h"
 
 #include <fcntl.h>
@@ -5,51 +7,49 @@
 
 #include <sys/stat.h> /* for fchmod */
 
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 #include <ztoolset/zexceptionmin.h>
 
 #include <sys/stat.h>
+#include <ztoolset/uristring.h>
+#include <ztoolset/zaierrors.h>
 
-
-
+/*
 ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode )
 {
   errno=0;
   pFd=::open(pPath.toCChar(), pMode);
-  if (pFd >= 0) {
+  if (pFd != __FILEHANDLEINVALID__ ) {
     return ZS_SUCCESS;
   }
   return _rawOpenGetException(errno,pPath,false);
 }//rawOpen
+*/
+ZStatus rawOpenRead(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath)
+{
+    return rawOpen(pFd,pPath, O_RDONLY);
+}
+
+ZStatus rawOpenModify(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath)
+{
+    return rawOpen(pFd,pPath, O_RDWR);
+}
+ZStatus rawOpenCreate(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath)
+{
+    return rawOpen(pFd,pPath, O_CREAT|O_WRONLY|O_TRUNC);
+}
 
 ZStatus rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pAccessRights )
 {
   errno=0;
   pFd=::open(pPath.toCChar(), pMode, pAccessRights);
-  if (pFd >= 0) {
+  if (pFd != __FILEHANDLEINVALID__ ) {
     return ZS_SUCCESS;
   }
   return _rawOpenGetException(errno,pPath,false);
 }//rawOpen
 
-#ifdef __COMMENT__
-ZStatus _rawOpen(__FILEHANDLE__ &pFd, const utf8VaryingString& pPath, __FILEOPENMODE__ pMode, __FILEACCESSRIGHTS__ pPriv,bool pNoExcept ) {
 
-
-
-  if (pPriv == 0)
-    pFd=::open(pPath.toCChar(), pMode);
-  else
-    pFd=::open(pPath.toCChar(), pMode, pPriv);
-
-  if (pFd >= 0) {
-    return ZS_SUCCESS;
-  }
-
-  return _rawOpenGetException(errno,pPath,pNoExcept);
-
-}//_rawOpen
-#endif // __COMMENT__
 
 ZStatus _rawOpenGetException(int wErrno, const utf8VaryingString& pPath,bool pNoExcept ) {
 
@@ -226,6 +226,7 @@ ZStatus _rawOpenGetException(int wErrno, const utf8VaryingString& pPath,bool pNo
 
   return wSt;
 }//_rawOpen
+
 ZStatus
 rawWriteAt(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t &pSizeWritten, size_t pAddress) {
   ZStatus wSt=rawSeekToPosition(pFd,pAddress);
@@ -440,7 +441,8 @@ rawRead(__FILEHANDLE__ pFd, ZDataBuffer& pData,size_t pBytesToRead) {
   errno=0;
   wBRead=::read(pFd,pData.Data,pBytesToRead);
   if (wBRead==0) {
-    return ZS_EOF;
+      pData.clear();
+      return ZS_EOF;
   }
   if (wBRead > 0) {
     if (wBRead < pBytesToRead) {
@@ -612,7 +614,7 @@ ZStatus _rawSeekError(int wErrno,__FILEHANDLE__ pFd,__off_t &pOff)
       wErrMsg.toCChar());
   return wSt;
 
-  if (ZVerbose & ZVB_FileEngine)
+  if (BaseParameters->VerboseFileEngine())
     ZException.printLastUserMessage(stderr);
   return wSt;
 }
@@ -752,7 +754,7 @@ ZStatus rawAllocate(__FILEHANDLE__ pFd, size_t pOffset,size_t pBytes )
       Severity_Error,
       wErrMsg.toCChar());
 
-  if (ZVerbose & ZVB_FileEngine)
+  if (BaseParameters->VerboseFileEngine())
     ZException.printLastUserMessage(stderr);
   return wSt;
 } // rawAllocate
@@ -927,6 +929,401 @@ ZStatus _rawStat(__FILEHANDLE__ pFd,struct stat& pStat, bool pLogZException)
   return ZS_SUCCESS;
 }
 
+enum ZFileNameParse_enum : uint8_t
+{
+    ZFNP_Nothing        = 0,
+    ZFNP_SameRoot       = 1,
+    ZFNP_SameExt        = 2
+};
+
+ZStatus rawRename(const uriString &pFile,
+                  const utf8VaryingString &pNewURI,
+                  bool pNoExcept,
+                  ZaiErrors *pErrorLog)
+{
+    ZStatus wSt=ZS_SUCCESS;
+    errno=0;
+    int wRet= std::rename(pFile.toCChar(),pNewURI.toCChar());
+    if (wRet==0)
+        return ZS_SUCCESS;
+    int wErrno=errno;
+
+    utf8VaryingString wErrMsg;
+    switch (wErrno) {
+    case EACCES:
+        wSt = ZS_ACCESSRIGHTS;
+        wErrMsg.sprintf("<EACCES> A component of either path prefix denies search permission; "
+                        "or one of the directories containing old or new denies write "
+                        "permissions; or, write permission is required and is denied for a "
+                        "directory pointed to by the old or new arguments."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case EBUSY:
+        wSt = ZS_LOCKED;
+        wErrMsg.sprintf(
+            "<EBUSY> The directory named by old or new is currently in use by the system or "
+            "another process, and the implementation considers this an error."
+            " Renaming file <%s> to <%s>",
+            pFile.toString(),
+            pNewURI.toString());
+        break;
+    case EEXIST:
+    case ENOTEMPTY:
+        wSt = ZS_FILEEXIST;
+        wErrMsg.sprintf("<EEXIST-ENOTEMPTY> The link named by new is a directory that is not "
+                        "an empty directory."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case EINVAL:
+        wSt = ZS_INVOP;
+        wErrMsg.sprintf(
+            "<EINVAL> The old pathname names an ancestor directory of the new pathname, or "
+            "either pathname argument contains a final component that is dot or dot-dot."
+            " Renaming file <%s> to <%s>",
+            pFile.toString(),
+            pNewURI.toString());
+        break;
+    case EIO:
+        wSt = ZS_FILEERROR;
+        wErrMsg.sprintf("<EIO> A physical I/O error has occurred."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case EISDIR:
+        wSt = ZS_NOTDIRECTORY;
+        wErrMsg.sprintf("<EISDIR> The new argument points to a directory and the old argument "
+                        "points to a file that is not a directory."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case ELOOP:
+        wSt = ZS_CORRUPTED;
+        wErrMsg.sprintf("<ELOOP> A loop exists in symbolic links encountered during resolution "
+                        "of the path argument."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case EMLINK:
+        wSt = ZS_OUTBOUNDHIGH;
+        wErrMsg.sprintf("<EMLINK> The file named by old is a directory, and the link count of "
+                        "the parent directory of new would exceed {LINK_MAX}."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+
+    case ENAMETOOLONG:
+        wSt = ZS_INVNAME;
+        wErrMsg.sprintf(
+            "<ENAMETOOLONG> The length of a component of a pathname is longer than {NAME_MAX}."
+            " Renaming file <%s> to <%s>",
+            pFile.toString(),
+            pNewURI.toString());
+        break;
+    case ENOENT:
+        wSt = ZS_FILENOTEXIST;
+        wErrMsg.sprintf("<ENOENT>  The link named by old does not name an existing file, a "
+                        "component of the path prefix of new does not exist, or either old or "
+                        "new points to an empty string."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case ENOSPC:
+        wSt = ZS_MEMOVFLW;
+        wErrMsg.sprintf("<ENOSPC> The directory that would contain new cannot be extended."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+
+    case ENOTDIR:
+        wSt = ZS_NOTDIRECTORY;
+        wErrMsg.sprintf(
+            "<ENOTDIR> A component of either path prefix names an existing file that is "
+            "neither a directory nor a symbolic link to a directory; or the old argument names "
+            "a directory and the new argument names a non-directory file; or the old argument "
+            "contains at least one non- <slash> character and ends with one or more trailing "
+            "<slash> characters and the last pathname component names an existing file that is "
+            "neither a directory nor a symbolic link to a directory; or the old argument names "
+            "an existing non-directory file and the new argument names a nonexistent file, "
+            "contains at least one non- <slash> character, and ends with one or more trailing "
+            "<slash> characters;"
+            " or the new argument names an existing non-directory file, contains at least one "
+            "non- <slash> character, and ends with one or more trailing <slash> characters."
+            " Renaming file <%s> to <%s>",
+            pFile.toString(),
+            pNewURI.toString());
+        break;
+
+    case EPERM:
+        wSt = ZS_ACCESSRIGHTS;
+        wErrMsg.sprintf("<EPERM> he S_ISVTX flag is set on the directory containing the file "
+                        "referred to by old "
+                        "and the process does not satisfy the criteria specified in XBD "
+                        "Directory Protection with respect to old; or new refers to an "
+                        "existing file, the S_ISVTX flag is set on the directory containing "
+                        "this file, and the process does not satisfy the criteria specified in "
+                        "XBD Directory Protection with respect to this file."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case EROFS:
+        wSt = ZS_FILEERROR;
+        wErrMsg.sprintf("<EROFS> The requested operation requires writing in a directory on a "
+                        "read-only file system."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case EXDEV:
+        wSt = ZS_FILEERROR;
+        wErrMsg.sprintf("<EXDEV> The links named by new and old are on different file systems "
+                        "and the implementation does not support links between file systems."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+    case ETXTBSY:
+        wSt = ZS_LOCKED;
+        wErrMsg.sprintf("<ETXTBSY>  The file named by new exists and is the last directory "
+                        "entry to a pure procedure (shared text) file that is being executed."
+                        " Renaming file <%s> to <%s>",
+                        pFile.toString(),
+                        pNewURI.toString());
+        break;
+
+    default:
+        wErrMsg.sprintf("Unknown error for renaming file <%s>.", pFile.toString());
+        break;
+    }// switch
+    if (!pNoExcept) {
+        ZException.getErrno(wErrno,
+                            _GET_FUNCTION_NAME_,
+                            wSt,
+                            Severity_Error,
+                            wErrMsg.toCChar());
+
+
+        if (pErrorLog!=nullptr)
+                pErrorLog->logZExceptionLast("rawRename");
+    }
+    return wSt;
+}
+
+ZStatus rawRenameBck(const uriString &pFile,
+                     const utf8VaryingString &pBckExt,
+                     bool pNoExcept,
+                     ZaiErrors *pErrorLog)
+{
+    ZStatus wSt;
+
+    int wFormerNumber = 1;
+    uriString  wNewURI ;
+
+    do {
+        wFormerNumber ++;
+        wNewURI=pFile;
+        wNewURI.addsprintf("_%s%02d",pBckExt.toString(),wFormerNumber);
+    } while (wNewURI.exists());
+
+    return rawRename(pFile,wNewURI,pNoExcept,pErrorLog);
+}
+
+
+int rawCopyPayLoad = 10000;
+
+void setRawCopyPayLoad(int pPayload) {rawCopyPayLoad = pPayload;}
+/**
+ * @brief rawCopy
+ * @param pSource
+ * @param pTarget
+ * @param pFlag
+ * @param pPayLoad
+ * @param pErrorLog
+ * @return
+ */
+ZStatus rawCopy(const uriString &pSource,
+                const uriString &pTarget,
+                uint8_t pFlag,
+                long pPayLoad,
+                __progressCallBack__(_progressCallBack),
+                __progressSetupCallBack__(_progressSetupCallBack),
+                ZaiErrors* pErrorLog)
+{
+    ZStatus wSt=ZS_SUCCESS;
+    __FILEHANDLE__ wSourceFd=__FILEHANDLEINVALID__, wTargetFd=__FILEHANDLEINVALID__;
+    ZDataBuffer wBlock;
+    uriString   wTarget=pTarget;
+    uriString   wSourceDir = pSource.getDirectoryPath();
+
+    if (!pSource.exists()) {
+        ZException.setMessage("rawCopy",ZS_FILENOTEXIST,Severity_Error,"Source file %s does not exist.",
+                              pSource.toString());
+        if (pErrorLog!=nullptr)
+            pErrorLog->logZExceptionLast("rawCopy: Copy source file");
+        return ZS_FILENOTEXIST;
+    }
+    if (wTarget.isEmpty()) {
+        ZException.setMessage("rawCopy",ZS_EMPTY,Severity_Error,"Target is empty.");
+        if (pErrorLog!=nullptr)
+            pErrorLog->logZExceptionLast("rawCopy: Copy target file");
+        return ZS_EMPTY;
+    }
+
+    utf8VaryingString wTargetBase = wTarget.getBasename();
+    if (wTargetBase.isEmpty())  {
+        wTarget.addConditionalDirectoryDelimiter();
+        wTarget += pSource.getBasename();
+    }
+    else {
+        utf8VaryingString wTargetRoot=wTarget.getRootname();
+        if (wTargetRoot.isEmpty()) {
+            ZException.setMessage("rawCopy",ZS_INVNAME,Severity_Error,"Target file name  %s is invalid. Root name missing.",
+                                  wTargetBase.toString());
+            if (pErrorLog!=nullptr) {
+                pErrorLog->logZExceptionLast("rawCopy: Copy target file");
+            }
+            return ZS_INVNAME;
+        }
+    }
+
+    size_t wSourceSize = pSource.getFileSize();
+
+    if (wSourceSize==0) {
+        ZException.setMessage("rawCopy",ZS_EMPTYFILE,Severity_Warning,"Source file %s is empty.",
+                              pSource.toString());
+        if (pErrorLog!=nullptr)
+            pErrorLog->warningLog("rawCopy Source file %s is empty.",
+                                  pSource.toString());
+    }
+
+
+    if (pSource == wTarget ) {
+        ZException.setMessage("rawCopy",ZS_FILEEXIST,Severity_Error,"Cannot copy a file onto itself.",
+                              wTargetBase.toString());
+        if (pErrorLog!=nullptr) {
+            pErrorLog->logZExceptionLast("rawCopy: Copy target file");
+        }
+        return ZS_FILEEXIST;
+    }
+    if (wTarget.exists()) {
+        if (pFlag & ZMNP_Backup) {
+            wSt=rawRenameBck(wTarget,"bck",pErrorLog);
+        } // ZMNP_Backup
+        else
+        if (!(pFlag & ZMNP_Replace)) {
+            ZException.setMessage("rawCopy",ZS_FILEEXIST,Severity_Error,"Target file %s already exists and <no replace> option has been chosen.",
+                                  wTarget.toString());
+            if (pErrorLog!=nullptr) {
+                pErrorLog->logZExceptionLast("rawCopy: Copy target file");
+            }
+            return ZS_FILEEXIST;
+        }// if ZMNP_Replace
+    } // exists
+
+    wSt=rawOpen(wSourceFd,pSource,O_RDONLY);
+    if (wSt!=ZS_SUCCESS)
+        return wSt;
+
+    wSt=rawOpen(wTargetFd,wTarget,O_CREAT|O_WRONLY|O_TRUNC);
+    if (wSt!=ZS_SUCCESS) {
+        rawClose(wSourceFd);
+        return wSt;
+    }
+
+    if (_progressSetupCallBack!=nullptr)
+        _progressSetupCallBack(wSourceSize,pSource);
+
+    if (pPayLoad < 0)
+        pPayLoad = rawCopyPayLoad ;
+
+    size_t wSumSizeRead=0,wSumSizeWritten=0,wWriteSize=0;
+    int wAccess=0;
+    if (wSourceSize > 0) {
+        wSt=rawRead(wSourceFd,wBlock,pPayLoad);
+        if (_progressCallBack!=nullptr)
+            _progressCallBack(wSumSizeRead,"Bytes copied");
+        while ((wSt==ZS_SUCCESS)||(wSt==ZS_READPARTIAL)) {
+
+            wAccess++;
+            wSumSizeRead += wBlock.Size;
+            wSt=rawWrite(wTargetFd,wBlock,wWriteSize);
+            if (wSt!=ZS_SUCCESS)
+                break;
+            wSumSizeWritten += wWriteSize;
+            if (_progressCallBack!=nullptr)
+                _progressCallBack(wSumSizeWritten,utf8VaryingString());
+            wSt=rawRead(wSourceFd,wBlock,pPayLoad);
+        }
+    }// if source size > 0
+    else
+        wSt=ZS_SUCCESS;
+    if (_progressCallBack!=nullptr)
+        _progressCallBack(wSumSizeRead,utf8VaryingString());
+rawCopyEnd:
+    rawClose(wSourceFd);
+    rawClose(wTargetFd);
+    if (pErrorLog!=nullptr) {
+        pErrorLog->textLog("File copied from %s to %s",pSource.toString(),pTarget.toString());
+        pErrorLog->textLog("Bytes read %ld written %ld access times %d End status %s",
+                           wSumSizeRead,wSumSizeWritten,wAccess,decode_ZStatus(wSt));
+    }
+    if ((wSt!=ZS_SUCCESS) && (pErrorLog!=nullptr)) {
+        pErrorLog->logZExceptionLast("Copy file");
+    }
+    return wSt;
+}
+
+ZStatus rawTruncate(__FILEHANDLE__ pFd,size_t pLength)
+{
+    errno=0;
+    int wRet=ftruncate(pFd,off_t(pLength));
+    if (wRet==0)
+        return ZS_SUCCESS;
+    int wErrno=errno;
+    utf8VaryingString wErrMsg;
+    ZStatus wSt;
+    switch(wErrno)
+    {
+    case EINVAL:
+    case EFBIG:
+        wSt= ZS_INVSIZE;
+        wErrMsg.sprintf( "<EFBIG><EINVAL> <%ld> is an invalid length argument (negative or greater than the maximum file size)."
+                        "File <%s>.",pLength,rawGetNameFromFd(pFd).toString());
+        break;
+    case EINTR:
+        wSt= ZS_SYSTEMERROR;
+        wErrMsg.sprintf( "<EINTR> A signal was caught during execution."
+                        "File <%s>.",rawGetNameFromFd(pFd).toString());
+        break;
+
+    case EIO:
+        wSt= ZS_SYSTEMERROR;
+        wErrMsg.sprintf( "<EIO>  An I/O error occurred while reading from or writing to file system."
+                        "File <%s>.",rawGetNameFromFd(pFd).toString());
+        break;
+    case EBADF:
+        wSt= ZS_BADFILEDESC;
+        wErrMsg.sprintf( "<EBADF>   Not a file descriptor open for writing."
+                        "File <%s>.",rawGetNameFromFd(pFd).toString());
+        break;
+
+    }
+    ZException.getErrno(  wErrno,     /* saved errno */
+                        _GET_FUNCTION_NAME_,
+                        wSt,
+                        Severity_Error,
+                        wErrMsg.toCChar());
+}
 
 
 #ifdef __USE_LINUX__
@@ -994,6 +1391,8 @@ rawGetNameFromFd(__FILEHANDLE__ pFd)
 
 
 
+
+
 bool testSequence (const unsigned char* pSequence,size_t pSeqLen, const unsigned char* pToCompare)
 {
   while (pSeqLen) {
@@ -1004,4 +1403,25 @@ bool testSequence (const unsigned char* pSequence,size_t pSeqLen, const unsigned
     pSeqLen--;
   }
   return true;
+}
+utf8VaryingString
+decode_ZMNP(ZMNP_type pFlag)
+{
+    utf8VaryingString wReturn;
+    if (pFlag==0) {
+        return ("ZMNP_Nothing");
+    }
+    if (pFlag & ZMNP_Replace) {
+        wReturn.addConditionalOR("ZMNP_Replace");
+    }
+    if (pFlag & ZMNP_Backup) {
+        wReturn.addConditionalOR("ZMNP_Backup");
+    }
+    if (pFlag & ZMNP_KeepPerm) {
+        wReturn.addConditionalOR("ZMNP_KeepPerm");
+    }
+    if (pFlag & ZMNP_IncludeAll) {
+        wReturn.addConditionalOR("ZMNP_IncludeAll");
+    }
+    return wReturn;
 }

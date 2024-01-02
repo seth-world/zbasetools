@@ -8,7 +8,7 @@
 
 extern long int TimeZoneDiff;
 
-#include <ztoolset/zutfstrings.h>  //for utf8VaryingString
+#include <ztoolset/utfvaryingstring.h>  //for utf8VaryingString
 
 extern const char* ZDateFormat_Standard      ;
 extern const char *ZTimeFormat_Standard       ;
@@ -149,7 +149,7 @@ public:
   bool operator < (const ZDateFull& pDt) const {return tv_sec < pDt.tv_sec ;}
   bool operator <= (const ZDateFull& pDt) const {return tv_sec <= pDt.tv_sec ;}
 
-  int _stringCompare(const utf8String& pDateString,ZDatePrecision & pOutPrecision) const {
+  int _stringCompare(const utf8VaryingString& pDateString,ZDatePrecision & pOutPrecision) const {
     ZDateFull wD1=fromDMY(pDateString);
     if (wD1.Precision==ZDTPR_invalid){
       wD1=fromDMY(pDateString);
@@ -162,7 +162,7 @@ public:
 
   /** tries to convert a string to a ZDateFull, best case using DMY then MDY algorithm.
    * according the data found and converted, returns pOutPrecision mentionning the level of data taken into account */
-  static ZDateFull fromString(const utf8String& pDateString)  {
+  static ZDateFull fromString(const utf8VaryingString& pDateString)  {
     ZDateFull wD1=fromDMY(pDateString);
     if (wD1.Precision==ZDTPR_invalid){
       wD1=fromDMY(pDateString);

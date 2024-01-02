@@ -3,7 +3,7 @@
 /** @file zhtmlreport.h  html report creation using html tables
  *    see  examples/examplehtml.cpp
 */
-#include <ztoolset/zutfstrings.h>
+#include "utfvaryingstring.h"
 
 
 
@@ -27,11 +27,11 @@ public:
     Content=pIn.Content;
     Style=pIn.Style;
   }
-  utf8String get();
+  utf8VaryingString get();
 
 
-  utf8String Content;
-  utf8String Style;
+  utf8VaryingString Content;
+  utf8VaryingString Style;
 };//ZHtmlCell
 
 enum HtmlRowType
@@ -74,7 +74,7 @@ public:
 
   using ZHtmlTableRow::operator <<;
 
-  utf8String get(int pColumnCount);
+  utf8VaryingString get(int pColumnCount);
 };//ZHtmlTableHeaderRow
 
 class ZHtmlTableCommonRow : public ZHtmlTableRow
@@ -86,7 +86,7 @@ public:
 
   using ZHtmlTableRow::operator <<;
 
-  utf8String get(int pColumnCount, bool pGrey=false, bool pLast=false);
+  utf8VaryingString get(int pColumnCount, bool pGrey=false, bool pLast=false);
 
 };//ZHtmlTableCommonRow
 /**
@@ -98,9 +98,9 @@ public:
   ZHtmlTable(int pColumnCount=0) {ColumnCount=pColumnCount; }
   ~ZHtmlTable();
 
-  void addCaption(const utf8String& pCaption) {Caption=new utf8String(pCaption);}
+  void addCaption(const utf8VaryingString& pCaption) {Caption=new utf8VaryingString(pCaption);}
 
-  void setHeaderBackColor(const utf8String&pColor) {HeaderBackColor=new utf8String(pColor);}
+  void setHeaderBackColor(const utf8VaryingString&pColor) {HeaderBackColor=new utf8VaryingString(pColor);}
 
   void addHeaderRow(ZHtmlTableHeaderRow* pRow);
   void addCommonRow(ZHtmlTableCommonRow* pRow);
@@ -109,15 +109,15 @@ public:
 
   void setCellWidth(double pWidth,const char* pUnit="in")  {CellWidth=pWidth;CellWidthUnit=pUnit;}
 
-  utf8String getCellWidth()
+  utf8VaryingString getCellWidth()
   {
-    utf8String wWidth;
+    utf8VaryingString wWidth;
     wWidth.sprintf("%g%s",CellWidth,CellWidthUnit);
     wWidth.replace(",",".");
     return wWidth;
   }
 
-  utf8String get();
+  utf8VaryingString get();
 
   ZHtmlTable& operator << (ZHtmlTableCommonRow& pRow) {addCommonRow(new ZHtmlTableCommonRow(pRow)); return *this;}
   ZHtmlTable& operator << (ZHtmlTableHeaderRow& pRow) {addHeaderRow(new ZHtmlTableHeaderRow(pRow)); return *this;}
@@ -125,8 +125,8 @@ public:
   bool        AlternateRows=false;
   double      CellWidth=2.2313 ;
   const char* CellWidthUnit="in";
-  utf8String* Caption=nullptr;
-  utf8String* HeaderBackColor=nullptr;
+  utf8VaryingString* Caption=nullptr;
+  utf8VaryingString* HeaderBackColor=nullptr;
   zbs::ZArray<ZHtmlTableHeaderRow*> Headers;
   zbs::ZArray<ZHtmlTableCommonRow*>  Rows;
   int ColumnCount = 0;
@@ -142,15 +142,15 @@ public:
   ZHtmlReport()=default;
   ~ZHtmlReport();
 
-  void setTitle(const utf8String& pTitle);
-  void setIntroduction(const utf8String& pIntro);
-  void setSignature(const utf8String& pSignature);
-  void addParagraphBefore(const utf8String& pParagraph);
-  void addParagraphAfter(const utf8String& pParagraph);
+  void setTitle(const utf8VaryingString& pTitle);
+  void setIntroduction(const utf8VaryingString& pIntro);
+  void setSignature(const utf8VaryingString& pSignature);
+  void addParagraphBefore(const utf8VaryingString& pParagraph);
+  void addParagraphAfter(const utf8VaryingString& pParagraph);
   void addTable(int pColumns);
-  void setFont (const utf8String& pFont);
+  void setFont (const utf8VaryingString& pFont);
 
-  utf8String get();
+  utf8VaryingString get();
 
   ZHtmlReport& operator << (ZHtmlTableHeaderRow& pRow)
   {
@@ -166,16 +166,16 @@ public:
 
 
 
-  utf8String* Font=nullptr;
-  utf8String* Title=nullptr;
-  utf8String* Introduction=nullptr;
-  utf8String* ParBefore=nullptr;
-  utf8String* ParAfter=nullptr;
-  utf8String* Signature=nullptr;
+  utf8VaryingString* Font=nullptr;
+  utf8VaryingString* Title=nullptr;
+  utf8VaryingString* Introduction=nullptr;
+  utf8VaryingString* ParBefore=nullptr;
+  utf8VaryingString* ParAfter=nullptr;
+  utf8VaryingString* Signature=nullptr;
   ZHtmlTable* Table=nullptr;
 }; //ZHtmlReport
 
 
-utf8String setupHtmlString(const utf8String &pContent);
+utf8VaryingString setupHtmlString(const utf8VaryingString &pContent);
 
 #endif // ZHTMLREPORT_H

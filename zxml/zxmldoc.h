@@ -1,7 +1,7 @@
 #ifndef ZXMLDOC_H
 #define ZXMLDOC_H
 //#include <libxml++/document.h>
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 #include <ztoolset/uristring.h>
 
 //#include <libxml++/libxml++.h>
@@ -119,10 +119,10 @@ public:
 
     ZStatus getDocComment (utf8VaryingString &pNodeComment);
     ZStatus getDocAttribute (const char* pName,utf8VaryingString &pNodeAttribute);
-    utffieldNameString getDocVersion(void);
+    utf8VaryingString getDocVersion(void);
 
-    utffieldNameString getName(void) ;
-    ZStatus getDocEncoding(utffieldNameString &pEncoding) ;
+    utf8VaryingString getName(void) ;
+    ZStatus getDocEncoding(utf8VaryingString &pEncoding) ;
     ZStatus getDocEncoding(xmlCharEncoding &pEncodingCode);
     int     getDocCharset(void) ;
 
@@ -153,7 +153,7 @@ public:
     ZStatus XmlParseFromMemory(const utf8VaryingString& pXmlString,ZaiErrors* pErrorLog);
 
 
-utffieldNameString Version;
+utf8VaryingString Version;
 
 ZDataBuffer xmlContent;
 uriString URIDocFile;

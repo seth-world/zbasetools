@@ -78,7 +78,7 @@ struct passwd*  wUsercontent_ptr=nullptr;
                            ZS_AUTHREJECTED,
                            Severity_Error,
                            "Invalid username <%s>. Not found in system users base",pName);
-            if (__ZNETVERBOSE__)
+            if (BaseParameters->VerboseNet())
                     fprintf (stderr,"%s>> Invalid username <%s>. Not found in system users base\n",
                              _GET_FUNCTION_NAME_,
                              pName);
@@ -118,7 +118,7 @@ char wBuffer[500];
                            ZS_AUTHREJECTED,
                            Severity_Error,
                            "Invalid uid <%d>. Not found in system users base",(int)wuid);
-            if (__ZNETVERBOSE__)
+            if (BaseParameters->VerboseNet())
                     fprintf (stderr,"%s>> Invalid uid <%d>. Not found in system users base\n",
                              _GET_FUNCTION_NAME_,
                              (int)wuid);
@@ -139,7 +139,7 @@ char wBuffer[500];
     Init=true;
     return ZS_SUCCESS;
 }
-utf8String
+utf8VaryingString
 ZSystemUser::getSystemName() const
 {
     if (!isInit())
@@ -277,7 +277,7 @@ int wz = 0;
 }
 
 ZStatus
-SIDtoString(_SID *pSID,utfdescString** pSIDString_ptr)
+SIDtoString(_SID *pSID,utf8VaryingString** pSIDString_ptr)
 {
 
 int wRevision = (int)pSID->Revision;
@@ -285,7 +285,7 @@ int SubAuthCount=(int) pSID->SubAuthorityCount;
 _SID_IDENTIFIER_AUTHORITY wAuthority = pSID->IdentifierAuthority;
 int wz = 0;
 char wBuf[50];
-utfdescString wSIDRet;
+utf8VaryingString wSIDRet;
     if ((wRevision!=1)||(SubAuthCount>10))
         {
         *pSIDString_ptr = nullptr;

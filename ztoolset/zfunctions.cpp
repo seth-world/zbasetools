@@ -6,11 +6,11 @@
  *
  */
 
-#include <ztoolset/zfunctions.h>
-#include <ztoolset/zerror.h>
+#include "zfunctions.h"
+#include "zerror.h"
 //#include <ztoolset/zutfstrings.h>
 //#include <ztoolset/zexceptionmin.h>
-#include <ztoolset/utfvaryingstring.h>
+#include "utfvaryingstring.h"
 
 char *dumpSequence (void *pPtr,size_t pSize,char *pBuffer)
  {
@@ -1167,7 +1167,7 @@ int timeout =pMilliSecondsTimeout;
       wReturn.Status=__ZSPAWN_TIMEOUT__;
       return wReturn;
         }
-    if (ZVerbose)
+    if (BaseParameters->VerboseBasic())
         fprintf(stdout,"%s-E-EXIT>> Child Process returned status: <%d>\n",_GET_FUNCTION_NAME_,WEXITSTATUS(status) );
     wReturn.ChildStatus = WEXITSTATUS(status);
     if (WIFEXITED(status))

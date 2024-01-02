@@ -108,7 +108,7 @@ utf8VaryingString &fmtXMLaddInlineComment(utf8VaryingString &pXmlString, const u
 
 utf8VaryingString fmtXMLchar(const utf8VaryingString &pVarName, const utf8VaryingString &pVarContent, const int pLevel);
 
-utf8VaryingString fmtXMLstring(const utf8VaryingString &pVarName, utf8String &pVarContent, const int pLevel);
+utf8VaryingString fmtXMLstring(const utf8VaryingString &pVarName, utf8VaryingString &pVarContent, const int pLevel);
 utf8VaryingString fmtXMLdouble(const utf8VaryingString &pVarName, const double pVarContent, const int pLevel);
 utf8VaryingString fmtXMLfloat(const utf8VaryingString &pVarName, const float pVarContent, const int pLevel);
 utf8VaryingString fmtXMLint(const utf8VaryingString &pVarName, const int pVarContent, const int pLevel);
@@ -178,12 +178,12 @@ utf8VaryingString fmtXMLuint64Hexa(const char *pVarName, const uint64_t pVarCont
  */
 ZStatus XMLgetChildText(zxmlElement *pElement,
                         const utf8VaryingString &pChildName,
-                        utf8String &pTextValue,
+                        utf8VaryingString &pTextValue,
                         ZaiErrors *pErrorlog,
                         ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildText(zxmlElement *pElement,
                         const utf8VaryingString &pChildName,
-                        utf8String &pTextValue);
+                        utf8VaryingString &pTextValue);
 
 ZStatus XMLgetChildFloat(zxmlElement *pElement,
                         const utf8VaryingString &pChildName,

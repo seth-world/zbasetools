@@ -1,7 +1,7 @@
 #ifndef ZXMLNODE_H
 #define ZXMLNODE_H
 
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 #include <libxml/tree.h>
 //#include <zxml/zxmldoc.h>
 #include <ztoolset/zarray.h>
@@ -182,7 +182,7 @@ public:
     unsigned long getChildElementCount(void);
 
     void setLanguage(const char*pLanguage);
-    utffieldNameString getLanguage(void);
+    utf8VaryingString getLanguage(void);
 
 protected:
 xmlNodePtr _xmlInternalNode=nullptr;

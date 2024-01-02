@@ -2,7 +2,7 @@
 #define ZBASEDATATYPE_CPP
 #include <ztoolset/zbasedatatypes.h>
 #include <ztoolset/zexceptionmin.h>
-#include <ztoolset/zutfstrings.h>
+#include <ztoolset/utfvaryingstring.h>
 #ifdef __COMMENT__
 
 /*  ------------ Defaults values ----------------------------------------------------------------------

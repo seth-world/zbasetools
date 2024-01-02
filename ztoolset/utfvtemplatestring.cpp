@@ -1,18 +1,19 @@
 #ifndef UTFVTEMPLATESTRING_CPP
 #define UTFVTEMPLATESTRING_CPP
 
-#include <ztoolset/utfvtemplatestring.h>
-#include <ztoolset/zerror.h>
-#include <ztoolset/uristring.h>
-#include <ztoolset/zexceptionmin.h>
-#include <ztoolset/zfunctions.h>
+#include "utfvtemplatestring.h"
+#include "zerror.h"
+/*
+#include "uristring.h"
+#include "zexceptionmin.h"
+#include "zfunctions.h"
 
-#include <ztoolset/zcharset.h>
+#include "zcharset.h"
 
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/buffer.h>
-
+*/
 
 
 
@@ -34,7 +35,7 @@ int Base64Decode(char* b64message, unsigned char** buffer, size_t* length) { //D
     BIO_free_all(bio);
 */
 
-#include <zcrypt/checksum.h>
+
 
 
 //---------utfVaryingString related functions-------------
@@ -44,10 +45,12 @@ int Base64Decode(char* b64message, unsigned char** buffer, size_t* length) { //D
   */
 
 
-//====================ZBlob : Export Import methods : see <zdatabuffer.cpp> =================
-
-
+//====================ZBlob :
+//#include <zcrypt/checksum.h>
 /*
+ *
+ * Export Import methods : see <zdatabuffer.cpp> =================
+
 ZStatus
 utf8VString::fromUtf16(const utf16_t* pString)
 {

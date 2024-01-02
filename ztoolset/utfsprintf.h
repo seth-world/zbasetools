@@ -1563,8 +1563,15 @@ LDoubleToUtfDigits_G(LONG_DOUBLE pValue,
  _Utf* wFractionalDigits=nullptr, *wUtfInPtr,*wUtfOutPtr;
  double wRndCoef = 0.5;
 
-    _ASSERT_(!(pFmtFlags & FMTF_GFormat),"invalid format requested. Only <g> float format is allowed.",1);
-    _ASSERT_ (!pDigitStr," _Utf String pointer is null",1);
+    if (!(pFmtFlags & FMTF_GFormat)) {
+        fprintf(stderr,"LDoubleToUtfDigits_G-F-INVFMT invalid format requested. Only <g> float format is allowed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (!pDigitStr) {
+        fprintf(stderr,"LDoubleToUtfDigits_G-F-NULLPTR _Utf String pointer is null.\n");
+        exit(EXIT_FAILURE);
+    }
+
     _Utf* wDigitStr=nullptr;
  /* Because integrity of long double and double fractional part is not garanteed in case of huge number when rounding,
    (in fact, fractional part becomes false) we must dissociate fractional part and integral part of the number and
@@ -1881,8 +1888,10 @@ utfFormatFPF(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
                 }
         }
 
-    _ASSERT_((pFmtFlags & FMTF_Octal)||(pFmtFlags & FMTF_Hexa),"Hexadecimal for float must be addressed using utfFormatFPHex. Octal is invalid for float.",1);
-
+    if ((pFmtFlags & FMTF_Octal)||(pFmtFlags & FMTF_Hexa)) {
+        fprintf(stderr,"utfFormatFPF-NOOCTHEX Hexadecimal for float must be addressed using utfFormatFPHex. Octal is invalid for float.\n");
+        exit (EXIT_FAILURE);
+    }
     // no hexa no octal allowed
 
     /*
@@ -2857,8 +2866,11 @@ utfFormatFPA(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
                 }
         }
 
-    _ASSERT_(!(pFmtFlags & FMTF_Hexa),"  format must be hexadecimal for this number %Lf",pFvalue) /* this must not be the case by left for experimental purposes */
 
+    if (!(pFmtFlags & FMTF_Hexa)) {/* this must not be the case - left for experimental purposes */
+        fprintf(stderr,"utfFormatFPA-F-INVFMT format must be hexadecimal for this number %Lf.\n",pFvalue);
+        exit (EXIT_FAILURE);
+    }
     /* no octal for float : if FMTF_Octal is set : processed as default base  */
 
 /*
@@ -3300,9 +3312,12 @@ utfFormatFPK(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
                 return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
+     // no hexa no octal allowed
+    if ((pFmtFlags & FMTF_Octal)||(pFmtFlags & FMTF_Hexa)) {
+        fprintf(stderr,"utfFormatFPK-F-NOOCTHEX Hexadecimal for float must be addressed using utfFormatFPHex. Octal is invalid for float.\n");
+        exit (EXIT_FAILURE);
+    }
 
-    _ASSERT_((pFmtFlags & FMTF_Octal)||(pFmtFlags & FMTF_Hexa),"Hexadecimal for float must be addressed using utfFormatFPHex. Octal is invalid for float.",1);
-    // no hexa no octal allowed
 
     /*
      * AIX manpage says the default is 0, but Solaris says the default
@@ -3578,9 +3593,12 @@ utfFormatFPK_1(_Utf *pBuffer, size_t * pCurrlen, size_t pMaxlen,
                 return  utfSignalNan(pFvalue,pBuffer, pCurrlen, pMaxlen, pFieldMin, (_Utf*)cst_infinite<_Utf>,  pFmtFlags);
                 }
         }
-
-    _ASSERT_((pFmtFlags & FMTF_Octal)||(pFmtFlags & FMTF_Hexa),"Hexadecimal for float must be addressed using utfFormatFPHex. Octal is invalid for float.",1);
     // no hexa no octal allowed
+    if ((pFmtFlags & FMTF_Octal)||(pFmtFlags & FMTF_Hexa)) {
+        fprintf(stderr,"utfFormatFPK_1-F-NOOCTHEX Hexadecimal for float must be addressed using utfFormatFPHex. Octal is invalid for float.\n");
+        exit (EXIT_FAILURE);
+    }
+
 
     /*
      * AIX manpage says the default is 0, but Solaris says the default

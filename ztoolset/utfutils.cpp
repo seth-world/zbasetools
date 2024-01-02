@@ -1,5 +1,6 @@
 #include "utfutils.h"
 // instantiations
+#include "utfvaryingstring.h"
 
 template<unsigned char> size_t utfStrlen(const unsigned char* pString);
 
@@ -105,3 +106,33 @@ size_t _importCharArrayUVF(char* pDataOut, size_t pMaxSize, const unsigned char 
   pUniversalPtr +=(wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
   return (wUnitCount*sizeof(char))+sizeof(UVF_Size_type)+1;
 }//_importCharArrayUVF
+
+
+
+utf8VaryingString
+formatSize(long long wSize)
+{
+    utf8VaryingString wSizeStr;
+    double wSizeD = (double)wSize;
+
+    const char* wUnit= "B";
+    if (wSizeD > 1024.0)
+    {
+        wSizeD= wSizeD / 1024.0;
+        if (wSizeD > 1024.0)
+        {
+            wSizeD= wSizeD / 1024.0;
+            if (wSizeD > 1024.0)
+            {
+                wSizeD= wSizeD / 1024.0;
+                wUnit="gB";
+            }
+            else
+                wUnit="mB";
+        }
+        else
+            wUnit="kB";
+    }
+    wSizeStr.sprintf("%g %s",wSizeD,wUnit);
+    return wSizeStr;
+}

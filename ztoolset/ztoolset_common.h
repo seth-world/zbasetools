@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
-#include <ztoolset/zlimit.h>
+#include "zlimit.h"
 
 #define __STDSTRING__ "std::string"
 

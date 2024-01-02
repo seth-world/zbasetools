@@ -91,7 +91,7 @@ UST_Status_type wSt;
         }
     *wUtf32Ptr=(utf32_t)'\0';
     *wUtf16Ptr=(utf16_t)'\0';
-    if (ZVerbose)
+    if (BaseParameters->VerboseBasic())
             fprintf (stdout,"%s> Currency symbol set to %s.\n",
                      _GET_FUNCTION_NAME_,
                      (const char*)GCurrencyCode8);

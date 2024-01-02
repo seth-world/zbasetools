@@ -1,7 +1,7 @@
 #ifndef ZAIERRORS_CPP
 #define ZAIERRORS_CPP
-#include <ztoolset/zaierrors.h>
-#include <ztoolset/zexceptionmin.h>
+#include "zaierrors.h"
+#include "zexceptionmin.h"
 
 ZaiErrors::ZaiErrors(const char* pContext)
 {
@@ -34,7 +34,10 @@ void ZaiErrors::setContext(const char* pContext,...)
 
 void ZaiErrors::logZExceptionLast(const utf8VaryingString &pAdd)
 {
-    logZException(ZException.last());
+    if (ZException.count()>0)
+        logZException(ZException.last());
+    else
+        logZException(ZExceptionBase());
 }
 
 void ZaiErrors::logZException(const ZExceptionBase& pException,const utf8VaryingString& pAdd)
@@ -44,15 +47,24 @@ void ZaiErrors::logZException(const ZExceptionBase& pException,const utf8Varying
     ZaiE_Severity wS= ZAIES_None;
     if (!wAdd.isEmpty())
         wAdd.add("\n");
-    if (ZException.count() == 0)
-        wErrToPush=new ZaiError(ZAIES_Info, wAdd + "No exception logged at this time");
+    if (pException.isNull() )
+        wErrToPush=new ZaiError(ZAIES_Info, wAdd + "No exception logged");
     else {
         wS=cvttoZAIESeverity(pException.Severity);
         wErrToPush=new ZaiError(wS, wAdd + pException.formatUtf8());
     }
     if (wS >= AutoPrint ) {
-        _print(wS,"<%s> %s",decode_ZAIES(last()->Severity),pAdd.toUtf());
-        _print(wS,"<%s> %s",decode_ZAIES(last()->Severity),wErrToPush->Message());
+        if (wS > ZAIES_Text) {
+            if (!pAdd.isEmpty())
+                _print(wS,"<%s> %s",decode_ZAIES(wErrToPush->Severity),pAdd.toUtf());
+            _print(wS,"<%s> %s",decode_ZAIES(wErrToPush->Severity),wErrToPush->Message());
+        }
+        else {
+            if (!pAdd.isEmpty())
+                _print(wS,"<%s> %s",decode_ZAIES(wErrToPush->Severity),pAdd.toUtf());
+            _print(wS,"%s",wErrToPush->Message());
+        }
+
     }
     if (wS >= StoreMinSeverity )
         push(wErrToPush);
@@ -256,9 +268,9 @@ void ZaiErrors::displayErrors(FILE* pOutput)
 
 
 
-utf8String ZaiErrors::getLastError( )
+utf8VaryingString ZaiErrors::getLastError( )
 {
-  utf8String wErrMsg;
+  utf8VaryingString wErrMsg;
   const char* wContext="no context set";
   if (Context.count()>0)
     wErrMsg.sprintf("-----------<%s> Last Error Message Report --------------------------- \n",Context.last().toCChar());
@@ -296,7 +308,6 @@ void ZaiErrors::logZStatus(ZaiE_Severity pSeverity,ZStatus pSt,const char* pForm
   va_list args;
   va_start (args, pFormat);
   ZaiError* wErrToPush=new ZaiError(pSeverity,pSt,pFormat,args);
-  push(new ZaiError(pSeverity,pSt,pFormat,args));
   if (pSeverity >= AutoPrint)
     _print(pSeverity,"<%s> <%s> %s",decode_ZAIES(wErrToPush->Severity),decode_ZStatus(wErrToPush->Status),wErrToPush->Message());
   va_end(args);
@@ -394,42 +405,29 @@ void ZaiErrors::_log(ZaiE_Severity pSeverity,const char* pFormat,va_list pArgs)
     ErrorLevel = pSeverity;
     ZaiError* wErrorToPush = new ZaiError(pSeverity,pFormat,pArgs);
 
-    if (ZAIES_Error >= AutoPrint)
-        _print(ZAIES_Error,"<%s> %s ",decode_ZAIES(wErrorToPush->Severity),wErrorToPush->Message());
+    if (ZAIES_Error >= AutoPrint) {
+        if (wErrorToPush->Severity > ZAIES_Text) {
+        _print(pSeverity,"<%s> %s ",decode_ZAIES(wErrorToPush->Severity),wErrorToPush->Message());
+        }
+        else {
+          _print(pSeverity,"%s ",wErrorToPush->Message());
+        }
+
+    }
+
     if (pSeverity >= StoreMinSeverity )
         push(wErrorToPush);
     else
         delete wErrorToPush;
 }
-/*
-void ZaiErrors::_fatalLog(const char* pFormat,va_list pArgs)
-{
-    _log(ZAIES_Fatal,pFormat,pArgs);
-}
 
-void ZaiErrors::_errorLog(const char* pFormat,va_list pArgs)
-{
-    _log(ZAIES_Error,pFormat,pArgs);
-}
-
-void ZaiErrors::_textLog(const char* pFormat,va_list pArgs)
-{
-    _log(ZAIES_Text,pFormat,pArgs);
-}
-void ZaiErrors::_infoLog(const char* pFormat,va_list pArgs)
-{
-    _log(ZAIES_Info,pFormat,pArgs);
-}
-void ZaiErrors::_warningLog(const char* pFormat,va_list pArgs)
-{
-    _log(ZAIES_Warning,pFormat,pArgs);
-}
-*/
 
 const char* decode_ZAIES(ZaiE_Severity pSeverity)
 {
     switch (pSeverity)
     {
+    case ZAIES_Text:
+        return "Text";
     case ZAIES_Info:
         return "Info";
     case ZAIES_Warning:

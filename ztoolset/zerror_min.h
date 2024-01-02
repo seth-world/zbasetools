@@ -35,55 +35,20 @@ extern const char *ZSignal_Description[][2];
 const char* decode_Signal(int pSignal);
 const char* decode_SignalLib(int pSignal);
 
-/**
- * @brief The ZVerbose_type enum this setup does not concern error messages but only information message.
- *
- *  using appropriate setVerbose(); flag value, it is possible to select the domain to get information from.
- */
-
-typedef uint32_t ZVerbose_Base ;
-//#ifndef __ZVERBOSE_DEFINE__
-#ifndef ZERROR_MIN_CPP
-extern  ZVerbose_Base ZVerbose; /* Warning : do not use static for having a global variable. */
-#endif
-
-enum ZVerbose_type : ZVerbose_Base
-{
-    ZVB_NoVerbose   = 0x0,          //< false : no verbose at all
-    ZVB_Basic       = 0x00000001,   //< message with no particular domain
-
-    ZVB_Mutex       = 0x00000100,   //< Mutexes management
-    ZVB_Thread      = 0x00000200,   //< Threads management
-    ZVB_Stats       = 0x00001000,   //< Collects stats and performance data
-
-    ZVB_NetStats    = 0x00002000,   //< Collects stats and performance for net operations
+#define _DBGPRINT(...) { fprintf (stdout, __VA_ARGS__); std::cout.flush(); }
 
 
-    ZVB_ZRF         = 0x01000000,   //< ZRandomFile
+#define _ASSERT_(__COND__,__MAIN__,...) \
+    if (__COND__) {  \
+        fprintf(stderr,__MAIN__ __VA_OPT__(,) __VA_ARGS__); \
+        exit(EXIT_FAILURE);\
+    }
 
-    ZVB_MemEngine   = 0x00000002, /* file memory space allocation and management operations */
-    ZVB_FileEngine  = 0x00000004, /* file access operations from file engine */
-    ZVB_SearchEngine= 0x00000008, /* all search operations from search engines */
+#define _ABORT_ exit(EXIT_FAILURE);
 
-    ZVB_ZMF         = 0x02000000,   //< ZMasterFile
-    ZVB_ZIF         = 0x04000000,   //< ZIndexFile
-    ZVB_Net         = 0x08000000,   //< Sockets servers SSL & protocol
+/*
 
-    ZVB_QT          = 0x10000000,   //< Qt windows & transactional
-
-    ZVB_ALL         = 0xFFFFFFFF    //< All messages are displayed
-};
-
-
-static FILE* ZVerboseOutput=stdout;
-
-void setVerbose (ZVerbose_Base pVerbose);
-void addVerbose (ZVerbose_Base pVerbose);
-void clearVerbose (ZVerbose_Base pVerbose);
-
-#define _CLEAR_VERBOSE_ ZVerbose=0;
-
-#define __ZBASICVERBOSE__ (ZVerbose & ZVB_Basic)
+#define __ZBASICVERBOSE__ ()
 #define _SET_ZBASICVERBOSE_ addVerbose( ZVB_Basic);
 #define _CLEAR_ZBASICVERBOS_ clearVerbose(ZVB_Basic);
 
@@ -116,11 +81,7 @@ void clearVerbose (ZVerbose_Base pVerbose);
 #define __ZQTVERBOSE__ (ZVerbose & ZVB_QT)
 #define _SET_ZQTVERBOSE_ addVerbose( ZVB_QT);
 #define _CLEAR_ZQTVERBOSE_ ZclearVerbose(ZVB_QT);
-
-void setVerbose (ZVerbose_Base pVerbose);
-void addVerbose (ZVerbose_Base pVerbose);
-void clearVerbose (ZVerbose_Base pVerbose);
-
+*/
 /**
  * @defgroup  ZBSErrorGroup Errors and exceptions management
  *

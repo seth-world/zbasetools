@@ -1,17 +1,22 @@
 #ifndef URISTRING_H
 #define URISTRING_H
 
+#include <sys/stat.h>
+
 #include <config/zconfig.h>
 #include <ztoolset/zlimit.h>
-#include <sys/stat.h>
-//#include <ztoolset/utffixedstring.h>
+
+
+#include "utfvaryingstring.h"
 
 #include <zcrypt/checksum.h>
-#include <ztoolset/zdatefull.h>
-#include <ztoolset/userid.h>
+#include "zdatefull.h"
+#include "userid.h"
 
-#include <ztoolset/zdatecommon.h>
+#include "zdatecommon.h"
 #include <QUrl>
+
+
 
 /*
 #ifdef QT_CORE_LIB
@@ -35,12 +40,15 @@ enum ZDirFileEn :  ZDirFileEn_type {
 #endif //ZDIR_FILE_TYPE
 
 
-using namespace zbs;
 
+/*
 class utf8VaryingString;
 class utf16VaryingString;
 class utf32VaryingString;
+*/
+#include "utfvaryingstring.h"
 
+using namespace zbs;
 
 //
 //! \brief The uriStat_struct struct stores the statistics about uriString file
@@ -99,7 +107,7 @@ enum URICopyOptions : uint8_t {
 } ;
 
 
-#define __URISTRING__
+//#define __URISTRING__
 /**
  * @brief The uriString class Expand templateString template capabilities to file and directories management.
  * Allows to perform some basic file operations
@@ -179,7 +187,7 @@ public:
      * i. e. </directory path/><root name>.<extension>
      * @return an utf8VaryingString with the full file's directory path including
      */
-    utf8VaryingString getDirectoryPath() const;
+    uriString getDirectoryPath() const;
     /** @brief getLastDirectoryName Returns the last directory mentionned in file's directory path
         i. e. </.../last directory/><root name>.<extension>
      * @return utf8VaryingString with the last file's directory within its directory path or an empty string if uriString is empty.
@@ -193,7 +201,7 @@ public:
     */
     utf8VaryingString getBasename() const ;
 
-    /** @brief getRootname returns a utf8String containing the file's root name\n
+    /** @brief getRootname returns a utf8VaryingString containing the file's root name\n
      *  i. e. </directory path/><file's root name>.<extension>
      * @return utf8VaryingString with the file's root name (base name without extension) or an empty string if uriString is empty.
      */
@@ -203,13 +211,13 @@ public:
     void changeBasename(const utf8VaryingString& pBasename);
 
     /** @brief getUrl() gets an url from local file path definition @see getLocal() */
-    utf8String getUrl() const;
+    utf8VaryingString getUrl() const;
     /** @brief getLocal () gets an uriString certified to be a local file name (as opposed to url) @see getUrl() */
     uriString getLocal () const;
 
     uriString &setDirectoryPath(uriString &pDirectoryPath);
 
-    static utf8String getUniqueName (const char* pRootName);
+    static utf8VaryingString getUniqueName (const char* pRootName);
 
     void setUniqueName (const char* pRootName);
 
@@ -228,8 +236,8 @@ public:
      *  ZS_FILENOTEXIST : the file does not exist
      *  ZS_FILERROR : other error
      */
-    ZStatus remove();
-    ZStatus rename(const utf8VaryingString& pNewURI);
+    ZStatus remove() const;
+    ZStatus rename(const utf8VaryingString &pNewURI, bool pNoExcept=false, ZaiErrors *pErrorLog=nullptr) const;
     /**
      * @brief renameBck renames file with a special extension suffix given by pBckExt plus a incremental 2 digit value as follows :\n
      *  <base filename>.<extension>_<pBckExt><nn>
@@ -246,7 +254,7 @@ public:
      * @errors :
      *    ZS_FILEERROR  : cannot physically rename file.  ZException is loaded with errno and appropriate error explainations.
      */
-    ZStatus renameBck(const char* pBckExt="bck");
+    ZStatus renameBck(const char *pBckExt = "bck") const;
 
     /** @brief backupFile makes a backup copy of current file
      * with given pBckExt extension (defaulted to "bck")
@@ -269,6 +277,8 @@ public:
     uriString& addConditionalDirectoryDelimiter(void);
     uriString& addDirectoryDelimiter(void);
 
+    uriString removeLastDirectoryDelimiter() const;
+
     static uriString currentWorkingDirectory();
 
     /**
@@ -286,8 +296,8 @@ public:
 #endif //  QT_CORE_LIB
 
 // ---------------Mime------------------
-    bool addMimeFileExtension (utfdescString pMimeName);
-    bool addMimeFileExtension (utfdescString *pMimeName) {return(addMimeFileExtension(*pMimeName));}
+    bool addMimeFileExtension (const utf8VaryingString& pMimeName);
+    bool addMimeFileExtension (const utf8VaryingString *pMimeName) {return(addMimeFileExtension(*pMimeName));}
 
 // -----Control & file operations-------
 //
@@ -333,6 +343,21 @@ public:
     checkSum getChecksum(void) const;
 
     ZStatus loadContent(ZDataBuffer &pDBS) const;
+/**
+ * @brief uriString::loadContentAt  loads pSizeMax at maximum bytes at address pOffset.
+ * @param pDBS          returned ZDataBuffer with read content
+ * @param pOffset       File offset (address) to start reading file
+ * @param pSizeMax      Number of bytes to read
+ * @return  ZS_SUCCESS if operation is OK
+ *          ZS_FILENOTEXIST current file does not exist
+ *          ZS_EMPTY        current file is empty
+ *          ZS_OUTBOUND     pOffset is outside of file or equal to file size = no byte to read
+ *          ZS_READPARTIAL  EOF has been reached before pSizeMax.
+ *                          pDBS is loaded with available bytes read from pOffset till end of file.
+ * Other returned status may be set by either rawSeek or rawRead routine. Refer to these routines for detail.
+ */
+    ZStatus loadContentAt(ZDataBuffer &pDBS,__off_t pOffset,size_t pSizeMax) const;
+
     ZStatus _loadContent(ZDataBuffer &pDBS) const;
     ZStatus loadUtf8(utf8VaryingString &pUtf8) const ;
     ZStatus loadUtf16(utf16VaryingString &pUtf16) const ;

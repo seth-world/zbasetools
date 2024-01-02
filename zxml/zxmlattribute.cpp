@@ -26,19 +26,14 @@ zxmlAttribute::zxmlAttribute(zxmlNode& pNode,const char*pName,const char* pValue
   return ;
 }
 
-
-
-utffieldNameString
-zxmlAttribute::getName(void)
+utf8VaryingString zxmlAttribute::getName(void)
 {
-
-    return utffieldNameString ( (const utf8_t*)_xmlInternalAttribute->name);
+    return utf8VaryingString ( (const utf8_t*)_xmlInternalAttribute->name);
 }
 
-utfdescString
-zxmlAttribute::getValue(void)
+utf8VaryingString zxmlAttribute::getValue(void)
 {
-    return utfdescString((const utf8_t*)xmlNodeGetContent(_xmlInternalNode));
+    return utf8VaryingString((const utf8_t*)xmlNodeGetContent(_xmlInternalNode));
 }
 
 ZStatus
