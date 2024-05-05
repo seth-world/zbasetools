@@ -276,8 +276,8 @@ HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/utfvtemplatestring.h \
     $$TOOLSET_BASE/ztoolset/utfvaryingstring.h \
 #    $$TOOLSET_BASE/ztoolset/zutfstrings.h \
-    $$TOOLSET_BASE/ztoolset/charfixedstring.h \
-    $$TOOLSET_BASE/ztoolset/charvaryingstring.h \
+#    $$TOOLSET_BASE/ztoolset/charfixedstring.h \   # deprecated
+#    $$TOOLSET_BASE/ztoolset/charvaryingstring.h \ # deprecated
     $$TOOLSET_BASE/zcrypt/zcrypt.h \
     $$TOOLSET_BASE/zcrypt/checksum.h \
     $$TOOLSET_BASE/zcrypt/md5.h \
@@ -311,8 +311,8 @@ HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/zdatefull.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_release.h \
     $$TOOLSET_BASE/zio/zioutils.h \
-    $$TOOLSET_BASE/ztoolset/zbaseparameters.h \
-#    ../ztoolset/zgeneralparameters.h
+    $$TOOLSET_BASE/ztoolset/zbaseparameters.h
+ #    ../ztoolset/zgeneralparameters.h
 
 
 
@@ -367,7 +367,7 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
  #   $$TOOLSET_BASE/ztoolset/exceptionstring.cpp \
     $$TOOLSET_BASE/ztoolset/utfvtemplatestring.cpp \
     $$TOOLSET_BASE/ztoolset/utfvaryingstring.cpp \
-    $$TOOLSET_BASE/ztoolset/charvaryingstring.cpp \
+#    $$TOOLSET_BASE/ztoolset/charvaryingstring.cpp \ # deprecated
     $$TOOLSET_BASE/zcrypt/zcrypt.cpp \
     $$TOOLSET_BASE/zcrypt/checksum.cpp \
     $$TOOLSET_BASE/zcrypt/md5.cpp \

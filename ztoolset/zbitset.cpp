@@ -5,6 +5,25 @@
 
 using namespace zbs;
 
+
+ZBitset&
+ZBitset::_copyFrom(const ZBitset& pIn)
+{
+    Size=pIn.Size;
+    BitCapacity=pIn.BitCapacity;
+    EffectiveBitSize=pIn.EffectiveBitSize;
+
+    if (bit)
+        zfree(bit);
+
+    bit = zmalloc<ZBitsetType>(pIn.Size*sizeof(ZBitsetType));
+    size_t wi=0 ;
+    while (wi < Size) {
+        bit[wi] = pIn.bit[wi];
+    }
+    return *this;
+}
+
 void
 ZBitset::_allocate(const size_t pBitsToAllocate)
 {

@@ -302,8 +302,10 @@ public:
   /** @brief toUTCGMT converts first internal date-time content into GMT time then format it into UTC format */
   utf8VaryingString toUTCGMT() const;
 
-  /*  "11-08-2011 07:07:09.000Z" */
+  /*  "11-08-2011 07:07:09" */
   utf8VaryingString toDMYhms() const;
+  /*  "11-08-2011 07:07:09-000" */
+  utf8VaryingString toDMYhmsm() const;
   /*  "08-11-2011 07:07:09.000Z" */
   utf8VaryingString toMDYhms() const;
   /*  "08-11-2011" */

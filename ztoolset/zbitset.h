@@ -39,6 +39,12 @@ public:
     }
     ~ZBitset() {if (bit) zfree (bit);}
 
+    ZBitset(const ZBitset& pIn) { _copyFrom(pIn);}
+
+    ZBitset& _copyFrom(const ZBitset& pIn);
+
+    ZBitset& operator = (const ZBitset& pIn)  { return _copyFrom(pIn);}
+
     /**
      * @brief getbitSize returns the capacity of bitset in bits.
      */

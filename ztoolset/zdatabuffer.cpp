@@ -1236,6 +1236,50 @@ ZDataBuffer::DumpS(const int pWidth,ssize_t pLimit)
   return zmemDump(Data,Size,pWidth,pLimit);
 }
 
+utf8VaryingString
+ZDataBuffer::simpleDump(bool pAlpha,ssize_t pLimit) {
+    if ((!Data)||(!Size))
+    {
+        return "<null>";
+    }
+    utf8VaryingString wReturn;
+    size_t wSize = Size;
+    if (pLimit > 0) {
+        if (pLimit < wSize)
+            wSize=pLimit;
+    }
+
+    if (pAlpha) {
+        wReturn.allocateUnitsBZero(wSize+1);
+        for (int wi=0; wi < wSize; wi++) {
+            if (std::isalpha(int(Data[wi])))
+                wReturn.Data[wi]= Data[wi];
+            else
+                wReturn.Data[wi]= '.';
+        }
+        return wReturn ;
+    }
+
+    wReturn.allocateUnitsBZero((wSize*2)+1);
+    for (long wi=0 ; wi < wSize ; ) {
+        int wByte = Data[wi];
+        int wHigh = wByte / 16 ;
+        int wLow = wByte - ( wHigh * 16 ) ;
+
+        if (wHigh > 9)
+            wReturn.Data[wi] = wHigh + 'A' ;
+        else
+            wReturn.Data[wi] = wHigh + '0' ;
+        wi++;
+        if (wLow > 9)
+            wReturn.Data[wi] = wLow + 'A' ;
+        else
+            wReturn.Data[wi] = wLow + '0' ;
+        wi++;
+    }// for
+    return wReturn;
+} // ZDataBuffer::simpleDump
+
 //---------End ZDataBuffer--------------------------
 
 

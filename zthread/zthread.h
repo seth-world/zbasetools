@@ -11,9 +11,9 @@
 
 #include <cstdarg>
 
-#include <zthread/zmutex.h>
-#include <zthread/zthreadexithandler.h>
-#include <zthread/zarglist.h>
+#include "zmutex.h"
+#include "zthreadexithandler.h"
+#include "zarglist.h"
 
 #include <functional>
 
@@ -506,6 +506,7 @@ public:
 
     /**
      * @brief startLoop  starts a thread loop with function pFunction.
+     *                   routine pFunction will execute until it returns a status different from ZS_SUCCESS
      * Arguments are those collected from main() function.
      * Arguments are copied to internal argument stack.
      *
@@ -529,6 +530,7 @@ public:
 
     /**
      * @brief startNoLoopArg startNoLoop starts a thread with no thread loop.
+     *                       pFunction will execute once and returned status will be returned.
      *  Argument stack is a dedicated ZArgList pointer.
      * Arguments are copied to internal argument stack.
      * @param pFunction

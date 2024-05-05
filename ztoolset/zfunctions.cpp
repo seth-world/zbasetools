@@ -200,10 +200,21 @@ const char * decode_ZStatus (ZStatus ZS)
         return ("ZS_MISS_PUNCTSIGN");
       case ZS_MISS_LITERAL:
         return ("ZS_MISS_LITERAL");
+      case ZS_MISS_OPERATOR:
+          return ("ZS_MISS_OPERATOR");
+
       case ZS_INV_ENTITY:
         return ("ZS_INV_ENTITY");
       case ZS_INV_FIELD:
         return ("ZS_INV_FIELD");
+      case ZS_INV_MODIFIER:
+          return ("ZS_INV_MODIFIER");
+      case ZS_INV_LITERAL:
+          return ("ZS_INV_LITERAL");
+      case ZS_INV_OPERATOR:
+          return ("ZS_INV_OPERATOR");
+      case ZS_SYNTAX_ERROR:
+          return ("ZS_SYNTAX_ERROR");
 
         case ZS_S_ERASEKEY :
                 {
@@ -379,8 +390,9 @@ const char * decode_ZStatus (ZStatus ZS)
 
     case ZS_LOCKREAD :
             {
-                return ("ZS_LOCKREAD");  // resource is locked and cannot be accessed
+                return ("ZS_LOCKREAD");  // resource is locked for mode READ and higher : equivalent to ZS_LOCALL
             }
+
     case ZS_LOCKWRITE :
             {
                 return ("ZS_LOCKWRITE");  // resource is locked and cannot be accessed
@@ -403,6 +415,12 @@ const char * decode_ZStatus (ZStatus ZS)
                 return ("ZS_LOCKALL");  // resource is locked and cannot be accessed
             }
 */
+            case ZS_LOCKERROR :
+            {
+                return ("ZS_LOCKERROR");  // an error occurred in base mutex management routines
+            }
+
+
     case ZS_LOCKBADOWNER :
             {
                 return ("ZS_LOCKBADOWNER");  //  Owner requesting lock modification is not the owner of the lock

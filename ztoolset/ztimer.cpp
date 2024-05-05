@@ -14,7 +14,7 @@ void
 ZTimer::init (void) {
     ZTime::clear();
     DeltaTime.clear();
-    this-> ZTime::_copyFrom(getCurrentTime());
+ //   this-> ZTime::_copyFrom(getCurrentTime());
 }
 
 /**
@@ -23,7 +23,7 @@ ZTimer::init (void) {
 void
 ZTimer::start (void)
 {
-    init();
+    this-> ZTime::_copyFrom(getCurrentTime());
 }
 
 /**
@@ -34,11 +34,13 @@ void
 ZTimer::end (void)
 {
     DeltaTime += ZTime::getCurrentTime() - (ZTime)*this   ;
+    ZTime::clear();
 }
 
 ZTime ZTimer::getDeltaTime(void)
 {
-    return ZTime::getCurrentTime() - (ZTime)*this;
+    return DeltaTime;
+//    return ZTime::getCurrentTime() - (ZTime)*this;
 }
 ZTime ZTimer::getElapsed(void)
 {

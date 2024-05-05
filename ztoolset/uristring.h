@@ -90,8 +90,8 @@ public:
     void clear(void)
     {
         memset(Dev,0,sizeof(Dev));
-        memset(&Created,0,sizeof(Created));
-        memset(&LastModified,0,sizeof(LastModified));
+        Created.clear();
+        LastModified.clear();
         Rights=0;
         Size=0;
         Uid.clear();
@@ -142,16 +142,6 @@ public:
     uriString &operator=(const uriString &pIn) { return fromURI(pIn);}
     uriString &operator=(const uriString &&pIn) { return fromURI(pIn); }
 
-/*
-    using _Base::operator =;
-    using _Base::operator +=;
-    using _Base::operator ==;
-    using _Base::operator !=;
-    using _Base::operator >;
-    using _Base::operator <;
-    using _Base::fromUtf;
-
-*/
 
     uriString& operator + (const utf8_t*pChar)
     {
@@ -163,12 +153,11 @@ public:
 
     ZStatus operator << (ZDataBuffer& pDBS);
 
+    ZStatus operator << (const utf8VaryingString&pDBS) const;
+
     uriString &fromURI(const uriString* pURI) ;
     uriString &fromURI(const uriString& pURI) ;
-/*
-    uriString& fromdescString(const utfdescString &pString);
-    uriString & fromcodeString(const utfcodeString &pURI) ;
-*/
+
 //----------------URISTRING Section-------------------
 //Nota Bene descString must have been defined ( __DESCSTRING__ pre-proc parameter must be set)
 
@@ -390,10 +379,14 @@ public:
      * @param pStr utf8 string to wrtie
      * @return  a ZStatus
      */
-    ZStatus appendContent (utf8VaryingString &pStr) const ;
-//    ZStatus writeText (varyingCString &pDBS) ;
+    ZStatus appendContent(const utf8VaryingString &pStr) const;
 
     bool    exists(void) const  ;
+
+    /** @brief createFile creates or replaces with an empty file of access rights pAccessRights
+     *  returns a ZStatus : ZS_SUCCESS if everything went OK, for other statuses see rawOpen() returned statuses
+     */
+    ZStatus createFile(__FILEACCESSRIGHTS__ pAccessRights= S_IRWXU|S_IRWXG|S_IROTH) const;
 
     /* set content to user's working directory */
     void    setToWorkingDir();
@@ -428,7 +421,6 @@ public:
 };// uriString---------------------------------------------
 
 uriString operator + (const uriString pIn1,const uriString pIn2);
-
 
 
 

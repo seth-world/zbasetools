@@ -350,11 +350,13 @@ public:
  */
 
    long push(_Tp &pElement) ;
+   long pushVal(_Tp pElement) ;
    long _pushNoLock(_Tp &pElement);
    long push(const _Tp& pElement);
    long _pushNoLock(const _Tp &pElement);
-    long push(_Tp &&pElement);
-    long push_front (_Tp pElement) ;
+   long push(_Tp &&pElement);
+   long pushConst(const _Tp &&pElement);
+   long push_front (_Tp pElement) ;
 
     long insert (_Tp &pElement, size_t pIdx);
     long insert (_Tp *pElement, size_t pIdx, size_t pNumber);
@@ -850,7 +852,7 @@ template <typename _Tp>
  */
 long ZArray<_Tp>::insert(_Tp &pElement, size_t pIdx)
 {
-  if (pIdx > _Base::size()) {
+  if (pIdx >= _Base::size()) {
     return push(pElement);
   }
 #ifdef __ZTHREAD_AUTOMATIC__
@@ -1115,6 +1117,20 @@ long ZArray<_Tp>::push(_Tp &pElement)
 #endif
     return(wR) ;
 } // push
+
+template <typename _Tp>
+long ZArray<_Tp>::pushVal(_Tp pElement)
+{
+#ifdef __ZTHREAD_AUTOMATIC__
+    _Mutex.lock();
+#endif
+    long wR=_pushNoLock(pElement);
+
+#ifdef __ZTHREAD_AUTOMATIC__
+    _Mutex.unlock();
+#endif
+    return(wR) ;
+} // pushVal
 template <typename _Tp>
 /**
  * @brief ZArray<_Tp>::push pushes pElement at the top of ZArray. pElement becomes the ZArray last element. Returns the new number of elements.
@@ -1170,6 +1186,18 @@ long ZArray<_Tp>::push( _Tp &&pElement)
   return(lastIdx()) ;
 } // push with litteral
 
+template <typename _Tp>
+long ZArray<_Tp>::pushConst(const _Tp &&pElement)
+{
+#ifdef __ZTHREAD_AUTOMATIC__
+    _Mutex.lock();
+#endif
+    _Base::append(pElement);
+#ifdef __ZTHREAD_AUTOMATIC__
+    _Mutex.unlock();
+#endif
+    return(lastIdx()) ;
+} // push with litteral
 template <typename _Tp>
 /**
  * @brief ZArray<_Tp>::push_front inserts pElement as the first element of ZArray. The elements collection is shifted appropriately. Returns the new number of elements.

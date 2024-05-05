@@ -1,9 +1,9 @@
 #ifndef ZTHREAD_CPP
 #define ZTHREAD_CPP
-#include <zthread/zthread.h>
+#include "zthread.h"
 #include <ztoolset/zerror.h>
 #include <ztoolset/zexceptionmin.h>
-#include <zthread/zthreadexithandler.h>
+#include "zthreadexithandler.h"
 
 #define __ZTHREADVERBOSE__  BaseParameters->VerboseThread()
 

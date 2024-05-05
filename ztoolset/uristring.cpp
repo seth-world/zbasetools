@@ -67,11 +67,13 @@ uriString::fromURI(const uriString& pURI)
   return(*this);
 }
 
-ZStatus
-uriString::operator << (ZDataBuffer& pDBS)
+ZStatus uriString::operator << (const utf8VaryingString &pDBS) const
 {
-    return writeContent (pDBS) ;
+    return appendContent (pDBS) ;
 }
+
+
+
 /*
 uriString&
 uriString::operator += (utfdescString &pSource)
@@ -1788,7 +1790,7 @@ uriString::writeContent (utf8VaryingString &pStr, __FILEACCESSRIGHTS__  pAccessR
 }//writeContent
 
 ZStatus
-uriString::appendContent (utf8VaryingString &pStr) const
+uriString::appendContent (const utf8VaryingString &pStr) const
 {
   ZDataBuffer wDBS;
   size_t wStrLen = pStr.strlen();
@@ -1801,6 +1803,16 @@ uriString::appendContent (utf8VaryingString &pStr) const
 
   return appendContent(wDBS);
 }//appendContent
+
+ZStatus
+uriString::createFile (__FILEACCESSRIGHTS__ pAccessRights) const
+{
+    __FILEHANDLE__ wFd ;
+    ZStatus wSt= rawOpen(wFd,*this, O_WRONLY | O_CREAT | O_TRUNC,pAccessRights);
+    if (wSt!=ZS_SUCCESS)
+        return wSt;
+    return rawClose(wFd);
+}//createFile
 
 ZStatus uriString::writeAES256(ZDataBuffer &pDBS,
                                const ZCryptKeyAES256 &pKey,
@@ -1839,6 +1851,7 @@ uriString operator + (const uriString pIn1,const uriString pIn2)
     wReturn.add(pIn2);
     return wReturn;
 }
+
 
 
 

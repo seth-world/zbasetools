@@ -138,11 +138,11 @@ ssize_t ZDateFull::_importURF(const unsigned char *&pZDB)
 
   if (wType!=ZType_ZDateFull)
   {
-    fprintf(stderr,"%s-Error invalid ZType_type <%X> <%s> while expecting <%s>\n",
-        _GET_FUNCTION_NAME_,
-        wType,
-        decode_ZType(wType),
-        decode_ZType(ZType_ZDateFull));
+    _DBGPRINT("ZDateFull::_importURF-E-INVTYP invalid ZType <%X> <%s> while expecting <%X> <%s>\n",
+                wType,
+                decode_ZType(wType),
+                ZType_ZDateFull,
+                decode_ZType(ZType_ZDateFull));
     return -1;
   }
   memmove(&wD,pZDB,sizeof(uint64_t));
@@ -833,8 +833,19 @@ utf8VaryingString ZDateFull::toDMYhms() const
   if (localtime_r(&tv_sec,&wTm)==nullptr)
     return "<invalid date>";
   utf8VaryingString wLocalTime;
-  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d-%03d",   wTm.tm_mday,wTm.tm_mon+1, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d",   wTm.tm_mday,wTm.tm_mon+1, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec);
   return wLocalTime;
+}
+utf8VaryingString ZDateFull::toDMYhmsm() const
+{
+    if (isInvalid())
+        return "<invalid full date>";
+    struct tm wTm;
+    if (localtime_r(&tv_sec,&wTm)==nullptr)
+        return "<invalid date>";
+    utf8VaryingString wLocalTime;
+    wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d-%03d",   wTm.tm_mday,wTm.tm_mon+1, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+    return wLocalTime;
 }
 utf8VaryingString ZDateFull::toDMY() const
 {
@@ -910,7 +921,7 @@ utf8VaryingString ZDateFull::toMDYhms() const
   if (localtime_r(&tv_sec,&wTm)==nullptr)
     return "<invalid date>";
   utf8VaryingString wLocalTime;
-  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d.%03d",   wTm.tm_mon+1,wTm.tm_mday, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec, 0);
+  wLocalTime.sprintf("%02d-%02d-%04d %02d:%02d:%02d",   wTm.tm_mon+1,wTm.tm_mday, wTm.tm_year+1900,wTm.tm_hour, wTm.tm_min, wTm.tm_sec);
   return wLocalTime;
 }
 

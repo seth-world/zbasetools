@@ -44,6 +44,12 @@ _Utf* utfAddConditionalOR(_Utf*pBuffer,const _Utf*pString)
 */
 const char *decode_ZType (ZTypeBase pType)
 {
+
+  const char* wReturn = _decode_ZType(pType);
+
+    if (wReturn!=nullptr)
+      return wReturn;
+
   ZTypeBase wType = pType;
   if (pType==ZType_Nothing)
     return "ZType_Nothing" ;
@@ -52,7 +58,8 @@ static char ZStringBuffer1[250];
 
 ZTypeBase wSType= pType & ZType_StructureMask ;
 ZTypeBase wAType= pType & ZType_AtomicMask ;
-  memset(ZStringBuffer1,0,sizeof(ZStringBuffer1));
+
+  memset(ZStringBuffer1,0,250);
 
 
   if (wType & ZType_Array) {
@@ -64,11 +71,12 @@ ZTypeBase wAType= pType & ZType_AtomicMask ;
     wType &= ~ ZType_Pointer;
   }
 
-
   if (wType==ZType_URIString) {
       utfAddConditionalOR<char>(ZStringBuffer1,"ZType_URIString ");
       return ZStringBuffer1 ;
   }
+
+
  /*   if (pType==ZType_Bool){
       utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Bool ");
       return ZStringBuffer1 ;
@@ -143,6 +151,9 @@ ZTypeBase wAType= pType & ZType_AtomicMask ;
       return ZStringBuffer1 ;
 
   /* varying strings */
+    case ZType_URIString:
+      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_URIString ");
+      return ZStringBuffer1 ;
     case ZType_CharVaryingString:
       utfAddConditionalOR<char>(ZStringBuffer1,"ZType_CharVaryingString ");
       return ZStringBuffer1 ;
@@ -188,9 +199,6 @@ ZTypeBase wAType= pType & ZType_AtomicMask ;
       return ZStringBuffer1 ;
     case ZType_Resource:
       utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Resource ");
-      return ZStringBuffer1 ;
-    case ZType_URIString:
-      utfAddConditionalOR<char>(ZStringBuffer1,"ZType_URIString ");
       return ZStringBuffer1 ;
     case ZType_Blob:
       utfAddConditionalOR<char>(ZStringBuffer1,"ZType_Blob ");
@@ -354,6 +362,115 @@ ZTypeBase wAType= pType & ZType_AtomicMask ;
     return (const char*)ZStringBuffer1 ;
 
 } // decode_ZType
+
+
+const char *_decode_ZType (ZTypeBase pType)
+{
+    switch (pType)  /* partial type decoding */
+    {
+    case ZType_Nothing:
+        return "ZType_Nothing" ;
+        /* atomic types */
+    case ZType_AtomicUChar:
+    case ZType_UChar:
+        return "ZType_UChar" ;
+    case ZType_AtomicChar:
+    case ZType_Char:
+        return "ZType_Char" ;
+/* not to be used anymore
+     case ZType_AtomicWUChar:
+      return "ZType_AtomicWUChar" ;
+    case ZType_AtomicWChar:
+      return "ZType_AtomicWChar" ;
+*/
+    case ZType_AtomicU8:
+    case ZType_U8:
+        return "ZType_U8" ;
+    case ZType_AtomicS8:
+    case ZType_S8:
+        return "ZType_S8" ;
+
+    case ZType_AtomicU16:
+    case ZType_U16:
+        return "ZType_U16" ;
+
+    case ZType_AtomicS16:
+    case ZType_S16:
+        return "ZType_S16" ;
+
+    case ZType_AtomicU32:
+    case ZType_U32:
+        return "ZType_U32" ;
+    case ZType_AtomicS32:
+    case ZType_S32:
+        return "ZType_S32" ;
+    case ZType_AtomicU64:
+    case ZType_U64:
+        return "ZType_U64" ;
+    case ZType_AtomicS64:
+    case ZType_S64:
+        return "ZType_S64" ;
+    case ZType_AtomicFloat:
+    case ZType_Float:
+        return "ZType_Float" ;
+    case ZType_AtomicDouble:
+    case ZType_Double:
+        return "ZType_Double" ;
+    case ZType_AtomicLDouble:
+    case ZType_LDouble:
+        return "ZType_LDouble" ;
+    case ZType_Bool:
+        return "ZType_Bool" ;
+
+        /* varying strings */
+    case ZType_URIString:
+        return "ZType_URIString" ;
+    case ZType_CharVaryingString:
+        return "ZType_CharVaryingString" ;
+    case ZType_Utf8VaryingString:
+        return "ZType_Utf8VaryingString" ;
+    case ZType_Utf16VaryingString:
+        return "ZType_Utf16VaryingString" ;
+    case ZType_Utf32VaryingString:
+        return "ZType_Utf32VaryingString" ;
+
+        /* fixed string */
+    case ZType_CharFixedString:
+        return "ZType_CharFixedString" ;
+    case ZType_Utf8FixedString:
+        return "ZType_Utf8FixedString" ;
+    case ZType_Utf16FixedString:
+        return "ZType_Utf16FixedString" ;
+    case ZType_Utf32FixedString:
+        return "ZType_Utf32FixedString" ;
+
+        /* other classes */
+    case ZType_bitset:
+        return "ZType_bitset" ;
+    case ZType_bitsetFull:
+        return "ZType_bitsetFull" ;
+
+    case ZType_ZDate:/* deprecated */
+        return "ZType_ZDate" ;
+    case ZType_ZDateFull:
+        return "ZType_ZDateFull" ;
+    case ZType_CheckSum:
+        return "ZType_CheckSum" ;
+    case ZType_Resource:
+        return "ZType_Resource" ;
+    case ZType_Blob:
+        return "ZType_Blob" ;
+    case ZType_StdString:
+        return "ZType_StdString" ;
+
+    case ZType_Unknown:
+        return "ZType_Unknown" ;
+    default:
+        return nullptr;
+    }
+
+} //_decode_ZType
+
 
 ZTypeBase encode_ZType (const utf8VaryingString &pString)
 {

@@ -207,6 +207,8 @@ public:
         return ErrorLevel ;
     }
 
+    bool hasSomething() { return count(); }
+
     void setAutoPrintOn(ZaiE_Severity pOnOff) {AutoPrint=pOnOff;}
     void setAutoPrintAll() {AutoPrint=ZAIES_None;}
     void setStoreMinSeverity(ZaiE_Severity pMinSeverity) {StoreMinSeverity=pMinSeverity;}

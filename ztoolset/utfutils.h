@@ -317,7 +317,7 @@ template <class _Utf>
  *  16 for hexadecimal
  *  0 for any base : in this case a header like 0x (hexa) or 0b (binary) or 0 (octal)
  *
- * base : 0 -> any base- Base is dependant from string
+ * base : 0 -> any base- Base is dependent from string
  * base : 2 -> binary expected  example 0b0010001
  * base : 8 -> octal expected   example 08050
  *     Remark: according to standard notation any numeric litteral starting with leading 0 (not 0x not 0b) is octal

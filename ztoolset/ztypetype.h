@@ -41,6 +41,7 @@ enum ZType_type : ZTypeBase
     ZType_Signed         = 0x00010000,  //!< data type is signed. Sign impacts of data conversion see: @ref ZIndexDataConversion
     ZType_Pointer        = 0x02000000,  //!< data type is a pointer
     ZType_Array          = 0x04000000,  //!< data type is an array (content has to be further described}
+
 //    ZType_Enum           = 0x08000000,  //!< data type is enum
     ZType_ByteSeq        = 0x10000000,  //!< data type is a sequence of bytes regardless any type, only defined by a start address and a length. Warning data type is a pointer
 
@@ -182,11 +183,6 @@ enum ZType_type : ZTypeBase
     ZType_Unknown        =  0xF00FFFFF     //! Unmanaged data type : generally an error
 } ;
 
-struct ZType_full {
-  ZTypeBase Type    = ZType_Nothing;
-  uint32_t  Capacity= 0; /* for any type of data : 1 except for arrays (number of elements) and fixed strings (capacity in units) */
-};
-
 
 }// extern "C"
 
@@ -201,6 +197,7 @@ bool isKeyEligible(ZTypeBase pType);
 
 class ZDataBuffer;
 const char *decode_ZType (ZTypeBase pType) ;            // /zindexedfile/zdatatype.cpp
+const char *_decode_ZType (ZTypeBase pType);
 ZTypeBase encode_ZType (const utf8VaryingString &pString);
 
 /*  moved to /home/gerard/Development/zbasetools/zcontent/zcontentutils/zcppgenerate.cpp

@@ -293,8 +293,9 @@ utf8VaryingString& fmtXMLaddInlineComment(utf8VaryingString& pXmlString, const u
   return pXmlString;
 }
 
-
-utf8VaryingString fmtXMLstring(const utf8VaryingString &pVarName, utf8VaryingString& pVarContent, const int pLevel)
+utf8VaryingString fmtXMLstring(const utf8VaryingString &pVarName,
+                               const utf8VaryingString pVarContent,
+                               const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
     char wBuffer[500];

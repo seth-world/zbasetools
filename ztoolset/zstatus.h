@@ -171,6 +171,8 @@ enum ZStatus: ZStatusBase
 
                 ZS_LOCKALL            = -0x00200007,        //< resource is locked for reading writing deleting : alias of ZS_LOCKREAD
 
+                ZS_LOCKERROR          = -0x00200008,  //< an error occurred in base mutex routines- see errno
+
                 ZS_LOCKCREATE         = -0x00210000,        //< resource is locked being created
                 ZS_LOCKENTITY         = -0x00220000,        //< the whole entity is locked
 

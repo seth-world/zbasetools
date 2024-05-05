@@ -345,6 +345,28 @@ public:
     return wDupPtr;
   }//duplicate
 
+  /** @brief leftPad() returns a new string with current content aligned LEFT to a minimum total size of pSize.
+   *  When necessary, string is padded left with pPadChar(defaulted to space) */
+  utfVaryingString<_Utf> leftPad(size_t pSize,_Utf pPadChar = _Utf(' '))
+  {
+      utfVaryingString<_Utf> wReturn;
+      ssize_t wPad = ssize_t(pSize - strlen());
+      if (wPad > 0)
+          wReturn.setChar(pPadChar,0,wPad);
+      wReturn += Data ;
+      return wReturn;
+  }
+
+  /** @brief rightPad() returns a new string with current content aligned RIGHT to a minimum total size of pSize.
+   *  When necessary, string is padded right with pPadChar(defaulted to space) */
+  utfVaryingString<_Utf> rightPad(size_t pSize,_Utf pPadChar = _Utf(' '))
+  {
+      utfVaryingString<_Utf> wReturn = Data ;
+      ssize_t wPad = ssize_t(pSize - strlen());
+      if (wPad > 0)
+          wReturn.addChar(pPadChar,wPad);
+      return wReturn;
+  }
 
   /** @brief findEnquoted() extracts substring enquoted by pQuote1 at left and pQuote2 at right
  *  returns an allocated string with substring content duly terminated with '\0'.
@@ -825,6 +847,11 @@ public:
       return _addV<const _Utf>(pString);
     }
 
+    /**
+     * @brief addConditionalSpace appends pString to current content with a leading space if and only if string is not empty.
+     * @param pString
+     * @return
+     */
     utfVaryingString<_Utf> &addConditionalSpace(const utfVaryingString<_Utf>& pString)
     {
       if (pString.isEmpty())
@@ -843,7 +870,45 @@ public:
     bool startsCaseWith(const _Utf* pString);
     bool startsWith(const _Utf* pString) const;
 
+    template <class _Tp>
+    bool startsWithT(_Tp& pString) const
+    {
+        return !utfStrncmp<_Utf>(Data,pString.Data,pString.strlen());
+    }
+
+
     bool endsWith(const _Utf* pString) const;
+
+    template <class _Tp>
+    bool endsWithT(_Tp& pString) const
+    {
+        if (pString.isEmpty())
+            return false;
+
+        size_t wInStrLen=0,wCurStrLen=0;
+        _Utf* wPtrIn = pString.Data;
+        while (*wPtrIn) {
+            wPtrIn++;
+            wInStrLen++;
+        }
+
+        _Utf* wPtr=Data;
+
+        while (*wPtr)  {/* get to end */
+            wPtr++;
+            wCurStrLen++;
+        }
+
+        if (wCurStrLen < wInStrLen)
+            return false;
+
+        wPtr -= wInStrLen;
+
+        if (wPtr < Data)
+            return false;
+
+        return !utfStrncmp<_Utf>(wPtr,pString.Data,wInStrLen);
+    }
 
     template <class _Utf1>
     utfVaryingString<_Utf> &_addV( _Utf1* wSrc)
@@ -1086,7 +1151,7 @@ flags	description
 
     _Utf& operator [] (const size_t pIdx) const  { if(pIdx>getUnitCount()) abort(); return (Data[pIdx]);}
 
-    void setCharacter(size_t pIdx,_Utf pChar) {if(pIdx>getUnitCount()) abort(); Data[pIdx]=pChar; }
+//    void setCharacter(size_t pIdx,_Utf pChar) {if(pIdx>getUnitCount()) abort(); Data[pIdx]=pChar; }
 
     utfVaryingString<_Utf> & operator = (const _Utf* pString) {return strset(pString);}
     utfVaryingString<_Utf> & operator += (const _Utf* pString) {return add(pString);}
@@ -1386,8 +1451,75 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     bool isGreater(const utfVaryingString<_Utf> &pCompare);
     bool isLess(const utfVaryingString<_Utf> &pCompare);
 
-    bool contains(const _Utf *pString) const { return !(strstr(pString) == nullptr); }
+    template <class _Tp>
+    bool containsT(_Tp& pString) const
+    {
+        if (pString.isEmpty())
+            return false;
+        return !(strstr(pString.Data) == nullptr);
+    }
+
+
+    bool contains(const _Utf *pString) const
+    {
+        if (!pString)
+            return false;
+        return !(strstr(pString) == nullptr);
+    }
+    bool contains(const char* pString) const
+    {
+        if (!pString)
+            return false;
+        if (sizeof(char)==sizeof(_Utf)) {
+            return bool(strstr((const _Utf *)pString));
+        }
+        const char* wPtr1=pString;
+        size_t wLen=0;
+        while (*wPtr1++)
+            wLen++;
+        _Utf * wComp = (_Utf *)malloc(wLen+1);
+        if (!wComp) {
+            _DBGPRINT("utfVTemplateString::contains-F-CANTALLOC Cannot allocate memory\n")
+            return false;
+        }
+        size_t wi=0;
+        for (; wi < wLen;wi++)
+            wComp[wi] = pString[wi];
+
+        wComp[wi] = 0;
+        bool wReturn = bool(strstr(wComp));
+        free(wComp);
+        return wReturn;
+    } //contains
+
     bool containsCase(const _Utf *pString) const { return !(strcasestr(pString) == nullptr); }
+
+    bool containsCase(const char* pString) const
+    {
+        if (!pString)
+            return false;
+        if (sizeof(char)==sizeof(_Utf)) {
+            return bool(strcasestr((const _Utf *)pString));
+        }
+        const char* wPtr1=pString;
+        size_t wLen=0;
+        while (*wPtr1++)
+            wLen++;
+        _Utf * wComp = (_Utf *)malloc(wLen+1);
+        if (!wComp) {
+            _DBGPRINT("utfVTemplateString::contains-F-CANTALLOC Cannot allocate memory\n")
+            return false;
+        }
+        size_t wi=0;
+        for (; wi < wLen;wi++)
+            wComp[wi] = pString[wi];
+
+        wComp[wi] = 0;
+        bool wReturn = bool(strcasestr(wComp));
+        free(wComp);
+        return wReturn;
+    }
+
     /** @brief locate()  locates a substring pString in utftemplateString
     *                            and returns its offset from beginning as a ssize_t value.*/
     ssize_t locate(const _Utf *pString) const;
@@ -1406,7 +1538,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     const _Utf* getTokenCase(const _Utf* pToken) const { return utfGetTokenCase(Data,pToken);}
 
     bool hasToken(const _Utf* pToken) const { return utfHasToken(Data,pToken);}
-    bool hasTokenCase(const _Utf* pToken) const { return utfHasTokenCase(Data,pToken);}
+    bool hasTokenCase(const _Utf* pToken) const { return utfHasTokenCase(Data,pToken);}  
 
    _Utf  operator [] (long pIdx) {return Data[pIdx];}
 
@@ -1465,8 +1597,10 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
 
     utfVaryingString<_Utf> Left (size_t pLen) const;
     utfVaryingString<_Utf> Right (size_t pLen) const ;
-
-    utfVaryingString<_Utf> &setChar(const _Utf pChar, size_t pStart=0, ssize_t pCount=-1) ; /** sets the region of pStart on pCount to pChar. Extends allocation if necessary */
+    /** @brief setChar sets the region of pStart on pCount to single character pChar. Extends allocation if necessary */
+    void setChar(const _Utf pChar, size_t pStart=0, ssize_t pCount=-1) ;
+    /** @brief addChar adds pCount times single character pChar at the end of current string. Extends allocation if necessary */
+    void addChar(const _Utf pChar, ssize_t pCount = -1);
 
     void dumpHexa (const size_t pOffset, const size_t pCount, ZDataBuffer &pLineHexa, ZDataBuffer &pLineChar);
 
@@ -2787,7 +2921,7 @@ utfVaryingString<_Utf>::fromUtf (const _Utf* pIn)  /** sets content to pString. 
  * @return a reference to current utfVaryingString object
  */
 template <class _Utf>
-utfVaryingString<_Utf> &
+void
 utfVaryingString<_Utf>::setChar(const _Utf pChar,size_t pStart,ssize_t pCount)
 {
     ssize_t wCount , wStart;
@@ -2806,9 +2940,46 @@ utfVaryingString<_Utf>::setChar(const _Utf pChar,size_t pStart,ssize_t pCount)
     while (wCount--)
             *wPtr++=pChar;
 
-    return *this;
+    return ;
 }//setChar
 
+template <class _Utf>
+void
+utfVaryingString<_Utf>::addChar(const _Utf pChar,ssize_t pCount)
+{
+    ssize_t wCount ;
+
+    if (isEmpty()) {
+        _Utf* wPtr=allocateUnits(size_t(pCount+1));
+        while (pCount) {
+            *wPtr = pChar;
+            pCount--;
+        }
+        *wPtr=0;
+        return;
+    }
+
+    _Utf* wPtr= Data ;
+    ssize_t wStart = ssize_t(UnitCount-1);
+    while ((wStart > 0) &&(wPtr[wStart]==0))
+        wStart--;
+
+    wStart++;
+
+    if (wStart + pCount + 1 > ssize_t(UnitCount))
+        extendUnitsBZero( size_t(wStart + pCount + 1 - UnitCount));
+
+    _Utf* wPtr1 = & Data[wStart] ;
+
+    while (pCount > 0) {
+        *wPtr1 = pChar;
+        wPtr1++ ;
+        pCount--;
+    }
+    *wPtr1 = 0;
+
+    return ;
+}//addChar
 
 /**
  * @brief utftemplateString<_Sz,_Utf>::Left return the left part of current utftemplateString on pLen within a string of same type than current.

@@ -780,6 +780,7 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     void Dump(const int pWidth=16,ssize_t pLimit=-1,FILE* pOutput=stdout);
 
     utf8VaryingString DumpS(const int pWidth=16, ssize_t pLimit=-1);
+    utf8VaryingString simpleDump(bool pAlpha=false,ssize_t pLimit=-1);
 
     void Dump(const char*pFilePath,const int pColumn=16,ssize_t pLimit=-1);
 
@@ -830,7 +831,7 @@ static size_t ZAimportZDB(ZArray<_TpOut>* pZArray,
 #endif
 
 
-
+/** _importAtomic imports atomic data and updates universal Ptr to point to next byte following imported data */
 template <class _Tp>
 size_t _importAtomic(_Tp& pValue,const unsigned char * &pUniversalPtr)
 {
@@ -839,7 +840,15 @@ size_t _importAtomic(_Tp& pValue,const unsigned char * &pUniversalPtr)
     pUniversalPtr += sizeof(_Tp);
     return sizeof(_Tp);
 }
-
+/** _importAtomic_KeepPtr imports atomic data and keeps universal Ptr at his position */
+template <class _Tp>
+size_t _importAtomic_KeepPtr(_Tp& pValue,const unsigned char * pUniversalPtr)
+{
+    _Tp* wPtr =(_Tp*)pUniversalPtr;
+    pValue=reverseByteOrder_Conditional<_Tp>(*wPtr);
+    pUniversalPtr += sizeof(_Tp);
+    return sizeof(_Tp);
+}
 
 template <class _Tp>
 size_t _exportAtomic(_Tp pValue,ZDataBuffer& pZDB)
