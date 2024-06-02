@@ -359,6 +359,46 @@ utf8VaryingString fmtXMLulong(const utf8VaryingString &pVarName,const unsigned l
             wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
     return utf8VaryingString(wBuffer);
 }
+utf8VaryingString fmtXMLint8(const utf8VaryingString &pVarName,const int8_t pVarContent, const int pLevel)
+{
+    int wIndent=pLevel*cst_XMLIndent;
+    char wBuffer[500];
+    memset (wBuffer,0,sizeof(wBuffer));
+    sprintf (wBuffer,
+            "%*c<%s>%d</%s>\n",
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
+}
+utf8VaryingString fmtXMLuint8(const utf8VaryingString &pVarName,const uint8_t pVarContent, const int pLevel)
+{
+    int wIndent=pLevel*cst_XMLIndent;
+    char wBuffer[500];
+    memset (wBuffer,0,sizeof(wBuffer));
+    sprintf (wBuffer,
+            "%*c<%s>%u</%s>\n",
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
+}
+utf8VaryingString fmtXMLint16(const utf8VaryingString &pVarName,const int16_t pVarContent, const int pLevel)
+{
+    int wIndent=pLevel*cst_XMLIndent;
+    char wBuffer[500];
+    memset (wBuffer,0,sizeof(wBuffer));
+    sprintf (wBuffer,
+            "%*c<%s>%d</%s>\n",
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
+}
+utf8VaryingString fmtXMLuint16(const utf8VaryingString &pVarName,const uint16_t pVarContent, const int pLevel)
+{
+    int wIndent=pLevel*cst_XMLIndent;
+    char wBuffer[500];
+    memset (wBuffer,0,sizeof(wBuffer));
+    sprintf (wBuffer,
+            "%*c<%s>%u</%s>\n",
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
+}
 utf8VaryingString fmtXMLint32(const utf8VaryingString &pVarName,const int32_t pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
@@ -416,7 +456,7 @@ utf8VaryingString fmtXMLuintHexa(const utf8VaryingString &pVarName,const unsigne
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
-            "%*c<%s>%Xu</%s>\n",
+            "%*c<%s>%X</%s>\n",
             wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
     return utf8VaryingString(wBuffer);
 }
@@ -437,10 +477,32 @@ utf8VaryingString fmtXMLulongHexa(const utf8VaryingString &pVarName,const unsign
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
-            "%*c<%s>%lXu</%s>\n",
+            "%*c<%s>%lX</%s>\n",
             wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
     return utf8VaryingString(wBuffer);
 }
+
+utf8VaryingString fmtXMLint32Hexa(const utf8VaryingString &pVarName, const int32_t pVarContent, const int pLevel)
+{
+    int wIndent=pLevel*cst_XMLIndent;
+    char wBuffer[500];
+    memset (wBuffer,0,sizeof(wBuffer));
+    sprintf (wBuffer,
+            "%*c<%s>%Xd</%s>\n",
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
+}
+utf8VaryingString fmtXMLuint32Hexa(const utf8VaryingString &pVarName,const uint32_t pVarContent, const int pLevel)
+{
+    int wIndent=pLevel*cst_XMLIndent;
+    char wBuffer[500];
+    memset (wBuffer,0,sizeof(wBuffer));
+    sprintf (wBuffer,
+            "%*c<%s>%X</%s>\n",
+            wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
+    return utf8VaryingString(wBuffer);
+}
+
 utf8VaryingString fmtXMLbool(const utf8VaryingString &pVarName,const bool pVarContent, const int pLevel)
 {
     int wIndent=pLevel*cst_XMLIndent;
@@ -758,7 +820,7 @@ XMLgetChildIntHexa (zxmlElement*pElement,const utf8VaryingString & pChildName,in
 
   pInt=wValue.toInt(16);/* base 16 : hexadecimal expected */
   return ZS_SUCCESS;
-} //XMLgetChildInt
+} //XMLgetChildIntHexa
 
 ZStatus
 XMLgetChildLongHexa(zxmlElement *pElement, const utf8VaryingString& pChildName,long &pLong)
@@ -817,6 +879,132 @@ XMLgetChildULongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,u
   pULong=wValue.toULong(16);/* base 16 : hexadecimal expected */
   return ZS_SUCCESS;
 } //XMLgetChildULongHexa
+
+
+
+ZStatus
+XMLgetChildInt8Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,int8_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    int wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toInt(16);/* base 16 : hexadecimal expected */
+    pInt = int8_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildInt8Hexa
+
+
+ZStatus
+XMLgetChildUInt8Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,uint8_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    unsigned int wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toInt(16);/* base 16 : hexadecimal expected */
+    pInt = int8_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildUInt8Hexa
+
+ZStatus
+XMLgetChildInt16Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,int16_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    int wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toInt(16);/* base 16 : hexadecimal expected */
+    pInt = int16_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildInt16Hexa
+
+ZStatus
+XMLgetChildUInt16Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,uint16_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    unsigned int wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toInt(16);/* base 16 : hexadecimal expected */
+    pInt = uint16_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildUInt16Hexa
+
+ZStatus
+XMLgetChildInt32Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,int32_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    int wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toInt(16);/* base 16 : hexadecimal expected */
+    pInt = int32_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildInt32Hexa
+
+ZStatus
+XMLgetChildUInt32Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,uint32_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    unsigned int wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toInt(16);/* base 16 : hexadecimal expected */
+    pInt = uint32_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildUInt32Hexa
+
+ZStatus
+XMLgetChildInt64Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,int64_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    long wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toLong(16);/* base 16 : hexadecimal expected */
+    pInt = int64_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildInt32Hexa
+
+ZStatus
+XMLgetChildUInt64Hexa (zxmlElement*pElement,const utf8VaryingString & pChildName,uint64_t &pInt,ZaiErrors* pErrorlog, ZaiE_Severity pSeverity)
+{
+    ZStatus wSt;
+    utf8VaryingString wValue;
+    unsigned long wV;
+
+    if ((wSt=XMLgetChildText(pElement,pChildName,wValue,pErrorlog,pSeverity) ) != ZS_SUCCESS)
+        return wSt;
+
+    wV=wValue.toULong(16);/* base 16 : hexadecimal expected */
+    pInt = uint64_t(wV);
+    return ZS_SUCCESS;
+} //XMLgetChildUInt32Hexa
+
+
+
 /*
   md5 xml representation
 
@@ -825,6 +1013,7 @@ XMLgetChildULongHexa (zxmlElement*pElement,const utf8VaryingString &pChildName,u
   </name>
 
  */
+
 
 
 ZStatus

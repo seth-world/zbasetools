@@ -118,6 +118,10 @@ utf8VaryingString fmtXMLint(const utf8VaryingString &pVarName, const int pVarCon
 utf8VaryingString fmtXMLuint(const utf8VaryingString &pVarName, const unsigned int pVarContent, const int pLevel);
 utf8VaryingString fmtXMLlong(const utf8VaryingString &pVarName, const long pVarContent, const int pLevel);
 utf8VaryingString fmtXMLulong(const utf8VaryingString &pVarName, const unsigned long pVarContent, const int pLevel);
+utf8VaryingString fmtXMLint8(const utf8VaryingString &pVarName, const int8_t pVarContent, const int pLevel);
+utf8VaryingString fmtXMLuint8(const utf8VaryingString &pVarName, const uint8_t pVarContent, const int pLevel);
+utf8VaryingString fmtXMLint16(const utf8VaryingString &pVarName, const int16_t pVarContent, const int pLevel);
+utf8VaryingString fmtXMLuint16(const utf8VaryingString &pVarName, const uint16_t pVarContent, const int pLevel);
 utf8VaryingString fmtXMLint32(const utf8VaryingString &pVarName, const int32_t pVarContent, const int pLevel);
 utf8VaryingString fmtXMLint64(const utf8VaryingString &pVarName, const int64_t pVarContent, const int pLevel);
 utf8VaryingString fmtXMLuint32(const utf8VaryingString &pVarName, const uint32_t pVarContent, const int pLevel);
@@ -126,6 +130,9 @@ utf8VaryingString fmtXMLbool(const utf8VaryingString &pVarName, const bool pVarC
 // Deprecated
 //utf8VaryingString fmtXMLdate(const utf8VaryingString &pVarName, const ZDate pVarContent, const int pLevel);
 utf8VaryingString fmtXMLdatefull(const utf8VaryingString &pVarName, const ZDateFull pVarContent, const int pLevel);
+
+utf8VaryingString fmtXMLint32Hexa(const utf8VaryingString &pVarName, const int32_t pVarContent, const int pLevel);
+utf8VaryingString fmtXMLuint32Hexa(const utf8VaryingString &pVarName,const uint32_t pVarContent, const int pLevel);
 
 utf8VaryingString fmtXMLintHexa(const utf8VaryingString &pVarName, const int pVarContent, const int pLevel);
 utf8VaryingString fmtXMLuintHexa(const utf8VaryingString &pVarName, const unsigned int pVarContent, const int pLevel);
@@ -162,10 +169,11 @@ utf8VaryingString fmtXMLuint64Hexa(const char *pVarName, const uint64_t pVarCont
 #if (SYSTEM32)
 
 #else
-#define fmtXMLint32Hexa fmtXMLintHexa
-#define fmtXMLuint32Hexa fmtXMLuintHexa
+//#define fmtXMLint32Hexa fmtXMLintHexa
+//#define fmtXMLuint32Hexa fmtXMLuintHexa
 #define fmtXMLint64Hexa fmtXMLlongHexa
 #define fmtXMLuint64Hexa fmtXMLulongHexa
+#define fmtXMLZType fmtXMLuint32Hexa
 
 #endif
 
@@ -254,18 +262,30 @@ ZStatus XMLgetChildLongHexa(zxmlElement *pElement, const utf8VaryingString &pChi
 ZStatus XMLgetChildUIntHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned int &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 ZStatus XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString &pChildName, unsigned long &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
 
+ZStatus XMLgetChildInt8Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, int8_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus XMLgetChildInt16Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, int16_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus XMLgetChildInt32Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, int32_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus XMLgetChildInt64Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, int64_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+
+
+ZStatus XMLgetChildUInt8Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, uint8_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus XMLgetChildUInt16Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, uint16_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus XMLgetChildUInt32Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, uint32_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+ZStatus XMLgetChildUInt64Hexa(zxmlElement *pElement, const utf8VaryingString &pChildName, uint64_t &pLong, ZaiErrors *pErrorlog, ZaiE_Severity pSeverity=ZAIES_Error);
+
+
 #define fmtXMLZStatus fmtXMLint64
 
 #define XMLgetChildInt32 XMLgetChildInt
 #define XMLgetChildUInt32 XMLgetChildUInt
 #define XMLgetChildUInt64 XMLgetChildULong
 #define XMLgetChildZStatus XMLgetChildInt64
-
+/*
 #define XMLgetChildInt32Hexa XMLgetChildIntHexa
 #define XMLgetChildUInt32Hexa XMLgetChildUIntHexa
 #define XMLgetChildInt64Hexa XMLgetChildLongHexa
 #define XMLgetChildUInt64Hexa XMLgetChildULongHexa
-
+*/
 
 
 #if (SYSTEM32)
@@ -283,11 +303,13 @@ ZStatus XMLgetChildULongHexa(zxmlElement *pElement, const utf8VaryingString &pCh
 #define XMLgetChildUInt32 XMLgetChildUInt
 //#define XMLgetChildInt64 XMLgetChildLong
 #define XMLgetChildUInt64 XMLgetChildULong
-
+/*
 #define XMLgetChildInt32Hexa XMLgetChildIntHexa
 #define XMLgetChildUInt32Hexa XMLgetChildUIntHexa
 #define XMLgetChildInt64Hexa XMLgetChildLongHexa
 #define XMLgetChildUInt64Hexa XMLgetChildULongHexa
+*/
+#define XMLgetChildZType XMLgetChildUInt32Hexa
 
 #endif
 
