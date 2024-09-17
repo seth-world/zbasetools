@@ -295,6 +295,10 @@ enum ZStatus: ZStatusBase
                 ZS_SUCCESS          =    1,                 //< Everything went OK
                 ZS_ENDCLIENT        =    3,                 //< Client thread ended OK
                 ZS_CANCEL           =    5,                 //< Client has been requested to cancel @see ZThreadState_type ZTHS_CancelRequested
+
+                ZS_HELP             =    8,                 //< Help requested
+
+
                 ZS_CONFWARN         =   0x10,
                 ZS_REPLACED         =   0x20,               //< Application : successful replacement
                 ZS_CREATED          =   0x21                //< Application : successful creation

@@ -264,6 +264,7 @@ public:
     static ZStatus copyFile(uriString pDest, const uriString pSource, uint8_t pOption=UCO_Nothing);
 
     uriString& addConditionalDirectoryDelimiter(void);
+    uriString& addWithLeadingCondDirDelim(const utf8VaryingString& pToAdd);
     uriString& addDirectoryDelimiter(void);
 
     uriString removeLastDirectoryDelimiter() const;

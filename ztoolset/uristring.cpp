@@ -222,6 +222,20 @@ uriString::addConditionalDirectoryDelimiter(void)
     return(*this);
 }//addConditionalDirectoryDelimiter
 
+/**
+* @brief addConditionalDirectoryDelimiter  adds a directory delimiter if and only if there is no delimiter at the end of the uriString yet
+* if pToAdd is empty, then nothing is done and path content remains the same.
+*/
+uriString&
+uriString::addWithLeadingCondDirDelim(const utf8VaryingString& pToAdd)
+{
+    if (pToAdd.isEmpty())
+        return *this;
+    addConditionalDirectoryDelimiter();
+    add(pToAdd);
+    return(*this);
+}//addConditionalDirectoryDelimiter
+
 uriString
 uriString::removeLastDirectoryDelimiter(void) const
 {
@@ -263,6 +277,7 @@ uriString::check()
   }
   uriStat wStat;
   ZStatus wSt=getStatR(wStat);
+  return wSt;
 }
 
 //#include <unistd.h>
