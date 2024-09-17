@@ -222,6 +222,20 @@ uriString::addConditionalDirectoryDelimiter(void)
     return(*this);
 }//addConditionalDirectoryDelimiter
 
+/**
+* @brief addConditionalDirectoryDelimiter  adds a directory delimiter if and only if there is no delimiter at the end of the uriString yet
+* if pToAdd is empty, then nothing is done and path content remains the same.
+*/
+uriString&
+uriString::addWithLeadingCondDirDelim(const utf8VaryingString& pToAdd)
+{
+    if (pToAdd.isEmpty())
+        return *this;
+    addConditionalDirectoryDelimiter();
+    add(pToAdd);
+    return(*this);
+}//addConditionalDirectoryDelimiter
+
 uriString
 uriString::removeLastDirectoryDelimiter(void) const
 {
@@ -263,6 +277,7 @@ uriString::check()
   }
   uriStat wStat;
   ZStatus wSt=getStatR(wStat);
+  return wSt;
 }
 
 //#include <unistd.h>
@@ -335,6 +350,26 @@ utf8VaryingString uriString::getFileExtension() const
     wExt=wPtr;
     return wExt;
 }
+
+uriString uriString::getPathTilExtension() const
+{
+    if (isEmpty())
+        return uriString ("");
+
+    utf8_t* wPtrToFree = utfStrdup(Data);
+    uriString wExt;
+
+    utf8_t *wPtr = utfStrchr(wPtrToFree,(utf8_t)'.');
+    if (wPtr==nullptr) {
+        free(wPtrToFree);
+        return *this ;
+    }
+    *wPtr='\0';
+    uriString wReturn (wPtrToFree);
+    free(wPtrToFree);
+    return wReturn;
+}
+
 
     /** @brief uriString::getDirectoryPath Returns the full file's directory path
      * i. e. </directory path/><root name>.<extension>
@@ -435,6 +470,9 @@ utf8VaryingString uriString::getRootname() const
 
   return utf8VaryingString(wRoot.Data) ;
 }//getRootname
+
+
+
 
 void uriString::changeFileExtension(const utf8VaryingString& pExt) {
   if (pExt.isEmpty())
@@ -639,6 +677,28 @@ ZStatus uriString::remove() const
     return ZS_SUCCESS;
 } //remove
 
+
+uriString
+uriString::getBckName(const uriString &pName, const utf8VaryingString& pBckExt){
+    int wFormerNumber = 1;
+    uriString wBckURI ;
+    uriString wPathTilExt = pName.getPathTilExtension() ;
+
+    utf8VaryingString wExt = pName.getFileExtension();
+    utf8VaryingString wExtBck ;
+    wExtBck.sprintf(".%s_%s%02ld",wExt.toCChar(),pBckExt.toCChar(),wFormerNumber)  ;
+
+    wBckURI =  wPathTilExt + wExtBck ;
+
+    while (wBckURI.exists())
+    {
+        wFormerNumber ++;
+        wExtBck.sprintf(".%s_%s%02ld",wExt.toCChar(),pBckExt.toCChar(),wFormerNumber)  ;
+        wBckURI =  wPathTilExt + wExtBck ;
+    }
+    return wBckURI ;
+}
+
 ZStatus
 uriString::renameBck(const char* pBckExt) const
 {
@@ -647,15 +707,9 @@ uriString::renameBck(const char* pBckExt) const
         "Source file %s does not exist.",toString());
     return ZS_FILENOTEXIST;
   }
-int wFormerNumber = 1;
 
-  uriString wBckURI(*this);
 
-  while (wBckURI.exists())
-    {
-    wFormerNumber ++;
-    wBckURI.sprintf("%s_%s%02ld",toCChar(),pBckExt,wFormerNumber);
-    }
+  uriString wBckURI = getBckName(*this,pBckExt);
   return rename(wBckURI);
 } // renameBck
 
@@ -839,18 +893,6 @@ and neither the file named by old nor the file named by new shall be changed or 
 */
 } // rename
 
-uriString
-uriString::getBckName(const uriString &pName, const utf8VaryingString& pBckExt){
-  uriString wNewFileURI(pName);
-  int wFormerNumber = 1;
-  wNewFileURI.sprintf("%s_%s%02ld",pName.toString(),pBckExt.toString(),wFormerNumber);
-  while (wNewFileURI.exists())
-  {
-    wFormerNumber ++;
-    wNewFileURI.sprintf("%s_%s%02ld",wNewFileURI.toString(),pBckExt.toString(),wFormerNumber);
-  }
-  return wNewFileURI;
-}
 
 
 ZStatus
@@ -958,6 +1000,98 @@ struct stat wStatBuffer ;
     return(true);
 }
 
+bool
+uriString::isPath(void) const
+{
+    return isDirectory();
+}
+
+
+bool
+uriString::possiblyXml(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("XML")==0)
+        return true;
+
+    return(false);
+}
+bool
+uriString::possiblyHtml(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("HTML")==0)
+        return true;
+    if (wExt.compareCase("HTM")==0)
+        return true;
+    return(false);
+}
+bool
+uriString::possiblyText(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("TXT")==0)
+        return true;
+    if (wExt.isEmpty())
+        return true;
+    return(false);
+}
+
+bool
+uriString::possiblyPdf(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("PDF")==0)
+        return true;
+    return(false);
+}
+
+bool
+uriString::possiblyOdf(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("odf")==0)
+        return true;
+    if (wExt.compareCase("odg")==0)
+        return true;
+    if (wExt.compareCase("ods")==0)
+        return true;
+    if (wExt.compareCase("odp")==0)
+        return true;
+    return(false);
+}
+bool
+uriString::possiblyIconSource(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("JPEG")==0)
+        return true;
+    if (wExt.compareCase("JPG")==0)
+        return true;
+    if (wExt.compareCase("PNG")==0)
+        return true;
+    if (wExt.compareCase("GIF")==0)
+        return true;
+    return(false);
+}
+
+bool
+uriString::possiblyZMF(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("zmf")==0)
+        return true;
+    return(false);
+}
+bool
+uriString::possiblyZRH(void) const
+{
+    utf8VaryingString wExt = getFileExtension();
+    if (wExt.compareCase("zrh")==0)
+        return true;
+    return(false);
+}
+
 void    uriString::setToWorkingDir()
 {
   char wBuf[cst_urilen];
@@ -994,11 +1128,11 @@ uriString::isDirectory(void) {
 }
 #else
 bool
-uriString::isDirectory(void)
+uriString::isDirectory(void) const
 {
 struct stat wStatBuffer ;
 
-    int wSt= stat(toCString_Strait(),&wStatBuffer);
+    int wSt= stat(toCChar(),&wStatBuffer);
     if (wSt<0)
             {
             return(false);
@@ -1094,12 +1228,12 @@ uriString::suppress(void)
 
 __FILEACCESSRIGHTS__ uriString::getPermissions()
 {
-  struct stat wStat;
+  struct statx wStat;
 
   ZStatus wSt=_getStat(wStat,false);
   if (wSt!=ZS_SUCCESS)
     return -1;
-  return (wStat.st_mode & 0x777);
+  return (wStat.stx_mode & 0x777);
 }
 
 
@@ -1228,35 +1362,36 @@ return ZS_SUCCESS;
 ZStatus
 uriString::getStatR(uriStat &pZStat, bool pLogZException)const
 {
-struct stat wStatBuffer ;
+struct statx wStatBuffer ;
 passwd *wUserInfo;
   pZStat.clear();
   ZStatus wSt=_getStat(wStatBuffer,pLogZException);
   if (wSt!=ZS_SUCCESS)
     return wSt;
 
-    pZStat.Size=wStatBuffer.st_size ;
-//    pZStat.Created.fromTimespec(wStatBuffer.st_ctim);
-//    pZStat.LastModified.fromTimespec((wStatBuffer.st_mtim));
-    pZStat.Created = wStatBuffer.st_ctim;
-    pZStat.LastModified = wStatBuffer.st_mtim;
-    pZStat.Rights = wStatBuffer.st_mode;
+    pZStat.Size=wStatBuffer.stx_size ;
+    pZStat.Created.tv_sec = wStatBuffer.stx_btime.tv_sec;
+    pZStat.Created.tv_nsec = wStatBuffer.stx_btime.tv_nsec;
+    pZStat.LastModified.tv_sec = wStatBuffer.stx_mtime.tv_sec;
+    pZStat.LastModified.tv_nsec = wStatBuffer.stx_mtime.tv_nsec;
+    pZStat.Rights = wStatBuffer.stx_mode;
 
-    pZStat.Uid = wStatBuffer.st_uid;
+    pZStat.Uid = wStatBuffer.stx_uid;
 
-    wUserInfo = getpwuid(wStatBuffer.st_uid);
+    wUserInfo = getpwuid(wStatBuffer.stx_uid);
 
     ::strcpy(pZStat.OwnerName , wUserInfo->pw_name);
     return(wSt);
 }// getStatR
 
 ZStatus
-uriString::_getStat(struct stat& pStat, bool pLogZException) const
+uriString::_getStat(struct statx& pStat, bool pLogZException) const
 {
   ZStatus wSt=ZS_SUCCESS;
   memset(&pStat,0,sizeof(pStat));
   errno= 0; /* errno is set by this function */
-  int wRet= stat(toCChar(),&pStat);
+  int wFd=0;
+  int wRet= statx(wFd,toCChar(),AT_STATX_SYNC_AS_STAT,STATX_ALL,&pStat);
   if (wRet < 0) {
     int wErrno=errno;
     utf8VaryingString wErrMsg;

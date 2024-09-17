@@ -18,7 +18,7 @@
 
 #include <ztoolset/zarray.h>
 
-
+namespace zbs {
 
 ZDir::ZDir (const utf8_t *pDirName)
 {
@@ -316,13 +316,38 @@ It is recommended that applications use readdir(3) instead of
 } //readdir
 
 
-ZStatus ZDir::fullDir(::DirMap &pDirEntry, ZDirFileEn_type pZDFT)
+ZStatus ZDir::fullDir(DirMap &pDirEntry, ZDirFileEn_type pZDFT)
 {
     uriStat wStat;
-    ZDFT = pZDFT;
-    int wErrno = 0;
     struct dirent *wDirEntry;
-    ZStatus wSt;
+    ZDirFileEn_type wZDFT;
+    pDirEntry.clear();
+
+    ZStatus wSt=_fullDir(wDirEntry,wZDFT,pZDFT);
+
+    if (wSt==ZS_SUCCESS) {
+        pDirEntry.BaseName = (const utf8_t*)wDirEntry->d_name;
+        pDirEntry.Name = *this;
+        pDirEntry.Name.addConditionalDirectoryDelimiter();
+        pDirEntry.Name += pDirEntry.BaseName;
+        if (pDirEntry.Name.getStatR(wStat) == ZS_SUCCESS) {
+          pDirEntry.Size = wStat.Size;
+          pDirEntry.Uid = wStat.Uid;
+          pDirEntry.Created = wStat.Created;
+          pDirEntry.Modified = wStat.LastModified;
+          pDirEntry.Type = pZDFT;
+        }
+        return ZS_SUCCESS;
+    } // ZS_SUCCESS
+
+    return wSt;
+} //fulldir
+
+ZStatus ZDir::_fullDir(struct dirent* &wDirEntry, ZDirFileEn_type &pOutType, ZDirFileEn_type pTypeToSelect)
+{
+    ZDFT = pTypeToSelect;
+
+    ZStatus wSt=ZS_SUCCESS;
     if (_SystDir == nullptr) {
         wSt = setPath(Data);
         if (wSt != ZS_SUCCESS) {
@@ -330,10 +355,12 @@ ZStatus ZDir::fullDir(::DirMap &pDirEntry, ZDirFileEn_type pZDFT)
             return wSt;
         }
     }
-    pDirEntry.clear();
+
+    pOutType=0;
+    int wErrno = 0;
     while (wErrno == 0) {
         //      wRet=readdir_r(Dir,wDirEntry,&wDirEntry);
-/*
+        /*
 It is recommended that applications use readdir(3) instead of
        readdir_r().  Furthermore, since version 2.24, glibc deprecates
        readdir_r().
@@ -344,93 +371,169 @@ It is recommended that applications use readdir(3) instead of
         if (wDirEntry == nullptr) // error or end of directory
             break;
 
-        if ((wDirEntry->d_name[0]=='.')&&(wDirEntry->d_name[1]=='.'))/*  skip unix two 'dot - dotdot' files */
-          continue;
-        if (wDirEntry->d_name[0]=='.') {
-          if (!(pZDFT & ZDFT_Hidden))
+        /*  skip unix two 'dot - dotdot' files */
+        if ((wDirEntry->d_name[1]=='\0')&&(wDirEntry->d_name[0]=='.'))
             continue;
-          pDirEntry.Type |= ZDFT_RegularFile;
+        if ((wDirEntry->d_name[1]!='\0')&&(wDirEntry->d_name[2]=='\0')&&(wDirEntry->d_name[0]=='.')&&(wDirEntry->d_name[1]=='.'))
+            continue;
+
+
+        if (wDirEntry->d_name[0]=='.') {
+            if (!(pTypeToSelect & ZDFT_Hidden))
+                continue;
+            pOutType |= ZDFT_Hidden;
         }
 
-/*
+        /*
   see https://www.gnu.org/software/libc/manual/html_node/Directory-Entries.html
 */
 
         switch (wDirEntry->d_type) {
         case DT_REG: /* regular file */
-          if (ZDFT & ZDFT_RegularFile) {
-            pDirEntry.Type |= ZDFT_RegularFile;
-            break;
-          }
-          continue;
+            if (ZDFT & ZDFT_RegularFile) {
+                pOutType |= ZDFT_RegularFile;
+                break;
+            }
+            continue;
         case DT_DIR: /* directory */
-          if (ZDFT & ZDFT_Directory){
-            pDirEntry.Type |= ZDFT_Directory;
-            break;
-          }
-          continue;
+            if (ZDFT & ZDFT_Directory){
+                pOutType |= ZDFT_Directory;
+                break;
+            }
+            continue;
         case DT_LNK: /* symbolic link */
-          if (ZDFT & ZDFT_SymbolicLink){
-            pDirEntry.Type |= ZDFT_SymbolicLink;
-            break;
-          }
-          continue;
+            if (ZDFT & ZDFT_SymbolicLink){
+                pOutType |= ZDFT_SymbolicLink;
+                break;
+            }
+            continue;
         default:
-          if ((ZDFT & ZDFT_All) == ZDFT_All)/* if all entries selected then store */{
-            pDirEntry.Type |= ZDFT_Other;
-            break;
-          }
-          continue; /* else skip */
+            if ((ZDFT & ZDFT_All) == ZDFT_All)/* if all entries selected then store */{
+                pOutType |= ZDFT_Other;
+                break;
+            }
+            continue; /* else skip */
         } // switch
-
-
-        pDirEntry.Name.clear();
-        pDirEntry.Name = *this;
-        pDirEntry.Name.addConditionalDirectoryDelimiter();
-        pDirEntry.Name += (const utf8_t *) wDirEntry->d_name;
-        if (pDirEntry.Name.getStatR(wStat) == ZS_SUCCESS) {
-          pDirEntry.Size = wStat.Size;
-          pDirEntry.Uid = wStat.Uid;
-          pDirEntry.Created = wStat.Created;
-          pDirEntry.Modified = wStat.LastModified;
-        }
         return ZS_SUCCESS;
     } // while wRet==0
 
 
     if (wErrno) {
-      ZStatus wSt=ZS_NOTDIRECTORY;
-      utf8VaryingString wErrMsg;
+        ZStatus wSt=ZS_NOTDIRECTORY;
+        utf8VaryingString wErrMsg;
 
-      switch (wErrno) {
-      case EBADF:
-        wSt= ZS_BADFILEDESC;
-        wErrMsg.sprintf( "<EBADF> Invalid directory stream descriptor for <%s>.",toString());
-        break;
+        switch (wErrno) {
+        case EBADF:
+            wSt= ZS_BADFILEDESC;
+            wErrMsg.sprintf( "<EBADF> Invalid directory stream descriptor for <%s>.",toString());
+            break;
 
-      default:
-        wSt=ZS_NOTDIRECTORY;
-        wErrMsg.sprintf( "Unknown error for directory file <%s>.",toString());
-        break;
-      }// switch
-      ZException.getErrno(wErrno,
-          _GET_FUNCTION_NAME_,
-          wSt,
-          Severity_Error,
-          wErrMsg.toCChar());
+        default:
+            wSt=ZS_NOTDIRECTORY;
+            wErrMsg.sprintf( "Unknown error for directory file <%s>.",toString());
+            break;
+        }// switch
+        ZException.getErrno(wErrno,
+                            _GET_FUNCTION_NAME_,
+                            wSt,
+                            Severity_Error,
+                            wErrMsg.toCChar());
     } else
         wSt = ZS_EOF;
 
-    if (_SystDir)
-        closeDir();
-    _SystDir = nullptr;
+    closeDir();
     /* On success, readdir() returns a pointer to a dirent structure.  (This
        structure may be statically allocated; do not attempt to free(3) it.)*/
-    //  NO        _free(wDirEntry);
-
 
     return wSt;
-} //fulldir
+} //_fulldir
+
+bool
+matchFileElement(const utf8VaryingString& pFileElement,const utf8VaryingString& pSelRoot,ZDir::DENM_type pFlag)
+{
+    if (pFlag==ZDir::Nothing)
+        return true;
+
+    bool wCase = pFlag & ZDir::CaseRegardless ;
+    pFlag &= ~ ZDir::CaseRegardless ;
+    switch ( pFlag )
+    {
+    case ZDir::ExactMatch:
+        if (wCase) {
+            if (pFileElement.compareCase(pSelRoot)==0)
+                return true;
+            return false;
+        }
+        if (pFileElement.compare(pSelRoot)==0)
+            return true;
+        return false;
+    case ZDir::StartsWith:
+        if (wCase) {
+            return pFileElement.startsCaseWith(pSelRoot.Data) ;
+        }
+        return pFileElement.startsWith(pSelRoot.Data) ;
+    case ZDir::EndsWith:
+        if (wCase) {
+            return pFileElement.endsCaseWith(pSelRoot.Data);
+        }
+        return pFileElement.endsWith(pSelRoot.Data) ;
+
+    case ZDir::Contains:
+        if (wCase) {
+            return pFileElement.containsCase(pSelRoot.Data);
+        }
+        return pFileElement.contains(pSelRoot.Data) ;
+    default:
+        return true;
+    }
+}
+
+bool
+matchFileName(const uriString& wBaseName,const ZFileSelection& pSelection)
+{
+    bool wSelected = false;
+    for (int wi = 0 ; wi < pSelection.count();wi++) {
+        if (matchFileElement(wBaseName.getRootname(),pSelection[wi].SelRoot,pSelection[wi].RootFlag)) {
+            if (matchFileElement(wBaseName.getFileExtension(),pSelection[wi].SelExt,pSelection[wi].ExtFlag))
+                return true;
+        }
+    }
+    return false;
+}
+
+
+ZStatus
+ZDir::fullDirSel(DirMap &pDirEntry, ZFileSelection& pSelection,ZDirFileEn_type pTypeToSelect)
+{
+    uriStat wStat;
+    struct dirent *wDirEntry;
+    pDirEntry.clear();
+    ZStatus wSt = ZS_SUCCESS;
+
+    while (wSt==ZS_SUCCESS) {
+        wSt=_fullDir(wDirEntry,pSelection.BaseTypeMask,pTypeToSelect);
+
+        if (wSt==ZS_SUCCESS) {
+            uriString wName = (const utf8_t*)wDirEntry->d_name;
+            pDirEntry.BaseName = wName;
+            if(!matchFileName(wName,pSelection))
+                continue;
+            pDirEntry.Name = *this;
+            pDirEntry.Name.addConditionalDirectoryDelimiter();
+            pDirEntry.Name += pDirEntry.BaseName;
+            if ((wSt=pDirEntry.Name.getStatR(wStat)) == ZS_SUCCESS) {
+                pDirEntry.Size = wStat.Size;
+                pDirEntry.Uid = wStat.Uid;
+                pDirEntry.Created = wStat.Created;
+                pDirEntry.Modified = wStat.LastModified;
+                pDirEntry.Type = pSelection.BaseTypeMask;
+            }
+        } // ZS_SUCCESS
+        return wSt;
+    } // while ZS_SUCCESS
+    return wSt;
+} //ZDir::fullDirSel
+
 
 ZStatus ZDir::dirNext(uriString &pDirEntry)
 {
@@ -559,5 +662,294 @@ bool ZDir::setCurrentDirectory(const char *pDir)
 {
     return chdir(pDir) == 0;
 }
+
+
+
+ZFileNameSelection&
+ZFileNameSelection::_copyFrom(const ZFileNameSelection& pIn)
+{
+    SelRoot=pIn.SelRoot;
+    RootFlag=pIn.RootFlag;
+    SelExt=pIn.SelExt;
+    ExtFlag=pIn.ExtFlag;
+    return *this;
+}
+
+ZFileSelection&
+ZFileSelection::_copyFrom(const ZFileSelection& pIn)
+{
+    ZArray<ZFileNameSelection>::clear();
+    for (int wi=0; wi < pIn.count();wi++) {
+        push(pIn.TabConst(wi));
+    }
+    BaseTypeMask = pIn.BaseTypeMask;
+    Phrase = pIn.Phrase;
+    return *this;
+}
+void ZFileSelection::clear()
+{
+    ZArray<ZFileNameSelection>::clear();
+    BaseTypeMask = ZDFT_Nothing  ;
+    Phrase.clear();
+}
+
+
+
+ZFileSelection&
+ZFileSelection::operator << (const utf8VaryingString& pSelPhrase)
+{
+    ZFileSelection wFS ;
+    parseFileNameSelections(pSelPhrase,wFS);
+    for (int wi = 0 ; wi < wFS.count() ; wi++)
+        push(wFS[wi]);
+
+    if (!Phrase.isEmpty()) {
+        Phrase += " ; " ;
+    }
+    Phrase += pSelPhrase;
+    return *this;
+}
+
+ZFileSelection&
+ZFileSelection::addSelPhrase(const utf8VaryingString& pSelPhrase)
+{
+    ZFileSelection wFS ;
+    parseFileNameSelections(pSelPhrase,wFS);
+    for (int wi = 0 ; wi < wFS.count() ; wi++)
+        push(wFS[wi]);
+
+    if (!Phrase.isEmpty()) {
+        Phrase += " ; " ;
+    }
+    Phrase += pSelPhrase;
+    return *this;
+}
+ZFileSelection&
+ZFileSelection::setSelPhrase(const utf8VaryingString& pSelPhrase)
+{
+    clear();
+    return addSelPhrase(pSelPhrase);
+}
+
+
+void
+ZFileSelection::parseTerm(utf8_t* pPtr,utf8VaryingString&   pSelStr,ZDir::DENM_type&     pSelFlag)
+{
+    utf8_t* wToBeFreed = utfStrdup<utf8_t>(pPtr);
+    pSelStr.clear();
+    utf8_t* wPtrStart=wToBeFreed;
+
+    /* Trim leading spaces */
+    while ( utfIsSpace(*wPtrStart))
+        wPtrStart++;
+
+    /* Trim trailing spaces */
+    utf8_t* wEnd = wPtrStart;
+    while (*wEnd)  /* search end of string */
+        wEnd++;
+    wEnd--;
+    /* get back ignoring spaces */
+    while (utfIsSpace(*wEnd)&&(wEnd > wPtrStart)) {
+        *wEnd = 0;
+        wEnd--;
+    }
+    /* string is ready to be parsed */
+
+    pSelFlag = ZDir::Nothing;
+    if (*wPtrStart=='*') {
+        wPtrStart++;
+        if (*wPtrStart==0)  {/* if only wildcard in field then all is selected */
+            pSelFlag |= ZDir::All;  /* no restriction */
+            free(wToBeFreed);
+            return ; /* done */
+        }
+        pSelFlag |= ZDir::EndsWith;
+    }//  if (*wPtr=='*')
+
+    utf8_t* wPtrC=wPtrStart;
+    while (*wPtrC && (*wPtrC!='*')) {
+        wPtrC++;
+    }// while (*wPtrC)
+    if (*wPtrC=='*') {
+        *wPtrC = 0;
+        wPtrC++;
+        pSelFlag |= ZDir::StartsWith;
+        if (*wPtrC != 0) {
+            _ERRPRINT("ZFileSelection::parseTerm-E-MALFORMED In expression <%s> string <*%s> will be ignored.\n",pPtr,wPtrC)
+        }
+    }
+    if (pSelFlag==ZDir::Nothing)
+        pSelFlag = ZDir::ExactMatch;
+    pSelStr = wPtrStart;
+    pPtr=wPtrC;
+    while (*pPtr) /* align start pointer to effective end of string to parse */
+        pPtr++;
+    free(wToBeFreed);
+    return ;
+}
+
+
+bool
+ZFileSelection::parseSingleFileNameSelection(utf8_t* pPtr,
+                             ZFileNameSelection& pFileNameSelection)
+{
+    pFileNameSelection.clear();
+
+    if (*pPtr==0)
+        return false;
+
+    utf8_t* wPtr = pPtr;
+
+    /* trim leading spaces */
+    utf8_t* wStart = wPtr;
+    while (*wStart && *wStart == ' ')
+        wStart++;
+
+    if (*wStart==0)  {/* empty string */
+        return false;
+    }
+
+
+    /* trim trailing spaces */
+    utf8_t* wEnd = wPtr;
+    while (*wEnd)
+        wEnd++;
+    wEnd--;
+    while ((*wEnd==' ')&&(wEnd > wStart )) {
+        *wEnd=0;
+        wEnd--;
+    }
+
+    /* start parsing */
+
+    wPtr = wStart; /* search root name delimiter '.' */
+
+    while (*wPtr && *wPtr != '.') {
+        wPtr++;
+    }
+    bool wNoMore=false;
+    if (*wPtr==0)
+        wNoMore = true ;
+    *wPtr = 0;
+
+    parseTerm(wStart,pFileNameSelection.SelRoot,pFileNameSelection.RootFlag);
+
+    if (wNoMore) {
+        pFileNameSelection.ExtFlag = ZDir::ExactMatch;  /* extension must be an empty string */
+        return true;
+    }
+
+    wStart= wPtr+1;
+    parseTerm(wStart,pFileNameSelection.SelExt,pFileNameSelection.ExtFlag);
+    return true;
+} // parseSingleFileNameSelection
+
+void
+ZFileSelection::parseFileNameSelections(const utf8VaryingString& wSelContent, ZFileSelection& pSelection)
+{
+
+    pSelection.clear();
+    if (wSelContent.isEmpty())
+        return;
+
+    utf8_t* wToBeFreed = utfStrdup<utf8_t>(wSelContent.Data);
+    utf8_t* wPtr = wToBeFreed;
+    utf8_t* wStart = wToBeFreed;
+
+    bool wFEnd=false;
+    while (*wPtr) {
+        /* break selection phrase from <*.xml ; *gabu.doc ; ... > into <*.xml> <*gabu.doc> <...> */
+        while (*wPtr && (*wPtr != ';'))
+            wPtr++;
+
+        if (*wPtr!=0) {
+            *wPtr=0 ;
+            wPtr++;
+            wStart=wPtr;
+        }
+        ZFileNameSelection wFSel;
+        if (parseSingleFileNameSelection(wStart,wFSel))
+            pSelection.push(wFSel);
+    }// while (*wPtr)
+
+    free(wToBeFreed);
+    return;
+} // parseFileNameSelections
+
+utf8VaryingString
+ZFileSelection::dump()
+{
+    utf8VaryingString wReturn;
+    wReturn.sprintf("Phrase <%s>\n",Phrase.toCChar());
+    wReturn.addsprintf("Base type mask <%s>\n",decode_ZDFT(BaseTypeMask));
+    for (int wi=0; wi < count() ; wi++ ) {
+
+        wReturn.addsprintf("Root <%s> <%s> Ext <%s> <%s>\n",
+                           Tab(wi).SelRoot.toCChar(),decode_DENM(Tab(wi).RootFlag).toCChar(),
+                           Tab(wi).SelExt.toCChar(),decode_DENM(Tab(wi).ExtFlag).toCChar());
+    }
+    return wReturn;
+}
+
+const char*
+decode_ZDFT(ZDirFileEn_type pType)
+{
+
+    switch(pType)
+    {
+    case ZDFT_Nothing:
+        return "ZDFT_Nothing";
+    case ZDFT_RegularFile:
+        return "ZDFT_RegularFile";
+    case ZDFT_Directory:
+        return "ZDFT_Directory";
+    case ZDFT_SymbolicLink:
+        return "ZDFT_SymbolicLink";
+    case ZDFT_Other:
+        return "ZDFT_Other";
+    case ZDFT_Hidden:
+        return "ZDFT_Hidden";
+    case ZDFT_All:
+        return "ZDFT_All";
+    default:
+        return "ZDFT_Invalid";
+    }
+}
+
+
+const utf8VaryingString
+decode_DENM(ZDir::DENM_type pType)
+{
+    if (pType==ZDir::All)
+        return ("ZDir::All");
+
+    utf8VaryingString wReturn;
+
+    if (pType & ZDir::CaseRegardless) {
+        wReturn = "ZDir::CaseRegardless";
+    }
+
+    switch(pType & ~ZDir::CaseRegardless)
+    {
+    case ZDir::ExactMatch:
+        wReturn.addConditionalOR("ZDir::ExactMatch");
+        return wReturn;
+    case ZDir::StartsWith:
+        wReturn.addConditionalOR("ZDir::StartsWith");
+        return wReturn;
+    case ZDir::EndsWith:
+        wReturn.addConditionalOR("ZDir::EndsWith");
+        return wReturn;
+    case ZDir::Contains:
+        wReturn.addConditionalOR("ZDir::Contains");
+        return wReturn;
+    default:
+        wReturn.addConditionalOR("ZDir::Invalid");
+        return wReturn;
+    }
+}
+
+
+} // namespace zbs
 
 #endif // ZDIR_CPP

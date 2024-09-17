@@ -143,9 +143,18 @@ zxmlDoc::zxmlDoc() {
 }
 
 zxmlDoc::~zxmlDoc() {
-  if (DocParser) delete DocParser;
-  if (RootElement) XMLderegister( RootElement);
-  if (_xmlInternalDoc) xmlFreeDoc(_xmlInternalDoc);
+/*  here after is double free and make application crash */
+
+  if (DocParser!=nullptr)
+        delete DocParser;
+
+  if (RootElement!=nullptr)
+      XMLderegister( RootElement);
+/*  here after is double free and make application crash */
+
+  if (_xmlInternalDoc!=nullptr)
+      xmlFreeDoc(_xmlInternalDoc);
+
 }
 
 /**

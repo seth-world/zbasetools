@@ -164,6 +164,17 @@ public:
 
     void displayErrors(FILE* pOutput=stdout );
     utf8VaryingString getLastError( );
+
+    utf8VaryingString getLastMessage()
+    {
+        if (count()==0)
+            return "No message";
+        utf8VaryingString wErrMsg;
+        wErrMsg.sprintf("<%s> %s \n",decode_ZAIES(last()->Severity),last()->Message());
+        return wErrMsg;
+    }
+
+
     void log(ZaiE_Severity pSeverity,const char* pFormat,...);
 
     void _log(ZaiE_Severity pSeverity,const char* pFormat,va_list pArgs);

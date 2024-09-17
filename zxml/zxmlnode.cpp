@@ -95,11 +95,10 @@ zxmlNode::getNextNode(zxmlNode* &pNextNode)
 {
     pNextNode=nullptr;
 
-    if (_xmlInternalNode->next==nullptr)
-                            return (ZS_EOF);
+    if (_xmlInternalNode->next==nullptr) {
+        return (ZS_EOF);
+    }
 
-
-//    pNextNode=new zxmlNode(_xmlInternalNode->next);
     pNextNode=zxmlcreateNode(_xmlInternalNode->next);
     return ZS_SUCCESS;
 }// getNextNode

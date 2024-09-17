@@ -311,7 +311,9 @@ HEADERS +=  $${TOOLSET_ROOT}/config/zconfig_general.h \
     $$TOOLSET_BASE/ztoolset/zdatefull.h \
     $$TOOLSET_BASE/ztoolset/ztoolset_release.h \
     $$TOOLSET_BASE/zio/zioutils.h \
-    $$TOOLSET_BASE/ztoolset/zbaseparameters.h
+    $$TOOLSET_BASE/ztoolset/zbaseparameters.h \
+    ../ztoolset/cmatchresult.h \
+    ../ztoolset/utfmetafunctions.h
  #    ../ztoolset/zgeneralparameters.h
 
 
@@ -338,6 +340,8 @@ SOURCES += $$TOOLSET_BASE/ztoolset/zfunctions.cpp \   #  see zlibzbasesystem.a
     $$TOOLSET_BASE/zio/zioutils.cpp \
     $$TOOLSET_BASE/ztoolset/zbaseparameters.cpp \
  #   ../ztoolset/zgeneralparameters.cpp \
+    ../ztoolset/cmatchresult.cpp \
+    ../ztoolset/utfmetafunctions.cpp \
 \
     $$TOOLSET_BASE/ztoolset/cescapedstring.cpp \
     $$TOOLSET_BASE/zthread/zmutex.cpp \

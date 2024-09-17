@@ -36,7 +36,7 @@ const char* decode_Signal(int pSignal);
 const char* decode_SignalLib(int pSignal);
 
 #define _DBGPRINT(...) { fprintf (stdout, __VA_ARGS__); std::cout.flush(); }
-
+#define _ERRPRINT(...) { fprintf (stderr, __VA_ARGS__); std::cout.flush(); }
 
 #define _ASSERT_(__COND__,__MAIN__,...) \
     if (__COND__) {  \

@@ -42,6 +42,7 @@ typedef utf8_t                  _UtfBase;
     using _Base::operator +=;
     using _Base::operator ==;
     using _Base::operator !=;
+//    using _Base::operator --;
     utf8VaryingString():_Base() {_setToUtf8(ZType_Utf8VaryingString);}
 
     utf8VaryingString(const utf8VaryingString& pIn) {_setToUtf8(ZType_Utf8VaryingString); strset(pIn.Data);}

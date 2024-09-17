@@ -109,9 +109,26 @@ struct ZSpawn_Return {
     int     Status;
     int     ChildStatus;
 };
-
+/** ZLaunch cannot be used with WINDOWS. Use ZSpawn_Program instead */
 int ZLaunch(const char* pPath, char * const argv[], const char *pDirectory=nullptr) ;
-ZSpawn_Return ZSpawn_Program(const char* pPath, char * const argv[],const char *pDirectory=nullptr,const int pMilliSecondsTimeout=2000 ) ;
+/**
+ * @brief ZSpawn_Program  creates a child process and run the program pProgram
+ *
+ * uses unistd exec function to fork and execute an image with argv[] using path
+ *          Argv [0] MUST NOT mention image name. Argv[0] is added by ZLaunch
+ * @param pProgram image path either full path or only image name  (searched within %PATH% env context)
+ * @param argv arguments to launch the image with. LAST ARGUMENT MUST BE nullptr
+ * @param[out] pPipeFd an array of 2 int for the created pipe (read,write). If nullptr (omitted), no pipe is returned
+ * @return ZSpawn_Return a couple of 2 int :
+ *      - Status: following values are possible
+ *          __ZSPAWN_SUCCESS__   0     Operation went OK (no message)
+ *          __ZSPAWN_ERROR__    -1     Cannot create spawn process or cannot create pipe (message is issued on stderr)
+ *          __ZSPAWN_TIMEOUT__  -2     Child process timed out (message is issued on stderr)
+ *
+        - ChildStatus : any status from invoked program
+ */
+ZSpawn_Return
+ZSpawn_Program(const char* pPath, char *argv[], const char *pDirectory=nullptr, const int pMilliSecondsTimeout=2000 ) ;
 
 
 bool isRoot();

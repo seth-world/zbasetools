@@ -866,8 +866,7 @@ public:
      */
     _Utf* _rfindEOSM() const;
 
-
-    bool startsCaseWith(const _Utf* pString);
+    bool startsCaseWith(const _Utf *pString) const;
     bool startsWith(const _Utf* pString) const;
 
     template <class _Tp>
@@ -878,6 +877,7 @@ public:
 
 
     bool endsWith(const _Utf* pString) const;
+    bool endsCaseWith(const _Utf* pString) const;
 
     template <class _Tp>
     bool endsWithT(_Tp& pString) const
@@ -1178,6 +1178,13 @@ flags	description
      bool operator > (const utfVaryingString& pIn) const { return compare(pIn.Data)>0; }
      bool operator < (const utfVaryingString& pIn) const { return compare(pIn.Data)<0; }
 
+    /* removes the last unit of current string. Does nothing if empty */
+    utfVaryingString& operator--(void)
+     {
+        return removeLastChar(1);
+     }
+
+
      double toDouble()
      {
          return utfStrtod<_Utf>(Data,nullptr);
@@ -1426,11 +1433,42 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     _Utf* extendBytesBZero(ssize_t pSize);
     _Utf* extendUnitsBZero(ssize_t pCharCount);
 
-    ssize_t bsearch(const void *pKey, const size_t pKeyByteSize, const size_t pOffset = 0) const;
-    ssize_t bsearch(utfVaryingString &&pKey, const size_t pOffset = 0) const;
 
-    ssize_t bsearchCaseRegardless(_Utf *pKey, ssize_t pSize, ssize_t pOffset);
-    ssize_t bsearchCaseRegardless(utfVaryingString &pKey, ssize_t pOffset);
+    class BSearchContext
+    {
+    public:
+        BSearchContext()=default;
+        BSearchContext(const BSearchContext& pIn) {_copyFrom(pIn);}
+        BSearchContext& _copyFrom(const BSearchContext& pIn)
+        {
+            Key=pIn.Key;
+            KeySize=pIn.KeySize;
+            Offset=pIn.Offset;
+            StrHighIdx=pIn.StrHighIdx;
+            return *this;
+        }
+
+        bool isNull() {return Key==nullptr;}
+
+        const _Utf *Key=nullptr;
+        ssize_t KeySize=-1;
+        ssize_t Offset=-1;
+        long StrHighIdx=0;
+    };
+
+    ssize_t bsearch(const void *pKey, const size_t pKeyByteSize, const size_t pOffset ) const;
+    ssize_t bsearch(utfVaryingString &&pKey, const size_t pOffset) const;
+
+    ssize_t bsearch(const _Utf *pKey,  BSearchContext& pSearchCtx) const ;
+    ssize_t bsearchNext(BSearchContext& pSearchCtx) const;
+
+
+    ssize_t bsearchCaseRegardless(const _Utf *pKey,  BSearchContext& pSearchCtx) const ;
+    ssize_t bsearchCaseRegardlessNext(BSearchContext& pSearchCtx) const;
+
+ //   ssize_t bsearchCaseRegardless(const _Utf *pKey,  ssize_t pOffset) const ;
+ //   ssize_t bsearchCaseRegardless(const _Utf *pKey, ssize_t pKeySize, ssize_t pOffset) const ;
+ //   ssize_t bsearchCaseRegardless(const utfVaryingString &pKey, ssize_t pOffset) const ;
 
     ssize_t bstartwithCaseRegardless(void *pKey, ssize_t pSize, ssize_t pOffset = 0);
     ssize_t bstartwithCaseRegardless(utfVaryingString pKey, size_t pOffset = 0);
@@ -1600,7 +1638,11 @@ _Tp& moveOut(typename std::enable_if<std::is_pointer<_Tp>::value,_Tp> &pOutData,
     /** @brief setChar sets the region of pStart on pCount to single character pChar. Extends allocation if necessary */
     void setChar(const _Utf pChar, size_t pStart=0, ssize_t pCount=-1) ;
     /** @brief addChar adds pCount times single character pChar at the end of current string. Extends allocation if necessary */
-    void addChar(const _Utf pChar, ssize_t pCount = -1);
+    utfVaryingString<_Utf>& addChar(const _Utf pChar, ssize_t pCount = 1);
+
+    /** @brief removeLastChar removes pCount times single character pChar from the end of current string. Does not modify unit allocation */
+    utfVaryingString<_Utf>& removeLastChar(ssize_t pCount = 1);
+
 
     void dumpHexa (const size_t pOffset, const size_t pCount, ZDataBuffer &pLineHexa, ZDataBuffer &pLineChar);
 
@@ -2930,9 +2972,10 @@ utfVaryingString<_Utf>::setChar(const _Utf pChar,size_t pStart,ssize_t pCount)
     if (pStart<0)
             wStart=0;
     wCount=pCount;
-    if (pCount==-1)
-            wCount=UnitCount-wStart;
-
+    if (pCount==-1) {
+        wCount=UnitCount-wStart;
+        pCount=1;
+    }
     if ((wStart+wCount) >= UnitCount)
                 extendUnitsBZero(1+(wStart+pCount)-UnitCount); // make room if necessary : set to binary zero extended portion
 
@@ -2944,7 +2987,7 @@ utfVaryingString<_Utf>::setChar(const _Utf pChar,size_t pStart,ssize_t pCount)
 }//setChar
 
 template <class _Utf>
-void
+utfVaryingString<_Utf>&
 utfVaryingString<_Utf>::addChar(const _Utf pChar,ssize_t pCount)
 {
     ssize_t wCount ;
@@ -2956,10 +2999,11 @@ utfVaryingString<_Utf>::addChar(const _Utf pChar,ssize_t pCount)
             pCount--;
         }
         *wPtr=0;
-        return;
+        return *this;
     }
 
     _Utf* wPtr= Data ;
+/*
     ssize_t wStart = ssize_t(UnitCount-1);
     while ((wStart > 0) &&(wPtr[wStart]==0))
         wStart--;
@@ -2977,12 +3021,53 @@ utfVaryingString<_Utf>::addChar(const _Utf pChar,ssize_t pCount)
         pCount--;
     }
     *wPtr1 = 0;
+    */
 
-    return ;
+    _Utf* wPtrEnd = Data+UnitCount ;
+    _Utf* wPtrExt = nullptr;
+
+    while (*wPtr && (wPtr < wPtrEnd)) {
+        wPtr++;
+    }
+    size_t wSize = wPtr - Data ;
+
+    if (wPtr==wPtrEnd)  /* if '\0' has been missed */
+        wPtrExt = extendUnitsBZero( size_t( pCount + 1 ));
+    else { /* '\0' is not missed and is already reserved in unit count */
+        wPtrExt = extendUnitsBZero(size_t(pCount));
+    }
+    /* Nota Bene :
+     * 1- extendUnitxxx() changes Data pointer
+     * 2- unit extension is made from existing number of units and not string length itself
+     */
+    wPtr = Data + wSize ;
+
+    while (pCount > 0) {
+        *wPtr = pChar;
+        wPtr++ ;
+        pCount--;
+    }
+    *wPtr = 0;
+
+    return *this;
 }//addChar
 
+template <class _Utf>
+utfVaryingString<_Utf>&
+utfVaryingString<_Utf>::removeLastChar(ssize_t pCount)
+{
+    if (!isEmpty()) {
+        _Utf* wPtr = Data + UnitCount -1 ;
+        while (*wPtr-- && (wPtr > Data))
+            *wPtr=0;
+        *wPtr=0;
+    }
+    return *this;
+}//removeLastChar
+
+
 /**
- * @brief utftemplateString<_Sz,_Utf>::Left return the left part of current utftemplateString on pLen within a string of same type than current.
+ * @brief utfVaryingString<_Utf>::Left return the left part of current utftemplateString on pLen within a string of same type than current.
  * @param pLen
  * @return
  */
@@ -3499,19 +3584,44 @@ utfVaryingString<_Utf>::bsearch (utfVaryingString<_Utf> &&pKey,const size_t pOff
  * @param pOffset offset to start search from in character units
  * @return an offset from pOffset in character units pointing to the start of found content if found or -1 if not found
  */
-template <class _Utf>
-ssize_t
-utfVaryingString<_Utf>::bsearchCaseRegardless (_Utf *pKey, ssize_t pSize, ssize_t pOffset)
+/*template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearchCaseRegardless(const _Utf *pKey, ssize_t pOffset) const
+{
+    long wKeySize = 0 ;
+    const _Utf *wKey = pKey;
+    while (*wKey ) {
+        wKey++;
+        wKeySize++;
+    }
+    return bsearchCaseRegardless (pKey, wKeySize, pOffset);
+
+}
+*/
+#ifdef __COMMENT__
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearchCaseRegardless(const _Utf *pKey,
+                                                      ssize_t pKeySize,
+                                                      ssize_t pOffset) const
 {
     long widx = 0;
     long wistart = -1;
-    _Utf *wKey = (_Utf *)pKey;
-    long wHighIdx = this->ByteSize ;
+    const _Utf *wKey = pKey;
+    _Utf *wHighPtr = Data + pOffset;
+    long wHighIdx = pOffset ;
+    while ( *wHighPtr && (wHighIdx < UnitCount) ) {
+        wHighPtr++;
+        wHighIdx++;
+    }
+
+
+
+
     _Utf ToCompareFromKey ;
     _Utf ToCompareFromArray;
 
-    for (ssize_t wi=pOffset; wi < UnitCount ;wi++)
+    for (ssize_t wi=pOffset; wi < wHighIdx ;wi++)
     {
+        _Utf* wPtr=&Data[wi]; /* for debug purpose */
         ToCompareFromArray = utfUpper<_Utf>(Data[wi]);
         ToCompareFromKey = utfUpper<_Utf>(wKey[widx]);
         if (ToCompareFromKey==ToCompareFromArray)
@@ -3519,7 +3629,7 @@ utfVaryingString<_Utf>::bsearchCaseRegardless (_Utf *pKey, ssize_t pSize, ssize_
             if (wistart==-1)
                 wistart=wi;
             widx++;
-            if (widx==pSize)
+            if (widx==pKeySize)
             {
                 return (wistart);
             }
@@ -3530,13 +3640,138 @@ utfVaryingString<_Utf>::bsearchCaseRegardless (_Utf *pKey, ssize_t pSize, ssize_
     }
     return (-1) ;
 }//bsearchCaseRegardless
+#endif // __COMMENT__
 
-template <class _Utf>
-ssize_t
-utfVaryingString<_Utf>::bsearchCaseRegardless (utfVaryingString &pKey,ssize_t pOffset)
+
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearch(const _Utf *pKey, BSearchContext& pSearchCtx) const
+{
+    /* compute key size */
+    const _Utf *wKey=pSearchCtx.Key = pKey;
+    pSearchCtx.KeySize=0;
+    while (*wKey)  {
+        wKey++;
+        pSearchCtx.KeySize++;
+    }
+    /* compute input string size */
+    _Utf *wHighPtr = Data ;
+    pSearchCtx.StrHighIdx=0;
+    while ( *wHighPtr && (pSearchCtx.StrHighIdx < UnitCount) ) {
+        wHighPtr++;
+        pSearchCtx.StrHighIdx++;
+    }
+
+
+    pSearchCtx.Offset=0;
+
+    return bsearchNext(pSearchCtx);
+}//bsearch
+
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearchNext(BSearchContext& pSearchCtx) const
+{
+    if (pSearchCtx.isNull()) {
+        fprintf(stderr,"utfVaryingString<_Utf>::bsearchCaseRegardlessNext Search context is null. Use bsearchCaseRegardless with key definition before.\n");
+        abort();
+    }
+    _Utf ToCompareFromKey ;
+    _Utf ToCompareFromArray;
+
+    long wistart = -1;
+    int wkeyidx=0;
+
+    for (; pSearchCtx.Offset < pSearchCtx.StrHighIdx ; pSearchCtx.Offset++)
+    {
+        _Utf* wPtr=&Data[pSearchCtx.Offset]; /* for debug purpose */
+        ToCompareFromArray = Data[pSearchCtx.Offset];
+        ToCompareFromKey = pSearchCtx.Key[wkeyidx];
+        if (ToCompareFromKey==ToCompareFromArray)
+        {
+            if (wistart==-1)
+                wistart=pSearchCtx.Offset;
+            wkeyidx++;
+            if (wkeyidx==pSearchCtx.KeySize)
+            {
+                return (wistart);
+            }
+            continue;
+        }// if wKey
+        wkeyidx=0;
+        wistart=-1;
+    }
+    return (-1) ;
+}//bsearchNext
+
+
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearchCaseRegardless(const _Utf *pKey,
+                                                      BSearchContext& pSearchCtx) const
+{
+    /* compute key size */
+    const _Utf *wKey=pSearchCtx.Key = pKey;
+    pSearchCtx.KeySize=0;
+    while (*wKey)  {
+        wKey++;
+        pSearchCtx.KeySize++;
+    }
+    /* compute input string size */
+    _Utf *wHighPtr = Data ;
+    pSearchCtx.StrHighIdx=0;
+    while ( *wHighPtr && (pSearchCtx.StrHighIdx < UnitCount) ) {
+        wHighPtr++;
+        pSearchCtx.StrHighIdx++;
+    }
+
+
+    pSearchCtx.Offset=0;
+
+    return bsearchCaseRegardlessNext(pSearchCtx);
+}//bsearchCaseRegardless
+
+
+
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearchCaseRegardlessNext(BSearchContext& pSearchCtx) const
+{
+    if (pSearchCtx.isNull()) {
+        fprintf(stderr,"utfVaryingString<_Utf>::bsearchCaseRegardlessNext Search context is null. Use bsearchCaseRegardless with key definition before.\n");
+        abort();
+    }
+    _Utf ToCompareFromKey ;
+    _Utf ToCompareFromArray;
+
+    long wistart = -1;
+    int wkeyidx=0;
+
+    for (; pSearchCtx.Offset < pSearchCtx.StrHighIdx ; pSearchCtx.Offset++)
+    {
+        _Utf* wPtr=&Data[pSearchCtx.Offset]; /* for debug purpose */
+        ToCompareFromArray = utfUpper<_Utf>(Data[pSearchCtx.Offset]);
+        ToCompareFromKey = utfUpper<_Utf>(pSearchCtx.Key[wkeyidx]);
+        if (ToCompareFromKey==ToCompareFromArray)
+        {
+            if (wistart==-1)
+                wistart=pSearchCtx.Offset;
+            wkeyidx++;
+            if (wkeyidx==pSearchCtx.KeySize)
+            {
+                return (wistart);
+            }
+            continue;
+        }// if wKey
+        wkeyidx=0;
+        wistart=-1;
+    }
+    return (-1) ;
+} // bsearchCaseRegardlessNext
+
+/*
+template<class _Utf>
+ssize_t utfVaryingString<_Utf>::bsearchCaseRegardless(const utfVaryingString &pKey, ssize_t pOffset) const
 {
     return (bsearchCaseRegardless(pKey.Data,pKey.UnitCount,pOffset));
 }
+*/
 template <class _Utf>
 ssize_t
 utfVaryingString<_Utf>::bstartwithCaseRegardless (void *pKey, ssize_t pSize, ssize_t pOffset)
@@ -4006,72 +4241,6 @@ void utfVaryingString<_Utf>::Dump(const int pColumn, ssize_t pLimit, FILE* pOutp
   wUtfZDB.setData((const char*)Data,ByteSize);
   wUtfZDB.Dump(pColumn,pLimit,pOutput);
 }
-/*
-template <class _Utf>
-void utfVaryingString<_Utf>::Dump_1(const int pColumn, ssize_t pLimit, FILE* pOutput)
-{
-  ZDataBuffer wRulerAscii;
-  ZDataBuffer wRulerHexa;
-
-  int wColumn=rulerSetup (wRulerHexa, wRulerAscii,pColumn);
-
-
-  ZDataBuffer wLineChar;
-  ZDataBuffer wLineHexa;
-
-  if (!ByteSize)
-  {
-    fprintf(pOutput,"<empty>\n");
-    return;
-  }
-  if (!Data)
-  {
-    fprintf(pOutput,"<null>\n");
-    return;
-  }
-  size_t wLimit;
-  if ((pLimit > 0) && ((size_t)pLimit > ByteSize))
-    wLimit = (size_t)pLimit;
-  else
-    wLimit = ByteSize;
-
-  fprintf (pOutput,
-      "Offset  %s  %s\n",
-      wRulerHexa.DataChar,
-      wRulerAscii.DataChar);
-
-  size_t wOffset=0;
-  int wL=0;
-  while ((wOffset+(size_t)pColumn) < wLimit)
-    {
-    dumpHexa(wOffset,pColumn,wLineHexa,wLineChar);
-    fprintf(pOutput,"%6d |%s |%s|\n",wL,wLineHexa.DataChar,wLineChar.DataChar);
-    wL+=pColumn;
-    wOffset+=pColumn;
-    }
-
-  if (wLimit < ByteSize)
-  {
-    fprintf (pOutput," <%ld> bytes more not dumped.\n",ByteSize-pLimit);
-    return;
-  }
-  if (wOffset < wLimit)
-  {
-    char wFormat [50];
-
-    sprintf (wFormat,"#6d |#-%ds |#-%ds|\n",pColumn*3,pColumn);
-    wFormat[0]='%';
-    for (int wi=0;wFormat [wi]!='\0';wi++)
-      if (wFormat[wi]=='#')
-        wFormat[wi]='%';
-
-    dumpHexa(wOffset,(wLimit-wOffset),wLineHexa,wLineChar);
-
-    fprintf(pOutput,wFormat,wL,wLineHexa.DataChar,wLineChar.DataChar);
-  }
-  return;
-}//Dump
-*/
 
 template <class _Utf>
 /**
@@ -4081,7 +4250,7 @@ template <class _Utf>
  * @return a bool set to true if current string starts with given string pString
  */
 bool
-utfVaryingString<_Utf>::startsCaseWith(const _Utf* pString)
+utfVaryingString<_Utf>::startsCaseWith(const _Utf* pString) const
 {
   return !utfStrncasecmp<_Utf>(Data,pString,utfStrlen<_Utf>(pString));
 }
@@ -4107,13 +4276,28 @@ utfVaryingString<_Utf>::endsWith(const _Utf* pString) const
   _Utf* wPtr=_rfindEOSM();
   size_t wStrLen=utfStrlen<_Utf>(pString);
 
-  wPtr += wStrLen;
+  wPtr -= wStrLen;
   if (wPtr < Data)
     return false;
 
   return !utfStrncmp<_Utf>(wPtr,pString,wStrLen);
 }
 
+template <class _Utf>
+bool
+utfVaryingString<_Utf>::endsCaseWith(const _Utf* pString) const
+{
+    if (pString==nullptr)
+        return false;
+    _Utf* wPtr=_rfindEOSM();
+    size_t wStrLen=utfStrlen<_Utf>(pString);
+
+    wPtr -= wStrLen;
+    if (wPtr < Data)
+        return false;
+
+    return !utfStrncasecmp<_Utf>(wPtr,pString,wStrLen);
+}
 template <class _Utf>
 utfVaryingString<_Utf>
     utfVaryingString<_Utf>::toUpper(void) const

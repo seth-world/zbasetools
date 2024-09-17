@@ -88,6 +88,9 @@ const char * decode_ZStatus (ZStatus ZS)
           return ("ZS_TOBEDONE");
 
 
+        case ZS_HELP :
+            return ("ZS_HELP");
+
         case ZS_REJECTED :
           return ("ZS_REJECTED");
 
@@ -1063,10 +1066,16 @@ ZSpawn_Program_exit:
  * @param pProgram image path either full path or only image name  (searched within %PATH% env context)
  * @param argv arguments to launch the image with. LAST ARGUMENT MUST BE nullptr
  * @param[out] pPipeFd an array of 2 int for the created pipe (read,write). If nullptr (omitted), no pipe is returned
- * @return 0 if successfull, -1 if failed
+ * @return ZSpawn_Return a couple of 2 int :
+ *      - Status: following values are possible
+ *          __ZSPAWN_SUCCESS__   0     Operation went OK (no message)
+ *          __ZSPAWN_ERROR__    -1     Cannot create spawn process or cannot create pipe (message is issued on stderr)
+ *          __ZSPAWN_TIMEOUT__  -2     Child process timed out (message is issued on stderr)
+ *
+        - ChildStatus : any status from invoked program
  */
 
-ZSpawn_Return ZSpawn_Program(const char *pProgram,char * const argv[],const char *pWorkingDirectory, const int pMilliSecondsTimeout)
+ZSpawn_Return ZSpawn_Program(const char *pProgram,char *  argv[],const char *pWorkingDirectory, const int pMilliSecondsTimeout)
 {
 pid_t wPid = 0;
 int result = 0, filedes[2], wRet, status, wi;
@@ -1093,7 +1102,7 @@ struct ZSpawn_Return wReturn = {__ZSPAWN_ERROR__,-1};
             wArgv[wi+1]=argv[wi];
             wi ++;
             }
-
+    wArgv[wi+1] = 0;
     ArgEscaped[0]=new CEscapedString ((char *)pProgram);
     wArgv[0]= ArgEscaped[0]->Content;
     wi = 0;
@@ -1110,19 +1119,19 @@ struct ZSpawn_Return wReturn = {__ZSPAWN_ERROR__,-1};
 
     if (wPid < 0 ) // we are in the parent process and fork operation went wrong
     {
-        fprintf (stderr,"%s>>error creating fork process : %s\n",_GET_FUNCTION_NAME_,strerror(errno));
+        _ERRPRINT("%s>>error creating fork process : %s\n",_GET_FUNCTION_NAME_,strerror(errno));
         wReturn.Status=__ZSPAWN_ERROR__;
         return wReturn;
     }
 
     if (wPid != 0) // were are in the parent process (wPid not zero)
     {
-        fprintf (stdout,"%s>> Parent process : Created child process. PID: <%d>\n",_GET_FUNCTION_NAME_,wPid);
+        _DBGPRINT("%s>> Parent process : Created child process. PID: <%d>\n",_GET_FUNCTION_NAME_,wPid);
     }
     result = pipe(filedes); // create the pipe to communicate within both parent and child process
     if (result == -1)
         {
-        fprintf(stderr,"%s-E-PIPEFAILED>> Failed to create pipe %s\n",_GET_FUNCTION_NAME_,strerror(errno));
+        _ERRPRINT("%s-E-PIPEFAILED>> Failed to create pipe %s\n",_GET_FUNCTION_NAME_,strerror(errno));
         wReturn.Status=__ZSPAWN_ERROR__;
         return wReturn;
         }
@@ -1139,24 +1148,24 @@ struct ZSpawn_Return wReturn = {__ZSPAWN_ERROR__,-1};
         wRet=set_default_Directory(pWorkingDirectory);
         if (!wRet)
                     {
-                    fprintf(stdout,"%s-I-DIRSET>> Working directory set to %s\n",_GET_FUNCTION_NAME_,pWorkingDirectory);
+                    _DBGPRINT("%s-I-DIRSET>> Working directory set to %s\n",_GET_FUNCTION_NAME_,pWorkingDirectory);
                     }
                 else
                     {
-                    fprintf(stderr,"%s-E-DIRFAILED>> Failed to set Working directory to %s\n",_GET_FUNCTION_NAME_,pWorkingDirectory);
+                    _ERRPRINT("%s-E-DIRFAILED>> Failed to set Working directory to %s\n",_GET_FUNCTION_NAME_,pWorkingDirectory);
                     }
         }
-        fprintf(stdout,"%s-I-PROGPATH>> child process : program image file %s\n",_GET_FUNCTION_NAME_,wProgImage);
+        _DBGPRINT("%s-I-PROGPATH>> child process : program image file %s\n",_GET_FUNCTION_NAME_,wProgImage);
 
         for (int wi=0;ArgEscaped[wi]!=nullptr;wi ++)
                 {
-                fprintf (stdout,"                 argv[%d] : <%s>\n", wi, ArgEscaped[wi]->Content);
+                _DBGPRINT("                 argv[%d] : <%s>\n", wi, ArgEscaped[wi]->Content);
                 }
 
         wRet=execvp(ArgEscaped[0]->Content,wArgv) ; // Execute the program with given arguments
         if (wRet)
                 {
-                fprintf(stderr,"%s-E-EXECERR>> Child process-->Error executing program image : %s\n",_GET_FUNCTION_NAME_,strerror(errno));
+                _ERRPRINT("%s-E-EXECERR>> Child process-->Error executing program image : %s\n",_GET_FUNCTION_NAME_,strerror(errno));
                 exit(wRet); // child process exits with failure
                 }
 //        fprintf(stderr,"%s-E-EXIT>> Child Process returns : %s\n",_GET_FUNCTION_NAME_,WEXITSTATUS(wRet) );
@@ -1171,7 +1180,7 @@ int timeout =pMilliSecondsTimeout;
     {
         if (--timeout<0)
             {
-                fprintf(stderr,"%s-E-TIMEOUT>> Timeout <%d> milliseconds exhausted on child Process exhausted \n",
+                _ERRPRINT("%s-E-TIMEOUT>> Timeout <%d> milliseconds exhausted on child Process exhausted \n",
                         _GET_FUNCTION_NAME_ ,
                         pMilliSecondsTimeout);
                 wReturn.Status=__ZSPAWN_TIMEOUT__;
@@ -1181,12 +1190,12 @@ int timeout =pMilliSecondsTimeout;
     }// while
     if (wRet<0)
         {
-      fprintf(stderr,"%s-E-ERRWAIT>> Error waiting child process : %s  \n",_GET_FUNCTION_NAME_,strerror(errno) );
+      _ERRPRINT("%s-E-ERRWAIT>> Error waiting child process : %s  \n",_GET_FUNCTION_NAME_,strerror(errno) );
       wReturn.Status=__ZSPAWN_TIMEOUT__;
       return wReturn;
         }
     if (BaseParameters->VerboseBasic())
-        fprintf(stdout,"%s-E-EXIT>> Child Process returned status: <%d>\n",_GET_FUNCTION_NAME_,WEXITSTATUS(status) );
+        _ERRPRINT("%s-E-EXIT>> Child Process returned status: <%d>\n",_GET_FUNCTION_NAME_,WEXITSTATUS(status) );
     wReturn.ChildStatus = WEXITSTATUS(status);
     if (WIFEXITED(status))
         {

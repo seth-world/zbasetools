@@ -16,7 +16,7 @@
 #include "zdatecommon.h"
 #include <QUrl>
 
-
+#include "utfvaryingstring.h"
 
 /*
 #ifdef QT_CORE_LIB
@@ -25,8 +25,9 @@
 */
 
 
-#ifndef ZDIR_FILE_TYPE
-#define ZDIR_FILE_TYPE
+//#ifndef ZDIR_FILE_TYPE
+//#define ZDIR_FILE_TYPE
+/*
 typedef uint8_t ZDirFileEn_type;
 enum ZDirFileEn :  ZDirFileEn_type {
     ZDFT_Nothing        = 0,
@@ -35,10 +36,13 @@ enum ZDirFileEn :  ZDirFileEn_type {
     ZDFT_SymbolicLink   = 4,
     ZDFT_Other          = 8,
     ZDFT_Hidden         = 10,
-    ZDFT_All            = 0x0F
+    ZDFT_All            = 0xFF
 };
-#endif //ZDIR_FILE_TYPE
-
+*/
+//#endif //ZDIR_FILE_TYPE
+namespace zbs {
+typedef uint8_t ZDirFileEn_type;
+}
 
 
 /*
@@ -46,7 +50,8 @@ class utf8VaryingString;
 class utf16VaryingString;
 class utf32VaryingString;
 */
-#include "utfvaryingstring.h"
+
+
 
 using namespace zbs;
 
@@ -172,11 +177,13 @@ public:
 
     /** @brief getFileExtension give the part of base name located after '.' sign     */
     utf8VaryingString getFileExtension() const;
+
     /** @brief uriString::getDirectoryPath Returns the full file's directory path
      * i. e. </directory path/><root name>.<extension>
      * @return an utf8VaryingString with the full file's directory path including
      */
     uriString getDirectoryPath() const;
+
     /** @brief getLastDirectoryName Returns the last directory mentionned in file's directory path
         i. e. </.../last directory/><root name>.<extension>
      * @return utf8VaryingString with the last file's directory within its directory path or an empty string if uriString is empty.
@@ -189,6 +196,12 @@ public:
     * @return utf8VaryingString with the file's base name or an empty string if uriString is empty.
     */
     utf8VaryingString getBasename() const ;
+
+    /** @brief getPathTilExtension returns the full path of current uriString without file extension */
+    uriString getPathTilExtension() const ;
+
+    ZArray<uriString> getDirectoryList();
+
 
     /** @brief getRootname returns a utf8VaryingString containing the file's root name\n
      *  i. e. </directory path/><file's root name>.<extension>
@@ -212,7 +225,7 @@ public:
 
     void setExtension (const char* pExtension);
 
-    bool        isDirectory (void);
+    bool isDirectory(void) const;
     bool        isRegularFile(void);
 
     /**
@@ -264,6 +277,7 @@ public:
     static ZStatus copyFile(uriString pDest, const uriString pSource, uint8_t pOption=UCO_Nothing);
 
     uriString& addConditionalDirectoryDelimiter(void);
+    uriString& addWithLeadingCondDirDelim(const utf8VaryingString& pToAdd);
     uriString& addDirectoryDelimiter(void);
 
     uriString removeLastDirectoryDelimiter() const;
@@ -313,7 +327,7 @@ public:
      */
     uriStat getStatR( bool pLogZException=false) const;
 
-    ZStatus _getStat(struct stat& pStat, bool pLogZException) const;
+    ZStatus _getStat(struct statx &pStat, bool pLogZException) const;
 
     /** @brief changeAccessRights() change the access right of current file with pMode, linux mode
      *                              this routine resets errno, and errno will be set to internal error code if any.*/
@@ -383,6 +397,18 @@ public:
 
     bool    exists(void) const  ;
 
+    bool    isPath() const;
+    bool    possiblyIconSource() const ;
+
+    bool    possiblyText(void) const;
+    bool    possiblyHtml() const ;
+    bool    possiblyXml() const ;
+    bool    possiblyPdf() const ;
+    bool    possiblyOdf() const ;
+
+    bool    possiblyZMF(void) const;
+    bool    possiblyZRH(void) const;
+
     /** @brief createFile creates or replaces with an empty file of access rights pAccessRights
      *  returns a ZStatus : ZS_SUCCESS if everything went OK, for other statuses see rawOpen() returned statuses
      */
@@ -412,7 +438,7 @@ public:
 
 
     ZStatus fileList(ZArray<uriString>* pList=nullptr);
-    ZStatus list(ZArray<uriString>* pList=nullptr, ZDirFileEn_type pZDFT=ZDFT_All);
+    ZStatus list(ZArray<uriString>* pList=nullptr, ZDirFileEn_type pZDFT=0xFF);
     ZStatus subDir(ZArray<uriString>* pList=nullptr);
 
 

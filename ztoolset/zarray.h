@@ -188,6 +188,7 @@ public :
   using _Base::count;
   using _Base::size;
   using _Base::operator[];
+//  using _Base::operator<<;
 //  using _Base::swap;
 //  using _Base::iterator;
 
@@ -327,10 +328,11 @@ public:
    }
    /**
      * @brief operator << alias for push() method.
-     * @return rank of the element that have been pushed
+     * @return ZArray object instance
      */
-   long operator << ( _Tp pInput) {
-     return push(pInput);
+   ZArray<_Tp>& operator << ( _Tp pInput) {
+        push(pInput);
+       return *this;
    }
 
 
@@ -358,7 +360,9 @@ public:
    long pushConst(const _Tp &&pElement);
    long push_front (_Tp pElement) ;
 
-    long insert (_Tp &pElement, size_t pIdx);
+   long insert (_Tp &pElement, size_t pIdx);
+   long insert(_Tp &&pElement, size_t pIdx);
+
     long insert (_Tp *pElement, size_t pIdx, size_t pNumber);
 
     long erase(size_t pIdx);
@@ -818,7 +822,7 @@ long ZArray<_Tp>::swap (size_t pDest, size_t pOrig)
     return pDest;
   }
 
-  if (((pOrig+1)>lastIdx())||(pDest>lastIdx())) {// pOrig & pDest are unsigned longs so a negative longs will produce an outofboundaries error nevertheless
+  if ((pOrig > lastIdx())||(pDest>lastIdx())) {// pOrig & pDest are unsigned longs so a negative longs will produce an outofboundaries error nevertheless
 #if __DEBUG_LEVEL__ > 0
     fprintf (stderr, "ZArray::swap-E-OUTBOUND Error, given index <%ld> plus one is out of ZArray boundaries. Last index is <%ld>\n"
                     "                        OR destination index <%ld> is out of ZArray boundaries.\n",
@@ -866,6 +870,28 @@ long ZArray<_Tp>::insert(_Tp &pElement, size_t pIdx)
 #endif
   return (ZIdx);
 }// insert
+
+template <typename _Tp>
+/**
+ *   same as previous but for contants
+ */
+long ZArray<_Tp>::insert(_Tp &&pElement, size_t pIdx)
+{
+    if (pIdx >= _Base::size()) {
+        return push(pElement);
+    }
+#ifdef __ZTHREAD_AUTOMATIC__
+    _Mutex.lock();
+#endif
+
+    _Base::insert(pIdx,pElement);
+    ZIdx = pIdx;
+#ifdef __ZTHREAD_AUTOMATIC__
+    _Mutex.unlock();
+#endif
+    return (ZIdx);
+}// insert
+
 
 template <typename _Tp>
 long ZArray<_Tp>::_insertNoLock(_Tp &pElement, size_t pIdx)

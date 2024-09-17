@@ -14,16 +14,21 @@
 #include <ztoolset/utfvaryingstring.h>
 #include <ztoolset/uristring.h>
 
-#ifndef ZDIR_FILE_TYPE
-#define ZDIR_FILE_TYPE
-enum ZDir_File_type {
+
+
+
+namespace zbs {
+
+typedef uint8_t ZDirFileEn_type;
+enum ZDirFileEn :  ZDirFileEn_type {
     ZDFT_Nothing        = 0,
     ZDFT_RegularFile    = 1,
     ZDFT_Directory      = 2,
-    ZDFT_All            = 0x0f
+    ZDFT_SymbolicLink   = 4,
+    ZDFT_Other          = 8,
+    ZDFT_Hidden         = 10,
+    ZDFT_All            = 0xFF
 };
-#endif //ZDIR_FILE_TYPE
-
 
 class ZDirSortedByName;
 
@@ -39,6 +44,7 @@ public:
     {
         clear();
         Name = pIn.Name;
+        BaseName = pIn.BaseName;
         Size = pIn.Size;
         Uid = pIn.Uid;
         Created = pIn.Created;
@@ -50,6 +56,7 @@ public:
     void clear()
     {
         Name.clear();
+        BaseName.clear();
         Size = 0;
         Uid = 0;
         Created.clear();
@@ -61,15 +68,17 @@ public:
     DirMap &operator=(const DirMap &&pIn) { _copyFrom(pIn); return *this;}
 
     uriString           Name;
-    size_t              Size;
+    utf8VaryingString   BaseName;
+    size_t              Size = 0;
 
-    ZSystemUserId       Uid;
+    ZSystemUserId       Uid = 0;
     ZDateFull           Created;
     ZDateFull           Modified;
-    ZDirFileEn_type     Type;
+    ZDirFileEn_type     Type = 0;
 }; // DirMap
 
-
+class ZFileNameSelection;
+class ZFileSelection;
 
 class ZDir : public uriString
 {
@@ -106,6 +115,18 @@ public:
         uriString::clear();
     }
 
+    typedef uint8_t DENM_type;
+    enum DirEntryNameMatch : DENM_type
+    {
+        Nothing         =    0,  /* no filter */
+        All             =    0,
+        ExactMatch      =    2,  /* exact match (case regardless if CaseRegardless option is Ored */
+        StartsWith      =    4,
+        EndsWith        =    8,
+        Contains        =   StartsWith | EndsWith,
+        CaseRegardless  = 0x20,  /* if Ored, may combine with any other of above */
+    };
+
 /**
  * @brief ZDir::setPath initializes ZDir object with a directory path pPath. It requires a file descriptor.
  *  directory path object is destroyed and then, file descriptor is released, when object is destroyed.
@@ -117,6 +138,8 @@ public:
  *  if an error occurs, ZException is positionned with the appropriate message preceeded by errno symbolic value.
  */
     ZStatus setPath (const utf8VaryingString& pPath) ;
+
+    void reset() { closeDir();}
 
     /** @brief dir
      *
@@ -135,8 +158,12 @@ public:
 
     ZStatus fullDirAll(zbs::ZArray<::DirMap> &pDirArray, ZDirFileEn_type pZDFT = ZDFT_All);
 
-    ZStatus fullDir( ::DirMap &pDirEntry, ZDirFileEn_type pZDFT=ZDFT_All);
-    ZStatus fullDirNext(::DirMap &pDirEntry);
+    ZStatus fullDir( DirMap &pDirEntry, ZDirFileEn_type pZDFT=ZDFT_RegularFile|ZDFT_Directory|ZDFT_Hidden);
+//    ZStatus fullDirNext(::DirMap &pDirEntry);
+
+    ZStatus fullDirSel(DirMap &pDirEntry, ZFileSelection &pSelection, ZDirFileEn_type pTypeToSelect=ZDFT_RegularFile|ZDFT_Directory|ZDFT_Hidden);
+
+    ZStatus _fullDir(dirent* &wDirEntry, ZDirFileEn_type & pOutType, ZDirFileEn_type pTypeToSelect=ZDFT_All);
 
     ZStatus dirApprox(::DirMap &pDirEntry, const utf8VaryingString &pApprox, ZDirFileEn_type pZDFT);
     ZStatus dirApproxAll(zbs::ZArray<::DirMap> &pDirArray,const utf8VaryingString& pApprox, ZDirFileEn_type pZDFT = ZDFT_All);
@@ -184,13 +211,82 @@ private:
     ZDirFileEn_type ZDFT = ZDFT_All;
     ZDirSortedByName *DSBN = nullptr;
     long  DSBNIdx = -1;
-//    utf8_t Path[cst_urilen+1];
-
 };
+
+
+
+class ZFileNameSelection {
+public:
+    ZFileNameSelection() {}
+    ZFileNameSelection(const ZFileNameSelection& pIn) {_copyFrom(pIn);}
+    ZFileNameSelection& _copyFrom(const ZFileNameSelection& pIn);
+    void clear() {
+        SelRoot.clear();
+        SelExt.clear();
+        ExtFlag = RootFlag = ZDir::Nothing;
+    }
+
+
+    utf8VaryingString SelRoot;
+    ZDir::DENM_type RootFlag;
+    utf8VaryingString SelExt;
+    ZDir::DENM_type ExtFlag;
+};
+
+class ZFileSelection : public ZArray<ZFileNameSelection>
+{
+public:
+    ZFileSelection() {}
+    ZFileSelection(const ZFileSelection& pIn) {
+        _copyFrom(pIn);
+    }
+    ZFileSelection& _copyFrom(const ZFileSelection& pIn);
+
+    void clear();
+
+    ZFileSelection& addSelPhrase(const utf8VaryingString& pSelPhrase);
+    ZFileSelection& setSelPhrase(const utf8VaryingString& pSelPhrase);
+
+    void includeDirectories() {
+        BaseTypeMask |= ZDFT_Directory ;
+    }
+    void includeAll() {
+        BaseTypeMask |= ZDFT_All ;
+    }
+    void includeHidden() {
+        BaseTypeMask |= ZDFT_Hidden ;
+    }
+    void includeBaseTypes() {
+        BaseTypeMask |= (ZDFT_RegularFile | ZDFT_SymbolicLink) ;
+    }
+
+    ZFileSelection& operator=(const ZFileSelection& pIn) { return _copyFrom(pIn); }
+
+    ZFileSelection& operator << (const utf8VaryingString& pSelPhrase) ;
+
+    static void parseTerm(utf8_t *wPtr, utf8VaryingString&   pSelStr, ZDir::DENM_type&     pSelFlag);
+    static bool parseSingleFileNameSelection(utf8_t* pPtr, ZFileNameSelection& pFileNameSelection);
+    static void parseFileNameSelections(const utf8VaryingString& wSelContent, ZFileSelection& pSelection);
+
+    utf8VaryingString display() { return Phrase; }
+
+    utf8VaryingString dump();
+
+
+    utf8VaryingString Phrase;
+    ZDirFileEn_type BaseTypeMask = ZDFT_Nothing  ;
+};
+
+const char* decode_ZDFT(ZDirFileEn_type pType);
+const utf8VaryingString decode_DENM(ZDir::DENM_type pType);
+
+
+} // namespace zbs
 
 #ifdef __USE_WINDOWS__
 bool isDirectory(const char* dirName);
 bool isRegularFile(const char* dirName);
 #endif // __USE_WINDOWS__
+
 
 #endif // ZDIR_H

@@ -498,7 +498,7 @@ utf8VaryingString fmtXMLuint32Hexa(const utf8VaryingString &pVarName,const uint3
     char wBuffer[500];
     memset (wBuffer,0,sizeof(wBuffer));
     sprintf (wBuffer,
-            "%*c<%s>%X</%s>\n",
+            "%*c<%s>0x%0X</%s>\n",
             wIndent,' ',pVarName.toCChar(),pVarContent,pVarName.toCChar());
     return utf8VaryingString(wBuffer);
 }
