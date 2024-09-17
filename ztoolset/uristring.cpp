@@ -222,6 +222,20 @@ uriString::addConditionalDirectoryDelimiter(void)
     return(*this);
 }//addConditionalDirectoryDelimiter
 
+/**
+* @brief addConditionalDirectoryDelimiter  adds a directory delimiter if and only if there is no delimiter at the end of the uriString yet
+* if pToAdd is empty, then nothing is done and path content remains the same.
+*/
+uriString&
+uriString::addWithLeadingCondDirDelim(const utf8VaryingString& pToAdd)
+{
+    if (pToAdd.isEmpty())
+        return *this;
+    addConditionalDirectoryDelimiter();
+    add(pToAdd);
+    return(*this);
+}//addConditionalDirectoryDelimiter
+
 uriString
 uriString::removeLastDirectoryDelimiter(void) const
 {
@@ -263,6 +277,7 @@ uriString::check()
   }
   uriStat wStat;
   ZStatus wSt=getStatR(wStat);
+  return wSt;
 }
 
 //#include <unistd.h>
@@ -335,6 +350,26 @@ utf8VaryingString uriString::getFileExtension() const
     wExt=wPtr;
     return wExt;
 }
+
+uriString uriString::getPathTilExtension() const
+{
+    if (isEmpty())
+        return uriString ("");
+
+    utf8_t* wPtrToFree = utfStrdup(Data);
+    uriString wExt;
+
+    utf8_t *wPtr = utfStrchr(wPtrToFree,(utf8_t)'.');
+    if (wPtr==nullptr) {
+        free(wPtrToFree);
+        return *this ;
+    }
+    *wPtr='\0';
+    uriString wReturn (wPtrToFree);
+    free(wPtrToFree);
+    return wReturn;
+}
+
 
     /** @brief uriString::getDirectoryPath Returns the full file's directory path
      * i. e. </directory path/><root name>.<extension>
@@ -639,6 +674,28 @@ ZStatus uriString::remove() const
     return ZS_SUCCESS;
 } //remove
 
+
+uriString
+uriString::getBckName(const uriString &pName, const utf8VaryingString& pBckExt){
+    int wFormerNumber = 1;
+    uriString wBckURI ;
+    uriString wPathTilExt = pName.getPathTilExtension() ;
+
+    utf8VaryingString wExt = pName.getFileExtension();
+    utf8VaryingString wExtBck ;
+    wExtBck.sprintf(".%s_%s%02ld",wExt.toCChar(),pBckExt.toCChar(),wFormerNumber)  ;
+
+    wBckURI =  wPathTilExt + wExtBck ;
+
+    while (wBckURI.exists())
+    {
+        wFormerNumber ++;
+        wExtBck.sprintf(".%s_%s%02ld",wExt.toCChar(),pBckExt.toCChar(),wFormerNumber)  ;
+        wBckURI =  wPathTilExt + wExtBck ;
+    }
+    return wBckURI ;
+}
+
 ZStatus
 uriString::renameBck(const char* pBckExt) const
 {
@@ -647,15 +704,9 @@ uriString::renameBck(const char* pBckExt) const
         "Source file %s does not exist.",toString());
     return ZS_FILENOTEXIST;
   }
-int wFormerNumber = 1;
 
-  uriString wBckURI(*this);
 
-  while (wBckURI.exists())
-    {
-    wFormerNumber ++;
-    wBckURI.sprintf("%s_%s%02ld",toCChar(),pBckExt,wFormerNumber);
-    }
+  uriString wBckURI = getBckName(*this,pBckExt);
   return rename(wBckURI);
 } // renameBck
 
@@ -839,18 +890,6 @@ and neither the file named by old nor the file named by new shall be changed or 
 */
 } // rename
 
-uriString
-uriString::getBckName(const uriString &pName, const utf8VaryingString& pBckExt){
-  uriString wNewFileURI(pName);
-  int wFormerNumber = 1;
-  wNewFileURI.sprintf("%s_%s%02ld",pName.toString(),pBckExt.toString(),wFormerNumber);
-  while (wNewFileURI.exists())
-  {
-    wFormerNumber ++;
-    wNewFileURI.sprintf("%s_%s%02ld",wNewFileURI.toString(),pBckExt.toString(),wFormerNumber);
-  }
-  return wNewFileURI;
-}
 
 
 ZStatus

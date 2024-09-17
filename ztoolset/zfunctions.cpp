@@ -88,6 +88,9 @@ const char * decode_ZStatus (ZStatus ZS)
           return ("ZS_TOBEDONE");
 
 
+        case ZS_HELP :
+            return ("ZS_HELP");
+
         case ZS_REJECTED :
           return ("ZS_REJECTED");
 

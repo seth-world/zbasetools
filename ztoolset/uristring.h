@@ -190,6 +190,9 @@ public:
     */
     utf8VaryingString getBasename() const ;
 
+    /** @brief getPathTilExtension returns the full path of current uriString without file extension */
+    uriString getPathTilExtension() const ;
+
     /** @brief getRootname returns a utf8VaryingString containing the file's root name\n
      *  i. e. </directory path/><file's root name>.<extension>
      * @return utf8VaryingString with the file's root name (base name without extension) or an empty string if uriString is empty.
@@ -264,6 +267,7 @@ public:
     static ZStatus copyFile(uriString pDest, const uriString pSource, uint8_t pOption=UCO_Nothing);
 
     uriString& addConditionalDirectoryDelimiter(void);
+    uriString& addWithLeadingCondDirDelim(const utf8VaryingString& pToAdd);
     uriString& addDirectoryDelimiter(void);
 
     uriString removeLastDirectoryDelimiter() const;

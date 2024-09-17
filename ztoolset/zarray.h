@@ -818,7 +818,7 @@ long ZArray<_Tp>::swap (size_t pDest, size_t pOrig)
     return pDest;
   }
 
-  if (((pOrig+1)>lastIdx())||(pDest>lastIdx())) {// pOrig & pDest are unsigned longs so a negative longs will produce an outofboundaries error nevertheless
+  if ((pOrig > lastIdx())||(pDest>lastIdx())) {// pOrig & pDest are unsigned longs so a negative longs will produce an outofboundaries error nevertheless
 #if __DEBUG_LEVEL__ > 0
     fprintf (stderr, "ZArray::swap-E-OUTBOUND Error, given index <%ld> plus one is out of ZArray boundaries. Last index is <%ld>\n"
                     "                        OR destination index <%ld> is out of ZArray boundaries.\n",
